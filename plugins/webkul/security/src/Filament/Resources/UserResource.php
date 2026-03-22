@@ -2,6 +2,7 @@
 
 namespace Webkul\Security\Filament\Resources;
 
+use Closure;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -37,6 +38,8 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 use Webkul\Security\Enums\PermissionType;
 use Webkul\Security\Filament\Resources\UserResource\Pages\CreateUser;
@@ -44,6 +47,7 @@ use Webkul\Security\Filament\Resources\UserResource\Pages\EditUser;
 use Webkul\Security\Filament\Resources\UserResource\Pages\ListUsers;
 use Webkul\Security\Filament\Resources\UserResource\Pages\ViewUsers;
 use Webkul\Security\Models\User;
+use Webkul\Security\Settings\UserSettings;
 use Webkul\Security\Traits\HasResourcePermissionQuery;
 use Webkul\Support\Models\Company;
 
@@ -104,12 +108,14 @@ class UserResource extends Resource
                                             ->label(__('security::filament/resources/user.form.sections.general-information.fields.password'))
                                             ->password()
                                             ->required()
+                                            ->revealable(filament()->arePasswordsRevealable())
                                             ->hiddenOn('edit')
                                             ->maxLength(255)
                                             ->rule('min:8'),
                                         TextInput::make('password_confirmation')
                                             ->label(__('security::filament/resources/user.form.sections.general-information.fields.password-confirmation'))
                                             ->password()
+                                            ->revealable(filament()->arePasswordsRevealable())
                                             ->hiddenOn('edit')
                                             ->rule('required', fn ($get) => (bool) $get('password'))
                                             ->same('password'),
@@ -124,6 +130,19 @@ class UserResource extends Resource
                                             ->multiple()
                                             ->required()
                                             ->preload()
+                                            ->rule(function (?User $record) {
+                                                return function (string $attribute, $value, Closure $fail) use ($record): void {
+                                                    try {
+                                                        self::ensureAdminRoleConstraints($record, (array) $value);
+                                                    } catch (ValidationException $exception) {
+                                                        $messages = $exception->errors()['roles'] ?? [];
+
+                                                        foreach ($messages as $message) {
+                                                            $fail($message);
+                                                        }
+                                                    }
+                                                };
+                                            })
                                             ->searchable(),
                                         Select::make('resource_permission')
                                             ->label(__('security::filament/resources/user.form.sections.permissions.fields.resource-permission'))
@@ -166,7 +185,7 @@ class UserResource extends Resource
                                     ->schema([
                                         FileUpload::make('avatar')
                                             ->hiddenLabel()
-                                            ->imageResizeMode('cover')
+                                            ->automaticallyResizeImagesMode('cover')
                                             ->image()
                                             ->imageEditor()
                                             ->directory('users/avatars')
@@ -268,7 +287,6 @@ class UserResource extends Resource
                     ->badge()
                     ->listWithLineBreaks(),
                 TextColumn::make('roles.name')
-                    ->sortable()
                     ->label(__('security::filament/resources/user.table.columns.role')),
                 TextColumn::make('resource_permission')
                     ->label(__('security::filament/resources/user.table.columns.resource-permission'))
@@ -338,7 +356,18 @@ class UserResource extends Resource
                                 ->body(__('security::filament/resources/user.table.actions.edit.notification.body')),
                         ),
                     DeleteAction::make()
-                        ->hidden(fn ($record) => $record->trashed() || ! self::canDeleteUser($record))
+                        ->hidden(fn ($record) => $record->trashed())
+                        ->before(function (DeleteAction $action, $record): void {
+                            if (! self::canDeleteUser($record)) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title(__('security::filament/resources/user.table.actions.delete.notification.error.title'))
+                                    ->body(__('security::filament/resources/user.table.actions.delete.notification.error.body'))
+                                    ->send();
+
+                                $action->cancel();
+                            }
+                        })
                         ->successNotification(
                             Notification::make()
                                 ->success()
@@ -495,6 +524,81 @@ class UserResource extends Resource
     public static function canDeleteUser(User $record): bool
     {
         return ! $record->is_default && $record->id !== Auth::id();
+    }
+
+    public static function ensureAdminRoleConstraints(?User $record, array $roleIds): void
+    {
+        $adminRoleIds = self::getProtectedAdminRoleIds();
+
+        if ($adminRoleIds === []) {
+            return;
+        }
+
+        $normalizedRoleIds = array_map('intval', $roleIds);
+        $isAdminCurrently = $record?->roles()->whereKey($adminRoleIds)->exists() ?? false;
+        $willBeAdmin = count(array_intersect($adminRoleIds, $normalizedRoleIds)) > 0;
+        $adminUsersCount = User::query()
+            ->whereHas('roles', fn (Builder $query) => $query->whereKey($adminRoleIds))
+            ->count();
+
+        $firstUserId = User::min('id');
+        $isFirstUser = $record && $record->id === $firstUserId;
+
+        if (
+            $isFirstUser
+            && ! $willBeAdmin
+        ) {
+            throw ValidationException::withMessages([
+                'roles' => __('security::filament/resources/user.form.validation.first-user-must-be-admin'),
+            ]);
+        }
+
+        if (
+            $adminUsersCount === 1
+            && $isAdminCurrently
+            && ! $willBeAdmin
+        ) {
+            throw ValidationException::withMessages([
+                'roles' => __('security::filament/resources/user.form.validation.cannot-remove-last-admin'),
+            ]);
+        }
+    }
+
+    protected static function getProtectedAdminRoleIds(): array
+    {
+        $defaultRoleId = app(UserSettings::class)->default_role_id;
+
+        $candidateNames = array_values(array_filter([
+            config('filament-shield.panel_user.name'),
+            config('filament-shield.super_admin.name'),
+            'admin',
+            'Admin',
+            'panel_user',
+            'super_admin',
+        ]));
+
+        $normalizedCandidateNames = array_unique(
+            array_map(static fn (string $name): string => Str::lower(trim($name)), $candidateNames)
+        );
+
+        $roleIdsFromNames = Role::query()
+            ->get(['id', 'name'])
+            ->filter(function (Role $role) use ($normalizedCandidateNames) {
+                $normalizedRoleName = Str::lower($role->name);
+
+                return in_array($normalizedRoleName, $normalizedCandidateNames, true)
+                    || str_contains($normalizedRoleName, 'admin');
+            })
+            ->pluck('id')
+            ->map(static fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        return collect($roleIdsFromNames)
+            ->when($defaultRoleId, fn ($collection) => $collection->push((int) $defaultRoleId))
+            ->unique()
+            ->values()
+            ->all();
     }
 
     public static function getPages(): array

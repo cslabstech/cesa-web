@@ -67,8 +67,35 @@ class PurchaseOrder
 
     public function confirmPurchaseOrder(Order $record): Order
     {
+        $user = Auth::user();
+
+        $settings = static::getOrderSettings();
+
+        $requiresApproval = $settings->enable_order_approval;
+
+        $amountExceeds = $record->total_amount >= $settings->order_validation_amount;
+
+        $needsApproval = $requiresApproval && $amountExceeds;
+
+        if (! $needsApproval) {
+            return $this->finalizeOrder($record, $settings);
+        }
+
+        if (static::canUserApprove($user)) {
+            return $this->finalizeOrder($record, $settings);
+        }
+
         $record->update([
-            'state'       => static::getOrderSettings()->enable_lock_confirmed_orders
+            'state' => PurchaseEnums\OrderState::TO_APPROVE,
+        ]);
+
+        return $this->computePurchaseOrder($record);
+    }
+
+    private function finalizeOrder(Order $record, $settings): Order
+    {
+        $record->update([
+            'state' => $settings->enable_lock_confirmed_orders
                 ? PurchaseEnums\OrderState::DONE
                 : PurchaseEnums\OrderState::PURCHASE,
             'approved_at' => now(),
@@ -77,6 +104,19 @@ class PurchaseOrder
         $record = $this->computePurchaseOrder($record);
 
         return $record;
+    }
+
+    public function canUserApprove($user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if (in_array($user->resource_permission, [\Webkul\Security\Enums\PermissionType::GLOBAL, \Webkul\Security\Enums\PermissionType::GROUP])) {
+            return true;
+        }
+
+        return false;
     }
 
     public function sendPurchaseOrder(Order $record, array $data): Order
@@ -460,7 +500,7 @@ class PurchaseOrder
 
             $totalScheduledQty = $validatedQty + $pendingQty;
 
-            $requiredQty = $line->product_qty;
+            $requiredQty = $line->product_uom_qty;
 
             $diffQty = $requiredQty - $totalScheduledQty;
 
@@ -551,12 +591,11 @@ class PurchaseOrder
         }
 
         if ($firstMove) {
-            $uomQty = $line->uom->computeQuantity($targetQty, $line->product->uom, true, 'HALF-UP');
-
             $firstMove->update([
+                'uom_id'          => $line->product->uom_id,
                 'product_qty'     => $targetQty,
-                'product_uom_qty' => $uomQty,
-                'quantity'        => $uomQty,
+                'product_uom_qty' => $targetQty,
+                'quantity'        => $targetQty,
             ]);
 
             foreach ($draftOperations as $operation) {
@@ -579,8 +618,6 @@ class PurchaseOrder
             $targetOperation = $draftOperations->first();
 
             if ($targetOperation) {
-                $uomQty = $line->uom->computeQuantity($targetQty, $line->product->uom, true, 'HALF-UP');
-
                 Move::create([
                     'operation_id'            => $targetOperation->id,
                     'name'                    => $targetOperation->name,
@@ -593,9 +630,9 @@ class PurchaseOrder
                     'product_packaging_id'    => $line->product_packaging_id,
                     'product_id'              => $line->product_id,
                     'product_qty'             => $targetQty,
-                    'product_uom_qty'         => $uomQty,
-                    'quantity'                => $uomQty,
-                    'uom_id'                  => $line->uom_id,
+                    'product_uom_qty'         => $targetQty,
+                    'quantity'                => $targetQty,
+                    'uom_id'                  => $line->product->uom_id,
                     'partner_id'              => $targetOperation->partner_id,
                     'warehouse_id'            => $targetOperation->destinationLocation->warehouse_id,
                     'source_location_id'      => $targetOperation->source_location_id,
@@ -642,12 +679,11 @@ class PurchaseOrder
                     if (! $firstMove) {
                         $firstMove = $move;
 
-                        $uomQty = $line->uom->computeQuantity($targetQty, $line->product->uom, true, 'HALF-UP');
-
                         $firstMove->update([
+                            'uom_id'          => $line->product->uom_id,
                             'product_qty'     => $targetQty,
-                            'product_uom_qty' => $uomQty,
-                            'quantity'        => $uomQty,
+                            'product_uom_qty' => $targetQty,
+                            'quantity'        => $targetQty,
                         ]);
                     } else {
                         $move->update([
@@ -685,9 +721,9 @@ class PurchaseOrder
                 'product_packaging_id'    => $line->product_packaging_id,
                 'product_id'              => $line->product_id,
                 'product_qty'             => $qty,
-                'product_uom_qty'         => $line->uom->computeQuantity($qty, $line->product->uom, true, 'HALF-UP'),
-                'quantity'                => $line->uom->computeQuantity($qty, $line->product->uom, true, 'HALF-UP'),
-                'uom_id'                  => $line->uom_id,
+                'product_uom_qty'         => $qty,
+                'quantity'                => $qty,
+                'uom_id'                  => $line->product->uom_id,
                 'partner_id'              => $existingDraftOperation->partner_id,
                 'warehouse_id'            => $existingDraftOperation->destinationLocation->warehouse_id,
                 'source_location_id'      => $existingDraftOperation->source_location_id,
@@ -726,9 +762,9 @@ class PurchaseOrder
                 'product_packaging_id'    => $line->product_packaging_id,
                 'product_id'              => $line->product_id,
                 'product_qty'             => $qty,
-                'product_uom_qty'         => $line->uom->computeQuantity($qty, $line->product->uom, true, 'HALF-UP'),
-                'quantity'                => $line->uom->computeQuantity($qty, $line->product->uom, true, 'HALF-UP'),
-                'uom_id'                  => $line->uom_id,
+                'product_uom_qty'         => $qty,
+                'quantity'                => $qty,
+                'uom_id'                  => $line->product->uom_id,
                 'partner_id'              => $operation->partner_id,
                 'warehouse_id'            => $operation->destinationLocation->warehouse_id,
                 'source_location_id'      => $operation->source_location_id,

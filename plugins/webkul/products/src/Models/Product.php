@@ -108,12 +108,12 @@ class Product extends Model implements Sortable
 
     public function uom(): BelongsTo
     {
-        return $this->belongsTo(UOM::class);
+        return $this->belongsTo(UOM::class, 'uom_id');
     }
 
     public function uomPO(): BelongsTo
     {
-        return $this->belongsTo(UOM::class);
+        return $this->belongsTo(UOM::class, 'uom_po_id');
     }
 
     public function category(): BelongsTo
@@ -188,25 +188,27 @@ class Product extends Model implements Sortable
         }
 
         $existingVariants = $this->variants()->get();
-        
+
         $generateCombinations = function ($attrs, $current = [], $index = 0) use (&$generateCombinations) {
             if ($index >= $attrs->count()) {
                 return [$current];
             }
 
             return collect($attrs[$index]->values)
-                ->flatMap(fn($value) => $generateCombinations($attrs, array_merge($current, [$value]), $index + 1))
+                ->flatMap(fn ($value) => $generateCombinations($attrs, array_merge($current, [$value]), $index + 1))
                 ->all();
         };
 
         $getVariantDetails = function ($combination) {
-            $name = $this->name . ' - ' . collect($combination)
-                ->map(fn($value) => $value->attributeOption->name)
+            $name = $this->name.' - '.collect($combination)
+                ->map(fn ($value) => $value->attributeOption->name)
                 ->implode(' / ');
 
             $price = $this->price + collect($combination)->sum('extra_price');
 
-            return compact('name', 'price');
+            $cost = $this->cost;
+
+            return compact('name', 'price', 'cost');
         };
 
         $findVariant = function ($combination) use ($existingVariants) {
@@ -226,7 +228,7 @@ class Product extends Model implements Sortable
         $syncCombinations = function ($variant, $combination) {
             ProductCombination::where('product_id', $variant->id)->delete();
 
-            collect($combination)->each(fn($value) => ProductCombination::create([
+            collect($combination)->each(fn ($value) => ProductCombination::create([
                 'product_id'                 => $variant->id,
                 'product_attribute_value_id' => $value->id,
             ]));
@@ -259,7 +261,7 @@ class Product extends Model implements Sortable
                         'description_purchase' => $this->description_purchase,
                         'description_sale'     => $this->description_sale,
                         'barcode'              => null,
-                        'reference'            => $this->reference . '-' . strtolower(str_replace(' ', '-', $details['name'])),
+                        'reference'            => $this->reference.'-'.strtolower(str_replace(' ', '-', $details['name'])),
                         'images'               => $this->images,
                     ]);
                 }
@@ -290,6 +292,14 @@ class Product extends Model implements Sortable
 
         static::saved(function ($product) {
             $product->variants->each(fn ($variant) => $variant->update(['is_storable' => $product->is_storable]));
+        });
+
+        static::deleting(function (self $product) {
+            if ($product->isForceDeleting()) {
+                $product->variants()->forceDelete();
+            } else {
+                $product->variants()->delete();
+            }
         });
     }
 

@@ -1040,35 +1040,36 @@ class BillResource extends Resource
             ->table([
                 TableColumn::make('product_id')
                     ->label(__('accounts::filament/resources/bill.form.tabs.invoice-lines.repeater.products.columns.product'))
-                    ->width(250)
+                    ->width(300)
+                    ->resizable()
                     ->markAsRequired()
                     ->toggleable(),
                 TableColumn::make('quantity')
                     ->label(__('accounts::filament/resources/bill.form.tabs.invoice-lines.repeater.products.columns.quantity'))
-                    ->width(150)
+                    ->resizable()
                     ->markAsRequired()
                     ->toggleable(),
                 TableColumn::make('uom_id')
                     ->label(__('accounts::filament/resources/bill.form.tabs.invoice-lines.repeater.products.columns.unit'))
-                    ->width(150)
+                    ->resizable()
                     ->markAsRequired()
                     ->visible(fn () => resolve(ProductSettings::class)->enable_uom)
                     ->toggleable(),
                 TableColumn::make('price_unit')
                     ->label(__('accounts::filament/resources/bill.form.tabs.invoice-lines.repeater.products.columns.unit-price'))
-                    ->width(150)
+                    ->resizable()
                     ->markAsRequired(),
                 TableColumn::make('discount')
                     ->label(__('accounts::filament/resources/bill.form.tabs.invoice-lines.repeater.products.columns.discount-percentage'))
-                    ->width(150)
+                    ->resizable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TableColumn::make('taxes')
                     ->label(__('accounts::filament/resources/bill.form.tabs.invoice-lines.repeater.products.columns.taxes'))
-                    ->width(250)
+                    ->resizable()
                     ->toggleable(),
                 TableColumn::make('price_subtotal')
                     ->label(__('accounts::filament/resources/bill.form.tabs.invoice-lines.repeater.products.columns.sub-total'))
-                    ->width(150)
+                    ->resizable()
                     ->toggleable(),
             ])
             ->schema([
@@ -1084,6 +1085,7 @@ class BillResource extends Resource
                     ->searchable()
                     ->preload()
                     ->live()
+                    ->wrapOptionLabels(false)
                     ->getOptionLabelFromRecordUsing(function ($record): string {
                         return $record->name.($record->trashed() ? ' (Deleted)' : '');
                     })
@@ -1127,10 +1129,17 @@ class BillResource extends Resource
                     ->relationship(
                         'uom',
                         'name',
-                        fn ($query) => $query->where('category_id', 1)->orderBy('id'),
+                        function (Builder $query, Get $get) {
+                            $product = Product::find($get('product_id'));
+                            $categoryId = $product?->uom?->category_id;
+
+                            return $query->when($categoryId, fn ($q) => $q->where('category_id', $categoryId))->orderBy('id');
+                        },
                     )
+                    ->wrapOptionLabels(false)
                     ->required()
                     ->live()
+                    ->native(false)
                     ->selectablePlaceholder(false)
                     ->dehydrated()
                     ->disabled(fn ($record) => in_array($record?->parent_state, [MoveState::POSTED, MoveState::CANCEL]))
@@ -1164,6 +1173,7 @@ class BillResource extends Resource
                         'name',
                         modifyQueryUsing: fn (Builder $query) => $query->where('type_tax_use', TypeTaxUse::PURCHASE),
                     )
+                    ->wrapOptionLabels(false)
                     ->searchable()
                     ->multiple()
                     ->preload()
@@ -1210,7 +1220,7 @@ class BillResource extends Resource
 
         $set('uom_id', $product->uom_id);
 
-        $priceUnit = static::calculateUnitPrice($get('uom_id'), $product);
+        $priceUnit = static::calculateUnitPrice($product->uom_id, $product);
 
         if ($get('../../currency_id')) {
             $currency = Currency::find($get('../../currency_id'));
@@ -1267,24 +1277,34 @@ class BillResource extends Resource
 
     private static function calculateUnitQuantity($uomId, $quantity)
     {
-        if (! $uomId) {
-            return $quantity;
+        if (! $uomId || ! filled($quantity)) {
+            return (float) ($quantity ?? 0);
         }
 
-        $uom = Uom::find($uomId);
+        $fromUom = UOM::find($uomId);
 
-        return (float) ($quantity ?? 0) / $uom->factor;
+        if (! $fromUom) {
+            return (float) ($quantity ?? 0);
+        }
+
+        $referenceUom = UOM::where('category_id', $fromUom->category_id)->orderBy('factor')->first();
+
+        if (! $referenceUom) {
+            return (float) ($quantity ?? 0);
+        }
+
+        return $fromUom->computeQuantity((float) ($quantity ?? 0), $referenceUom, false);
     }
 
     private static function calculateUnitPrice($uomId, $product)
     {
         $price = $product->price ?? $product->cost;
 
-        if (! $uomId) {
+        if (! $uomId || ! $product->uom) {
             return $price;
         }
 
-        $uomQty = Uom::find($uomId)->computeQuantity(1, $product->uom, true, 'HALF-UP');
+        $uomQty = UOM::find($uomId)->computeQuantity(1, $product->uom, false);
 
         return (float) ($price * $uomQty);
     }

@@ -13,6 +13,11 @@ return [
     ],
 
     'form' => [
+        'validation' => [
+            'cannot-remove-last-admin'   => 'Cannot remove the admin role from the last admin user.',
+            'first-user-must-be-admin'   => 'The first user in the system must be assigned an admin role.',
+        ],
+
         'sections' => [
             'general-information' => [
                 'title'  => 'General Information',
@@ -90,6 +95,10 @@ return [
                 'notification' => [
                     'title' => 'User deleted',
                     'body'  => 'The user has been deleted successfully.',
+                    'error' => [
+                        'title' => 'User Cannot Be Deleted',
+                        'body'  => 'This is a default user or you cannot delete yourself.',
+                    ],
                 ],
             ],
 
