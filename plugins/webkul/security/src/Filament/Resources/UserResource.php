@@ -198,6 +198,8 @@ class UserResource extends Resource
                                             ->label(__('security::filament/resources/user.form.sections.lang-and-status.fields.language'))
                                             ->options([
                                                 'en' => __('English'),
+                                                'id' => __('Bahasa Indonesia'),
+                                                'ar' => __('العربية'),
                                             ])
                                             ->searchable(),
                                         Toggle::make('is_active')

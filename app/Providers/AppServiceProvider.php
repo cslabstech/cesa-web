@@ -3,19 +3,17 @@
 namespace App\Providers;
 
 use BezhanSalleh\LanguageSwitch\LanguageSwitch;
-use Filament\Support\Facades\FilamentView;
-use Filament\View\PanelsRenderHook;
-use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\HtmlString;
 use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Support\Facades\FilamentView;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\ServiceProvider;
 use Webkul\Security\Models\User;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Routing\Router;
-use Illuminate\Routing\PendingResourceRegistration;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -48,7 +46,7 @@ class AppServiceProvider extends ServiceProvider
                         return $segment;
                     }
 
-                    $parentParam = str_replace('-', '_', str($segments[$index - 1])->singular()->toString()) . '_id';
+                    $parentParam = str_replace('-', '_', str($segments[$index - 1])->singular()->toString()).'_id';
 
                     return "{{$parentParam}}/{$segment}";
                 })
@@ -61,25 +59,27 @@ class AppServiceProvider extends ServiceProvider
                 ->name("{$name}.force-destroy");
         });
 
-        Fieldset::configureUsing(fn(Fieldset $fieldset) => $fieldset
+        Fieldset::configureUsing(fn (Fieldset $fieldset) => $fieldset
             ->columnSpanFull());
 
-        Grid::configureUsing(fn(Grid $grid) => $grid
+        Grid::configureUsing(fn (Grid $grid) => $grid
             ->columnSpanFull());
 
-        Section::configureUsing(fn(Section $section) => $section
+        Section::configureUsing(fn (Section $section) => $section
             ->columnSpanFull());
 
         // Configure Language Switch for Admin Panel
         LanguageSwitch::configureUsing(function (LanguageSwitch $switch) {
             $switch
-                ->locales(['en', 'ar'])
+                ->locales(['en', 'id', 'ar'])
                 ->labels([
                     'en' => 'English',
+                    'id' => 'Bahasa Indonesia',
                     'ar' => 'العربية',
                 ])
                 ->flags([
                     'en' => asset('flags/en.svg'),
+                    'id' => asset('flags/id.svg'),
                     'ar' => asset('flags/ar.svg'),
                 ])
                 ->circular();
@@ -92,8 +92,8 @@ class AppServiceProvider extends ServiceProvider
             $direction = $isRtl ? 'rtl' : 'ltr';
 
             $view->with([
-                'isRtl' => $isRtl,
-                'direction' => $direction,
+                'isRtl'         => $isRtl,
+                'direction'     => $direction,
                 'currentLocale' => $locale,
             ]);
         });
@@ -111,13 +111,13 @@ class AppServiceProvider extends ServiceProvider
         // Add RTL script to Filament panels
         FilamentView::registerRenderHook(
             PanelsRenderHook::BODY_START,
-            fn() => new HtmlString($this->getRtlScript()),
+            fn () => new HtmlString($this->getRtlScript()),
         );
 
         // Add RTL CSS to Filament panels
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
-            fn() => new HtmlString($this->getRtlStyles()),
+            fn () => new HtmlString($this->getRtlStyles()),
         );
     }
 
@@ -142,11 +142,11 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function getRtlStyles(): string
     {
-        if (!in_array(app()->getLocale(), $this->rtlLocales)) {
+        if (! in_array(app()->getLocale(), $this->rtlLocales)) {
             return '';
         }
 
-        return <<<HTML
+        return <<<'HTML'
         <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
             /* Arabic Font */

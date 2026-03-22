@@ -30,6 +30,9 @@
                     <a href="{{ url('?lang=en') }}" class="px-3 py-1.5 text-sm rounded-lg transition {{ app()->getLocale() === 'en' ? 'bg-blue-600 text-white' : 'bg-white/80 text-gray-700 hover:bg-white' }}">
                         English
                     </a>
+                    <a href="{{ url('?lang=id') }}" class="px-3 py-1.5 text-sm rounded-lg transition {{ app()->getLocale() === 'id' ? 'bg-blue-600 text-white' : 'bg-white/80 text-gray-700 hover:bg-white' }}">
+                        Indonesia
+                    </a>
                     <a href="{{ url('?lang=ar') }}" class="px-3 py-1.5 text-sm rounded-lg transition {{ app()->getLocale() === 'ar' ? 'bg-blue-600 text-white' : 'bg-white/80 text-gray-700 hover:bg-white' }}">
                         العربية
                     </a>

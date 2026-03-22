@@ -14,6 +14,9 @@
                     <path fill="#fff" d="M250 300h140v20H250z"/>
                 </svg>
                 <span class="hidden sm:inline">العربية</span>
+            @elseif(app()->getLocale() === 'id')
+                <img src="{{ asset('flags/id.svg') }}" alt="Indonesia" class="w-5 h-5 rounded-sm object-cover">
+                <span class="hidden sm:inline">Indonesia</span>
             @else
                 <svg class="w-5 h-5 rounded-sm" viewBox="0 0 640 480" xmlns="http://www.w3.org/2000/svg">
                     <path fill="#bd3d44" d="M0 0h640v37H0zm0 74h640v37H0zm0 73h640v37H0zm0 73h640v37H0zm0 74h640v36H0zm0 73h640v37H0zm0 73h640v37H0z"/>
@@ -52,6 +55,18 @@
                     </svg>
                     <span>English</span>
                     @if(app()->getLocale() === 'en')
+                        <svg class="w-4 h-4 {{ app()->getLocale() === 'ar' ? 'mr-auto' : 'ml-auto' }}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    @endif
+                </a>
+                <a 
+                    href="{{ request()->fullUrlWithQuery(['lang' => 'id']) }}"
+                    class="flex items-center gap-3 px-4 py-2 text-sm {{ app()->getLocale() === 'id' ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/50 dark:text-primary-400' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700' }}"
+                >
+                    <img src="{{ asset('flags/id.svg') }}" alt="Indonesia" class="w-5 h-5 rounded-sm object-cover">
+                    <span>Indonesia</span>
+                    @if(app()->getLocale() === 'id')
                         <svg class="w-4 h-4 {{ app()->getLocale() === 'ar' ? 'mr-auto' : 'ml-auto' }}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>

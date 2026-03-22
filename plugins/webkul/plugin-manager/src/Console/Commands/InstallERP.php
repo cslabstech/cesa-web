@@ -423,7 +423,7 @@ class InstallERP extends Command
             [
                 'group'   => 'currency',
                 'name'    => 'default_currency_id',
-                'payload' => Currency::active()->first()?->id,
+                'payload' => $this->resolveDefaultCurrencyId(),
             ],
         ];
 
@@ -440,5 +440,26 @@ class InstallERP extends Command
                 ]
             );
         }
+    }
+
+    private function resolveDefaultCurrencyId(): ?int
+    {
+        $configuredCurrencyCode = strtoupper((string) config('app.currency'));
+
+        if ($configuredCurrencyCode !== '') {
+            $configuredCurrency = Currency::query()
+                ->where('name', $configuredCurrencyCode)
+                ->first();
+
+            if ($configuredCurrency) {
+                if (! $configuredCurrency->active) {
+                    $configuredCurrency->update(['active' => true]);
+                }
+
+                return $configuredCurrency->id;
+            }
+        }
+
+        return Currency::active()->first()?->id;
     }
 }
