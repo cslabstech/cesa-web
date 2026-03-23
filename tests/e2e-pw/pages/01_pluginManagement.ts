@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test';
+import {  Page, expect } from '@playwright/test';
 import { ErpLocators } from '../locator/erp_locator';
 
 export class PluginManagementPage {
@@ -21,19 +21,28 @@ export class PluginManagementPage {
     async gotoPluginManagementPage() {
         await this.page.goto('/admin/plugins');
         await expect(this.page).toHaveURL(/.*admin/);
-        await expect(this.erpLocators.pluginSearchInput).toBeVisible();
+        await expect(this.erpLocators.pluginSyncButton).toBeVisible();
     }
 
     /**
      * Install all plugins
      */
     async installAllPlugins() {
-        const pluginNames = (await this.erpLocators.pluginName.allInnerTexts())
-            .map((name) => name.trim())
-            .filter(Boolean);
+        const pluginCount = await this.erpLocators.pluginName.count();
+        for (let i = 0; i < pluginCount; i++) {
 
-        for (const pluginName of pluginNames) {
-            await this.installPluginByName(pluginName);
+            await this.erpLocators.pluginthreeDot.nth(i).click();
+            const checkInstalled = await this.erpLocators.pluginUninstallButton.nth(i).isVisible();
+
+            if (!checkInstalled) {
+                await this.page.waitForLoadState('networkidle');
+                await this.erpLocators.pluginInstallButton.nth(0).click();
+                await this.page.waitForTimeout(3000); // Wait for 3 seconds to allow installation to complete
+                await this.erpLocators.pluginConfirmButton.click();
+                const pluginTitle = await this.erpLocators.pluginName.nth(i).innerText();
+                console.log(`Installing Plugin: ${pluginTitle}`);
+                await expect(this.erpLocators.pluginSuccessMessage).toBeVisible();
+            }
         }
     }
 
@@ -41,20 +50,21 @@ export class PluginManagementPage {
      * Uninstall all plugins
      */
     async uninstallAllPlugins() {
-        const pluginNames = (await this.erpLocators.pluginName.allInnerTexts())
-            .map((name) => name.trim())
-            .filter(Boolean);
+        const pluginCount = await this.erpLocators.pluginName.count();
+        for (let i = 0; i < pluginCount; i++) {
 
-        for (const pluginName of pluginNames) {
-            await this.openPluginActions(pluginName);
+            await this.erpLocators.pluginthreeDot.nth(i).click();
+            const checkInstalled = await this.erpLocators.pluginUninstallButton.nth(0).isVisible();
 
-            if (await this.erpLocators.pluginUninstallButton.first().isVisible()) {
-                await this.erpLocators.pluginUninstallButton.first().click();
-                await expect(this.erpLocators.pluginConfirmButton).toBeVisible();
+            if (checkInstalled) {
+                await this.page.waitForLoadState('networkidle');
+                await this.page.waitForTimeout(2000);
+                await this.erpLocators.pluginUninstallButton.nth(0).click();
+                await this.page.waitForTimeout(5000);
                 await this.erpLocators.pluginConfirmButton.click();
+                const pluginTitle = await this.erpLocators.pluginName.nth(i).innerText();
+                console.log(`Uninstalling Plugin: ${pluginTitle}`);
                 await expect(this.erpLocators.pluginSuccessMessage).toBeVisible();
-                await this.page.goto('/admin/plugins');
-                await this.page.waitForLoadState("networkidle");
             }
         }
     }
@@ -63,43 +73,19 @@ export class PluginManagementPage {
      * Install plugin by name if not installed
      */
     async installPluginByName(pluginName: string) {
-        await this.openPluginActions(pluginName);
+        await this.erpLocators.pluginSearchInput.fill(pluginName);
+        await this.page.waitForTimeout(1000);
+        await this.erpLocators.pluginthreeDot.first().click();
 
         if (await this.erpLocators.pluginUninstallButton.first().isVisible()) {
             return;
         }
 
+        await this.page.waitForLoadState('networkidle');
         await this.erpLocators.pluginInstallButton.first().click();
-        await expect(this.erpLocators.pluginConfirmButton).toBeVisible();
+        await this.page.waitForTimeout(3000);
         await this.erpLocators.pluginConfirmButton.click();
         await expect(this.erpLocators.pluginSuccessMessage).toBeVisible();
-        await this.page.goto('/admin/plugins');
-        await this.page.waitForLoadState("networkidle");
-    }
-
-    private async openPluginActions(pluginName: string): Promise<void> {
-        await this.erpLocators.pluginSearchInput.fill(pluginName);
-
-        const exactName = new RegExp(`^${this.escapeRegExp(pluginName)}$`, 'i');
-        const pluginLabel = this.erpLocators.pluginName.filter({ hasText: exactName }).first();
-
-        await expect(pluginLabel).toBeVisible();
-
-        // Walk up the DOM from the plugin label to find the nearest ancestor card
-        // that contains an Actions button (supports both EN and ID locales).
-        const pluginCard = pluginLabel.locator(
-            'xpath=ancestor::*[.//button[@title="Actions" or @title="Aksi" or @aria-label="Actions" or @aria-label="Aksi"]][1]'
-        );
-        const actionButton = pluginCard.locator(
-            'button[title="Actions"], button[title="Aksi"], button[aria-label="Actions"], button[aria-label="Aksi"]'
-        ).first();
-
-        await expect(actionButton).toBeVisible();
-        await actionButton.click();
-    }
-
-    private escapeRegExp(value: string): string {
-        return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
     // /**

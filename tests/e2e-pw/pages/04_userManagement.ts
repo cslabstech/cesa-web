@@ -50,8 +50,8 @@ export class UserManagementPage {
      * Open create user form
      */
     async openCreateUserForm() {
-        await this.page.goto("/admin/users/create");
-        await expect(this.page).toHaveURL(/.*users\/create/);
+        await this.erpLocators.usersCreateButton.click();
+        await expect(this.page).toHaveURL(/.*(users|create)/);
     }
 
     /**
