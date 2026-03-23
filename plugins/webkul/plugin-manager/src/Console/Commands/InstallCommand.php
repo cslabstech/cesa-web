@@ -12,9 +12,12 @@ use Spatie\Permission\Models\Role;
 use Throwable;
 use Webkul\PluginManager\Models\Plugin;
 use Webkul\PluginManager\Package;
+use Webkul\PluginManager\Traits\ResolvesProcessBinaries;
 
 class InstallCommand extends Command
 {
+    use ResolvesProcessBinaries;
+
     protected Package $package;
 
     public ?Closure $startWith = null;
@@ -436,7 +439,7 @@ class InstallCommand extends Command
 
             $artisan = escapeshellarg(base_path('artisan'));
 
-            $cmd = $this->buildTimeoutCommand(60, "$php $artisan shield:generate --all --option=permissions --panel=admin 2>&1");
+            $cmd = self::buildTimeoutCommand(60, "$php $artisan shield:generate --all --option=permissions --panel=admin 2>&1");
 
             exec($cmd, $output, $exitCode);
 
@@ -468,49 +471,5 @@ class InstallCommand extends Command
         }
     }
 
-    protected function getPhpExecutablePath(): string
-    {
-        $phpPath = trim(shell_exec('which php 2>/dev/null') ?: '');
-
-        if (
-            $phpPath
-            && file_exists($phpPath)
-        ) {
-            return $phpPath;
-        }
-
-        $phpPath = PHP_BINARY;
-
-        if (strpos($phpPath, 'fpm') !== false) {
-            $phpPath = str_replace('fpm', '', $phpPath);
-        }
-
-        if (file_exists($phpPath)) {
-            return $phpPath;
-        }
-
-        $commonPaths = [
-            '/usr/local/bin/php',
-            '/usr/bin/php',
-            '/opt/homebrew/bin/php',
-            '/Users/'.get_current_user().'/Library/Application Support/Herd/bin/php',
-        ];
-
-        foreach ($commonPaths as $path) {
-            if (file_exists($path)) {
-                return $path;
-            }
-        }
-
-        return 'php';
-    }
-
-    protected function buildTimeoutCommand(int $seconds, string $command): string
-    {
-        if (PHP_OS_FAMILY === 'Windows') {
-            return $command;
-        }
-
-        return "timeout {$seconds} {$command}";
-    }
+    // Duplicated binary resolution methods have been extracted to ResolvesProcessBinaries trait
 }

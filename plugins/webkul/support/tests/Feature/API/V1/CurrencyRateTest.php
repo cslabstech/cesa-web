@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Carbon;
 use Webkul\Support\Models\Currency;
 use Webkul\Support\Models\CurrencyRate;
 
@@ -104,7 +105,7 @@ it('creates a currency rate with valid payload', function () {
 
     $this->assertDatabaseHas('currency_rates', [
         'currency_id' => $currency->id,
-        'name'        => $payload['name'],
+        'name'        => Carbon::parse($payload['name'])->toDateString(),
     ]);
 });
 

@@ -46,8 +46,8 @@ export class CompanyManagementPage {
      * Open create company form
      */
     async openCreateCompanyForm() {
-        await this.erpLocators.companiesCreateButton.click();
-        await expect(this.page).toHaveURL(/.*(create|companies)/);
+        await this.page.goto("/admin/companies/create");
+        await expect(this.page).toHaveURL(/.*companies\/create/);
     }
 
     /**

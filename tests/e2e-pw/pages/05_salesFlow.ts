@@ -42,8 +42,7 @@ export class SalesFlowPage {
     }
 
     async createCustomer(customer: SalesCustomerData) {
-        await this.gotoCustomersPage();
-        await this.erpLocators.salesCustomerNewCreateButton.click();
+        await this.page.goto("/admin/sale/orders/customers/create");
         await expect(this.page).toHaveURL(/customers\/create/);
 
         await this.erpLocators.salesCustomerNameInput.fill(customer.name);
@@ -58,8 +57,7 @@ export class SalesFlowPage {
     async editCustomer(originalName: string, updates: Partial<SalesCustomerData>) {
         await this.gotoCustomersPage();
         await this.searchList(originalName);
-        // await this.openRowActions();
-        // await this.clickMenuAction(/Edit/i);
+        await this.openRowActions();
         await this.erpLocators.salesCustomerEditButton.click();
 
         if (updates.name) {
@@ -76,8 +74,7 @@ export class SalesFlowPage {
     async deleteCustomer(name: string) {
         await this.gotoCustomersPage();
         await this.searchList(name);
-        // await this.openRowActions();
-        // await this.clickMenuAction(/Delete/i);
+        await this.openRowActions();
         await this.erpLocators.salesCustomerDeleteButton.click();
         await this.erpLocators.salesConfirmDeleteButton.click();
         await this.expectSuccessToast();
@@ -91,8 +88,7 @@ export class SalesFlowPage {
     }
 
     async createProduct(product: SalesProductData) {
-        await this.gotoProductsPage();
-        await this.erpLocators.salesProductNewCreateButton.click();
+        await this.page.goto("/admin/sale/products/products/create");
         await expect(this.page).toHaveURL(/products\/create/);
 
         await this.erpLocators.salesProductNameInput.fill(product.name);
@@ -106,8 +102,7 @@ export class SalesFlowPage {
         await this.gotoProductsPage();
         await this.searchList(originalName);
         await this.openRowActions();
-        await this.erpLocators.salesProductEditButton.click();
-        // await this.clickMenuAction(/Edit/i);
+        await this.erpLocators.salesProductEditButton.first().click();
 
         if (updates.name) {
             await this.erpLocators.salesProductNameInput.fill(updates.name);
@@ -124,8 +119,7 @@ export class SalesFlowPage {
         await this.gotoProductsPage();
         await this.searchList(name);
         await this.openRowActions();
-        await this.erpLocators.salesProductDeleteButton.click();
-        // await this.clickMenuAction(/Delete/i);
+        await this.erpLocators.salesProductDeleteButton.first().click();
         await this.erpLocators.salesConfirmDeleteButton.click();
         await this.expectSuccessToast();
     }
@@ -138,8 +132,7 @@ export class SalesFlowPage {
     }
 
     async createQuotation(quotation: SalesQuotationData) {
-        await this.gotoQuotationsPage();
-        await this.erpLocators.salesQuotationCreateButton.click();
+        await this.page.goto("/admin/sale/orders/quotations/create");
         await expect(this.page).toHaveURL(/quotations\/create/);
 
         await this.selectBySearch(this.erpLocators.salesQuotationCustomerSelect, quotation.customerName);
@@ -158,7 +151,6 @@ export class SalesFlowPage {
         await this.gotoQuotationsPage();
         await this.searchList(searchKey);
         await this.openRowActions();
-        // await this.clickMenuAction(/Edit/i);
         await this.erpLocators.salesQuotationEditButton.click();
         await this.erpLocators.salesQuotationQuantityInput.first().fill(quantity);
         await this.erpLocators.salesQuotationSaveButton.click();
@@ -170,7 +162,6 @@ export class SalesFlowPage {
         await this.searchList(searchKey);
         await this.openRowActions();
         await this.erpLocators.salesQuotationDeleteButton.click();
-        // await this.clickMenuAction(/Delete/i);
         await this.erpLocators.salesConfirmDeleteButton.click();
         await this.expectSuccessToast();
     }

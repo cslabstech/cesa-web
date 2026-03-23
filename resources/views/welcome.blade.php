@@ -44,8 +44,8 @@
                     <!-- Header -->
                     <header class="flex items-center justify-between py-10">
                         <div class="flex items-center gap-3">
-                            @if(file_exists(public_path('images/logo.svg')))
-                                <img src="{{ asset('images/logo.svg') }}" alt="AureusERP" class="h-10 w-auto" />
+                            @if(file_exists(public_path('images/logo.png')))
+                                <img src="{{ asset('images/logo.png') }}" alt="AureusERP" class="h-10 w-auto" />
                             @else
                                 <div class="flex items-center gap-2">
                                     <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
