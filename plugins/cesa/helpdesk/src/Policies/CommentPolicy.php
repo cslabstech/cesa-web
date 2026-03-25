@@ -1,0 +1,45 @@
+<?php
+
+namespace Cesa\Helpdesk\Policies;
+
+use Cesa\Helpdesk\Models\Comment;
+use Webkul\Security\Models\User;
+
+class CommentPolicy
+{
+    public function viewAny(User $user): bool
+    {
+        return true;
+    }
+
+    public function view(User $user, Comment $comment): bool
+    {
+        $ticketPolicy = app(TicketPolicy::class);
+
+        if (! $ticketPolicy->view($user, $comment->ticket)) {
+            return false;
+        }
+
+        if ($comment->isInternal()) {
+            return $ticketPolicy->viewInternalNotes($user, $comment->ticket);
+        }
+
+        return true;
+    }
+
+    public function create(User $user): bool
+    {
+        return true;
+    }
+
+    public function update(User $user, Comment $comment): bool
+    {
+        return $user->getKey() === $comment->user_id
+            && ! $comment->ticket?->isTerminal();
+    }
+
+    public function delete(User $user, Comment $comment): bool
+    {
+        return $user->getKey() === $comment->user_id || $user->can('delete_helpdesk_ticket');
+    }
+}
