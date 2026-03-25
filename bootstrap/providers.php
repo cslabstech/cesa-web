@@ -3,14 +3,39 @@
 use App\Providers\AppServiceProvider;
 use App\Providers\Filament\AdminPanelProvider;
 use App\Providers\Filament\CustomerPanelProvider;
+use Cesa\ExitClearance\ExitClearanceServiceProvider;
+use Cesa\FormTransfer\FormTransferServiceProvider;
+use Cesa\Helpdesk\HelpdeskServiceProvider;
+use Cesa\Kepegawaian\KepegawaianServiceProvider;
+use Cesa\Payroll\PayrollServiceProvider;
+use Cesa\Presensi\PresensiServiceProvider;
+use Cesa\Rekrutmen\RekrutmenServiceProvider;
+use Cesa\Shelf\ShelfServiceProvider;
+use Webkul\Account\AccountServiceProvider;
+use Webkul\Accounting\AccountingServiceProvider;
 use Webkul\Analytic\AnalyticServiceProvider;
+use Webkul\Blog\BlogServiceProvider;
 use Webkul\Chatter\ChatterServiceProvider;
+use Webkul\Contact\ContactServiceProvider;
+use Webkul\Employee\EmployeeServiceProvider;
 use Webkul\Field\FieldServiceProvider;
+use Webkul\FullCalendar\FullCalendarServiceProvider;
+use Webkul\Inventory\InventoryServiceProvider;
+use Webkul\Invoice\InvoiceServiceProvider;
 use Webkul\Partner\PartnerServiceProvider;
+use Webkul\Payment\PaymentServiceProvider;
 use Webkul\PluginManager\PluginManagerServiceProvider;
+use Webkul\Product\ProductServiceProvider;
+use Webkul\Project\ProjectServiceProvider;
+use Webkul\Purchase\PurchaseServiceProvider;
+use Webkul\Recruitment\RecruitmentServiceProvider;
+use Webkul\Sale\SaleServiceProvider;
 use Webkul\Security\SecurityServiceProvider;
 use Webkul\Support\SupportServiceProvider;
 use Webkul\TableViews\TableViewsServiceProvider;
+use Webkul\TimeOff\TimeOffServiceProvider;
+use Webkul\Timesheet\TimesheetServiceProvider;
+use Webkul\Website\WebsiteServiceProvider;
 
 return [
     // App Providers
@@ -29,21 +54,31 @@ return [
     PluginManagerServiceProvider::class,
 
     // Installable Plugins — each requires `php artisan [module]:install`
-    Webkul\Accounting\AccountingServiceProvider::class,
-    Webkul\Account\AccountServiceProvider::class,
-    Webkul\Blog\BlogServiceProvider::class,
-    Webkul\Contact\ContactServiceProvider::class,
-    Webkul\Employee\EmployeeServiceProvider::class,
-    Webkul\FullCalendar\FullCalendarServiceProvider::class,
-    Webkul\Inventory\InventoryServiceProvider::class,
-    Webkul\Invoice\InvoiceServiceProvider::class,
-    Webkul\Payment\PaymentServiceProvider::class,
-    Webkul\Product\ProductServiceProvider::class,
-    Webkul\Project\ProjectServiceProvider::class,
-    Webkul\Purchase\PurchaseServiceProvider::class,
-    Webkul\Recruitment\RecruitmentServiceProvider::class,
-    Webkul\Sale\SaleServiceProvider::class,
-    Webkul\TimeOff\TimeOffServiceProvider::class,
-    Webkul\Timesheet\TimesheetServiceProvider::class,
-    Webkul\Website\WebsiteServiceProvider::class,
+    AccountingServiceProvider::class,
+    AccountServiceProvider::class,
+    BlogServiceProvider::class,
+    ContactServiceProvider::class,
+    EmployeeServiceProvider::class,
+    FullCalendarServiceProvider::class,
+    InventoryServiceProvider::class,
+    InvoiceServiceProvider::class,
+    PaymentServiceProvider::class,
+    ProductServiceProvider::class,
+    ProjectServiceProvider::class,
+    PurchaseServiceProvider::class,
+    RecruitmentServiceProvider::class,
+    SaleServiceProvider::class,
+    TimeOffServiceProvider::class,
+    TimesheetServiceProvider::class,
+    WebsiteServiceProvider::class,
+
+    // CESA Plugins
+    ExitClearanceServiceProvider::class,
+    FormTransferServiceProvider::class,
+    HelpdeskServiceProvider::class,
+    KepegawaianServiceProvider::class,
+    PayrollServiceProvider::class,
+    PresensiServiceProvider::class,
+    RekrutmenServiceProvider::class,
+    ShelfServiceProvider::class,
 ];

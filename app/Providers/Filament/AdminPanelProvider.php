@@ -93,6 +93,30 @@ class AdminPanelProvider extends PanelProvider
                     ->label(__('admin.navigation.website'))
                     ->icon('icon-website'),
                 NavigationGroup::make()
+                    ->label(__('admin.navigation.exit-clearance'))
+                    ->icon('icon-exit-clearance'),
+                NavigationGroup::make()
+                    ->label(__('admin.navigation.form-transfer'))
+                    ->icon('icon-form-transfer'),
+                NavigationGroup::make()
+                    ->label(__('admin.navigation.helpdesk'))
+                    ->icon('icon-helpdesk'),
+                NavigationGroup::make()
+                    ->label(__('admin.navigation.kepegawaian'))
+                    ->icon('icon-kepegawaian'),
+                NavigationGroup::make()
+                    ->label(__('admin.navigation.payroll'))
+                    ->icon('icon-payroll'),
+                NavigationGroup::make()
+                    ->label(__('admin.navigation.presensi'))
+                    ->icon('icon-presensi'),
+                NavigationGroup::make()
+                    ->label(__('admin.navigation.rekrutmen'))
+                    ->icon('icon-rekrutmen'),
+                NavigationGroup::make()
+                    ->label(__('admin.navigation.shelf'))
+                    ->icon('icon-shelf'),
+                NavigationGroup::make()
                     ->label(__('admin.navigation.plugin'))
                     ->icon('icon-plugin'),
                 NavigationGroup::make()
