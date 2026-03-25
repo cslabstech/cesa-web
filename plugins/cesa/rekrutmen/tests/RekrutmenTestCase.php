@@ -18,6 +18,7 @@ abstract class RekrutmenTestCase extends TestCase
         $this->useSqliteInMemoryDatabase();
 
         parent::setUp();
+        $this->withoutVite();
         $this->app->register(RekrutmenServiceProvider::class);
 
         if (! Route::has('rekrutmen.public.request-man-power.progress')) {

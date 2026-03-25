@@ -103,7 +103,7 @@ class I18nTest extends TestCase
             app()->setLocale($locale);
 
             $this->assertSame(
-                trans('shelf::app.config.navigation.label', [], $locale),
+                trans('shelf::filament/clusters/configurations.navigation.title', [], $locale),
                 Configurations::getNavigationLabel()
             );
 
@@ -208,7 +208,7 @@ class I18nTest extends TestCase
             ->kebab()
             ->toString();
 
-        return "shelf::filament.resources.{$resourceKey}";
+        return "shelf::filament/resources/{$resourceKey}";
     }
 
     /**

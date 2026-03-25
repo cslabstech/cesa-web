@@ -13,8 +13,8 @@ enum StatusKebutuhan: string implements HasColor, HasLabel
     public function getLabel(): ?string
     {
         return match ($this) {
-            self::NEW_HIRING  => __('rekrutmen::app.enums.status_kebutuhan.new_hiring'),
-            self::REPLACEMENT => __('rekrutmen::app.enums.status_kebutuhan.replacement'),
+            self::NEW_HIRING  => __('rekrutmen::enums/status-kebutuhan.new_hiring'),
+            self::REPLACEMENT => __('rekrutmen::enums/status-kebutuhan.replacement'),
         };
     }
 

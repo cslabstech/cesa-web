@@ -37,17 +37,17 @@ class TicketResource extends HelpdeskResource
 
     public static function getNavigationLabel(): string
     {
-        return __('helpdesk::app.resources.ticket.plural');
+        return __('helpdesk::filament/resources/ticket.label.plural');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('helpdesk::app.resources.ticket.plural');
+        return __('helpdesk::filament/resources/ticket.label.plural');
     }
 
     public static function getModelLabel(): string
     {
-        return __('helpdesk::app.resources.ticket.single');
+        return __('helpdesk::filament/resources/ticket.label.single');
     }
 
     public static function form(Schema $schema): Schema
@@ -55,10 +55,10 @@ class TicketResource extends HelpdeskResource
         return $schema
             ->components([
                 Grid::make(3)->schema([
-                    Section::make('Ticket Detail')
+                    Section::make(__('helpdesk::filament/resources/ticket.form.sections.ticket_detail'))
                         ->schema([
                             Forms\Components\Select::make('unit_id')
-                                ->label('Unit')
+                                ->label(__('helpdesk::filament/resources/ticket.form.fields.unit_id'))
                                 ->relationship('unit', 'name')
                                 ->searchable()
                                 ->preload()
@@ -79,7 +79,7 @@ class TicketResource extends HelpdeskResource
                                     }
                                 }),
                             Forms\Components\Select::make('problem_category_id')
-                                ->label('Problem Category')
+                                ->label(__('helpdesk::filament/resources/ticket.form.fields.problem_category_id'))
                                 ->options(function (Get $get): array {
                                     $unitId = $get('unit_id');
 
@@ -101,13 +101,15 @@ class TicketResource extends HelpdeskResource
                                     }
                                 }),
                             Forms\Components\TextInput::make('title')
+                                ->label(__('helpdesk::filament/resources/ticket.form.fields.title'))
                                 ->required()
                                 ->maxLength(255),
                             Forms\Components\RichEditor::make('description')
+                                ->label(__('helpdesk::filament/resources/ticket.form.fields.description'))
                                 ->required()
                                 ->columnSpanFull(),
                             Forms\Components\FileUpload::make('supporting_attachments')
-                                ->label('Supporting Attachments')
+                                ->label(__('helpdesk::filament/resources/ticket.form.fields.supporting_attachments'))
                                 ->multiple()
                                 ->disk(config('helpdesk.attachments.ticket.disk'))
                                 ->directory(config('helpdesk.attachments.ticket.directory'))
@@ -119,54 +121,54 @@ class TicketResource extends HelpdeskResource
                                 ->columnSpanFull(),
                         ])
                         ->columnSpan(2),
-                    Section::make('Assignment')
+                    Section::make(__('helpdesk::filament/resources/ticket.form.sections.assignment'))
                         ->schema([
                             Forms\Components\Select::make('priority_id')
-                                ->label('Priority')
+                                ->label(__('helpdesk::filament/resources/ticket.form.fields.priority_id'))
                                 ->relationship('priority', 'name')
                                 ->searchable()
                                 ->preload()
                                 ->required(),
                             Forms\Components\Select::make('company_id')
-                                ->label('Company')
+                                ->label(__('helpdesk::filament/resources/ticket.form.fields.company_id'))
                                 ->options(static::companyOptions())
                                 ->default(static::defaultCompanyId())
                                 ->searchable()
                                 ->required(),
                             Forms\Components\Placeholder::make('ticket_status_name')
-                                ->label('Status')
-                                ->content(fn (?Ticket $record): string => $record?->ticketStatus?->name ?? 'Open'),
+                                ->label(__('helpdesk::filament/resources/ticket.form.fields.ticket_status_name'))
+                                ->content(fn (?Ticket $record): string => $record?->ticketStatus?->name ?? __('helpdesk::filament/resources/ticket.form.placeholders.open')),
                             Forms\Components\Select::make('responsible_id')
-                                ->label('Responsible')
+                                ->label(__('helpdesk::filament/resources/ticket.form.fields.responsible_id'))
                                 ->options(fn (Get $get): array => static::unitUserOptions($get('unit_id')))
                                 ->searchable()
                                 ->visible(fn (): bool => static::userCan('update_helpdesk_ticket'))
                                 ->hiddenOn('create'),
                             Forms\Components\Placeholder::make('owner_name')
-                                ->label('Owner')
-                                ->content(fn (?Ticket $record): string => $record?->owner?->name ?? '-')
+                                ->label(__('helpdesk::filament/resources/ticket.form.fields.owner_name'))
+                                ->content(fn (?Ticket $record): string => $record?->owner?->name ?? __('helpdesk::filament/resources/ticket.form.placeholders.dash'))
                                 ->hiddenOn('create'),
                             Forms\Components\Placeholder::make('approved_at')
-                                ->label('Approved At')
-                                ->content(fn (?Ticket $record): string => $record?->approved_at?->format('d M Y H:i') ?? '-')
+                                ->label(__('helpdesk::filament/resources/ticket.form.fields.approved_at'))
+                                ->content(fn (?Ticket $record): string => $record?->approved_at?->format('d M Y H:i') ?? __('helpdesk::filament/resources/ticket.form.placeholders.dash'))
                                 ->hiddenOn('create'),
                             Forms\Components\Placeholder::make('solved_at')
-                                ->label('Solved At')
-                                ->content(fn (?Ticket $record): string => $record?->solved_at?->format('d M Y H:i') ?? '-')
+                                ->label(__('helpdesk::filament/resources/ticket.form.fields.solved_at'))
+                                ->content(fn (?Ticket $record): string => $record?->solved_at?->format('d M Y H:i') ?? __('helpdesk::filament/resources/ticket.form.placeholders.dash'))
                                 ->hiddenOn('create'),
                             Forms\Components\Placeholder::make('close_reason')
-                                ->label('Close Reason')
-                                ->content(fn (?Ticket $record): string => $record?->close_reason ?? '-')
+                                ->label(__('helpdesk::filament/resources/ticket.form.fields.close_reason'))
+                                ->content(fn (?Ticket $record): string => $record?->close_reason ?? __('helpdesk::filament/resources/ticket.form.placeholders.dash'))
                                 ->hidden(fn (?Ticket $record): bool => blank($record?->close_reason))
                                 ->hiddenOn('create'),
                             Forms\Components\Placeholder::make('cancel_reason')
-                                ->label('Cancel Reason')
-                                ->content(fn (?Ticket $record): string => $record?->cancel_reason ?? '-')
+                                ->label(__('helpdesk::filament/resources/ticket.form.fields.cancel_reason'))
+                                ->content(fn (?Ticket $record): string => $record?->cancel_reason ?? __('helpdesk::filament/resources/ticket.form.placeholders.dash'))
                                 ->hidden(fn (?Ticket $record): bool => blank($record?->cancel_reason))
                                 ->hiddenOn('create'),
                             Forms\Components\Placeholder::make('reopen_reason')
-                                ->label('Reopen Reason')
-                                ->content(fn (?Ticket $record): string => $record?->reopen_reason ?? '-')
+                                ->label(__('helpdesk::filament/resources/ticket.form.fields.reopen_reason'))
+                                ->content(fn (?Ticket $record): string => $record?->reopen_reason ?? __('helpdesk::filament/resources/ticket.form.placeholders.dash'))
                                 ->hidden(fn (?Ticket $record): bool => blank($record?->reopen_reason))
                                 ->hiddenOn('create'),
                         ])
@@ -188,15 +190,15 @@ class TicketResource extends HelpdeskResource
                     ->wrap()
                     ->description(fn (Ticket $record): string => ($record->owner?->name ?? '-').' / '.($record->company?->name ?? '-')),
                 Tables\Columns\TextColumn::make('unit.name')
-                    ->label('Unit')
+                    ->label(__('helpdesk::filament/resources/ticket.table.columns.unit'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('problemCategory.name')
-                    ->label('Category')
+                    ->label(__('helpdesk::filament/resources/ticket.table.columns.category'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('priority.name')
-                    ->label('Priority')
+                    ->label(__('helpdesk::filament/resources/ticket.table.columns.priority'))
                     ->badge()
                     ->color(fn (?string $state): string => match ($state) {
                         'Critical/Urgent' => 'danger',
@@ -206,7 +208,7 @@ class TicketResource extends HelpdeskResource
                         default           => 'success',
                     }),
                 Tables\Columns\TextColumn::make('ticketStatus.name')
-                    ->label('Status')
+                    ->label(__('helpdesk::filament/resources/ticket.table.columns.status'))
                     ->badge()
                     ->color(fn (?string $state): string => match ($state) {
                         'Open'        => 'gray',
@@ -216,29 +218,30 @@ class TicketResource extends HelpdeskResource
                         default       => 'info',
                     }),
                 Tables\Columns\TextColumn::make('responsible.name')
-                    ->label('Responsible')
-                    ->placeholder('-')
+                    ->label(__('helpdesk::filament/resources/ticket.table.columns.responsible'))
+                    ->placeholder(__('helpdesk::filament/resources/ticket.table.placeholders.dash'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label(__('helpdesk::filament/resources/ticket.table.columns.created_at'))
                     ->dateTime('d M Y H:i')
                     ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('unit_id')
-                    ->label('Unit')
+                    ->label(__('helpdesk::filament/resources/ticket.table.filters.unit_id'))
                     ->relationship('unit', 'name')
                     ->preload(),
                 Tables\Filters\SelectFilter::make('ticket_status_id')
-                    ->label('Status')
+                    ->label(__('helpdesk::filament/resources/ticket.table.filters.ticket_status_id'))
                     ->relationship('ticketStatus', 'name')
                     ->preload(),
                 Tables\Filters\SelectFilter::make('priority_id')
-                    ->label('Priority')
+                    ->label(__('helpdesk::filament/resources/ticket.table.filters.priority_id'))
                     ->relationship('priority', 'name')
                     ->preload(),
                 Tables\Filters\SelectFilter::make('responsible_id')
-                    ->label('Responsible')
+                    ->label(__('helpdesk::filament/resources/ticket.table.filters.responsible_id'))
                     ->options(User::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id')->all()),
             ])
             ->actions([
@@ -257,46 +260,51 @@ class TicketResource extends HelpdeskResource
     {
         return $schema
             ->components([
-                Section::make('Ticket Detail')
+                Section::make(__('helpdesk::filament/resources/ticket.infolist.sections.ticket_detail'))
                     ->schema([
                         Infolists\Components\TextEntry::make('title'),
                         Infolists\Components\TextEntry::make('description')
                             ->html()
                             ->columnSpanFull(),
                         Infolists\Components\TextEntry::make('unit.name')
-                            ->label('Unit'),
+                            ->label(__('helpdesk::filament/resources/ticket.infolist.entries.unit')),
                         Infolists\Components\TextEntry::make('problemCategory.name')
-                            ->label('Category'),
+                            ->label(__('helpdesk::filament/resources/ticket.infolist.entries.category')),
                         Infolists\Components\TextEntry::make('priority.name')
-                            ->label('Priority'),
+                            ->label(__('helpdesk::filament/resources/ticket.infolist.entries.priority')),
                         Infolists\Components\TextEntry::make('ticketStatus.name')
-                            ->label('Status'),
+                            ->label(__('helpdesk::filament/resources/ticket.infolist.entries.status')),
                         Infolists\Components\TextEntry::make('company.name')
-                            ->label('Company')
-                            ->placeholder('-'),
+                            ->label(__('helpdesk::filament/resources/ticket.infolist.entries.company'))
+                            ->placeholder(__('helpdesk::filament/resources/ticket.infolist.placeholders.dash')),
                         Infolists\Components\TextEntry::make('owner.name')
-                            ->label('Owner'),
+                            ->label(__('helpdesk::filament/resources/ticket.infolist.entries.owner')),
                         Infolists\Components\TextEntry::make('responsible.name')
-                            ->label('Responsible')
-                            ->placeholder('-'),
+                            ->label(__('helpdesk::filament/resources/ticket.infolist.entries.responsible'))
+                            ->placeholder(__('helpdesk::filament/resources/ticket.infolist.placeholders.dash')),
                         Infolists\Components\TextEntry::make('approved_at')
+                            ->label(__('helpdesk::filament/resources/ticket.infolist.entries.approved_at'))
                             ->dateTime('d M Y H:i')
-                            ->placeholder('-'),
+                            ->placeholder(__('helpdesk::filament/resources/ticket.infolist.placeholders.dash')),
                         Infolists\Components\TextEntry::make('solved_at')
+                            ->label(__('helpdesk::filament/resources/ticket.infolist.entries.solved_at'))
                             ->dateTime('d M Y H:i')
-                            ->placeholder('-'),
+                            ->placeholder(__('helpdesk::filament/resources/ticket.infolist.placeholders.dash')),
                         Infolists\Components\TextEntry::make('close_reason')
-                            ->placeholder('-'),
+                            ->label(__('helpdesk::filament/resources/ticket.infolist.entries.close_reason'))
+                            ->placeholder(__('helpdesk::filament/resources/ticket.infolist.placeholders.dash')),
                         Infolists\Components\TextEntry::make('cancel_reason')
-                            ->placeholder('-'),
+                            ->label(__('helpdesk::filament/resources/ticket.infolist.entries.cancel_reason'))
+                            ->placeholder(__('helpdesk::filament/resources/ticket.infolist.placeholders.dash')),
                         Infolists\Components\TextEntry::make('reopen_reason')
-                            ->placeholder('-'),
+                            ->label(__('helpdesk::filament/resources/ticket.infolist.entries.reopen_reason'))
+                            ->placeholder(__('helpdesk::filament/resources/ticket.infolist.placeholders.dash')),
                     ])
                     ->columns(2),
-                Section::make('Attachments')
+                Section::make(__('helpdesk::filament/resources/ticket.infolist.sections.attachments'))
                     ->schema([
                         Infolists\Components\TextEntry::make('supporting_attachments')
-                            ->label('Supporting Attachments')
+                            ->label(__('helpdesk::filament/resources/ticket.infolist.entries.supporting_attachments'))
                             ->state(fn (Ticket $record): string => implode(', ', $record->supporting_attachments ?? [])),
                     ])
                     ->visible(fn (Ticket $record): bool => ! empty($record->supporting_attachments)),

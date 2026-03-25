@@ -11,9 +11,9 @@ enum RequestStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Pending  => __('shelf::enums.request-status.pending'),
-            self::Approved => __('shelf::enums.request-status.approved'),
-            self::Rejected => __('shelf::enums.request-status.rejected'),
+            self::Pending  => __('shelf::enums/request-status.pending'),
+            self::Approved => __('shelf::enums/request-status.approved'),
+            self::Rejected => __('shelf::enums/request-status.rejected'),
         };
     }
 

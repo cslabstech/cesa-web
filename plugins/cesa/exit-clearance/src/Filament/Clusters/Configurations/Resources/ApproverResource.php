@@ -28,17 +28,17 @@ class ApproverResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return trans_choice('exit-clearance::app.resources.approver', 2);
+        return trans_choice('exit-clearance::filament/resources/approver.label', 2);
     }
 
     public static function getPluralModelLabel(): string
     {
-        return trans_choice('exit-clearance::app.resources.approver', 2);
+        return trans_choice('exit-clearance::filament/resources/approver.label', 2);
     }
 
     public static function getModelLabel(): string
     {
-        return trans_choice('exit-clearance::app.resources.approver', 1);
+        return trans_choice('exit-clearance::filament/resources/approver.label', 1);
     }
 
     public static function form(Schema $form): Schema
@@ -46,24 +46,24 @@ class ApproverResource extends Resource
         return $form
             ->schema([
                 TextInput::make('name')
-                    ->label(__('exit-clearance::app.form.approver.name'))
+                    ->label(__('exit-clearance::filament/resources/approver.fields.name'))
                     ->required()
                     ->maxLength(255),
                 TextInput::make('email')
-                    ->label(__('exit-clearance::app.form.approver.email'))
+                    ->label(__('exit-clearance::filament/resources/approver.fields.email'))
                     ->email()
                     ->required()
                     ->maxLength(255),
                 TextInput::make('phone')
-                    ->label(__('exit-clearance::app.form.approver.phone'))
+                    ->label(__('exit-clearance::filament/resources/approver.fields.phone'))
                     ->tel()
                     ->maxLength(255),
                 TextInput::make('title')
-                    ->label(__('exit-clearance::app.form.approver.title'))
+                    ->label(__('exit-clearance::filament/resources/approver.fields.title'))
                     ->required()
                     ->maxLength(255),
                 Select::make('departments')
-                    ->label(__('exit-clearance::app.form.approver.departments'))
+                    ->label(__('exit-clearance::filament/resources/approver.fields.departments'))
                     ->relationship('departments', 'name')
                     ->multiple()
                     ->preload()
@@ -76,19 +76,19 @@ class ApproverResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label(__('exit-clearance::app.form.approver.name'))
+                    ->label(__('exit-clearance::filament/resources/approver.fields.name'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('email')
-                    ->label(__('exit-clearance::app.form.approver.email'))
+                    ->label(__('exit-clearance::filament/resources/approver.fields.email'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('phone')
-                    ->label(__('exit-clearance::app.form.approver.phone'))
+                    ->label(__('exit-clearance::filament/resources/approver.fields.phone'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('title')
-                    ->label(__('exit-clearance::app.form.approver.title'))
+                    ->label(__('exit-clearance::filament/resources/approver.fields.title'))
                     ->searchable()
                     ->sortable(),
             ])

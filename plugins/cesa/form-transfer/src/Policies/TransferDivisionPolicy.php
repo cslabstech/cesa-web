@@ -76,9 +76,4 @@ class TransferDivisionPolicy
     {
         return $user->can('restore_any_form_transfer_division');
     }
-
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_form_transfer_division');
-    }
 }

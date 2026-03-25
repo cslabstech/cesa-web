@@ -11,9 +11,9 @@
 
 	        <div class="mb-4 rounded-lg border-t-[10px] cesa-primary-border bg-white shadow-sm">
             <div class="px-6 pt-5 pb-6">
-                <h1 class="text-[32px] font-normal text-gray-900 leading-tight">{{ __('exit-clearance::app.public.progress.page_title') }}</h1>
+                <h1 class="text-[32px] font-normal text-gray-900 leading-tight">{{ __('exit-clearance::livewire/public-exit-clearance-progress-page.page_title') }}</h1>
                 <p class="mt-2 text-sm text-gray-600">
-                    {{ __('exit-clearance::app.public.progress.submitted_by') }} <span class="font-medium text-gray-900">{{ $applicantName ?? 'User' }}</span>
+                    {{ __('exit-clearance::livewire/public-exit-clearance-progress-page.submitted_by') }} <span class="font-medium text-gray-900">{{ $applicantName ?? 'User' }}</span>
                     @if(!empty($applicantDepartment))
                         ({{ $applicantDepartment }})
                     @endif
@@ -21,7 +21,7 @@
             </div>
             <div class="border-t border-gray-200 px-6 py-3">
                 <div class="flex flex-wrap items-center gap-2 text-xs text-gray-600">
-                    <span>{{ __('exit-clearance::app.public.progress.current_status') }}</span>
+                    <span>{{ __('exit-clearance::livewire/public-exit-clearance-progress-page.current_status') }}</span>
                     <span class="{{ $formStatusClasses }} inline-flex items-center rounded-full px-3 py-1 text-xs font-medium">
                         {{ $statusLabel }}
                     </span>
@@ -37,7 +37,7 @@
                     @click="expanded = !expanded"
                     class="cesa-primary-bg flex cursor-pointer items-center justify-between px-6 py-4 text-white cesa-primary-bg-hover transition-colors"
                 >
-                    <h2 class="text-lg font-medium">{{ __('exit-clearance::app.public.progress.submission_summary') }}</h2>
+                    <h2 class="text-lg font-medium">{{ __('exit-clearance::livewire/public-exit-clearance-progress-page.submission_summary') }}</h2>
                     <button type="button" class="text-white hover:text-gray-200 focus:outline-none">
                         <svg
                             class="h-5 w-5 transform transition-transform duration-200"
@@ -61,7 +61,7 @@
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
                                 class="flex-1 justify-center border-b-2 px-1 py-3 text-center text-sm font-medium whitespace-nowrap transition-colors duration-200"
                             >
-                                {{ __('exit-clearance::app.public.progress.personal_data') }}
+                                {{ __('exit-clearance::livewire/public-exit-clearance-progress-page.personal_data') }}
                             </button>
 
                             <button
@@ -71,7 +71,7 @@
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
                                 class="flex-1 justify-center border-b-2 px-1 py-3 text-center text-sm font-medium whitespace-nowrap transition-colors duration-200"
                             >
-                                {{ __('exit-clearance::app.public.progress.questionnaire') }}
+                                {{ __('exit-clearance::livewire/public-exit-clearance-progress-page.questionnaire') }}
                             </button>
 
                             <button
@@ -81,7 +81,7 @@
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
                                 class="flex-1 justify-center border-b-2 px-1 py-3 text-center text-sm font-medium whitespace-nowrap transition-colors duration-200"
                             >
-                                {{ __('exit-clearance::app.public.progress.clearance') }}
+                                {{ __('exit-clearance::livewire/public-exit-clearance-progress-page.clearance') }}
                             </button>
                         </nav>
                     </div>
@@ -100,7 +100,7 @@
                                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
                                                     </svg>
-                                                    {{ __('exit-clearance::app.public.progress.view_attachment') }}
+                                                    {{ __('exit-clearance::livewire/public-exit-clearance-progress-page.view_attachment') }}
                                                 </a>
                                             @else
                                                 -
@@ -147,7 +147,7 @@
                     @click="expanded = !expanded"
                     class="cesa-primary-bg flex cursor-pointer items-center justify-between px-6 py-4 text-white cesa-primary-bg-hover transition-colors"
                 >
-                    <h2 class="text-lg font-medium">{{ __('exit-clearance::app.public.progress.approval_flow') }}</h2>
+                    <h2 class="text-lg font-medium">{{ __('exit-clearance::livewire/public-exit-clearance-progress-page.approval_flow') }}</h2>
                     <button type="button" class="text-white hover:text-gray-200 focus:outline-none">
                         <svg
                             class="h-5 w-5 transform transition-transform duration-200"
@@ -196,7 +196,7 @@
                                 @if (!empty($approval['notes']))
                                     <div class="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
                                         <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                            {{ __('exit-clearance::app.public.progress.notes') }}
+                                            {{ __('exit-clearance::livewire/public-exit-clearance-progress-page.notes') }}
                                         </p>
                                         <p class="mt-1 text-sm leading-relaxed text-gray-700">
                                             {{ $approval['notes'] }}
@@ -206,7 +206,7 @@
 
                                 @if (!empty($approval['approved_at']))
                                     <p class="mt-3 text-xs text-gray-500">
-                                        {{ __('exit-clearance::app.public.progress.process_time') }} {{ $approval['approved_at'] }}
+                                        {{ __('exit-clearance::livewire/public-exit-clearance-progress-page.process_time') }} {{ $approval['approved_at'] }}
                                     </p>
                                 @endif
                             </li>

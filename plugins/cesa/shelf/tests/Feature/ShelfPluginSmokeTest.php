@@ -229,7 +229,6 @@ class ShelfPluginSmokeTest extends TestCase
         $this->assertArrayHasKey(AssetResource::class, $manage);
         $this->assertArrayHasKey(ApprovalLevelResource::class, $manage);
         $this->assertContains('force_delete', $manage[AssetResource::class]);
-        $this->assertContains('reorder', $manage[ApprovalLevelResource::class]);
         $this->assertNotContains('replicate', $manage[AssetResource::class]);
         $this->assertNotContains('replicate', $manage[ApprovalLevelResource::class]);
         $this->assertContains(Configurations::class, $excludedPages);
@@ -299,7 +298,7 @@ class ShelfPluginSmokeTest extends TestCase
         }
 
         $this->assertSame(__('admin.navigation.shelf'), Configurations::getNavigationGroup());
-        $this->assertSame(__('shelf::app.config.navigation.label'), Configurations::getNavigationLabel());
+        $this->assertSame(__('shelf::filament/clusters/configurations.navigation.title'), Configurations::getNavigationLabel());
     }
 
     public function test_shelf_policies_match_cesa_permission_conventions(): void

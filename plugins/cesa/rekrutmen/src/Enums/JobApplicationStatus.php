@@ -15,10 +15,10 @@ enum JobApplicationStatus: string implements HasColor, HasLabel
     public function getLabel(): ?string
     {
         return match ($this) {
-            self::IN_PROGRESS => __('rekrutmen::app.enums.job_application_status.in_progress'),
-            self::HIRED       => __('rekrutmen::app.enums.job_application_status.hired'),
-            self::REJECTED    => __('rekrutmen::app.enums.job_application_status.rejected'),
-            self::WITHDRAWN   => __('rekrutmen::app.enums.job_application_status.withdrawn'),
+            self::IN_PROGRESS => __('rekrutmen::enums/job-application-status.in_progress'),
+            self::HIRED       => __('rekrutmen::enums/job-application-status.hired'),
+            self::REJECTED    => __('rekrutmen::enums/job-application-status.rejected'),
+            self::WITHDRAWN   => __('rekrutmen::enums/job-application-status.withdrawn'),
         };
     }
 

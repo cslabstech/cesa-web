@@ -30,17 +30,17 @@ class UnitResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('helpdesk::app.resources.unit.plural');
+        return __('helpdesk::filament/resources/unit.label.plural');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('helpdesk::app.resources.unit.plural');
+        return __('helpdesk::filament/resources/unit.label.plural');
     }
 
     public static function getModelLabel(): string
     {
-        return __('helpdesk::app.resources.unit.single');
+        return __('helpdesk::filament/resources/unit.label.single');
     }
 
     public static function form(Schema $schema): Schema
@@ -54,7 +54,7 @@ class UnitResource extends Resource
                 ->columnSpanFull()
                 ->rows(3),
             Select::make('users')
-                ->label('Assigned Users')
+                ->label(__('helpdesk::filament/resources/unit.form.fields.users'))
                 ->relationship('users', 'name')
                 ->multiple()
                 ->preload()
@@ -73,11 +73,11 @@ class UnitResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('users_count')
                     ->counts('users')
-                    ->label('Users')
+                    ->label(__('helpdesk::filament/resources/unit.table.columns.users_count'))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('problem_categories_count')
                     ->counts('problemCategories')
-                    ->label('Categories')
+                    ->label(__('helpdesk::filament/resources/unit.table.columns.problem_categories_count'))
                     ->sortable(),
             ])
             ->recordActions([

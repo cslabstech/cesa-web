@@ -34,49 +34,49 @@ class RekrutmenPipelineResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('rekrutmen::app.resources.rekrutmen_pipeline.navigation.label');
+        return __('rekrutmen::filament/resources/rekrutmen-pipeline.navigation.label');
     }
 
     public static function getModelLabel(): string
     {
-        return __('rekrutmen::app.resources.rekrutmen_pipeline.model.singular');
+        return __('rekrutmen::filament/resources/rekrutmen-pipeline.model.singular');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('rekrutmen::app.resources.rekrutmen_pipeline.model.plural');
+        return __('rekrutmen::filament/resources/rekrutmen-pipeline.model.plural');
     }
 
     public static function form(Schema $schema): Schema
     {
         return $schema
             ->schema([
-                Section::make(__('rekrutmen::app.resources.rekrutmen_pipeline.form.sections.pipeline_details'))
+                Section::make(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.sections.pipeline_details'))
                     ->schema([
                         Forms\Components\TextInput::make('name')
-                            ->label(__('rekrutmen::app.resources.rekrutmen_pipeline.form.fields.name'))
+                            ->label(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.fields.name'))
                             ->required()
                             ->maxLength(255),
                         Forms\Components\Textarea::make('description')
-                            ->label(__('rekrutmen::app.resources.rekrutmen_pipeline.form.fields.description'))
+                            ->label(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.fields.description'))
                             ->maxLength(65535)
                             ->columnSpanFull(),
                     ]),
 
-                Section::make(__('rekrutmen::app.resources.rekrutmen_pipeline.form.sections.stages'))
-                    ->description(__('rekrutmen::app.resources.rekrutmen_pipeline.form.descriptions.stages'))
+                Section::make(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.sections.stages'))
+                    ->description(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.descriptions.stages'))
                     ->schema([
                         Forms\Components\Repeater::make('stages')
                             ->relationship()
                             ->schema([
                                 Forms\Components\TextInput::make('name')
-                                    ->label(__('rekrutmen::app.resources.rekrutmen_pipeline.form.fields.name'))
+                                    ->label(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.fields.name'))
                                     ->required()
                                     ->maxLength(255),
                             ])
                             ->orderColumn('order_column')
                             ->defaultItems(1)
-                            ->addActionLabel(__('rekrutmen::app.resources.rekrutmen_pipeline.form.actions.add_stage'))
+                            ->addActionLabel(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.actions.add_stage'))
                             ->reorderableWithButtons()
                             ->columnSpanFull(),
                     ]),
@@ -88,11 +88,11 @@ class RekrutmenPipelineResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label(__('rekrutmen::app.resources.rekrutmen_pipeline.table.columns.name'))
+                    ->label(__('rekrutmen::filament/resources/rekrutmen-pipeline.table.columns.name'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('stages_count')
                     ->counts('stages')
-                    ->label(__('rekrutmen::app.resources.rekrutmen_pipeline.table.columns.stages_count'))
+                    ->label(__('rekrutmen::filament/resources/rekrutmen-pipeline.table.columns.stages_count'))
                     ->badge(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()

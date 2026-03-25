@@ -21,44 +21,44 @@ class OvertimeResource extends PresensiResource
 
     public static function getNavigationLabel(): string
     {
-        return __('presensi::app.resources.overtime.navigation.label');
+        return __('presensi::filament/resources/overtime.navigation.label');
     }
 
     public static function getModelLabel(): string
     {
-        return __('presensi::app.resources.overtime.model.singular');
+        return __('presensi::filament/resources/overtime.model.singular');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('presensi::app.resources.overtime.model.plural');
+        return __('presensi::filament/resources/overtime.model.plural');
     }
 
     public static function form(Schema $schema): Schema
     {
         $components = [
             Forms\Components\Select::make('user_id')
-                ->label(__('presensi::app.resources.overtime.form.fields.user_id'))
+                ->label(__('presensi::filament/resources/overtime.form.fields.user_id'))
                 ->relationship('user', 'name')
                 ->searchable()
                 ->preload()
                 ->required(),
             Forms\Components\DatePicker::make('date')
-                ->label(__('presensi::app.resources.overtime.form.fields.date'))
+                ->label(__('presensi::filament/resources/overtime.form.fields.date'))
                 ->required(),
             Forms\Components\TimePicker::make('start_time')
-                ->label(__('presensi::app.resources.overtime.form.fields.start_time'))
+                ->label(__('presensi::filament/resources/overtime.form.fields.start_time'))
                 ->required()
                 ->seconds(false),
             Forms\Components\TimePicker::make('end_time')
-                ->label(__('presensi::app.resources.overtime.form.fields.end_time'))
+                ->label(__('presensi::filament/resources/overtime.form.fields.end_time'))
                 ->required()
                 ->seconds(false),
             Forms\Components\Textarea::make('reason')
-                ->label(__('presensi::app.resources.overtime.form.fields.reason'))
+                ->label(__('presensi::filament/resources/overtime.form.fields.reason'))
                 ->columnSpanFull(),
             Forms\Components\FileUpload::make('attachment')
-                ->label(__('presensi::app.resources.overtime.form.fields.attachment'))
+                ->label(__('presensi::filament/resources/overtime.form.fields.attachment'))
                 ->directory('presensi/overtimes')
                 ->nullable()
                 ->columnSpanFull(),
@@ -67,17 +67,17 @@ class OvertimeResource extends PresensiResource
         if (static::userCan('update_presensi_overtime')) {
             $components[] = Forms\Components\Select::make('status')
                 ->options([
-                    'pending'  => __('presensi::app.resources.overtime.form.options.pending'),
-                    'approved' => __('presensi::app.resources.overtime.form.options.approved'),
-                    'rejected' => __('presensi::app.resources.overtime.form.options.rejected'),
+                    'pending'  => __('presensi::filament/resources/overtime.form.options.pending'),
+                    'approved' => __('presensi::filament/resources/overtime.form.options.approved'),
+                    'rejected' => __('presensi::filament/resources/overtime.form.options.rejected'),
                 ])
                 ->default('pending')
                 ->required(fn (string $operation): bool => $operation === 'edit')
-                ->label(__('presensi::app.resources.overtime.form.fields.status'))
+                ->label(__('presensi::filament/resources/overtime.form.fields.status'))
                 ->visible(fn (string $operation): bool => $operation === 'edit');
 
             $components[] = Forms\Components\Textarea::make('note')
-                ->label(__('presensi::app.resources.overtime.form.fields.note'))
+                ->label(__('presensi::filament/resources/overtime.form.fields.note'))
                 ->columnSpanFull()
                 ->visible(fn (string $operation): bool => $operation === 'edit');
         }
@@ -91,24 +91,24 @@ class OvertimeResource extends PresensiResource
             ->modifyQueryUsing(fn (Builder $query) => static::applyAuthenticatedUserScope($query))
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label(__('presensi::app.resources.overtime.table.columns.user'))
+                    ->label(__('presensi::filament/resources/overtime.table.columns.user'))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('date')
-                    ->label(__('presensi::app.resources.overtime.table.columns.date'))
+                    ->label(__('presensi::filament/resources/overtime.table.columns.date'))
                     ->date()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('start_time')
-                    ->label(__('presensi::app.resources.overtime.table.columns.start_time'))
+                    ->label(__('presensi::filament/resources/overtime.table.columns.start_time'))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('end_time')
-                    ->label(__('presensi::app.resources.overtime.table.columns.end_time'))
+                    ->label(__('presensi::filament/resources/overtime.table.columns.end_time'))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('reason')
-                    ->label(__('presensi::app.resources.overtime.table.columns.reason'))
+                    ->label(__('presensi::filament/resources/overtime.table.columns.reason'))
                     ->sortable()
                     ->limit(50),
                 Tables\Columns\TextColumn::make('status')
-                    ->label(__('presensi::app.resources.overtime.table.columns.status'))
+                    ->label(__('presensi::filament/resources/overtime.table.columns.status'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'pending'  => 'gray',

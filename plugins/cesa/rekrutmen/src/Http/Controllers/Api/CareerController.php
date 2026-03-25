@@ -32,7 +32,7 @@ class CareerController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => __('rekrutmen::app.api.messages.job_listed'),
+            'message' => __('rekrutmen::api/career.messages.job_listed'),
             'data'    => $jobs,
         ]);
     }
@@ -54,13 +54,13 @@ class CareerController extends Controller
         if (! $job) {
             return response()->json([
                 'success' => false,
-                'message' => __('rekrutmen::app.api.messages.job_not_found'),
+                'message' => __('rekrutmen::api/career.messages.job_not_found'),
             ], 404);
         }
 
         return response()->json([
             'success' => true,
-            'message' => __('rekrutmen::app.api.messages.job_detail_retrieved'),
+            'message' => __('rekrutmen::api/career.messages.job_detail_retrieved'),
             'data'    => [
                 ...$job->toArray(),
                 'application_form' => $this->resolveApplicationFormFields($job->slug),
@@ -82,7 +82,7 @@ class CareerController extends Controller
         if (! $job) {
             return response()->json([
                 'success' => false,
-                'message' => __('rekrutmen::app.api.messages.job_not_open'),
+                'message' => __('rekrutmen::api/career.messages.job_not_open'),
             ], 404);
         }
 
@@ -95,7 +95,7 @@ class CareerController extends Controller
             'resume'                => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:5120'],
             'additional_answers'    => ['nullable', 'array'],
             'additional_answers.*'  => ['nullable'],
-        ], trans('rekrutmen::app.api.validation.messages'), trans('rekrutmen::app.api.validation.attributes'))->validate();
+        ], trans('rekrutmen::api/career.validation.messages'), trans('rekrutmen::api/career.validation.attributes'))->validate();
 
         $additionalAnswers = $request->input('additional_answers', []);
         $dynamicRules = $this->buildAdditionalAnswersValidationRules($job->slug);
@@ -104,7 +104,7 @@ class CareerController extends Controller
             $validator = Validator::make(
                 ['additional_answers' => $additionalAnswers],
                 $dynamicRules,
-                ['required' => __('rekrutmen::app.api.validation.messages.required')],
+                ['required' => __('rekrutmen::api/career.validation.messages.required')],
                 $this->buildAdditionalAnswersValidationAttributes($job->slug),
             );
 
@@ -128,7 +128,7 @@ class CareerController extends Controller
             $answers = json_encode($additionalAnswers, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             $coverLetter = trim(implode("\n\n", array_filter([
                 $coverLetter,
-                __('rekrutmen::app.api.application.additional_answers_prefix').' '.$answers,
+                __('rekrutmen::api/career.application.additional_answers_prefix').' '.$answers,
             ])));
         }
 
@@ -153,13 +153,13 @@ class CareerController extends Controller
             'from_stage_id'      => null,
             'to_stage_id'        => $firstStageId,
             'status'             => JobApplicationStatus::IN_PROGRESS,
-            'notes'              => __('rekrutmen::app.api.application.submitted_via_public_api'),
+            'notes'              => __('rekrutmen::api/career.application.submitted_via_public_api'),
             'performed_by'       => null,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => __('rekrutmen::app.api.messages.application_submitted'),
+            'message' => __('rekrutmen::api/career.messages.application_submitted'),
             'data'    => [
                 'job_slug'        => $job->slug,
                 'applicant_name'  => $application->full_name,

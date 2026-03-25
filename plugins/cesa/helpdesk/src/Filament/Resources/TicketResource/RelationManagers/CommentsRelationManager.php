@@ -14,6 +14,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use Webkul\Security\Models\User;
 
@@ -21,7 +22,12 @@ class CommentsRelationManager extends RelationManager
 {
     protected static string $relationship = 'comments';
 
-    protected static ?string $title = 'Comments';
+    protected static ?string $title = null;
+
+    public static function getTitle(Model $ownerRecord, string $pageClass): string
+    {
+        return __('helpdesk::filament/resources/ticket/relation-managers/comments.title');
+    }
 
     public function form(Schema $schema): Schema
     {
@@ -31,14 +37,15 @@ class CommentsRelationManager extends RelationManager
                     ->required()
                     ->columnSpanFull(),
                 Select::make('visibility')
-                    ->label('Visibility')
+                    ->label(__('helpdesk::filament/resources/ticket/relation-managers/comments.form.fields.visibility'))
                     ->options([
-                        Comment::VISIBILITY_PUBLIC   => 'Public Comment',
-                        Comment::VISIBILITY_INTERNAL => 'Internal Note',
+                        Comment::VISIBILITY_PUBLIC   => __('helpdesk::filament/resources/ticket/relation-managers/comments.form.options.public_comment'),
+                        Comment::VISIBILITY_INTERNAL => __('helpdesk::filament/resources/ticket/relation-managers/comments.form.options.internal_note'),
                     ])
                     ->default(Comment::VISIBILITY_PUBLIC)
                     ->visible(fn (): bool => Gate::allows('addInternalNote', $this->ownerRecord)),
                 FileUpload::make('attachments')
+                    ->label(__('helpdesk::filament/resources/ticket/relation-managers/comments.form.fields.attachments'))
                     ->multiple()
                     ->disk(config('helpdesk.attachments.comment.disk'))
                     ->directory(config('helpdesk.attachments.comment.directory'))
@@ -75,22 +82,24 @@ class CommentsRelationManager extends RelationManager
             ])
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('User')
+                    ->label(__('helpdesk::filament/resources/ticket/relation-managers/comments.table.columns.user'))
                     ->weight('bold'),
                 Tables\Columns\TextColumn::make('visibility')
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => $state === Comment::VISIBILITY_INTERNAL ? 'Internal' : 'Public')
+                    ->formatStateUsing(fn (string $state): string => $state === Comment::VISIBILITY_INTERNAL
+                        ? __('helpdesk::filament/resources/ticket/relation-managers/comments.table.visibility.internal')
+                        : __('helpdesk::filament/resources/ticket/relation-managers/comments.table.visibility.public'))
                     ->color(fn (string $state): string => $state === Comment::VISIBILITY_INTERNAL ? 'warning' : 'success'),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('helpdesk::filament/resources/ticket/relation-managers/comments.table.columns.created_at'))
                     ->dateTime('d M Y H:i')
                     ->color('gray'),
                 Tables\Columns\TextColumn::make('comment')
                     ->html()
                     ->wrap(),
                 Tables\Columns\TextColumn::make('attachments')
-                    ->label('Attachments')
-                    ->formatStateUsing(fn (?array $state): string => $state ? (string) count($state) : '0'),
+                    ->label(__('helpdesk::filament/resources/ticket/relation-managers/comments.table.columns.attachments'))
+                    ->formatStateUsing(fn (?array $state): string => $state ? (string) count($state) : __('helpdesk::filament/resources/ticket/relation-managers/comments.table.placeholders.zero')),
             ])
             ->recordActions([
                 EditAction::make()
@@ -105,7 +114,7 @@ class CommentsRelationManager extends RelationManager
     {
         $user = auth()->user();
 
-        abort_unless($user instanceof User, 403, 'Authenticated user is invalid.');
+        abort_unless($user instanceof User, 403, __('helpdesk::filament/resources/ticket/relation-managers/comments.errors.invalid_user'));
 
         return $user;
     }

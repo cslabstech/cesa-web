@@ -21,7 +21,7 @@ class SchedulesRelationManager extends RelationManager
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
-        return __('presensi::app.relation_managers.schedules.title');
+        return __('presensi::filament/resources/user/relation-managers/schedules.title');
     }
 
     public function form(Schema $schema): Schema
@@ -29,24 +29,24 @@ class SchedulesRelationManager extends RelationManager
         return $schema
             ->components([
                 Forms\Components\Select::make('office_id')
-                    ->label(__('presensi::app.relation_managers.schedules.form.fields.office_id'))
+                    ->label(__('presensi::filament/resources/user/relation-managers/schedules.form.fields.office_id'))
                     ->relationship('office', 'name')
                     ->required()
                     ->searchable()
                     ->preload(),
 
                 Forms\Components\Select::make('shift_id')
-                    ->label(__('presensi::app.relation_managers.schedules.form.fields.shift_id'))
+                    ->label(__('presensi::filament/resources/user/relation-managers/schedules.form.fields.shift_id'))
                     ->relationship('shift', 'name')
                     ->required()
                     ->searchable()
                     ->preload(),
 
                 Forms\Components\Toggle::make('is_wfa')
-                    ->label(__('presensi::app.relation_managers.schedules.form.fields.is_wfa')),
+                    ->label(__('presensi::filament/resources/user/relation-managers/schedules.form.fields.is_wfa')),
 
                 Forms\Components\Toggle::make('is_banned')
-                    ->label(__('presensi::app.relation_managers.schedules.form.fields.is_banned'))
+                    ->label(__('presensi::filament/resources/user/relation-managers/schedules.form.fields.is_banned'))
                     ->hidden(fn (): bool => ! ScheduleResource::userCan('update_presensi_schedule')),
             ]);
     }
@@ -57,21 +57,21 @@ class SchedulesRelationManager extends RelationManager
             ->recordTitleAttribute('id')
             ->columns([
                 Tables\Columns\TextColumn::make('office.name')
-                    ->label(__('presensi::app.relation_managers.schedules.table.columns.office_name'))
+                    ->label(__('presensi::filament/resources/user/relation-managers/schedules.table.columns.office_name'))
                     ->sortable()
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('shift.name')
-                    ->label(__('presensi::app.relation_managers.schedules.table.columns.shift_name'))
+                    ->label(__('presensi::filament/resources/user/relation-managers/schedules.table.columns.shift_name'))
                     ->sortable()
                     ->searchable(),
 
                 Tables\Columns\IconColumn::make('is_wfa')
-                    ->label(__('presensi::app.relation_managers.schedules.table.columns.is_wfa'))
+                    ->label(__('presensi::filament/resources/user/relation-managers/schedules.table.columns.is_wfa'))
                     ->boolean(),
 
                 Tables\Columns\IconColumn::make('is_banned')
-                    ->label(__('presensi::app.relation_managers.schedules.table.columns.is_banned'))
+                    ->label(__('presensi::filament/resources/user/relation-managers/schedules.table.columns.is_banned'))
                     ->boolean()
                     ->visible(fn (): bool => ScheduleResource::userCan('update_presensi_schedule')),
             ])

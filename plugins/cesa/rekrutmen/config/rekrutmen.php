@@ -5,37 +5,37 @@ return [
         'default_fields' => [
             [
                 'name'     => 'full_name',
-                'label'    => 'rekrutmen::app.application_form.fields.full_name',
+                'label'    => 'rekrutmen::config/application-form.fields.full_name',
                 'type'     => 'text',
                 'required' => true,
             ],
             [
                 'name'     => 'email',
-                'label'    => 'rekrutmen::app.application_form.fields.email',
+                'label'    => 'rekrutmen::config/application-form.fields.email',
                 'type'     => 'email',
                 'required' => true,
             ],
             [
                 'name'     => 'phone',
-                'label'    => 'rekrutmen::app.application_form.fields.phone',
+                'label'    => 'rekrutmen::config/application-form.fields.phone',
                 'type'     => 'text',
                 'required' => true,
             ],
             [
                 'name'     => 'portfolio_url',
-                'label'    => 'rekrutmen::app.application_form.fields.portfolio_url',
+                'label'    => 'rekrutmen::config/application-form.fields.portfolio_url',
                 'type'     => 'url',
                 'required' => false,
             ],
             [
                 'name'     => 'cover_letter',
-                'label'    => 'rekrutmen::app.application_form.fields.cover_letter',
+                'label'    => 'rekrutmen::config/application-form.fields.cover_letter',
                 'type'     => 'textarea',
                 'required' => false,
             ],
             [
                 'name'     => 'resume',
-                'label'    => 'rekrutmen::app.application_form.fields.resume',
+                'label'    => 'rekrutmen::config/application-form.fields.resume',
                 'type'     => 'file',
                 'required' => false,
             ],
@@ -44,13 +44,13 @@ return [
             'software-engineer-jakarta' => [
                 [
                     'name'     => 'github_url',
-                    'label'    => 'rekrutmen::app.application_form.fields.github_url',
+                    'label'    => 'rekrutmen::config/application-form.fields.github_url',
                     'type'     => 'url',
                     'required' => true,
                 ],
                 [
                     'name'     => 'expected_salary',
-                    'label'    => 'rekrutmen::app.application_form.fields.expected_salary',
+                    'label'    => 'rekrutmen::config/application-form.fields.expected_salary',
                     'type'     => 'number',
                     'required' => false,
                 ],

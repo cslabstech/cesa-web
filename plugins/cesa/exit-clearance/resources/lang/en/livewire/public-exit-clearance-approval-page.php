@@ -1,0 +1,28 @@
+<?php
+
+return [
+    'heading'              => 'Exit Clearance Approval',
+    'subheading'           => 'Submission for :name',
+    'subheading_default'   => 'Exit Clearance Submission.',
+    'page_title'           => 'Approval Request',
+    'please_review'        => 'Please review the submission by',
+    'submission_status'    => 'Submission status',
+    'your_approval_status' => 'Your approval status',
+    'submission_summary'   => 'Submission Summary',
+    'personal_data'        => 'Personal Data',
+    'questionnaire'        => 'Questionnaire',
+    'clearance'            => 'Clearance',
+    'approval_flow'        => 'Approval Flow',
+    'view_attachment'      => 'View attachment',
+    'notes'                => 'Notes',
+    'process_time'         => 'Processing time:',
+    'notes_label'          => 'Notes (optional)',
+    'cannot_process'       => 'Action cannot be processed.',
+    'approved_success'     => 'Submission successfully approved.',
+    'rejected_success'     => 'Submission successfully rejected.',
+    'action'               => 'Action',
+    'reject'               => 'Reject',
+    'approve'              => 'Approve',
+    'information'          => 'Information',
+    'already_processed'    => 'This stage has been processed. You may close this page.',
+];

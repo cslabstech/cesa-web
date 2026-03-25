@@ -59,9 +59,4 @@ class ProblemCategoryPolicy
     {
         return $user->can('restore_any_helpdesk_problem::category');
     }
-
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_helpdesk_problem::category');
-    }
 }

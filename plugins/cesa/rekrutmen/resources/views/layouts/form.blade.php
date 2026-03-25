@@ -2,7 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     @php
-        $documentTitle = __('rekrutmen::app.public_request_form.layout.title');
+        $documentTitle = __('rekrutmen::livewire/public-request-man-power-form.layout.title');
     @endphp
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">

@@ -22,12 +22,12 @@ class PublicRequestManPowerProgressPage extends SimplePage
 
     public function getHeading(): string
     {
-        return __('rekrutmen::app.public_progress.heading');
+        return __('rekrutmen::livewire/public-request-man-power-progress-page.heading');
     }
 
     public function getSubheading(): string
     {
-        return __('rekrutmen::app.public_progress.subheading');
+        return __('rekrutmen::livewire/public-request-man-power-progress-page.subheading');
     }
 
     public function hasLogo(): bool

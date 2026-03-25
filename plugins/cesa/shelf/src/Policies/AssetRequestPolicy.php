@@ -70,11 +70,6 @@ class AssetRequestPolicy
         return $this->canAccess($user, 'restore_any');
     }
 
-    public function reorder(User $user): bool
-    {
-        return $this->canAccess($user, 'reorder');
-    }
-
     private function canMutateRecord(AssetRequest $assetRequest): bool
     {
         return $assetRequest->status === RequestStatus::Pending;

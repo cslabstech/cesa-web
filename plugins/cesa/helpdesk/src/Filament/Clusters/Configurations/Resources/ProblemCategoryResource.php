@@ -30,24 +30,24 @@ class ProblemCategoryResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('helpdesk::app.resources.problem_category.plural');
+        return __('helpdesk::filament/resources/problem-category.label.plural');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('helpdesk::app.resources.problem_category.plural');
+        return __('helpdesk::filament/resources/problem-category.label.plural');
     }
 
     public static function getModelLabel(): string
     {
-        return __('helpdesk::app.resources.problem_category.single');
+        return __('helpdesk::filament/resources/problem-category.label.single');
     }
 
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
             Select::make('unit_id')
-                ->label('Unit')
+                ->label(__('helpdesk::filament/resources/problem-category.form.fields.unit_id'))
                 ->relationship('unit', 'name')
                 ->required()
                 ->searchable()
@@ -59,7 +59,7 @@ class ProblemCategoryResource extends Resource
                 ->required()
                 ->maxLength(255),
             Select::make('default_responsible_id')
-                ->label('Default Responsible')
+                ->label(__('helpdesk::filament/resources/problem-category.form.fields.default_responsible_id'))
                 ->options(function (Get $get): array {
                     $unitId = $get('unit_id');
 
@@ -88,12 +88,12 @@ class ProblemCategoryResource extends Resource
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('unit.name')
-                    ->label('Unit')
+                    ->label(__('helpdesk::filament/resources/problem-category.table.columns.unit'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('defaultResponsible.name')
-                    ->label('Default Responsible')
-                    ->placeholder('-')
+                    ->label(__('helpdesk::filament/resources/problem-category.table.columns.default_responsible'))
+                    ->placeholder(__('helpdesk::filament/resources/problem-category.table.placeholders.dash'))
                     ->searchable()
                     ->sortable(),
             ])

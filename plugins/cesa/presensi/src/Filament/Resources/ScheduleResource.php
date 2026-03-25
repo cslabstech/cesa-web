@@ -28,17 +28,17 @@ class ScheduleResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('presensi::app.resources.schedule.navigation.label');
+        return __('presensi::filament/resources/schedule.navigation.label');
     }
 
     public static function getModelLabel(): string
     {
-        return __('presensi::app.resources.schedule.model.singular');
+        return __('presensi::filament/resources/schedule.model.singular');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('presensi::app.resources.schedule.model.plural');
+        return __('presensi::filament/resources/schedule.model.plural');
     }
 
     public static function form(Schema $schema): Schema
@@ -46,27 +46,27 @@ class ScheduleResource extends Resource
         return $schema
             ->components([
                 Forms\Components\Select::make('user_id')
-                    ->label(__('presensi::app.resources.schedule.form.fields.user_id'))
+                    ->label(__('presensi::filament/resources/schedule.form.fields.user_id'))
                     ->relationship('user', 'name')
                     ->searchable()
                     ->preload()
                     ->required(),
                 Forms\Components\Select::make('shift_id')
-                    ->label(__('presensi::app.resources.schedule.form.fields.shift_id'))
+                    ->label(__('presensi::filament/resources/schedule.form.fields.shift_id'))
                     ->relationship('shift', 'name')
                     ->searchable()
                     ->preload()
                     ->required(),
                 Forms\Components\Select::make('office_id')
-                    ->label(__('presensi::app.resources.schedule.form.fields.office_id'))
+                    ->label(__('presensi::filament/resources/schedule.form.fields.office_id'))
                     ->relationship('office', 'name')
                     ->searchable()
                     ->preload()
                     ->required(),
                 Forms\Components\Toggle::make('is_wfa')
-                    ->label(__('presensi::app.resources.schedule.form.fields.is_wfa')),
+                    ->label(__('presensi::filament/resources/schedule.form.fields.is_wfa')),
                 Forms\Components\Toggle::make('is_banned')
-                    ->label(__('presensi::app.resources.schedule.form.fields.is_banned'))
+                    ->label(__('presensi::filament/resources/schedule.form.fields.is_banned'))
                     ->hidden(fn (): bool => ! static::userCan('update_presensi_schedule')),
             ]);
     }
@@ -77,24 +77,24 @@ class ScheduleResource extends Resource
             ->modifyQueryUsing(fn (Builder $query) => static::applyAuthenticatedUserScope($query))
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label(__('presensi::app.resources.schedule.table.columns.user_name'))
+                    ->label(__('presensi::filament/resources/schedule.table.columns.user_name'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('user.email')
-                    ->label(__('presensi::app.resources.schedule.table.columns.user_email'))
+                    ->label(__('presensi::filament/resources/schedule.table.columns.user_email'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\ToggleColumn::make('is_banned')
                     ->hidden(fn (): bool => ! static::userCan('update_presensi_schedule')),
                 Tables\Columns\IconColumn::make('is_wfa')
-                    ->label(__('presensi::app.resources.schedule.table.columns.is_wfa'))
+                    ->label(__('presensi::filament/resources/schedule.table.columns.is_wfa'))
                     ->boolean(),
                 Tables\Columns\TextColumn::make('shift.name')
-                    ->label(__('presensi::app.resources.schedule.table.columns.shift'))
+                    ->label(__('presensi::filament/resources/schedule.table.columns.shift'))
                     ->description(fn (Schedule $record): string => $record->shift ? $record->shift->start_time.' - '.$record->shift->end_time : '')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('office.name')
-                    ->label(__('presensi::app.resources.schedule.table.columns.office'))
+                    ->label(__('presensi::filament/resources/schedule.table.columns.office'))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()

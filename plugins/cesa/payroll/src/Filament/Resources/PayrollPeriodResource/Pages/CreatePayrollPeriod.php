@@ -29,14 +29,14 @@ class CreatePayrollPeriod extends CreateRecord
                 $service->generate($this->record);
 
                 Notification::make()
-                    ->title(__('payroll::app.notifications.payroll_generated.title'))
-                    ->body(__('payroll::app.notifications.payroll_generated.body'))
+                    ->title(__('payroll::filament/resources/payroll-period.notifications.payroll_generated.title'))
+                    ->body(__('payroll::filament/resources/payroll-period.notifications.payroll_generated.body'))
                     ->success()
                     ->send();
             } catch (\Exception $e) {
                 Notification::make()
-                    ->title('Error')
-                    ->body('Failed to generate payroll: '.$e->getMessage())
+                    ->title(__('payroll::filament/resources/payroll-period.notifications.generate_failed.title'))
+                    ->body(__('payroll::filament/resources/payroll-period.notifications.generate_failed.body', ['message' => $e->getMessage()]))
                     ->danger()
                     ->send();
             }

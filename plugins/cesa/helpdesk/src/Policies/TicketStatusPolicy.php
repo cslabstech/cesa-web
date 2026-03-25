@@ -59,9 +59,4 @@ class TicketStatusPolicy
     {
         return $user->can('restore_any_helpdesk_ticket::status');
     }
-
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_helpdesk_ticket::status');
-    }
 }

@@ -80,9 +80,4 @@ class CompanyDocumentSettingPolicy
     {
         return $user->can('restore_any_shelf_company::document::setting');
     }
-
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_shelf_company::document::setting');
-    }
 }

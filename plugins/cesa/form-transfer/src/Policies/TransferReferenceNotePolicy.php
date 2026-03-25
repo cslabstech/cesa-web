@@ -76,9 +76,4 @@ class TransferReferenceNotePolicy
     {
         return $user->can('restore_any_form_transfer_reference::note');
     }
-
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_form_transfer_reference::note');
-    }
 }

@@ -35,7 +35,7 @@ class Configurations extends Cluster
 
     public static function getNavigationLabel(): string
     {
-        return __('helpdesk::app.navigation.configurations');
+        return __('helpdesk::filament/clusters/configurations.navigation.label');
     }
 
     public static function getNavigationGroup(): string

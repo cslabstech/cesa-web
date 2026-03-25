@@ -80,9 +80,4 @@ class ApprovalLevelPolicy
     {
         return $user->can('restore_any_shelf_approval::level');
     }
-
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_shelf_approval::level');
-    }
 }

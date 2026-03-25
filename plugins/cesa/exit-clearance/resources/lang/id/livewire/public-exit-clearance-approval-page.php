@@ -1,0 +1,28 @@
+<?php
+
+return [
+    'heading'              => 'Persetujuan Exit Clearance',
+    'subheading'           => 'Pengajuan atas nama :name',
+    'subheading_default'   => 'Pengajuan exit clearance.',
+    'page_title'           => 'Permintaan Persetujuan',
+    'please_review'        => 'Mohon tinjau pengajuan atas nama',
+    'submission_status'    => 'Status pengajuan',
+    'your_approval_status' => 'Status persetujuan Anda',
+    'submission_summary'   => 'RINGKASAN PENGAJUAN',
+    'personal_data'        => 'Data Diri',
+    'questionnaire'        => 'Kuesioner',
+    'clearance'            => 'Kliring',
+    'approval_flow'        => 'ALUR PENYETUJUAN',
+    'view_attachment'      => 'Lihat lampiran',
+    'notes'                => 'Catatan',
+    'process_time'         => 'Waktu proses:',
+    'notes_label'          => 'Catatan (opsional)',
+    'cannot_process'       => 'Aksi tidak dapat diproses.',
+    'approved_success'     => 'Pengajuan berhasil disetujui.',
+    'rejected_success'     => 'Pengajuan berhasil ditolak.',
+    'action'               => 'TINDAKAN',
+    'reject'               => 'Tolak',
+    'approve'              => 'Setujui',
+    'information'          => 'INFORMASI',
+    'already_processed'    => 'Tahapan ini sudah diproses. Anda dapat menutup halaman ini.',
+];

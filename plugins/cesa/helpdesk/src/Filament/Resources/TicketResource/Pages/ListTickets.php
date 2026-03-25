@@ -29,14 +29,14 @@ class ListTickets extends ListRecords
         }
 
         $tabs = [
-            'incoming' => Tab::make(__('helpdesk::app.resources.ticket.pages.list.tabs.incoming'))
+            'incoming' => Tab::make(__('helpdesk::filament/resources/ticket/pages/list-tickets.tabs.incoming'))
                 ->query(fn (Builder $query): Builder => $query->incomingFor($user)),
-            'outgoing' => Tab::make(__('helpdesk::app.resources.ticket.pages.list.tabs.outgoing'))
+            'outgoing' => Tab::make(__('helpdesk::filament/resources/ticket/pages/list-tickets.tabs.outgoing'))
                 ->query(fn (Builder $query): Builder => $query->outgoingFor($user)),
         ];
 
         if (static::shouldShowAllTab($user)) {
-            $tabs['all'] = Tab::make(__('helpdesk::app.resources.ticket.pages.list.tabs.all'));
+            $tabs['all'] = Tab::make(__('helpdesk::filament/resources/ticket/pages/list-tickets.tabs.all'));
         }
 
         return $tabs;

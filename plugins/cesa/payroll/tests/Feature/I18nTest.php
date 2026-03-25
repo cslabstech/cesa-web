@@ -10,14 +10,14 @@ class I18nTest extends PayrollTestCase
     {
         app()->setLocale('en');
 
-        $this->assertSame('Base Salary', __('payroll::app.resources.payroll_record.table.columns.base_salary'));
-        $this->assertSame('Late Penalty', __('payroll::app.resources.payroll_record.table.columns.late_penalty'));
+        $this->assertSame('Base Salary', __('payroll::filament/resources/payroll-record.table.columns.base_salary'));
+        $this->assertSame('Late Penalty', __('payroll::filament/resources/payroll-record.table.columns.late_penalty'));
         $this->assertSame('View', __('filament-actions::view.single.label'));
 
         app()->setLocale('id');
 
-        $this->assertSame('Gaji Pokok', __('payroll::app.resources.payroll_record.table.columns.base_salary'));
-        $this->assertSame('Denda Keterlambatan', __('payroll::app.resources.payroll_record.table.columns.late_penalty'));
+        $this->assertSame('Gaji Pokok', __('payroll::filament/resources/payroll-record.table.columns.base_salary'));
+        $this->assertSame('Denda Keterlambatan', __('payroll::filament/resources/payroll-record.table.columns.late_penalty'));
         $this->assertSame('Lihat', __('filament-actions::view.single.label'));
     }
 }

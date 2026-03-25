@@ -59,9 +59,4 @@ class PriorityPolicy
     {
         return $user->can('restore_any_helpdesk_priority');
     }
-
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_helpdesk_priority');
-    }
 }

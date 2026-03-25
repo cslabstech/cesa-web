@@ -65,6 +65,6 @@ abstract class ShelfResource extends Resource
             ->kebab()
             ->toString();
 
-        return "shelf::filament.resources.{$resourceKey}.{$suffix}";
+        return "shelf::filament/resources/{$resourceKey}.{$suffix}";
     }
 }

@@ -184,6 +184,34 @@ class GeneratePayrollServiceTest extends PayrollTestCase
         $this->assertSame('0.00', $record->net_salary);
     }
 
+    public function test_generate_uses_attendance_date_for_penalty_breakdown_entries(): void
+    {
+        $period = PayrollPeriod::query()->create([
+            'name'       => 'March 2026',
+            'start_date' => '2026-03-01',
+            'end_date'   => '2026-03-31',
+            'status'     => 'open',
+        ]);
+
+        $user = User::factory()->create();
+
+        $attendance = $this->createAttendance($user->id, '08:00:00', '08:10:00', '17:00:00');
+        $attendance->forceFill([
+            'created_at' => '2026-03-03 08:10:00',
+            'updated_at' => '2026-03-03 17:00:00',
+        ])->save();
+
+        $this->service->generate($period->fresh());
+
+        $record = PayrollRecord::query()
+            ->where('user_id', $user->id)
+            ->where('payroll_period_id', $period->id)
+            ->first();
+
+        $this->assertNotNull($record);
+        $this->assertSame('2026-03-03', data_get($record->details, 'penalties_breakdown.0.date'));
+    }
+
     private function createAttendance(int $userId, string $scheduleStart, string $actualStart, string $actualEnd): Attendance
     {
         return Attendance::query()->create([

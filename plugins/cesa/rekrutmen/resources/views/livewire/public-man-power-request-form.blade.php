@@ -8,27 +8,27 @@
 
         @if ($recentSubmission)
             <div class="mb-4 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 class="mb-2 text-xl font-medium text-gray-900">{{ __('rekrutmen::app.public_request_form.summary.title') }}</h2>
+                <h2 class="mb-2 text-xl font-medium text-gray-900">{{ __('rekrutmen::livewire/public-request-man-power-form.summary.title') }}</h2>
                 <p class="text-sm text-gray-600">
-                    {{ __('rekrutmen::app.public_request_form.summary.description') }}
+                    {{ __('rekrutmen::livewire/public-request-man-power-form.summary.description') }}
                 </p>
 
                 <dl class="mt-4 grid gap-3 text-sm text-gray-600">
                     <div class="flex justify-between gap-4">
-                        <dt class="font-medium text-gray-700">{{ __('rekrutmen::app.public_request_form.summary.fields.posisi_dibutuhkan') }}</dt>
-                        <dd class="text-right">{{ $recentSubmission['posisi_dibutuhkan'] ?? __('rekrutmen::app.common.not_available') }}</dd>
+                        <dt class="font-medium text-gray-700">{{ __('rekrutmen::livewire/public-request-man-power-form.summary.fields.posisi_dibutuhkan') }}</dt>
+                        <dd class="text-right">{{ $recentSubmission['posisi_dibutuhkan'] ?? __('rekrutmen::livewire/public-request-man-power-form.common.not_available') }}</dd>
                     </div>
                     <div class="flex justify-between gap-4">
-                        <dt class="font-medium text-gray-700">{{ __('rekrutmen::app.public_request_form.summary.fields.nama_pengaju') }}</dt>
-                        <dd class="text-right">{{ $recentSubmission['nama_pengaju'] ?? __('rekrutmen::app.common.not_available') }}</dd>
+                        <dt class="font-medium text-gray-700">{{ __('rekrutmen::livewire/public-request-man-power-form.summary.fields.nama_pengaju') }}</dt>
+                        <dd class="text-right">{{ $recentSubmission['nama_pengaju'] ?? __('rekrutmen::livewire/public-request-man-power-form.common.not_available') }}</dd>
                     </div>
                     <div class="flex justify-between gap-4">
-                        <dt class="font-medium text-gray-700">{{ __('rekrutmen::app.public_request_form.summary.fields.status_kebutuhan') }}</dt>
-                        <dd class="text-right">{{ $recentSubmission['status_kebutuhan'] ?? __('rekrutmen::app.common.not_available') }}</dd>
+                        <dt class="font-medium text-gray-700">{{ __('rekrutmen::livewire/public-request-man-power-form.summary.fields.status_kebutuhan') }}</dt>
+                        <dd class="text-right">{{ $recentSubmission['status_kebutuhan'] ?? __('rekrutmen::livewire/public-request-man-power-form.common.not_available') }}</dd>
                     </div>
                     @if (filled($recentSubmission['nama_replacement'] ?? null))
                         <div class="flex justify-between gap-4">
-                            <dt class="font-medium text-gray-700">{{ __('rekrutmen::app.public_request_form.summary.fields.nama_replacement') }}</dt>
+                            <dt class="font-medium text-gray-700">{{ __('rekrutmen::livewire/public-request-man-power-form.summary.fields.nama_replacement') }}</dt>
                             <dd class="text-right">{{ $recentSubmission['nama_replacement'] }}</dd>
                         </div>
                     @endif
@@ -36,7 +36,7 @@
 
                 <div class="mt-4">
                     <a href="{{ route('rekrutmen.public.request-man-power.form') }}" class="text-sm font-medium text-blue-600 hover:text-blue-500 hover:underline">
-                        {{ __('rekrutmen::app.public_request_form.summary.actions.submit_another') }}
+                        {{ __('rekrutmen::livewire/public-request-man-power-form.summary.actions.submit_another') }}
                     </a>
                 </div>
             </div>
@@ -54,11 +54,11 @@
             >
                 <div class="mb-4 rounded-lg border-t-[10px] cesa-primary-border bg-white shadow-sm">
                     <div class="px-6 pt-5 pb-6">
-                        <h1 class="text-[32px] font-normal text-gray-900 leading-tight">{{ __('rekrutmen::app.public_request_form.header.title') }}</h1>
-                        <p class="mt-2 text-sm text-gray-600">{{ __('rekrutmen::app.public_request_form.header.description') }}</p>
+                        <h1 class="text-[32px] font-normal text-gray-900 leading-tight">{{ __('rekrutmen::livewire/public-request-man-power-form.header.title') }}</h1>
+                        <p class="mt-2 text-sm text-gray-600">{{ __('rekrutmen::livewire/public-request-man-power-form.header.description') }}</p>
                     </div>
                     <div class="border-t border-gray-200 px-6 py-3">
-                        <p class="text-xs text-[#D93025]">{{ __('rekrutmen::app.public_request_form.header.required') }}</p>
+                        <p class="text-xs text-[#D93025]">{{ __('rekrutmen::livewire/public-request-man-power-form.header.required') }}</p>
                     </div>
                 </div>
 
@@ -81,7 +81,7 @@
                 </div>
 
                 <div class="mt-4 flex items-center justify-between gap-3 px-1">
-                    <p class="text-xs text-gray-600">{{ __('rekrutmen::app.public_request_form.pagination.single_page', ['current' => 1, 'total' => 1]) }}</p>
+                    <p class="text-xs text-gray-600">{{ __('rekrutmen::livewire/public-request-man-power-form.pagination.single_page', ['current' => 1, 'total' => 1]) }}</p>
 
                     <x-filament::actions
                         :actions="$this->getCachedFormActions()"

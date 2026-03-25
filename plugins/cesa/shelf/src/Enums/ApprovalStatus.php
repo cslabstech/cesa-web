@@ -11,9 +11,9 @@ enum ApprovalStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Pending  => __('shelf::enums.approval-status.pending'),
-            self::Approved => __('shelf::enums.approval-status.approved'),
-            self::Rejected => __('shelf::enums.approval-status.rejected'),
+            self::Pending  => __('shelf::enums/approval-status.pending'),
+            self::Approved => __('shelf::enums/approval-status.approved'),
+            self::Rejected => __('shelf::enums/approval-status.rejected'),
         };
     }
 

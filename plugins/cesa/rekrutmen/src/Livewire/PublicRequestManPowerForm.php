@@ -73,89 +73,89 @@ class PublicRequestManPowerForm extends SimplePage
         return $schema
             ->components([
                 TextInput::make('nama_pengaju')
-                    ->label(__('rekrutmen::app.public_request_form.fields.nama_pengaju'))
+                    ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.nama_pengaju'))
                     ->required()
                     ->maxLength(255)
-                    ->placeholder(__('rekrutmen::app.public_request_form.placeholders.nama_pengaju')),
+                    ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.nama_pengaju')),
                 TextInput::make('posisi_pengaju')
-                    ->label(__('rekrutmen::app.public_request_form.fields.posisi_pengaju'))
+                    ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.posisi_pengaju'))
                     ->required()
                     ->maxLength(255)
-                    ->placeholder(__('rekrutmen::app.public_request_form.placeholders.posisi_pengaju')),
+                    ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.posisi_pengaju')),
                 TextInput::make('email_address')
-                    ->label(__('rekrutmen::app.public_request_form.fields.email_address'))
+                    ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.email_address'))
                     ->email()
                     ->nullable()
                     ->maxLength(255)
-                    ->placeholder(__('rekrutmen::app.public_request_form.placeholders.email_address')),
+                    ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.email_address')),
                 DatePicker::make('tanggal_pengajuan')
-                    ->label(__('rekrutmen::app.public_request_form.fields.tanggal_pengajuan'))
+                    ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.tanggal_pengajuan'))
                     ->required()
                     ->default(now()),
                 TextInput::make('divisi')
-                    ->label(__('rekrutmen::app.public_request_form.fields.divisi'))
+                    ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.divisi'))
                     ->required()
                     ->maxLength(255)
-                    ->placeholder(__('rekrutmen::app.public_request_form.placeholders.divisi')),
+                    ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.divisi')),
                 TextInput::make('badan_usaha')
-                    ->label(__('rekrutmen::app.public_request_form.fields.badan_usaha'))
+                    ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.badan_usaha'))
                     ->required()
                     ->maxLength(255)
-                    ->placeholder(__('rekrutmen::app.public_request_form.placeholders.badan_usaha')),
+                    ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.badan_usaha')),
                 TextInput::make('posisi_dibutuhkan')
-                    ->label(__('rekrutmen::app.public_request_form.fields.posisi_dibutuhkan'))
+                    ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.posisi_dibutuhkan'))
                     ->required()
                     ->maxLength(255)
-                    ->placeholder(__('rekrutmen::app.public_request_form.placeholders.posisi_dibutuhkan')),
+                    ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.posisi_dibutuhkan')),
                 TextInput::make('lokasi_penempatan')
-                    ->label(__('rekrutmen::app.public_request_form.fields.lokasi_penempatan'))
+                    ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.lokasi_penempatan'))
                     ->required()
                     ->maxLength(255)
-                    ->placeholder(__('rekrutmen::app.public_request_form.placeholders.lokasi_penempatan')),
+                    ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.lokasi_penempatan')),
                 Select::make('status_kebutuhan')
-                    ->label(__('rekrutmen::app.public_request_form.fields.status_kebutuhan'))
+                    ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.status_kebutuhan'))
                     ->required()
                     ->options(StatusKebutuhan::class)
                     ->default(StatusKebutuhan::NEW_HIRING)
                     ->live(),
                 TextInput::make('nama_karyawan_replacement')
-                    ->label(__('rekrutmen::app.public_request_form.fields.nama_karyawan_replacement'))
+                    ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.nama_karyawan_replacement'))
                     ->maxLength(255)
                     ->nullable()
                     ->required(fn (callable $get) => $this->isReplacementStatus($get('status_kebutuhan')))
-                    ->helperText(__('rekrutmen::app.public_request_form.helper_texts.nama_karyawan_replacement'))
-                    ->placeholder(__('rekrutmen::app.public_request_form.placeholders.nama_karyawan_replacement'))
+                    ->helperText(__('rekrutmen::livewire/public-request-man-power-form.helper_texts.nama_karyawan_replacement'))
+                    ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.nama_karyawan_replacement'))
                     ->visible(fn (callable $get) => $this->isReplacementStatus($get('status_kebutuhan'))),
                 Select::make('level_pekerjaan')
-                    ->label(__('rekrutmen::app.public_request_form.fields.level_pekerjaan'))
+                    ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.level_pekerjaan'))
                     ->required()
                     ->options(RequestManPower::getTranslatedLevelPekerjaanOptions()),
                 TextInput::make('jumlah_karyawan_dibutuhkan')
-                    ->label(__('rekrutmen::app.public_request_form.fields.jumlah_karyawan_dibutuhkan'))
+                    ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.jumlah_karyawan_dibutuhkan'))
                     ->required()
                     ->numeric()
                     ->default(1)
                     ->minValue(1),
                 DatePicker::make('estimasi_tanggal_join')
-                    ->label(__('rekrutmen::app.public_request_form.fields.estimasi_tanggal_join'))
+                    ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.estimasi_tanggal_join'))
                     ->required(),
                 Textarea::make('requirements_kualifikasi')
-                    ->label(__('rekrutmen::app.public_request_form.fields.requirements_kualifikasi'))
+                    ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.requirements_kualifikasi'))
                     ->required()
                     ->rows(6)
                     ->columnSpanFull()
-                    ->placeholder(__('rekrutmen::app.public_request_form.placeholders.requirements_kualifikasi')),
+                    ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.requirements_kualifikasi')),
                 Textarea::make('job_description')
-                    ->label(__('rekrutmen::app.public_request_form.fields.job_description'))
+                    ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.job_description'))
                     ->required()
                     ->rows(6)
                     ->columnSpanFull()
-                    ->placeholder(__('rekrutmen::app.public_request_form.placeholders.job_description')),
+                    ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.job_description')),
                 Textarea::make('keterangan')
-                    ->label(__('rekrutmen::app.public_request_form.fields.keterangan'))
+                    ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.keterangan'))
                     ->nullable()
                     ->columnSpanFull()
-                    ->placeholder(__('rekrutmen::app.public_request_form.placeholders.keterangan')),
+                    ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.keterangan')),
                 Hidden::make('recaptcha_token')
                     ->default('')
                     ->dehydrated(),
@@ -180,7 +180,7 @@ class PublicRequestManPowerForm extends SimplePage
             $this->isReplacementStatus($state['status_kebutuhan'] ?? null)
             && blank($state['nama_karyawan_replacement'] ?? null)
         ) {
-            $this->addError('data.nama_karyawan_replacement', __('rekrutmen::app.public_request_form.errors.nama_karyawan_replacement_required'));
+            $this->addError('data.nama_karyawan_replacement', __('rekrutmen::livewire/public-request-man-power-form.errors.nama_karyawan_replacement_required'));
             $this->handleValidationError();
             $this->dispatch('form-processing-finished');
 
@@ -205,8 +205,8 @@ class PublicRequestManPowerForm extends SimplePage
             ];
 
             Notification::make()
-                ->title(__('rekrutmen::app.public_request_form.notifications.success.title'))
-                ->body(__('rekrutmen::app.public_request_form.notifications.success.body'))
+                ->title(__('rekrutmen::livewire/public-request-man-power-form.notifications.success.title'))
+                ->body(__('rekrutmen::livewire/public-request-man-power-form.notifications.success.body'))
                 ->success()
                 ->send();
             $this->dispatch('form-processing-finished');
@@ -220,7 +220,7 @@ class PublicRequestManPowerForm extends SimplePage
                 'exception' => $e,
             ]);
 
-            $this->addError('data', __('rekrutmen::app.public_request_form.errors.system'));
+            $this->addError('data', __('rekrutmen::livewire/public-request-man-power-form.errors.system'));
             $this->dispatch('form-processing-finished');
 
             return null;
@@ -229,7 +229,7 @@ class PublicRequestManPowerForm extends SimplePage
                 'exception' => $e,
             ]);
 
-            $this->addError('data', __('rekrutmen::app.public_request_form.errors.system'));
+            $this->addError('data', __('rekrutmen::livewire/public-request-man-power-form.errors.system'));
             $this->dispatch('form-processing-finished');
 
             return null;
@@ -248,7 +248,7 @@ class PublicRequestManPowerForm extends SimplePage
     protected function getSubmitAction(): Action
     {
         return Action::make('submit')
-            ->label(__('rekrutmen::app.public_request_form.actions.submit'))
+            ->label(__('rekrutmen::livewire/public-request-man-power-form.actions.submit'))
             ->extraAttributes([
                 'class' => '!bg-primary-700 !text-white shadow-sm hover:!bg-primary-800 hover:!text-white focus-visible:!ring-primary-300',
             ], merge: true)
@@ -271,8 +271,8 @@ class PublicRequestManPowerForm extends SimplePage
     protected function handleValidationError(): void
     {
         Notification::make()
-            ->title(__('rekrutmen::app.public_request_form.notifications.validation.title'))
-            ->body(__('rekrutmen::app.public_request_form.notifications.validation.body'))
+            ->title(__('rekrutmen::livewire/public-request-man-power-form.notifications.validation.title'))
+            ->body(__('rekrutmen::livewire/public-request-man-power-form.notifications.validation.body'))
             ->warning()
             ->send();
     }
@@ -297,7 +297,7 @@ class PublicRequestManPowerForm extends SimplePage
         $token = Arr::get($state, 'recaptcha_token');
 
         if (! $token) {
-            $this->addError('data.recaptcha_token', __('rekrutmen::app.public_request_form.errors.recaptcha_required'));
+            $this->addError('data.recaptcha_token', __('rekrutmen::livewire/public-request-man-power-form.errors.recaptcha_required'));
 
             return false;
         }
@@ -317,7 +317,7 @@ class PublicRequestManPowerForm extends SimplePage
                     'body'   => $response->body(),
                 ]);
 
-                $this->addError('data.recaptcha_token', __('rekrutmen::app.public_request_form.errors.recaptcha_failed'));
+                $this->addError('data.recaptcha_token', __('rekrutmen::livewire/public-request-man-power-form.errors.recaptcha_failed'));
 
                 return false;
             }
@@ -329,7 +329,7 @@ class PublicRequestManPowerForm extends SimplePage
                     'errors' => Arr::get($payload, 'error-codes'),
                 ]);
 
-                $this->addError('data.recaptcha_token', __('rekrutmen::app.public_request_form.errors.recaptcha_failed'));
+                $this->addError('data.recaptcha_token', __('rekrutmen::livewire/public-request-man-power-form.errors.recaptcha_failed'));
 
                 return false;
             }
@@ -346,7 +346,7 @@ class PublicRequestManPowerForm extends SimplePage
                     'threshold' => $this->recaptchaScoreThreshold,
                 ]);
 
-                $this->addError('data.recaptcha_token', __('rekrutmen::app.public_request_form.errors.recaptcha_failed'));
+                $this->addError('data.recaptcha_token', __('rekrutmen::livewire/public-request-man-power-form.errors.recaptcha_failed'));
 
                 return false;
             }
@@ -359,7 +359,7 @@ class PublicRequestManPowerForm extends SimplePage
                     'received' => $action,
                 ]);
 
-                $this->addError('data.recaptcha_token', __('rekrutmen::app.public_request_form.errors.recaptcha_failed'));
+                $this->addError('data.recaptcha_token', __('rekrutmen::livewire/public-request-man-power-form.errors.recaptcha_failed'));
 
                 return false;
             }
@@ -368,7 +368,7 @@ class PublicRequestManPowerForm extends SimplePage
                 'error' => $exception->getMessage(),
             ]);
 
-            $this->addError('data.recaptcha_token', __('rekrutmen::app.public_request_form.errors.recaptcha_failed'));
+            $this->addError('data.recaptcha_token', __('rekrutmen::livewire/public-request-man-power-form.errors.recaptcha_failed'));
 
             return false;
         }

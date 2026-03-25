@@ -14,7 +14,7 @@ class Configurations extends Cluster
 
     public static function getNavigationLabel(): string
     {
-        return __('exit-clearance::app.config.navigation.label');
+        return __('exit-clearance::filament/clusters/configurations.navigation.label');
     }
 
     public static function getNavigationGroup(): string

@@ -27,17 +27,17 @@ class TicketStatusResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('helpdesk::app.resources.status.plural');
+        return __('helpdesk::filament/resources/ticket-status.label.plural');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('helpdesk::app.resources.status.plural');
+        return __('helpdesk::filament/resources/ticket-status.label.plural');
     }
 
     public static function getModelLabel(): string
     {
-        return __('helpdesk::app.resources.status.single');
+        return __('helpdesk::filament/resources/ticket-status.label.single');
     }
 
     public static function form(Schema $schema): Schema
@@ -59,7 +59,7 @@ class TicketStatusResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('tickets_count')
                     ->counts('tickets')
-                    ->label('Tickets')
+                    ->label(__('helpdesk::filament/resources/ticket-status.table.columns.tickets_count'))
                     ->sortable(),
             ])
             ->recordActions([

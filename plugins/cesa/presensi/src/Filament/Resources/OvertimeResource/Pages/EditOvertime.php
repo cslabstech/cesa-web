@@ -40,7 +40,7 @@ class EditOvertime extends EditRecord
 
         if ($requestDateAt->greaterThan($todayAt)) {
             throw ValidationException::withMessages([
-                'status' => 'Belum bisa approve sebelum tanggal lembur.',
+                'status' => __('presensi::filament/resources/overtime/pages/edit-overtime.validation.before_date'),
             ]);
         }
 
@@ -52,7 +52,7 @@ class EditOvertime extends EditRecord
 
         if ($onLeave) {
             throw ValidationException::withMessages([
-                'status' => 'User sedang cuti pada tanggal tersebut.',
+                'status' => __('presensi::filament/resources/overtime/pages/edit-overtime.validation.user_on_leave'),
             ]);
         }
 
@@ -69,14 +69,14 @@ class EditOvertime extends EditRecord
 
             if (! $attendance) {
                 throw ValidationException::withMessages([
-                    'status' => 'Attendance belum ada untuk tanggal tersebut.',
+                    'status' => __('presensi::filament/resources/overtime/pages/edit-overtime.validation.attendance_missing'),
                 ]);
             }
         }
 
         if (! $attendance && (! $schedule || ! $schedule->shift)) {
             throw ValidationException::withMessages([
-                'status' => 'User belum mendapatkan jadwal kerja.',
+                'status' => __('presensi::filament/resources/overtime/pages/edit-overtime.validation.schedule_missing'),
             ]);
         }
         $startTime = $this->normalizeTime($data['start_time'] ?? $this->record->start_time);
@@ -84,7 +84,7 @@ class EditOvertime extends EditRecord
 
         if (! $startTime || ! $endTime) {
             throw ValidationException::withMessages([
-                'status' => 'Waktu lembur tidak valid.',
+                'status' => __('presensi::filament/resources/overtime/pages/edit-overtime.validation.invalid_overtime_time'),
             ]);
         }
 
@@ -93,7 +93,7 @@ class EditOvertime extends EditRecord
 
         if ($endAt->lessThanOrEqualTo($startAt)) {
             throw ValidationException::withMessages([
-                'status' => 'Waktu lembur harus berakhir setelah waktu mulai.',
+                'status' => __('presensi::filament/resources/overtime/pages/edit-overtime.validation.end_before_start'),
             ]);
         }
 
@@ -105,7 +105,7 @@ class EditOvertime extends EditRecord
 
         if (! $scheduleStartTime || ! $scheduleEndTime) {
             throw ValidationException::withMessages([
-                'status' => 'Waktu shift tidak valid.',
+                'status' => __('presensi::filament/resources/overtime/pages/edit-overtime.validation.invalid_shift_time'),
             ]);
         }
 
@@ -116,7 +116,7 @@ class EditOvertime extends EditRecord
             || $startAt->greaterThanOrEqualTo($scheduleEndAt);
         if (! $outsideShift) {
             throw ValidationException::withMessages([
-                'status' => 'Waktu lembur harus di luar jam kerja.',
+                'status' => __('presensi::filament/resources/overtime/pages/edit-overtime.validation.outside_working_hours'),
             ]);
         }
 
@@ -128,14 +128,14 @@ class EditOvertime extends EditRecord
                 $attendanceStartTime = $this->normalizeTime($attendance->start_time);
                 if (! $attendanceStartTime) {
                     throw ValidationException::withMessages([
-                        'status' => 'Waktu masuk presensi tidak valid.',
+                        'status' => __('presensi::filament/resources/overtime/pages/edit-overtime.validation.invalid_attendance_start'),
                     ]);
                 }
 
                 $attendanceStartAt = Carbon::createFromFormat('H:i:s', $attendanceStartTime);
                 if ($attendanceStartAt->greaterThan($startAt)) {
                     throw ValidationException::withMessages([
-                        'status' => 'Waktu mulai lembur harus sebelum atau sama dengan waktu masuk presensi.',
+                        'status' => __('presensi::filament/resources/overtime/pages/edit-overtime.validation.start_after_attendance'),
                     ]);
                 }
             }
@@ -144,14 +144,14 @@ class EditOvertime extends EditRecord
                 $attendanceEndTime = $this->normalizeTime($attendance->end_time);
                 if (! $attendanceEndTime) {
                     throw ValidationException::withMessages([
-                        'status' => 'Waktu pulang presensi tidak valid.',
+                        'status' => __('presensi::filament/resources/overtime/pages/edit-overtime.validation.invalid_attendance_end'),
                     ]);
                 }
 
                 $attendanceEndAt = Carbon::createFromFormat('H:i:s', $attendanceEndTime);
                 if ($attendanceEndAt->lessThan($endAt)) {
                     throw ValidationException::withMessages([
-                        'status' => 'Waktu lembur melebihi waktu pulang pada presensi.',
+                        'status' => __('presensi::filament/resources/overtime/pages/edit-overtime.validation.end_after_attendance'),
                     ]);
                 }
             }
@@ -173,7 +173,7 @@ class EditOvertime extends EditRecord
 
         if ($overlap) {
             throw ValidationException::withMessages([
-                'status' => 'Pengajuan lembur tumpang tindih dengan data lain.',
+                'status' => __('presensi::filament/resources/overtime/pages/edit-overtime.validation.overlapping_request'),
             ]);
         }
     }

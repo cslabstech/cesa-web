@@ -135,8 +135,8 @@ class RequestManPowerTest extends RekrutmenTestCase
         $page->mount($request->status_response_id);
 
         $this->assertSame($request->id, $page->requestManPower->id);
-        $this->assertSame(__('rekrutmen::app.public_progress.heading'), $page->getHeading());
-        $this->assertSame(__('rekrutmen::app.public_progress.subheading'), $page->getSubheading());
+        $this->assertSame(__('rekrutmen::livewire/public-request-man-power-progress-page.heading'), $page->getHeading());
+        $this->assertSame(__('rekrutmen::livewire/public-request-man-power-progress-page.subheading'), $page->getSubheading());
     }
 
     public function test_request_man_power_notifications_include_public_progress_url(): void
@@ -151,9 +151,9 @@ class RequestManPowerTest extends RekrutmenTestCase
         ))->toMail(new \stdClass);
 
         $this->assertSame($request->getPublicProgressUrl(), $submittedMail->actionUrl);
-        $this->assertSame(__('rekrutmen::app.mail.request_man_power_submitted.view_progress'), $submittedMail->actionText);
+        $this->assertSame(__('rekrutmen::mail/request-man-power-submitted.view_progress'), $submittedMail->actionText);
         $this->assertSame($request->getPublicProgressUrl(), $statusChangedMail->actionUrl);
-        $this->assertSame(__('rekrutmen::app.mail.request_man_power_status_changed.view_progress'), $statusChangedMail->actionText);
+        $this->assertSame(__('rekrutmen::mail/request-man-power-status-changed.view_progress'), $statusChangedMail->actionText);
     }
 
     public function test_soft_deleted_relations_remain_readable(): void

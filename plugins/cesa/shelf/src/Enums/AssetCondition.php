@@ -12,10 +12,10 @@ enum AssetCondition: string
     public function label(): string
     {
         return match ($this) {
-            self::Available   => __('shelf::enums.asset-condition.available'),
-            self::Transferred => __('shelf::enums.asset-condition.transferred'),
-            self::Lost        => __('shelf::enums.asset-condition.lost'),
-            self::Damaged     => __('shelf::enums.asset-condition.damaged'),
+            self::Available   => __('shelf::enums/asset-condition.available'),
+            self::Transferred => __('shelf::enums/asset-condition.transferred'),
+            self::Lost        => __('shelf::enums/asset-condition.lost'),
+            self::Damaged     => __('shelf::enums/asset-condition.damaged'),
         };
     }
 

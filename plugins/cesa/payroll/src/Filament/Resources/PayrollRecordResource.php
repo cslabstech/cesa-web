@@ -30,37 +30,37 @@ class PayrollRecordResource extends PayrollResource
         return $schema
             ->components([
                 Forms\Components\Select::make('user_id')
-                    ->label(__('payroll::app.resources.payroll_record.form.fields.user_id'))
+                    ->label(__('payroll::filament/resources/payroll-record.form.fields.user_id'))
                     ->relationship('user', 'name')
                     ->disabled(),
                 Forms\Components\Select::make('payroll_period_id')
-                    ->label(__('payroll::app.resources.payroll_record.form.fields.payroll_period_id'))
+                    ->label(__('payroll::filament/resources/payroll-record.form.fields.payroll_period_id'))
                     ->relationship('period', 'name')
                     ->disabled(),
                 Forms\Components\TextInput::make('total_attendance_days')
-                    ->label(__('payroll::app.resources.payroll_record.form.fields.total_attendance_days'))
+                    ->label(__('payroll::filament/resources/payroll-record.form.fields.total_attendance_days'))
                     ->numeric()
                     ->disabled(),
                 Forms\Components\TextInput::make('total_overtime_hours')
-                    ->label(__('payroll::app.resources.payroll_record.form.fields.total_overtime_hours'))
+                    ->label(__('payroll::filament/resources/payroll-record.form.fields.total_overtime_hours'))
                     ->numeric()
                     ->disabled(),
                 Forms\Components\TextInput::make('total_late_minutes')
-                    ->label(__('payroll::app.resources.payroll_record.form.fields.total_late_minutes'))
+                    ->label(__('payroll::filament/resources/payroll-record.form.fields.total_late_minutes'))
                     ->numeric()
                     ->disabled(),
                 Forms\Components\TextInput::make('gross_salary')
-                    ->label(__('payroll::app.resources.payroll_record.form.fields.gross_salary'))
+                    ->label(__('payroll::filament/resources/payroll-record.form.fields.gross_salary'))
                     ->numeric()
                     ->prefix('IDR')
                     ->disabled(),
                 Forms\Components\TextInput::make('total_penalties')
-                    ->label(__('payroll::app.resources.payroll_record.form.fields.total_penalties'))
+                    ->label(__('payroll::filament/resources/payroll-record.form.fields.total_penalties'))
                     ->numeric()
                     ->prefix('IDR')
                     ->disabled(),
                 Forms\Components\TextInput::make('net_salary')
-                    ->label(__('payroll::app.resources.payroll_record.form.fields.net_salary'))
+                    ->label(__('payroll::filament/resources/payroll-record.form.fields.net_salary'))
                     ->numeric()
                     ->prefix('IDR')
                     ->disabled(),
@@ -72,21 +72,27 @@ class PayrollRecordResource extends PayrollResource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
+                    ->label(__('payroll::filament/resources/payroll-record.table.columns.employee'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('period.name')
+                    ->label(__('payroll::filament/resources/payroll-record.table.columns.period'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('gross_salary')
+                    ->label(__('payroll::filament/resources/payroll-record.table.columns.gross_salary'))
                     ->money('IDR')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('total_penalties')
+                    ->label(__('payroll::filament/resources/payroll-record.table.columns.total_penalties'))
                     ->money('IDR')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('net_salary')
+                    ->label(__('payroll::filament/resources/payroll-record.table.columns.net_salary'))
                     ->money('IDR')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label(__('payroll::filament/resources/payroll-record.table.columns.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -94,7 +100,7 @@ class PayrollRecordResource extends PayrollResource
             ->filters([
                 Tables\Filters\SelectFilter::make('payroll_period_id')
                     ->relationship('period', 'name')
-                    ->label('Period'),
+                    ->label(__('payroll::filament/resources/payroll-record.table.filters.payroll_period_id')),
             ])
             ->actions([
                 Actions\ViewAction::make(),
@@ -110,60 +116,60 @@ class PayrollRecordResource extends PayrollResource
     {
         return $schema
             ->components([
-                Section::make(__('payroll::app.resources.payroll_record.infolist.sections.record_details'))
+                Section::make(__('payroll::filament/resources/payroll-record.infolist.sections.record_details'))
                     ->schema([
                         Infolists\Components\TextEntry::make('user.name')
-                            ->label(__('payroll::app.resources.payroll_record.infolist.entries.employee')),
+                            ->label(__('payroll::filament/resources/payroll-record.infolist.entries.employee')),
                         Infolists\Components\TextEntry::make('period.name')
-                            ->label(__('payroll::app.resources.payroll_record.infolist.entries.period')),
+                            ->label(__('payroll::filament/resources/payroll-record.infolist.entries.period')),
                         Infolists\Components\TextEntry::make('total_attendance_days')
-                            ->label(__('payroll::app.resources.payroll_record.infolist.entries.attendance_days')),
+                            ->label(__('payroll::filament/resources/payroll-record.infolist.entries.attendance_days')),
                         Infolists\Components\TextEntry::make('total_overtime_hours')
-                            ->label(__('payroll::app.resources.payroll_record.infolist.entries.overtime_hours')),
+                            ->label(__('payroll::filament/resources/payroll-record.infolist.entries.overtime_hours')),
                         Infolists\Components\TextEntry::make('total_late_minutes')
-                            ->label(__('payroll::app.resources.payroll_record.infolist.entries.late_minutes')),
+                            ->label(__('payroll::filament/resources/payroll-record.infolist.entries.late_minutes')),
                     ])->columns(2),
-                Section::make(__('payroll::app.resources.payroll_record.infolist.sections.financials'))
+                Section::make(__('payroll::filament/resources/payroll-record.infolist.sections.financials'))
                     ->schema([
                         Infolists\Components\TextEntry::make('gross_salary')
-                            ->label(__('payroll::app.resources.payroll_record.infolist.entries.gross_salary'))
+                            ->label(__('payroll::filament/resources/payroll-record.infolist.entries.gross_salary'))
                             ->money('IDR'),
                         Infolists\Components\TextEntry::make('total_penalties')
-                            ->label(__('payroll::app.resources.payroll_record.infolist.entries.total_penalties'))
+                            ->label(__('payroll::filament/resources/payroll-record.infolist.entries.total_penalties'))
                             ->money('IDR'),
                         Infolists\Components\TextEntry::make('net_salary')
-                            ->label(__('payroll::app.resources.payroll_record.infolist.entries.net_salary'))
+                            ->label(__('payroll::filament/resources/payroll-record.infolist.entries.net_salary'))
                             ->money('IDR')
                             ->weight('bold')
                             ->color('success'),
                     ])->columns(3),
-                Section::make(__('payroll::app.resources.payroll_record.infolist.sections.calculation_details'))
+                Section::make(__('payroll::filament/resources/payroll-record.infolist.sections.calculation_details'))
                     ->schema([
                         Infolists\Components\TextEntry::make('details.daily_wage')
-                            ->label(__('payroll::app.resources.payroll_record.infolist.entries.daily_wage'))
+                            ->label(__('payroll::filament/resources/payroll-record.infolist.entries.daily_wage'))
                             ->money('IDR'),
                         Infolists\Components\TextEntry::make('details.overtime_rate')
-                            ->label(__('payroll::app.resources.payroll_record.infolist.entries.overtime_rate'))
+                            ->label(__('payroll::filament/resources/payroll-record.infolist.entries.overtime_rate'))
                             ->money('IDR'),
                         Infolists\Components\TextEntry::make('details.basic_salary')
-                            ->label(__('payroll::app.resources.payroll_record.infolist.entries.basic_salary'))
+                            ->label(__('payroll::filament/resources/payroll-record.infolist.entries.basic_salary'))
                             ->money('IDR'),
                         Infolists\Components\TextEntry::make('details.overtime_salary')
-                            ->label(__('payroll::app.resources.payroll_record.infolist.entries.overtime_salary'))
+                            ->label(__('payroll::filament/resources/payroll-record.infolist.entries.overtime_salary'))
                             ->money('IDR'),
                     ])->columns(2),
-                Section::make(__('payroll::app.resources.payroll_record.infolist.sections.penalties_breakdown'))
+                Section::make(__('payroll::filament/resources/payroll-record.infolist.sections.penalties_breakdown'))
                     ->schema([
                         Infolists\Components\RepeatableEntry::make('details.penalties_breakdown')
-                            ->label(__('payroll::app.resources.payroll_record.infolist.entries.late_penalties'))
+                            ->label(__('payroll::filament/resources/payroll-record.infolist.entries.late_penalties'))
                             ->schema([
                                 Infolists\Components\TextEntry::make('date')
-                                    ->label(__('payroll::app.resources.payroll_record.infolist.entries.date'))
+                                    ->label(__('payroll::filament/resources/payroll-record.infolist.entries.date'))
                                     ->date(),
                                 Infolists\Components\TextEntry::make('minutes_late')
-                                    ->label(__('payroll::app.resources.payroll_record.infolist.entries.minutes_late')),
+                                    ->label(__('payroll::filament/resources/payroll-record.infolist.entries.minutes_late')),
                                 Infolists\Components\TextEntry::make('penalty_amount')
-                                    ->label(__('payroll::app.resources.payroll_record.infolist.entries.penalty_amount'))
+                                    ->label(__('payroll::filament/resources/payroll-record.infolist.entries.penalty_amount'))
                                     ->money('IDR'),
                             ])
                             ->columns(3),

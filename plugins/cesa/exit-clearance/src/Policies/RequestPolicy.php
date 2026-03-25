@@ -76,9 +76,4 @@ class RequestPolicy
     {
         return $user->can('restore_any_exit_clearance_request');
     }
-
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_exit_clearance_request');
-    }
 }

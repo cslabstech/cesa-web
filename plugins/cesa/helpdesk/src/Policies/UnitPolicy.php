@@ -59,9 +59,4 @@ class UnitPolicy
     {
         return $user->can('restore_any_helpdesk_unit');
     }
-
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_helpdesk_unit');
-    }
 }

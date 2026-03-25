@@ -30,65 +30,65 @@ class JobPostingResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('rekrutmen::app.resources.job_posting.navigation.label');
+        return __('rekrutmen::filament/resources/job-posting.navigation.label');
     }
 
     public static function getModelLabel(): string
     {
-        return __('rekrutmen::app.resources.job_posting.model.singular');
+        return __('rekrutmen::filament/resources/job-posting.model.singular');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('rekrutmen::app.resources.job_posting.model.plural');
+        return __('rekrutmen::filament/resources/job-posting.model.plural');
     }
 
     public static function form(Schema $schema): Schema
     {
         return $schema
             ->schema([
-                Section::make(__('rekrutmen::app.resources.job_posting.form.sections.job_information'))
+                Section::make(__('rekrutmen::filament/resources/job-posting.form.sections.job_information'))
                     ->schema([
                         Forms\Components\Select::make('request_man_power_id')
                             ->relationship('requestManPower', 'posisi_dibutuhkan')
                             ->searchable()
                             ->nullable()
-                            ->label(__('rekrutmen::app.resources.job_posting.form.fields.request_man_power_id')),
+                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.request_man_power_id')),
                         Forms\Components\Select::make('rekrutmen_pipeline_id')
                             ->relationship('rekrutmenPipeline', 'name')
                             ->required()
                             ->searchable()
                             ->preload()
-                            ->label(__('rekrutmen::app.resources.job_posting.form.fields.rekrutmen_pipeline_id')),
+                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.rekrutmen_pipeline_id')),
                         Forms\Components\TextInput::make('title')
-                            ->label(__('rekrutmen::app.resources.job_posting.form.fields.title'))
+                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.title'))
                             ->required()
                             ->maxLength(255)
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn (string $operation, $state, Forms\Set $set) => $operation === 'create' ? $set('slug', Str::slug($state)) : null),
                         Forms\Components\TextInput::make('slug')
-                            ->label(__('rekrutmen::app.resources.job_posting.form.fields.slug'))
+                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.slug'))
                             ->required()
                             ->maxLength(255)
                             ->unique(JobPosting::class, 'slug', ignoreRecord: true),
                         Forms\Components\TextInput::make('location')
-                            ->label(__('rekrutmen::app.resources.job_posting.form.fields.location'))
+                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.location'))
                             ->maxLength(255),
                         Forms\Components\DatePicker::make('closing_date')
-                            ->label(__('rekrutmen::app.resources.job_posting.form.fields.closing_date')),
+                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.closing_date')),
                         Forms\Components\Toggle::make('is_published')
-                            ->label(__('rekrutmen::app.resources.job_posting.form.fields.is_published'))
+                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.is_published'))
                             ->default(false),
                     ])->columns(2),
 
-                Section::make(__('rekrutmen::app.resources.job_posting.form.sections.details'))
+                Section::make(__('rekrutmen::filament/resources/job-posting.form.sections.details'))
                     ->schema([
                         Forms\Components\RichEditor::make('description')
-                            ->label(__('rekrutmen::app.resources.job_posting.form.fields.description'))
+                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.description'))
                             ->required()
                             ->columnSpanFull(),
                         Forms\Components\RichEditor::make('requirements')
-                            ->label(__('rekrutmen::app.resources.job_posting.form.fields.requirements'))
+                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.requirements'))
                             ->required()
                             ->columnSpanFull(),
                     ]),
@@ -100,18 +100,18 @@ class JobPostingResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('title')
-                    ->label(__('rekrutmen::app.resources.job_posting.table.columns.title'))
+                    ->label(__('rekrutmen::filament/resources/job-posting.table.columns.title'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('location')
-                    ->label(__('rekrutmen::app.resources.job_posting.table.columns.location'))
+                    ->label(__('rekrutmen::filament/resources/job-posting.table.columns.location'))
                     ->searchable(),
                 Tables\Columns\IconColumn::make('is_published')
-                    ->label(__('rekrutmen::app.resources.job_posting.table.columns.is_published'))
+                    ->label(__('rekrutmen::filament/resources/job-posting.table.columns.is_published'))
                     ->boolean()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('closing_date')
-                    ->label(__('rekrutmen::app.resources.job_posting.table.columns.closing_date'))
+                    ->label(__('rekrutmen::filament/resources/job-posting.table.columns.closing_date'))
                     ->date()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
@@ -125,7 +125,7 @@ class JobPostingResource extends Resource
             ])
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_published')
-                    ->label(__('rekrutmen::app.resources.job_posting.table.filters.is_published')),
+                    ->label(__('rekrutmen::filament/resources/job-posting.table.filters.is_published')),
             ])
             ->recordActions([
                 EditAction::make(),

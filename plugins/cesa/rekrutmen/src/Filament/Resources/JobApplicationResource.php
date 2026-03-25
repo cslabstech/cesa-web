@@ -35,64 +35,64 @@ class JobApplicationResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('rekrutmen::app.resources.job_application.navigation.label');
+        return __('rekrutmen::filament/resources/job-application.navigation.label');
     }
 
     public static function getModelLabel(): string
     {
-        return __('rekrutmen::app.resources.job_application.model.singular');
+        return __('rekrutmen::filament/resources/job-application.model.singular');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('rekrutmen::app.resources.job_application.model.plural');
+        return __('rekrutmen::filament/resources/job-application.model.plural');
     }
 
     public static function form(Schema $schema): Schema
     {
         return $schema
             ->schema([
-                Section::make(__('rekrutmen::app.resources.job_application.form.sections.candidate_information'))
+                Section::make(__('rekrutmen::filament/resources/job-application.form.sections.candidate_information'))
                     ->schema([
                         Forms\Components\Select::make('job_posting_id')
                             ->relationship('jobPosting', 'title')
                             ->required()
                             ->searchable()
-                            ->label(__('rekrutmen::app.resources.job_application.form.fields.job_posting_id')),
+                            ->label(__('rekrutmen::filament/resources/job-application.form.fields.job_posting_id')),
                         Forms\Components\TextInput::make('full_name')
-                            ->label(__('rekrutmen::app.resources.job_application.form.fields.full_name'))
+                            ->label(__('rekrutmen::filament/resources/job-application.form.fields.full_name'))
                             ->required()
                             ->maxLength(255),
                         Forms\Components\TextInput::make('email')
-                            ->label(__('rekrutmen::app.resources.job_application.form.fields.email'))
+                            ->label(__('rekrutmen::filament/resources/job-application.form.fields.email'))
                             ->email()
                             ->required()
                             ->maxLength(255),
                         Forms\Components\TextInput::make('phone')
-                            ->label(__('rekrutmen::app.resources.job_application.form.fields.phone'))
+                            ->label(__('rekrutmen::filament/resources/job-application.form.fields.phone'))
                             ->tel()
                             ->required()
                             ->maxLength(255),
                         Forms\Components\TextInput::make('portfolio_url')
-                            ->label(__('rekrutmen::app.resources.job_application.form.fields.portfolio_url'))
+                            ->label(__('rekrutmen::filament/resources/job-application.form.fields.portfolio_url'))
                             ->url()
                             ->maxLength(255),
                     ])->columns(2),
 
-                Section::make(__('rekrutmen::app.resources.job_application.form.sections.application_details'))
+                Section::make(__('rekrutmen::filament/resources/job-application.form.sections.application_details'))
                     ->schema([
                         Forms\Components\Select::make('current_stage_id')
                             ->relationship('currentStage', 'name')
-                            ->label(__('rekrutmen::app.resources.job_application.form.fields.current_stage_id'))
+                            ->label(__('rekrutmen::filament/resources/job-application.form.fields.current_stage_id'))
                             ->disabled()
                             ->dehydrated(false),
                         Forms\Components\Select::make('status')
-                            ->label(__('rekrutmen::app.resources.job_application.form.fields.status'))
+                            ->label(__('rekrutmen::filament/resources/job-application.form.fields.status'))
                             ->required()
                             ->options(JobApplicationStatus::class)
                             ->default(JobApplicationStatus::IN_PROGRESS),
                         Forms\Components\FileUpload::make('resume_path')
-                            ->label(__('rekrutmen::app.resources.job_application.form.fields.resume_path'))
+                            ->label(__('rekrutmen::filament/resources/job-application.form.fields.resume_path'))
                             ->disk(JobApplication::resumeDisk())
                             ->directory(JobApplication::RESUME_DIRECTORY)
                             ->acceptedFileTypes(['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
@@ -133,7 +133,7 @@ class JobApplicationResource extends Resource
                                 ];
                             }),
                         Forms\Components\Textarea::make('cover_letter')
-                            ->label(__('rekrutmen::app.resources.job_application.form.fields.cover_letter'))
+                            ->label(__('rekrutmen::filament/resources/job-application.form.fields.cover_letter'))
                             ->columnSpanFull(),
                     ])->columns(2),
             ]);
@@ -144,27 +144,27 @@ class JobApplicationResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('full_name')
-                    ->label(__('rekrutmen::app.resources.job_application.table.columns.full_name'))
+                    ->label(__('rekrutmen::filament/resources/job-application.table.columns.full_name'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('jobPosting.title')
-                    ->label(__('rekrutmen::app.resources.job_application.table.columns.job_posting'))
+                    ->label(__('rekrutmen::filament/resources/job-application.table.columns.job_posting'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('email')
-                    ->label(__('rekrutmen::app.resources.job_application.table.columns.email'))
+                    ->label(__('rekrutmen::filament/resources/job-application.table.columns.email'))
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('phone')
-                    ->label(__('rekrutmen::app.resources.job_application.table.columns.phone'))
+                    ->label(__('rekrutmen::filament/resources/job-application.table.columns.phone'))
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('currentStage.name')
-                    ->label(__('rekrutmen::app.resources.job_application.table.columns.current_stage'))
+                    ->label(__('rekrutmen::filament/resources/job-application.table.columns.current_stage'))
                     ->badge()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
-                    ->label(__('rekrutmen::app.resources.job_application.table.columns.status'))
+                    ->label(__('rekrutmen::filament/resources/job-application.table.columns.status'))
                     ->badge()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
@@ -179,21 +179,21 @@ class JobApplicationResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('job_posting_id')
                     ->relationship('jobPosting', 'title')
-                    ->label(__('rekrutmen::app.resources.job_application.table.filters.job_posting_id'))
+                    ->label(__('rekrutmen::filament/resources/job-application.table.filters.job_posting_id'))
                     ->searchable(),
                 Tables\Filters\SelectFilter::make('status')
-                    ->label(__('rekrutmen::app.resources.job_application.table.filters.status'))
+                    ->label(__('rekrutmen::filament/resources/job-application.table.filters.status'))
                     ->options(JobApplicationStatus::class),
             ])
             ->recordActions([
                 EditAction::make(),
                 Action::make('change_stage')
-                    ->label(__('rekrutmen::app.resources.job_application.table.actions.change_stage'))
+                    ->label(__('rekrutmen::filament/resources/job-application.table.actions.change_stage'))
                     ->icon('heroicon-o-chevron-double-right')
                     ->color('warning')
                     ->form([
                         Forms\Components\Select::make('to_stage_id')
-                            ->label(__('rekrutmen::app.resources.job_application.table.actions.to_stage_id'))
+                            ->label(__('rekrutmen::filament/resources/job-application.table.actions.to_stage_id'))
                             ->options(function (JobApplication $record) {
                                 if (! $record->jobPosting || ! $record->jobPosting->rekrutmen_pipeline_id) {
                                     return [];
@@ -206,7 +206,7 @@ class JobApplicationResource extends Resource
                             })
                             ->required(),
                         Forms\Components\Textarea::make('notes')
-                            ->label(__('rekrutmen::app.resources.job_application.table.actions.notes'))
+                            ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
                             ->maxLength(65535),
                     ])
                     ->action(function (JobApplication $record, array $data): void {
@@ -222,7 +222,7 @@ class JobApplicationResource extends Resource
                         ]);
                     }),
                 Action::make('download_resume')
-                    ->label(__('rekrutmen::app.resources.job_application.table.actions.download_resume'))
+                    ->label(__('rekrutmen::filament/resources/job-application.table.actions.download_resume'))
                     ->icon('heroicon-o-document-arrow-down')
                     ->url(fn (JobApplication $record) => auth()->user() && $record->resume_path ? URL::temporarySignedRoute(
                         'rekrutmen.job-applications.attachments.download',

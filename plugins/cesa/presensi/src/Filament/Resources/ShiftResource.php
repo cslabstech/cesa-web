@@ -24,17 +24,17 @@ class ShiftResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('presensi::app.resources.shift.navigation.label');
+        return __('presensi::filament/resources/shift.navigation.label');
     }
 
     public static function getModelLabel(): string
     {
-        return __('presensi::app.resources.shift.model.singular');
+        return __('presensi::filament/resources/shift.model.singular');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('presensi::app.resources.shift.model.plural');
+        return __('presensi::filament/resources/shift.model.plural');
     }
 
     public static function form(Schema $schema): Schema
@@ -42,14 +42,14 @@ class ShiftResource extends Resource
         return $schema
             ->components([
                 Forms\Components\TextInput::make('name')
-                    ->label(__('presensi::app.resources.shift.form.fields.name'))
+                    ->label(__('presensi::filament/resources/shift.form.fields.name'))
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TimePicker::make('start_time')
-                    ->label(__('presensi::app.resources.shift.form.fields.start_time'))
+                    ->label(__('presensi::filament/resources/shift.form.fields.start_time'))
                     ->required(),
                 Forms\Components\TimePicker::make('end_time')
-                    ->label(__('presensi::app.resources.shift.form.fields.end_time'))
+                    ->label(__('presensi::filament/resources/shift.form.fields.end_time'))
                     ->required(),
             ]);
     }
@@ -59,12 +59,12 @@ class ShiftResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label(__('presensi::app.resources.shift.table.columns.name'))
+                    ->label(__('presensi::filament/resources/shift.table.columns.name'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('start_time')
-                    ->label(__('presensi::app.resources.shift.table.columns.start_time')),
+                    ->label(__('presensi::filament/resources/shift.table.columns.start_time')),
                 Tables\Columns\TextColumn::make('end_time')
-                    ->label(__('presensi::app.resources.shift.table.columns.end_time')),
+                    ->label(__('presensi::filament/resources/shift.table.columns.end_time')),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

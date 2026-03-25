@@ -23,17 +23,17 @@ class PayrollPeriodResource extends PayrollResource
 
     public static function getNavigationLabel(): string
     {
-        return __('payroll::app.resources.payroll_period.navigation.label');
+        return __('payroll::filament/resources/payroll-period.navigation.label');
     }
 
     public static function getModelLabel(): string
     {
-        return __('payroll::app.resources.payroll_period.model.singular');
+        return __('payroll::filament/resources/payroll-period.model.singular');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('payroll::app.resources.payroll_period.model.plural');
+        return __('payroll::filament/resources/payroll-period.model.plural');
     }
 
     public static function form(Schema $schema): Schema
@@ -41,29 +41,29 @@ class PayrollPeriodResource extends PayrollResource
         return $schema
             ->components([
                 Forms\Components\TextInput::make('name')
-                    ->label(__('payroll::app.resources.payroll_period.form.fields.name'))
+                    ->label(__('payroll::filament/resources/payroll-period.form.fields.name'))
                     ->required()
                     ->maxLength(255),
                 Forms\Components\DatePicker::make('start_date')
-                    ->label(__('payroll::app.resources.payroll_period.form.fields.start_date'))
+                    ->label(__('payroll::filament/resources/payroll-period.form.fields.start_date'))
                     ->required(),
                 Forms\Components\DatePicker::make('end_date')
-                    ->label(__('payroll::app.resources.payroll_period.form.fields.end_date'))
+                    ->label(__('payroll::filament/resources/payroll-period.form.fields.end_date'))
                     ->required(),
                 Forms\Components\Select::make('status')
-                    ->label(__('payroll::app.resources.payroll_period.form.fields.status'))
+                    ->label(__('payroll::filament/resources/payroll-period.form.fields.status'))
                     ->options([
-                        'open'   => __('payroll::app.enums.status.open'),
-                        'locked' => __('payroll::app.enums.status.locked'),
-                        'paid'   => __('payroll::app.enums.status.paid'),
+                        'open'   => __('payroll::enums/status.open'),
+                        'locked' => __('payroll::enums/status.locked'),
+                        'paid'   => __('payroll::enums/status.paid'),
                     ])
                     ->required()
                     ->default('open')
                     ->hiddenOn('create')
                     ->dehydrated(),
                 Forms\Components\Toggle::make('auto_generate')
-                    ->label(__('payroll::app.resources.payroll_period.form.fields.auto_generate'))
-                    ->helperText(__('payroll::app.resources.payroll_period.form.fields.auto_generate_helper'))
+                    ->label(__('payroll::filament/resources/payroll-period.form.fields.auto_generate'))
+                    ->helperText(__('payroll::filament/resources/payroll-period.form.fields.auto_generate_helper'))
                     ->default(false)
                     ->visibleOn('create'),
             ]);
@@ -74,19 +74,19 @@ class PayrollPeriodResource extends PayrollResource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label(__('payroll::app.resources.payroll_period.table.columns.name'))
+                    ->label(__('payroll::filament/resources/payroll-period.table.columns.name'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('start_date')
-                    ->label(__('payroll::app.resources.payroll_period.table.columns.start_date'))
+                    ->label(__('payroll::filament/resources/payroll-period.table.columns.start_date'))
                     ->date()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('end_date')
-                    ->label(__('payroll::app.resources.payroll_period.table.columns.end_date'))
+                    ->label(__('payroll::filament/resources/payroll-period.table.columns.end_date'))
                     ->date()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
-                    ->label(__('payroll::app.resources.payroll_period.table.columns.status'))
+                    ->label(__('payroll::filament/resources/payroll-period.table.columns.status'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'open'   => 'gray',
@@ -95,7 +95,7 @@ class PayrollPeriodResource extends PayrollResource
                         default  => 'gray',
                     }),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label(__('payroll::app.resources.payroll_period.table.columns.created_at'))
+                    ->label(__('payroll::filament/resources/payroll-period.table.columns.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -111,44 +111,44 @@ class PayrollPeriodResource extends PayrollResource
                     ->modalWidth('md')
                     ->schema(fn (Schema $schema): Schema => static::form($schema->columns(1))),
                 Actions\Action::make('generate_payroll')
-                    ->label(__('payroll::app.resources.payroll_period.table.actions.generate_payroll'))
+                    ->label(__('payroll::filament/resources/payroll-period.table.actions.generate_payroll.label'))
                     ->icon('heroicon-o-cpu-chip')
                     ->color('info')
                     ->requiresConfirmation()
-                    ->modalHeading('Generate Payroll')
-                    ->modalDescription('Are you sure? This will calculate payroll only for employees who have attendance or approved overtime data in this period. Existing payroll records for this period will be regenerated using the latest data.')
+                    ->modalHeading(__('payroll::filament/resources/payroll-period.table.actions.generate_payroll.modal_heading'))
+                    ->modalDescription(__('payroll::filament/resources/payroll-period.table.actions.generate_payroll.modal_description'))
                     ->visible(fn (PayrollPeriod $record): bool => $record->status === 'open')
                     ->action(function (PayrollPeriod $record, GeneratePayrollService $service) {
                         try {
                             $service->generate($record);
 
                             Notification::make()
-                                ->title(__('payroll::app.notifications.payroll_generated.title'))
-                                ->body(__('payroll::app.notifications.payroll_generated.body'))
+                                ->title(__('payroll::filament/resources/payroll-period.notifications.payroll_generated.title'))
+                                ->body(__('payroll::filament/resources/payroll-period.notifications.payroll_generated.body'))
                                 ->success()
                                 ->send();
                         } catch (\Exception $e) {
                             Notification::make()
-                                ->title('Error')
-                                ->body($e->getMessage())
+                                ->title(__('payroll::filament/resources/payroll-period.notifications.generate_failed.title'))
+                                ->body(__('payroll::filament/resources/payroll-period.notifications.generate_failed.body', ['message' => $e->getMessage()]))
                                 ->danger()
                                 ->send();
                         }
                     }),
                 Actions\Action::make('mark_as_paid')
-                    ->label(__('payroll::app.resources.payroll_period.table.actions.mark_as_paid'))
+                    ->label(__('payroll::filament/resources/payroll-period.table.actions.mark_as_paid.label'))
                     ->icon('heroicon-o-currency-dollar')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->modalHeading(__('payroll::app.resources.payroll_period.table.actions.mark_as_paid'))
-                    ->modalDescription(__('payroll::app.resources.payroll_period.table.actions.mark_as_paid_description'))
+                    ->modalHeading(__('payroll::filament/resources/payroll-period.table.actions.mark_as_paid.label'))
+                    ->modalDescription(__('payroll::filament/resources/payroll-period.table.actions.mark_as_paid.modal_description'))
                     ->visible(fn (PayrollPeriod $record): bool => $record->status === 'locked')
                     ->action(function (PayrollPeriod $record) {
                         $record->update(['status' => 'paid']);
 
                         Notification::make()
-                            ->title(__('payroll::app.notifications.marked_as_paid.title'))
-                            ->body(__('payroll::app.notifications.marked_as_paid.body'))
+                            ->title(__('payroll::filament/resources/payroll-period.notifications.marked_as_paid.title'))
+                            ->body(__('payroll::filament/resources/payroll-period.notifications.marked_as_paid.body'))
                             ->success()
                             ->send();
                     }),

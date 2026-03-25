@@ -35,7 +35,7 @@ class Configurations extends Cluster
 
     public static function getNavigationLabel(): string
     {
-        return __('shelf::app.config.navigation.label');
+        return __('shelf::filament/clusters/configurations.navigation.title');
     }
 
     public static function getNavigationGroup(): string

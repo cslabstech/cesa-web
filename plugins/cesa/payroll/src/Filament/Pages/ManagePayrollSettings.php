@@ -29,7 +29,7 @@ class ManagePayrollSettings extends SettingsPage
 
     public static function getNavigationLabel(): string
     {
-        return __('payroll::app.pages.manage_settings.navigation.label');
+        return __('payroll::filament/pages/manage-payroll-settings.navigation.label');
     }
 
     public static function getNavigationSort(): ?int
@@ -46,31 +46,31 @@ class ManagePayrollSettings extends SettingsPage
     {
         return $schema
             ->components([
-                Section::make(__('payroll::app.pages.manage_settings.sections.wage_settings'))
+                Section::make(__('payroll::filament/pages/manage-payroll-settings.sections.wage_settings'))
                     ->schema([
                         Forms\Components\TextInput::make('daily_wage')
-                            ->label(__('payroll::app.pages.manage_settings.fields.daily_wage'))
+                            ->label(__('payroll::filament/pages/manage-payroll-settings.fields.daily_wage'))
                             ->numeric()
                             ->prefix('IDR')
                             ->required(),
                         Forms\Components\TextInput::make('overtime_hourly_rate')
-                            ->label(__('payroll::app.pages.manage_settings.fields.overtime_hourly_rate'))
+                            ->label(__('payroll::filament/pages/manage-payroll-settings.fields.overtime_hourly_rate'))
                             ->numeric()
                             ->prefix('IDR')
                             ->required(),
                     ])->columns(2),
 
-                Section::make(__('payroll::app.pages.manage_settings.sections.late_penalty_settings'))
-                    ->description(__('payroll::app.pages.manage_settings.sections.late_penalty_description'))
+                Section::make(__('payroll::filament/pages/manage-payroll-settings.sections.late_penalty_settings'))
+                    ->description(__('payroll::filament/pages/manage-payroll-settings.sections.late_penalty_description'))
                     ->schema([
                         Grid::make(2)
                             ->schema([
                                 Forms\Components\TextInput::make('late_penalty_tier_1_min')
-                                    ->label(__('payroll::app.pages.manage_settings.fields.late_penalty_tier_1_min'))
+                                    ->label(__('payroll::filament/pages/manage-payroll-settings.fields.late_penalty_tier_1_min'))
                                     ->numeric()
                                     ->required(),
                                 Forms\Components\TextInput::make('late_penalty_tier_1_amount')
-                                    ->label(__('payroll::app.pages.manage_settings.fields.late_penalty_tier_1_amount'))
+                                    ->label(__('payroll::filament/pages/manage-payroll-settings.fields.late_penalty_tier_1_amount'))
                                     ->numeric()
                                     ->prefix('IDR')
                                     ->required(),
@@ -78,17 +78,17 @@ class ManagePayrollSettings extends SettingsPage
                         Grid::make(2)
                             ->schema([
                                 Forms\Components\TextInput::make('late_penalty_tier_2_min')
-                                    ->label(__('payroll::app.pages.manage_settings.fields.late_penalty_tier_2_min'))
+                                    ->label(__('payroll::filament/pages/manage-payroll-settings.fields.late_penalty_tier_2_min'))
                                     ->numeric()
                                     ->required(),
                                 Forms\Components\TextInput::make('late_penalty_tier_2_amount')
-                                    ->label(__('payroll::app.pages.manage_settings.fields.late_penalty_tier_2_amount'))
+                                    ->label(__('payroll::filament/pages/manage-payroll-settings.fields.late_penalty_tier_2_amount'))
                                     ->numeric()
                                     ->prefix('IDR')
                                     ->required(),
                             ]),
                         Forms\Components\TextInput::make('late_penalty_tier_3_percent')
-                            ->label(__('payroll::app.pages.manage_settings.fields.late_penalty_tier_3_percent'))
+                            ->label(__('payroll::filament/pages/manage-payroll-settings.fields.late_penalty_tier_3_percent'))
                             ->numeric()
                             ->suffix('%')
                             ->required(),

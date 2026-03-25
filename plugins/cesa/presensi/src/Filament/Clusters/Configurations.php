@@ -35,7 +35,7 @@ class Configurations extends Cluster
 
     public static function getNavigationLabel(): string
     {
-        return __('presensi::app.config.navigation.label');
+        return __('presensi::filament/clusters/configurations.navigation.label');
     }
 
     public static function getNavigationGroup(): string

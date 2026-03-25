@@ -76,9 +76,4 @@ class DepartmentPolicy
     {
         return $user->can('restore_any_exit_clearance_department');
     }
-
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_exit_clearance_department');
-    }
 }

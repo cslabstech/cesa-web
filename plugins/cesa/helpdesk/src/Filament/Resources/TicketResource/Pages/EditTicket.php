@@ -23,7 +23,7 @@ class EditTicket extends EditRecord
         return [
             ViewAction::make(),
             Action::make('start_progress')
-                ->label('Start Progress')
+                ->label(__('helpdesk::filament/resources/ticket/pages/edit-ticket.actions.start_progress.label'))
                 ->color('warning')
                 ->requiresConfirmation()
                 ->visible(fn (Ticket $record): bool => $record->isStatus(TicketStatus::OPEN) && Gate::allows('update', $record))
@@ -34,12 +34,12 @@ class EditTicket extends EditRecord
                     $this->refreshFormData(['ticket_status_id', 'approved_at', 'solved_at']);
                 }),
             Action::make('close_ticket')
-                ->label('Close Ticket')
+                ->label(__('helpdesk::filament/resources/ticket/pages/edit-ticket.actions.close_ticket.label'))
                 ->color('success')
                 ->visible(fn (Ticket $record): bool => Gate::allows('close', $record))
                 ->form([
                     Textarea::make('close_reason')
-                        ->label('Close Reason')
+                        ->label(__('helpdesk::filament/resources/ticket/pages/edit-ticket.actions.close_ticket.reason'))
                         ->required(),
                 ])
                 ->action(function (Ticket $record, array $data, TicketWorkflowService $ticketWorkflowService): void {
@@ -54,12 +54,12 @@ class EditTicket extends EditRecord
                     $this->refreshFormData(['ticket_status_id', 'approved_at', 'solved_at', 'close_reason', 'cancel_reason', 'reopen_reason']);
                 }),
             Action::make('cancel_ticket')
-                ->label('Cancel Ticket')
+                ->label(__('helpdesk::filament/resources/ticket/pages/edit-ticket.actions.cancel_ticket.label'))
                 ->color('danger')
                 ->visible(fn (Ticket $record): bool => Gate::allows('cancel', $record))
                 ->form([
                     Textarea::make('cancel_reason')
-                        ->label('Cancel Reason')
+                        ->label(__('helpdesk::filament/resources/ticket/pages/edit-ticket.actions.cancel_ticket.reason'))
                         ->required(),
                 ])
                 ->action(function (Ticket $record, array $data, TicketWorkflowService $ticketWorkflowService): void {
@@ -74,12 +74,12 @@ class EditTicket extends EditRecord
                     $this->refreshFormData(['ticket_status_id', 'approved_at', 'solved_at', 'close_reason', 'cancel_reason', 'reopen_reason']);
                 }),
             Action::make('reopen_ticket')
-                ->label('Reopen Ticket')
+                ->label(__('helpdesk::filament/resources/ticket/pages/edit-ticket.actions.reopen_ticket.label'))
                 ->color('info')
                 ->visible(fn (Ticket $record): bool => Gate::allows('reopen', $record))
                 ->form([
                     Textarea::make('reopen_reason')
-                        ->label('Reopen Reason')
+                        ->label(__('helpdesk::filament/resources/ticket/pages/edit-ticket.actions.reopen_ticket.reason'))
                         ->required(),
                 ])
                 ->action(function (Ticket $record, array $data, TicketWorkflowService $ticketWorkflowService): void {
@@ -101,7 +101,7 @@ class EditTicket extends EditRecord
     {
         $user = auth()->user();
 
-        abort_unless($user instanceof User, 403, 'Authenticated user is invalid.');
+        abort_unless($user instanceof User, 403, __('helpdesk::filament/resources/ticket/pages/edit-ticket.errors.invalid_user'));
 
         return $user;
     }

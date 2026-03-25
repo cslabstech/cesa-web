@@ -30,17 +30,17 @@ class DepartmentResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return trans_choice('exit-clearance::app.resources.department', 2);
+        return trans_choice('exit-clearance::filament/resources/department.label', 2);
     }
 
     public static function getPluralModelLabel(): string
     {
-        return trans_choice('exit-clearance::app.resources.department', 2);
+        return trans_choice('exit-clearance::filament/resources/department.label', 2);
     }
 
     public static function getModelLabel(): string
     {
-        return trans_choice('exit-clearance::app.resources.department', 1);
+        return trans_choice('exit-clearance::filament/resources/department.label', 1);
     }
 
     public static function form(Schema $form): Schema
@@ -48,20 +48,20 @@ class DepartmentResource extends Resource
         return $form
             ->schema([
                 TextInput::make('code')
-                    ->label(__('exit-clearance::app.form.department.code'))
+                    ->label(__('exit-clearance::filament/resources/department.fields.code'))
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(50),
                 TextInput::make('name')
-                    ->label(__('exit-clearance::app.form.department.name'))
+                    ->label(__('exit-clearance::filament/resources/department.fields.name'))
                     ->required()
                     ->maxLength(255),
                 Textarea::make('description')
-                    ->label(__('exit-clearance::app.form.department.description'))
+                    ->label(__('exit-clearance::filament/resources/department.fields.description'))
                     ->rows(3)
                     ->maxLength(1000),
                 Select::make('approvers')
-                    ->label(__('exit-clearance::app.form.department.approvers'))
+                    ->label(__('exit-clearance::filament/resources/department.fields.approvers'))
                     ->relationship('approvers', 'name')
                     ->multiple()
                     ->preload()
@@ -89,11 +89,11 @@ class DepartmentResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('code')
-                    ->label(__('exit-clearance::app.form.department.code'))
+                    ->label(__('exit-clearance::filament/resources/department.fields.code'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('name')
-                    ->label(__('exit-clearance::app.form.department.name'))
+                    ->label(__('exit-clearance::filament/resources/department.fields.name'))
                     ->searchable()
                     ->sortable(),
             ])

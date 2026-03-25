@@ -24,17 +24,17 @@ class OfficeResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('presensi::app.resources.office.navigation.label');
+        return __('presensi::filament/resources/office.navigation.label');
     }
 
     public static function getModelLabel(): string
     {
-        return __('presensi::app.resources.office.model.singular');
+        return __('presensi::filament/resources/office.model.singular');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('presensi::app.resources.office.model.plural');
+        return __('presensi::filament/resources/office.model.plural');
     }
 
     public static function form(Schema $schema): Schema
@@ -42,19 +42,19 @@ class OfficeResource extends Resource
         return $schema
             ->components([
                 Forms\Components\TextInput::make('name')
-                    ->label(__('presensi::app.resources.office.form.fields.name'))
+                    ->label(__('presensi::filament/resources/office.form.fields.name'))
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('latitude')
-                    ->label(__('presensi::app.resources.office.form.fields.latitude'))
+                    ->label(__('presensi::filament/resources/office.form.fields.latitude'))
                     ->required()
                     ->numeric(),
                 Forms\Components\TextInput::make('longitude')
-                    ->label(__('presensi::app.resources.office.form.fields.longitude'))
+                    ->label(__('presensi::filament/resources/office.form.fields.longitude'))
                     ->required()
                     ->numeric(),
                 Forms\Components\TextInput::make('radius')
-                    ->label(__('presensi::app.resources.office.form.fields.radius'))
+                    ->label(__('presensi::filament/resources/office.form.fields.radius'))
                     ->required()
                     ->numeric(),
             ]);
@@ -65,13 +65,13 @@ class OfficeResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label(__('presensi::app.resources.office.table.columns.name'))
+                    ->label(__('presensi::filament/resources/office.table.columns.name'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('latitude')
-                    ->label(__('presensi::app.resources.office.table.columns.latitude'))
+                    ->label(__('presensi::filament/resources/office.table.columns.latitude'))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('longitude')
-                    ->label(__('presensi::app.resources.office.table.columns.longitude'))
+                    ->label(__('presensi::filament/resources/office.table.columns.longitude'))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -82,7 +82,7 @@ class OfficeResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('radius')
-                    ->label(__('presensi::app.resources.office.table.columns.radius'))
+                    ->label(__('presensi::filament/resources/office.table.columns.radius'))
                     ->numeric()
                     ->sortable(),
             ])

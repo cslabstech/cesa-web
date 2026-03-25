@@ -114,8 +114,4 @@ class VehicleChecksheetPolicy
     /**
      * Determine whether the user can reorder.
      */
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_shelf_vehicle::checksheet');
-    }
 }

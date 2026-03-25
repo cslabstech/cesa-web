@@ -76,9 +76,4 @@ class FormTransferPolicy
     {
         return $user->can('restore_any_form_transfer_form::transfer');
     }
-
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_form_transfer_form::transfer');
-    }
 }

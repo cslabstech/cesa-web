@@ -76,9 +76,4 @@ class ApproverPolicy
     {
         return $user->can('restore_any_exit_clearance_approver');
     }
-
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_exit_clearance_approver');
-    }
 }

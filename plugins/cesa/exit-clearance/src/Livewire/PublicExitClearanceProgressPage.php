@@ -49,7 +49,7 @@ class PublicExitClearanceProgressPage extends SimplePage
 
         $this->applicantName = $request->name;
         $this->applicantDepartment = $request->department?->name ?? '-';
-        $this->applicantUid = $request->uid;
+        $this->applicantUid = $request->form_uid;
 
         $this->summary = $this->requestService->buildCategorizedSummary($request);
         $this->approvals = $this->requestService->buildApprovals($request);
@@ -58,12 +58,12 @@ class PublicExitClearanceProgressPage extends SimplePage
 
     public function getHeading(): string
     {
-        return __('exit-clearance::app.public.progress.heading');
+        return __('exit-clearance::livewire/public-exit-clearance-progress-page.heading');
     }
 
     public function getSubheading(): string
     {
-        return __('exit-clearance::app.public.progress.subheading');
+        return __('exit-clearance::livewire/public-exit-clearance-progress-page.subheading');
     }
 
     public function hasLogo(): bool

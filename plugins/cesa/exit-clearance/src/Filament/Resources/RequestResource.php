@@ -27,6 +27,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Auth\Access\Response;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\URL;
@@ -48,17 +49,17 @@ class RequestResource extends ExitClearanceResource
 
     public static function getNavigationLabel(): string
     {
-        return trans_choice('exit-clearance::app.navigation.request', 2);
+        return trans_choice('exit-clearance::filament/resources/request.label', 2);
     }
 
     public static function getPluralModelLabel(): string
     {
-        return trans_choice('exit-clearance::app.navigation.request', 2);
+        return trans_choice('exit-clearance::filament/resources/request.label', 2);
     }
 
     public static function getModelLabel(): string
     {
-        return trans_choice('exit-clearance::app.navigation.request', 1);
+        return trans_choice('exit-clearance::filament/resources/request.label', 1);
     }
 
     public static function getEditAuthorizationResponse(Model $record): Response
@@ -107,15 +108,15 @@ class RequestResource extends ExitClearanceResource
         return $form
             ->schema([
                 Wizard::make([
-                    Wizard\Step::make(__('exit-clearance::app.form.step.resignation_letter'))
+                    Wizard\Step::make(__('exit-clearance::filament/resources/request.steps.resignation_letter'))
                         ->schema([
-                            Section::make(__('exit-clearance::app.form.resignation_letter.info'))
-                                ->description(__('exit-clearance::app.form.resignation_letter.not_required'))
+                            Section::make(__('exit-clearance::filament/resources/request.resignation_letter.info'))
+                                ->description(__('exit-clearance::filament/resources/request.resignation_letter.not_required'))
                                 ->collapsible()
                                 ->collapsed(),
                             FileUpload::make('resignation_letter_url')
-                                ->label(__('exit-clearance::app.form.file_upload.label'))
-                                ->helperText(__('exit-clearance::app.form.file_upload.helper_text'))
+                                ->label(__('exit-clearance::filament/resources/request.file_upload.label'))
+                                ->helperText(__('exit-clearance::filament/resources/request.file_upload.helper_text'))
                                 ->directory('resignation-letters')
                                 ->downloadable()
                                 ->openable()
@@ -158,32 +159,32 @@ class RequestResource extends ExitClearanceResource
                         ])
                         ->columns(1),
 
-                    Wizard\Step::make(__('exit-clearance::app.form.step.personal_data'))
+                    Wizard\Step::make(__('exit-clearance::filament/resources/request.steps.personal_data'))
                         ->schema([
                             TextInput::make('name')
-                                ->label(__('exit-clearance::app.form.fields.name'))
+                                ->label(__('exit-clearance::filament/resources/request.fields.name'))
                                 ->required()
                                 ->maxLength(255),
                             TextInput::make('email')
-                                ->label(__('exit-clearance::app.form.fields.email'))
+                                ->label(__('exit-clearance::filament/resources/request.fields.email'))
                                 ->email()
                                 ->required()
                                 ->maxLength(255),
                             TextInput::make('phone')
-                                ->label(__('exit-clearance::app.form.fields.phone'))
+                                ->label(__('exit-clearance::filament/resources/request.fields.phone'))
                                 ->tel()
                                 ->required()
                                 ->maxLength(255),
                             TextInput::make('position')
-                                ->label(__('exit-clearance::app.form.fields.position'))
+                                ->label(__('exit-clearance::filament/resources/request.fields.position'))
                                 ->required()
                                 ->maxLength(255),
                             TextInput::make('placement')
-                                ->label(__('exit-clearance::app.form.fields.placement'))
+                                ->label(__('exit-clearance::filament/resources/request.fields.placement'))
                                 ->required()
                                 ->maxLength(255),
                             Select::make('department_id')
-                                ->label(__('exit-clearance::app.form.fields.department'))
+                                ->label(__('exit-clearance::filament/resources/request.fields.department'))
                                 ->relationship('department', 'name')
                                 ->searchable()
                                 ->required()
@@ -205,62 +206,62 @@ class RequestResource extends ExitClearanceResource
                                 })
                                 ->preload(),
                             DatePicker::make('join_date')
-                                ->label(__('exit-clearance::app.form.fields.join_date'))
+                                ->label(__('exit-clearance::filament/resources/request.fields.join_date'))
                                 ->required()
                                 ->displayFormat('Y-m-d'),
                             DatePicker::make('departure_date')
-                                ->label(__('exit-clearance::app.form.fields.departure_date'))
+                                ->label(__('exit-clearance::filament/resources/request.fields.departure_date'))
                                 ->required()
                                 ->displayFormat('Y-m-d'),
                         ])
                         ->columns(1),
 
-                    Wizard\Step::make(__('exit-clearance::app.form.step.exit_interview'))
+                    Wizard\Step::make(__('exit-clearance::filament/resources/request.steps.exit_interview'))
                         ->schema([
                             Textarea::make('reason')
-                                ->label(__('exit-clearance::app.form.exit_interview.q1'))
+                                ->label(__('exit-clearance::filament/resources/request.exit_interview.q1'))
                                 ->required()
                                 ->rows(3)
                                 ->maxLength(2000)
                                 ->columnSpanFull(),
                             Textarea::make('workload_feedback')
-                                ->label(__('exit-clearance::app.form.exit_interview.q2'))
+                                ->label(__('exit-clearance::filament/resources/request.exit_interview.q2'))
                                 ->required()
                                 ->rows(3)
                                 ->maxLength(2000)
                                 ->columnSpanFull(),
                             Textarea::make('career_growth_feedback')
-                                ->label(__('exit-clearance::app.form.exit_interview.q3'))
+                                ->label(__('exit-clearance::filament/resources/request.exit_interview.q3'))
                                 ->required()
                                 ->rows(3)
                                 ->maxLength(2000)
                                 ->columnSpanFull(),
                             Textarea::make('facility_welfare_feedback')
-                                ->label(__('exit-clearance::app.form.exit_interview.q4'))
+                                ->label(__('exit-clearance::filament/resources/request.exit_interview.q4'))
                                 ->required()
                                 ->rows(3)
                                 ->maxLength(2000)
                                 ->columnSpanFull(),
                             Textarea::make('work_relationship_feedback')
-                                ->label(__('exit-clearance::app.form.exit_interview.q5'))
+                                ->label(__('exit-clearance::filament/resources/request.exit_interview.q5'))
                                 ->required()
                                 ->rows(3)
                                 ->maxLength(2000)
                                 ->columnSpanFull(),
                             Textarea::make('compensation_feedback')
-                                ->label(__('exit-clearance::app.form.exit_interview.q6'))
+                                ->label(__('exit-clearance::filament/resources/request.exit_interview.q6'))
                                 ->required()
                                 ->rows(3)
                                 ->maxLength(2000)
                                 ->columnSpanFull(),
                             Textarea::make('division_feedback')
-                                ->label(__('exit-clearance::app.form.exit_interview.q7'))
+                                ->label(__('exit-clearance::filament/resources/request.exit_interview.q7'))
                                 ->required()
                                 ->rows(3)
                                 ->maxLength(2000)
                                 ->columnSpanFull(),
                             Textarea::make('company_feedback')
-                                ->label(__('exit-clearance::app.form.exit_interview.q8'))
+                                ->label(__('exit-clearance::filament/resources/request.exit_interview.q8'))
                                 ->required()
                                 ->rows(3)
                                 ->maxLength(2000)
@@ -268,48 +269,48 @@ class RequestResource extends ExitClearanceResource
                         ])
                         ->columns(1),
 
-                    Wizard\Step::make(__('exit-clearance::app.form.step.exit_clearance'))
+                    Wizard\Step::make(__('exit-clearance::filament/resources/request.steps.exit_clearance'))
                         ->schema([
-                            Section::make(__('exit-clearance::app.form.clearance.section_title'))
+                            Section::make(__('exit-clearance::filament/resources/request.clearance.section_title'))
                                 ->schema([
                                     TextInput::make('clearance_kartu_halo')
-                                        ->label(__('exit-clearance::app.form.clearance.item_1'))
+                                        ->label(__('exit-clearance::filament/resources/request.clearance.item_1'))
                                         ->required(),
                                     TextInput::make('clearance_employee_debt')
-                                        ->label(__('exit-clearance::app.form.clearance.item_2'))
+                                        ->label(__('exit-clearance::filament/resources/request.clearance.item_2'))
                                         ->required(),
                                     TextInput::make('clearance_uniform_return')
-                                        ->label(__('exit-clearance::app.form.clearance.item_3'))
+                                        ->label(__('exit-clearance::filament/resources/request.clearance.item_3'))
                                         ->required(),
                                     TextInput::make('clearance_vehicle_return')
-                                        ->label(__('exit-clearance::app.form.clearance.item_4'))
+                                        ->label(__('exit-clearance::filament/resources/request.clearance.item_4'))
                                         ->required(),
                                     TextInput::make('clearance_inventory_return')
-                                        ->label(__('exit-clearance::app.form.clearance.item_5'))
+                                        ->label(__('exit-clearance::filament/resources/request.clearance.item_5'))
                                         ->required(),
                                     TextInput::make('clearance_account_deactivation')
-                                        ->label(__('exit-clearance::app.form.clearance.item_6'))
+                                        ->label(__('exit-clearance::filament/resources/request.clearance.item_6'))
                                         ->required(),
                                     TextInput::make('clearance_receivable_data')
-                                        ->label(__('exit-clearance::app.form.clearance.item_7'))
+                                        ->label(__('exit-clearance::filament/resources/request.clearance.item_7'))
                                         ->required(),
                                     TextInput::make('clearance_promotor_internal')
-                                        ->label(__('exit-clearance::app.form.clearance.item_8'))
+                                        ->label(__('exit-clearance::filament/resources/request.clearance.item_8'))
                                         ->required(),
                                     TextInput::make('clearance_nota_pending')
-                                        ->label(__('exit-clearance::app.form.clearance.item_9'))
+                                        ->label(__('exit-clearance::filament/resources/request.clearance.item_9'))
                                         ->required(),
                                     TextInput::make('clearance_stock_opname')
-                                        ->label(__('exit-clearance::app.form.clearance.item_10'))
+                                        ->label(__('exit-clearance::filament/resources/request.clearance.item_10'))
                                         ->required(),
                                 ])
                                 ->columns(1)
                                 ->collapsible(),
 
-                            Section::make(__('exit-clearance::app.form.approvals.section_title'))
+                            Section::make(__('exit-clearance::filament/resources/request.approvals.section_title'))
                                 ->schema([
                                     Select::make('approvers')
-                                        ->label(__('exit-clearance::app.form.approvals.section_title'))
+                                        ->label(__('exit-clearance::filament/resources/request.approvals.section_title'))
                                         ->relationship('approvers', 'name')
                                         ->options(fn (Get $get): array => Department::query()
                                             ->find($get('department_id'))
@@ -327,18 +328,18 @@ class RequestResource extends ExitClearanceResource
                                 ])
                                 ->collapsible(),
 
-                            Section::make(__('exit-clearance::app.form.metadata.section_title'))
+                            Section::make(__('exit-clearance::filament/resources/request.metadata.section_title'))
                                 ->schema([
                                     TextInput::make('form_uid')
-                                        ->label(__('exit-clearance::app.form.metadata.form_uid'))
+                                        ->label(__('exit-clearance::filament/resources/request.metadata.form_uid'))
                                         ->disabled()
                                         ->dehydrated(false),
                                     TextInput::make('form_status')
-                                        ->label(__('exit-clearance::app.form.metadata.form_status'))
+                                        ->label(__('exit-clearance::filament/resources/request.metadata.form_status'))
                                         ->disabled()
                                         ->dehydrated(false),
                                     TextInput::make('form_response_id')
-                                        ->label(__('exit-clearance::app.form.metadata.form_response'))
+                                        ->label(__('exit-clearance::filament/resources/request.metadata.form_response'))
                                         ->disabled()
                                         ->dehydrated(false),
                                 ])
@@ -359,14 +360,14 @@ class RequestResource extends ExitClearanceResource
                     Group::make()
                         ->columnSpan(2)
                         ->schema([
-                            Section::make(__('exit-clearance::app.form.infolist.employee_info'))
+                            Section::make(__('exit-clearance::filament/resources/request.infolist.employee_info'))
                                 ->schema([
                                     Grid::make(3)
                                         ->schema([
-                                            TextEntry::make('name')->label(__('exit-clearance::app.form.infolist_fields.name'))->icon('heroicon-o-user'),
-                                            TextEntry::make('email')->label(__('exit-clearance::app.form.infolist_fields.email'))->icon('heroicon-o-envelope'),
-                                            TextEntry::make('phone')->label(__('exit-clearance::app.form.infolist_fields.phone'))->icon('heroicon-o-phone'),
-                                            TextEntry::make('department.name')->label(__('exit-clearance::app.form.infolist_fields.department'))->icon('heroicon-o-building-office-2')
+                                            TextEntry::make('name')->label(__('exit-clearance::filament/resources/request.infolist_fields.name'))->icon('heroicon-o-user'),
+                                            TextEntry::make('email')->label(__('exit-clearance::filament/resources/request.infolist_fields.email'))->icon('heroicon-o-envelope'),
+                                            TextEntry::make('phone')->label(__('exit-clearance::filament/resources/request.infolist_fields.phone'))->icon('heroicon-o-phone'),
+                                            TextEntry::make('department.name')->label(__('exit-clearance::filament/resources/request.infolist_fields.department'))->icon('heroicon-o-building-office-2')
                                                 ->formatStateUsing(function ($state, Request $record): string {
                                                     $department = $record->department;
                                                     if (! $department) {
@@ -379,14 +380,14 @@ class RequestResource extends ExitClearanceResource
                                                     return $department->name;
                                                 })
                                                 ->color(fn (Request $record): string => $record->department?->trashed() ? 'gray' : 'default'),
-                                            TextEntry::make('position')->label(__('exit-clearance::app.form.infolist_fields.position'))->icon('heroicon-o-briefcase'),
-                                            TextEntry::make('placement')->label(__('exit-clearance::app.form.infolist_fields.placement'))->icon('heroicon-o-map-pin'),
-                                            TextEntry::make('join_date')->label(__('exit-clearance::app.form.infolist_fields.joined'))->date(),
-                                            TextEntry::make('departure_date')->label(__('exit-clearance::app.form.infolist_fields.departing'))->date(),
+                                            TextEntry::make('position')->label(__('exit-clearance::filament/resources/request.infolist_fields.position'))->icon('heroicon-o-briefcase'),
+                                            TextEntry::make('placement')->label(__('exit-clearance::filament/resources/request.infolist_fields.placement'))->icon('heroicon-o-map-pin'),
+                                            TextEntry::make('join_date')->label(__('exit-clearance::filament/resources/request.infolist_fields.joined'))->date(),
+                                            TextEntry::make('departure_date')->label(__('exit-clearance::filament/resources/request.infolist_fields.departing'))->date(),
 
                                             TextEntry::make('resignation_letter_url')
-                                                ->label(__('exit-clearance::app.form.infolist_fields.surat_resign'))
-                                                ->formatStateUsing(fn ($state) => $state ? basename($state) : __('exit-clearance::app.form.infolist_fields.no_file'))
+                                                ->label(__('exit-clearance::filament/resources/request.infolist_fields.surat_resign'))
+                                                ->formatStateUsing(fn ($state) => $state ? basename($state) : __('exit-clearance::filament/resources/request.infolist_fields.no_file'))
                                                 ->url(fn ($state, Request $record) => filled($state)
                                                     ? URL::temporarySignedRoute(
                                                         'exit-clearance.public.attachments.download',
@@ -402,42 +403,42 @@ class RequestResource extends ExitClearanceResource
                                 ])
                                 ->collapsible(),
 
-                            Section::make(__('exit-clearance::app.form.step.exit_interview'))
+                            Section::make(__('exit-clearance::filament/resources/request.steps.exit_interview'))
                                 ->schema([
                                     TextEntry::make('reason')
-                                        ->label(__('exit-clearance::app.form.exit_interview.q1'))
+                                        ->label(__('exit-clearance::filament/resources/request.exit_interview.q1'))
                                         ->markdown(),
 
                                     TextEntry::make('workload_feedback')
-                                        ->label(__('exit-clearance::app.form.exit_interview.q2')),
+                                        ->label(__('exit-clearance::filament/resources/request.exit_interview.q2')),
                                     TextEntry::make('career_growth_feedback')
-                                        ->label(__('exit-clearance::app.form.exit_interview.q3')),
+                                        ->label(__('exit-clearance::filament/resources/request.exit_interview.q3')),
                                     TextEntry::make('facility_welfare_feedback')
-                                        ->label(__('exit-clearance::app.form.exit_interview.q4')),
+                                        ->label(__('exit-clearance::filament/resources/request.exit_interview.q4')),
                                     TextEntry::make('work_relationship_feedback')
-                                        ->label(__('exit-clearance::app.form.exit_interview.q5')),
+                                        ->label(__('exit-clearance::filament/resources/request.exit_interview.q5')),
                                     TextEntry::make('compensation_feedback')
-                                        ->label(__('exit-clearance::app.form.exit_interview.q6')),
+                                        ->label(__('exit-clearance::filament/resources/request.exit_interview.q6')),
                                     TextEntry::make('division_feedback')
-                                        ->label(__('exit-clearance::app.form.exit_interview.q7')),
+                                        ->label(__('exit-clearance::filament/resources/request.exit_interview.q7')),
                                     TextEntry::make('company_feedback')
-                                        ->label(__('exit-clearance::app.form.exit_interview.q8')),
+                                        ->label(__('exit-clearance::filament/resources/request.exit_interview.q8')),
                                 ])
                                 ->collapsible(),
-                            Section::make(__('exit-clearance::app.form.clearance.section_title'))
+                            Section::make(__('exit-clearance::filament/resources/request.clearance.section_title'))
                                 ->schema([
                                     Grid::make(1)
                                         ->schema([
-                                            TextEntry::make('clearance_kartu_halo')->label(__('exit-clearance::app.form.clearance.item_1')),
-                                            TextEntry::make('clearance_employee_debt')->label(__('exit-clearance::app.form.clearance.item_2')),
-                                            TextEntry::make('clearance_uniform_return')->label(__('exit-clearance::app.form.clearance.item_3')),
-                                            TextEntry::make('clearance_vehicle_return')->label(__('exit-clearance::app.form.clearance.item_4')),
-                                            TextEntry::make('clearance_inventory_return')->label(__('exit-clearance::app.form.clearance.item_5')),
-                                            TextEntry::make('clearance_account_deactivation')->label(__('exit-clearance::app.form.clearance.item_6')),
-                                            TextEntry::make('clearance_receivable_data')->label(__('exit-clearance::app.form.clearance.item_7')),
-                                            TextEntry::make('clearance_promotor_internal')->label(__('exit-clearance::app.form.clearance.item_8')),
-                                            TextEntry::make('clearance_nota_pending')->label(__('exit-clearance::app.form.clearance.item_9')),
-                                            TextEntry::make('clearance_stock_opname')->label(__('exit-clearance::app.form.clearance.item_10')),
+                                            TextEntry::make('clearance_kartu_halo')->label(__('exit-clearance::filament/resources/request.clearance.item_1')),
+                                            TextEntry::make('clearance_employee_debt')->label(__('exit-clearance::filament/resources/request.clearance.item_2')),
+                                            TextEntry::make('clearance_uniform_return')->label(__('exit-clearance::filament/resources/request.clearance.item_3')),
+                                            TextEntry::make('clearance_vehicle_return')->label(__('exit-clearance::filament/resources/request.clearance.item_4')),
+                                            TextEntry::make('clearance_inventory_return')->label(__('exit-clearance::filament/resources/request.clearance.item_5')),
+                                            TextEntry::make('clearance_account_deactivation')->label(__('exit-clearance::filament/resources/request.clearance.item_6')),
+                                            TextEntry::make('clearance_receivable_data')->label(__('exit-clearance::filament/resources/request.clearance.item_7')),
+                                            TextEntry::make('clearance_promotor_internal')->label(__('exit-clearance::filament/resources/request.clearance.item_8')),
+                                            TextEntry::make('clearance_nota_pending')->label(__('exit-clearance::filament/resources/request.clearance.item_9')),
+                                            TextEntry::make('clearance_stock_opname')->label(__('exit-clearance::filament/resources/request.clearance.item_10')),
                                         ]),
                                 ])
                                 ->collapsible()
@@ -447,12 +448,12 @@ class RequestResource extends ExitClearanceResource
                     Group::make()
                         ->columnSpan(1)
                         ->schema([
-                            Section::make(__('exit-clearance::app.form.infolist.approval_chain'))
+                            Section::make(__('exit-clearance::filament/resources/request.infolist.approval_chain'))
                                 ->schema([
                                     RepeatableEntry::make('approvers')
                                         ->schema([
                                             TextEntry::make('name')
-                                                ->label(__('exit-clearance::app.form.infolist_fields.name'))
+                                                ->label(__('exit-clearance::filament/resources/request.infolist_fields.name'))
                                                 ->formatStateUsing(function ($state, $record): string {
                                                     if ($record->trashed()) {
                                                         return $record->name.' (Dihapus)';
@@ -461,9 +462,9 @@ class RequestResource extends ExitClearanceResource
                                                     return $record->name;
                                                 })
                                                 ->color(fn ($record): string => $record->trashed() ? 'gray' : 'default'),
-                                            TextEntry::make('title')->label(__('exit-clearance::app.form.infolist_fields.title')),
+                                            TextEntry::make('title')->label(__('exit-clearance::filament/resources/request.infolist_fields.title')),
                                             TextEntry::make('pivot.status')
-                                                ->label(__('exit-clearance::app.form.infolist_fields.status'))
+                                                ->label(__('exit-clearance::filament/resources/request.infolist_fields.status'))
                                                 ->badge()
                                                 ->color(fn ($state) => static::resolveApproverStatusColor($state))
                                                 ->formatStateUsing(fn ($state) => static::formatApproverStatusLabel($state)),
@@ -471,20 +472,20 @@ class RequestResource extends ExitClearanceResource
                                         ->columns(3),
                                 ])
                                 ->collapsible(),
-                            Section::make(__('exit-clearance::app.form.infolist.request_status'))
+                            Section::make(__('exit-clearance::filament/resources/request.infolist.request_status'))
                                 ->schema([
                                     TextEntry::make('form_uid')
-                                        ->label(__('exit-clearance::app.form.infolist_fields.uid'))
+                                        ->label(__('exit-clearance::filament/resources/request.infolist_fields.uid'))
                                         ->icon('heroicon-o-hashtag')
                                         ->copyable(),
                                     TextEntry::make('form_status')
-                                        ->label(__('exit-clearance::app.form.infolist_fields.status'))
+                                        ->label(__('exit-clearance::filament/resources/request.infolist_fields.status'))
                                         ->badge()
                                         ->color(fn (?string $state): string => static::resolveFormStatusColor($state))
                                         ->formatStateUsing(fn (?string $state): string => static::formatFormStatusLabel($state)),
 
                                     TextEntry::make('request_date')
-                                        ->label(__('exit-clearance::app.form.infolist_fields.request_date'))
+                                        ->label(__('exit-clearance::filament/resources/request.infolist_fields.request_date'))
                                         ->date(),
                                 ])
                                 ->collapsible(),
@@ -498,27 +499,27 @@ class RequestResource extends ExitClearanceResource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('form_uid')
-                    ->label(__('exit-clearance::app.form.table.uid'))
+                    ->label(__('exit-clearance::filament/resources/request.table.uid'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('name')
-                    ->label(__('exit-clearance::app.form.table.employee_name'))
+                    ->label(__('exit-clearance::filament/resources/request.table.employee_name'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('email')
-                    ->label(__('exit-clearance::app.form.table.email'))
+                    ->label(__('exit-clearance::filament/resources/request.table.email'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('position')
-                    ->label(__('exit-clearance::app.form.table.position'))
+                    ->label(__('exit-clearance::filament/resources/request.table.position'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('placement')
-                    ->label(__('exit-clearance::app.form.table.placement'))
+                    ->label(__('exit-clearance::filament/resources/request.table.placement'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('form_status')
-                    ->label(__('exit-clearance::app.form.table.status'))
+                    ->label(__('exit-clearance::filament/resources/request.table.status'))
                     ->badge()
                     ->color(fn (?string $state): string => match (strtolower((string) $state)) {
                         'approved' => 'success',
@@ -527,27 +528,27 @@ class RequestResource extends ExitClearanceResource
                     })
                     ->sortable(),
                 Tables\Columns\TextColumn::make('join_date')
-                    ->label(__('exit-clearance::app.form.table.join_date'))
+                    ->label(__('exit-clearance::filament/resources/request.table.join_date'))
                     ->searchable()
                     ->sortable()
                     ->date(),
                 Tables\Columns\TextColumn::make('request_date')
-                    ->label(__('exit-clearance::app.form.table.request_date'))
+                    ->label(__('exit-clearance::filament/resources/request.table.request_date'))
                     ->searchable()
                     ->sortable()
                     ->date(),
                 Tables\Columns\TextColumn::make('departure_date')
-                    ->label(__('exit-clearance::app.form.table.departure_date'))
+                    ->label(__('exit-clearance::filament/resources/request.table.departure_date'))
                     ->searchable()
                     ->sortable()
                     ->date(),
                 Tables\Columns\TextColumn::make('reason')
-                    ->label(__('exit-clearance::app.form.table.reason'))
+                    ->label(__('exit-clearance::filament/resources/request.table.reason'))
                     ->searchable()
                     ->limit(50)
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('resignation_letter_url')
-                    ->label(__('exit-clearance::app.form.table.resignation_letter'))
+                    ->label(__('exit-clearance::filament/resources/request.table.resignation_letter'))
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->url(fn (?string $state, Request $record): ?string => filled($state)
                         ? URL::temporarySignedRoute(
@@ -560,7 +561,7 @@ class RequestResource extends ExitClearanceResource
                         )
                         : null),
                 Tables\Columns\TextColumn::make('department.name')
-                    ->label(__('exit-clearance::app.form.table.department'))
+                    ->label(__('exit-clearance::filament/resources/request.table.department'))
                     ->searchable()
                     ->sortable()
                     ->formatStateUsing(function ($state, Request $record): string {
@@ -576,7 +577,7 @@ class RequestResource extends ExitClearanceResource
                     })
                     ->color(fn (Request $record): string => $record->department?->trashed() ? 'gray' : 'default'),
                 Tables\Columns\TextColumn::make('approvers.name')
-                    ->label(__('exit-clearance::app.form.table.approvers'))
+                    ->label(__('exit-clearance::filament/resources/request.table.approvers'))
                     ->searchable()
                     ->sortable()
                     ->limit(50)
@@ -594,15 +595,29 @@ class RequestResource extends ExitClearanceResource
             ->defaultSort('request_date', 'desc')
             ->filters([
                 Tables\Filters\SelectFilter::make('department_id')
-                    ->label(__('exit-clearance::app.form.filters.department'))
+                    ->label(__('exit-clearance::filament/resources/request.filters.department'))
                     ->relationship('department', 'name')
                     ->preload(),
-                Tables\Filters\SelectFilter::make('request_date')
-                    ->label(__('exit-clearance::app.form.filters.request_date'))
-                    ->indicateUsing(function (array $state): ?string {
-                        $value = $state['value'] ?? null;
+                Tables\Filters\Filter::make('request_date')
+                    ->label(__('exit-clearance::filament/resources/request.filters.request_date'))
+                    ->form([
+                        DatePicker::make('request_date')
+                            ->label(__('exit-clearance::filament/resources/request.filters.request_date'))
+                            ->displayFormat('Y-m-d'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $requestDate = $data['request_date'] ?? null;
 
-                        return $value ? Carbon::parse($value)->format('F Y') : null;
+                        if (blank($requestDate)) {
+                            return $query;
+                        }
+
+                        return $query->whereDate('request_date', $requestDate);
+                    })
+                    ->indicateUsing(function (array $state): ?string {
+                        $value = $state['request_date'] ?? null;
+
+                        return $value ? Carbon::parse($value)->format('Y-m-d') : null;
                     }),
             ]);
     }

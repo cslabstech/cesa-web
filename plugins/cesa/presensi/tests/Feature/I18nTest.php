@@ -15,16 +15,14 @@ class I18nTest extends PresensiTestCase
 {
     public function test_presensi_translation_keys_are_consistent_between_en_and_id(): void
     {
-        $english = require base_path('plugins/cesa/presensi/resources/lang/en/app.php');
-        $indonesian = require base_path('plugins/cesa/presensi/resources/lang/id/app.php');
+        $english = $this->collectTranslationKeys('en');
+        $indonesian = $this->collectTranslationKeys('id');
 
-        $englishKeys = $this->flattenKeys($english);
-        $indonesianKeys = $this->flattenKeys($indonesian);
+        $this->assertSame(array_keys($english), array_keys($indonesian));
 
-        sort($englishKeys);
-        sort($indonesianKeys);
-
-        $this->assertSame($englishKeys, $indonesianKeys);
+        foreach (array_keys($english) as $file) {
+            $this->assertSame($english[$file], $indonesian[$file], "Translation keys mismatch for {$file}");
+        }
     }
 
     public function test_admin_labels_are_localized_for_en_and_id(): void
@@ -82,5 +80,35 @@ class I18nTest extends PresensiTestCase
         }
 
         return $keys;
+    }
+
+    /**
+     * @return array<string, array<int, string>>
+     */
+    private function collectTranslationKeys(string $locale): array
+    {
+        $basePath = base_path("plugins/cesa/presensi/resources/lang/{$locale}");
+        $files = [];
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($basePath, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            if (! $file instanceof \SplFileInfo || $file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $relativePath = str_replace($basePath.DIRECTORY_SEPARATOR, '', $file->getPathname());
+            $keys = $this->flattenKeys(require $file->getPathname());
+
+            sort($keys);
+
+            $files[$relativePath] = $keys;
+        }
+
+        ksort($files);
+
+        return $files;
     }
 }

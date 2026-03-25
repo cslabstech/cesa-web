@@ -11,9 +11,9 @@ enum NbhStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::None     => __('shelf::enums.nbh-status.none'),
-            self::Pending  => __('shelf::enums.nbh-status.pending'),
-            self::Resolved => __('shelf::enums.nbh-status.resolved'),
+            self::None     => __('shelf::enums/nbh-status.none'),
+            self::Pending  => __('shelf::enums/nbh-status.pending'),
+            self::Resolved => __('shelf::enums/nbh-status.resolved'),
         };
     }
 

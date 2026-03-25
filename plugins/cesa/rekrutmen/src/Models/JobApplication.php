@@ -233,7 +233,7 @@ class JobApplication extends Model
         $slug = Str::slug((string) $position);
 
         if ($slug === '') {
-            return __('rekrutmen::app.resources.job_application.generated.unknown_position');
+            return __('rekrutmen::filament/resources/job-application.generated.unknown_position');
         }
 
         return Str::limit($slug, 80, '');

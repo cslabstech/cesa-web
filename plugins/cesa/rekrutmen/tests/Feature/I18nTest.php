@@ -18,14 +18,14 @@ class I18nTest extends RekrutmenTestCase
         foreach ($this->localeExpectations() as $locale => $expected) {
             app()->setLocale($locale);
 
-            $this->assertSame($expected['navigation_group'], RequestManPowerResource::getNavigationGroup());
+            $this->assertSame(__('admin.navigation.rekrutmen'), RequestManPowerResource::getNavigationGroup());
             $this->assertSame($expected['navigation_label'], RequestManPowerResource::getNavigationLabel());
             $this->assertSame($expected['status_kebutuhan'], StatusKebutuhan::NEW_HIRING->getLabel());
             $this->assertSame($expected['request_status'], RequestManPowerStatus::PENDING->getLabel());
             $this->assertSame($expected['application_status'], JobApplicationStatus::IN_PROGRESS->getLabel());
             $this->assertSame($expected['job_level'], RequestManPower::getTranslatedLevelPekerjaanOptions()['Staff']);
-            $this->assertSame($expected['public_progress_heading'], __('rekrutmen::app.public_progress.heading'));
-            $this->assertSame($expected['mail_progress_action'], __('rekrutmen::app.mail.request_man_power_submitted.view_progress'));
+            $this->assertSame($expected['public_progress_heading'], __('rekrutmen::livewire/public-request-man-power-progress-page.heading'));
+            $this->assertSame($expected['mail_progress_action'], __('rekrutmen::mail/request-man-power-submitted.view_progress'));
         }
     }
 
@@ -63,7 +63,6 @@ class I18nTest extends RekrutmenTestCase
     {
         return [
             'en' => [
-                'navigation_group'             => 'Recruitment',
                 'navigation_label'             => 'Manpower Requests',
                 'status_kebutuhan'             => 'New Hiring',
                 'request_status'               => 'Pending',
@@ -76,7 +75,6 @@ class I18nTest extends RekrutmenTestCase
                 'application_form_portfolio'   => 'Portfolio URL',
             ],
             'id' => [
-                'navigation_group'             => 'Rekrutmen',
                 'navigation_label'             => 'Permintaan Tenaga Kerja',
                 'status_kebutuhan'             => 'Karyawan Baru',
                 'request_status'               => 'Pending',

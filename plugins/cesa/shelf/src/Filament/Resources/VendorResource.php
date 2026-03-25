@@ -33,11 +33,11 @@ class VendorResource extends ShelfResource
                     ->maxLength(255)
                     ->columnSpanFull(),
                 TextInput::make('last_price')
-                    ->label(__('shelf::app.labels.item_price'))
+                    ->label(__('shelf::filament/resources/vendor.form.sections.general.fields.last-price'))
                     ->numeric()
                     ->prefix('Rp ')
                     ->required()
-                    ->placeholder(__('shelf::app.labels.item_price'))
+                    ->placeholder(__('shelf::filament/resources/vendor.form.sections.general.fields.last-price'))
                     ->columnSpanFull(),
             ]);
     }

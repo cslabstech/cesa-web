@@ -22,20 +22,20 @@ class ViewRequest extends ViewRecord
             EditAction::make()
                 ->visible(fn (Request $record): bool => $this->canModify($record)),
             Action::make('resend-pending-approvers')
-                ->label('Kirim ulang ke approver pending')
+                ->label(__('exit-clearance::filament/resources/request/pages/view-request.actions.resend_pending_approvers.label'))
                 ->icon('heroicon-o-paper-airplane')
                 ->color('primary')
                 ->requiresConfirmation()
-                ->modalHeading('Kirim ulang notifikasi')
-                ->modalDescription('Notifikasi akan dikirim ulang ke approver yang statusnya masih pending.')
+                ->modalHeading(__('exit-clearance::filament/resources/request/pages/view-request.actions.resend_pending_approvers.modal_heading'))
+                ->modalDescription(__('exit-clearance::filament/resources/request/pages/view-request.actions.resend_pending_approvers.modal_description'))
                 ->visible(fn (Request $record): bool => $this->hasPendingApprovers($record))
                 ->action(function (Request $record): void {
                     $requestService = app(ExitClearanceRequestService::class);
 
                     if ($requestService->normalizeFormStatus($record->form_status) !== 'pending') {
                         Notification::make()
-                            ->title('Form sudah selesai')
-                            ->body('Status form sudah bukan pending.')
+                            ->title(__('exit-clearance::filament/resources/request/pages/view-request.notifications.form_completed.title'))
+                            ->body(__('exit-clearance::filament/resources/request/pages/view-request.notifications.form_completed.body'))
                             ->warning()
                             ->send();
 
@@ -46,8 +46,8 @@ class ViewRequest extends ViewRecord
 
                     if ($sentCount < 1) {
                         Notification::make()
-                            ->title('Tidak ada approver pending')
-                            ->body('Semua approver sudah diproses.')
+                            ->title(__('exit-clearance::filament/resources/request/pages/view-request.notifications.no_pending_approvers.title'))
+                            ->body(__('exit-clearance::filament/resources/request/pages/view-request.notifications.no_pending_approvers.body'))
                             ->warning()
                             ->send();
 
@@ -55,8 +55,8 @@ class ViewRequest extends ViewRecord
                     }
 
                     Notification::make()
-                        ->title('Notifikasi dikirim ulang')
-                        ->body("Dikirim ke {$sentCount} approver pending.")
+                        ->title(__('exit-clearance::filament/resources/request/pages/view-request.notifications.notifications_resent.title'))
+                        ->body(__('exit-clearance::filament/resources/request/pages/view-request.notifications.notifications_resent.body', ['count' => $sentCount]))
                         ->success()
                         ->send();
                 }),

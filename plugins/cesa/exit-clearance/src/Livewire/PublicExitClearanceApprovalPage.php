@@ -92,7 +92,7 @@ class PublicExitClearanceApprovalPage extends SimplePage
         return $schema
             ->components([
                 Textarea::make('notes')
-                    ->label(__('exit-clearance::app.public.approval.notes_label'))
+                    ->label(__('exit-clearance::livewire/public-exit-clearance-approval-page.notes_label'))
                     ->rows(4),
             ])
             ->statePath('data');
@@ -102,7 +102,7 @@ class PublicExitClearanceApprovalPage extends SimplePage
     {
         if (! $this->isPendingApproval()) {
             Notification::make()
-                ->title(__('exit-clearance::app.public.approval.cannot_process'))
+                ->title(__('exit-clearance::livewire/public-exit-clearance-approval-page.cannot_process'))
                 ->danger()
                 ->send();
 
@@ -124,7 +124,7 @@ class PublicExitClearanceApprovalPage extends SimplePage
         $this->refreshDisplayState();
 
         Notification::make()
-            ->title(__('exit-clearance::app.public.approval.approved_success'))
+            ->title(__('exit-clearance::livewire/public-exit-clearance-approval-page.approved_success'))
             ->success()
             ->send();
     }
@@ -133,7 +133,7 @@ class PublicExitClearanceApprovalPage extends SimplePage
     {
         if (! $this->isPendingApproval()) {
             Notification::make()
-                ->title(__('exit-clearance::app.public.approval.cannot_process'))
+                ->title(__('exit-clearance::livewire/public-exit-clearance-approval-page.cannot_process'))
                 ->danger()
                 ->send();
 
@@ -155,7 +155,7 @@ class PublicExitClearanceApprovalPage extends SimplePage
         $this->refreshDisplayState();
 
         Notification::make()
-            ->title(__('exit-clearance::app.public.approval.rejected_success'))
+            ->title(__('exit-clearance::livewire/public-exit-clearance-approval-page.rejected_success'))
             ->danger()
             ->send();
     }
@@ -187,7 +187,7 @@ class PublicExitClearanceApprovalPage extends SimplePage
 
     public function getHeading(): string
     {
-        return __('exit-clearance::app.public.approval.heading');
+        return __('exit-clearance::livewire/public-exit-clearance-approval-page.heading');
     }
 
     public function getSubheading(): string
@@ -195,8 +195,8 @@ class PublicExitClearanceApprovalPage extends SimplePage
         $name = $this->requestRecord->name ?? null;
 
         return $name
-            ? __('exit-clearance::app.public.approval.subheading', ['name' => $name])
-            : __('exit-clearance::app.public.approval.subheading_default');
+            ? __('exit-clearance::livewire/public-exit-clearance-approval-page.subheading', ['name' => $name])
+            : __('exit-clearance::livewire/public-exit-clearance-approval-page.subheading_default');
     }
 
     public function hasLogo(): bool

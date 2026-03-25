@@ -131,7 +131,7 @@ class AssetResource extends ShelfResource
                                 ->schema([
                                     // Input untuk nama
                                     TextInput::make('name')
-                                        ->label(__('shelf::filament.resources.asset.fields.name'))
+                                        ->label(__('shelf::filament/resources/asset.fields.name'))
                                         ->required()
                                         ->maxLength(255)
                                         ->prefixIcon('heroicon-m-tag')
@@ -139,7 +139,7 @@ class AssetResource extends ShelfResource
 
                                     // Dropdown untuk memilih kategori
                                     Select::make('category_id')
-                                        ->label(__('shelf::filament.resources.asset.fields.category'))
+                                        ->label(__('shelf::filament/resources/asset.fields.category'))
                                         ->options(self::getCategoryOptions())
                                         ->searchable()
                                         ->required()
@@ -183,7 +183,7 @@ class AssetResource extends ShelfResource
                                 ->schema([
                                     // Dropdown untuk memilih atribut
                                     Select::make('custom_attribute_id')
-                                        ->label(__('shelf::filament.resources.asset.fields.attribute'))
+                                        ->label(__('shelf::filament/resources/asset.fields.attribute'))
                                         ->options(function (callable $get) {
                                             $categoryIds = self::normalizeCategoryIds($get('../../category_id'));
                                             $selectedId = $get('../custom_attribute_id');
@@ -222,7 +222,7 @@ class AssetResource extends ShelfResource
 
                                     // Input untuk nilai atribut
                                     TextInput::make('attribute_value')
-                                        ->label(__('shelf::filament.resources.asset.fields.attribute_value'))
+                                        ->label(__('shelf::filament/resources/asset.fields.attribute_value'))
                                         ->reactive()
                                         ->visible(fn (callable $get) => filled($get('custom_attribute_id'))
                                             && self::getCachedCustomAttribute((int) $get('custom_attribute_id'))?->type === 'text')
@@ -231,7 +231,7 @@ class AssetResource extends ShelfResource
                                         }),
 
                                     TextInput::make('attribute_value')
-                                        ->label(__('shelf::filament.resources.asset.fields.attribute_value'))
+                                        ->label(__('shelf::filament/resources/asset.fields.attribute_value'))
                                         ->required(fn (callable $get) => filled($get('custom_attribute_id'))
                                             && (self::getCachedCustomAttribute((int) $get('custom_attribute_id'))?->required ?? false))
                                         ->numeric()
@@ -243,7 +243,7 @@ class AssetResource extends ShelfResource
                                         }),
 
                                     Textarea::make('attribute_value')
-                                        ->label(__('shelf::filament.resources.asset.fields.attribute_value'))
+                                        ->label(__('shelf::filament/resources/asset.fields.attribute_value'))
                                         ->required(fn (callable $get) => filled($get('custom_attribute_id'))
                                             && (self::getCachedCustomAttribute((int) $get('custom_attribute_id'))?->required ?? false))
                                         ->reactive()
@@ -254,7 +254,7 @@ class AssetResource extends ShelfResource
                                         }),
 
                                     DatePicker::make('attribute_value')
-                                        ->label(__('shelf::filament.resources.asset.fields.attribute_value'))
+                                        ->label(__('shelf::filament/resources/asset.fields.attribute_value'))
                                         ->required(fn (callable $get) => filled($get('custom_attribute_id'))
                                             && (self::getCachedCustomAttribute((int) $get('custom_attribute_id'))?->required ?? false))
                                         ->reactive()
@@ -285,7 +285,7 @@ class AssetResource extends ShelfResource
                             Section::make('Siklus Aset Tanda Terima')
                                 ->schema([
                                     Select::make('condition_status')
-                                        ->label(__('shelf::filament.resources.asset.lifecycle.condition_status'))
+                                        ->label(__('shelf::filament/resources/asset.lifecycle.condition_status'))
                                         ->options(AssetCondition::options())
                                         ->default(AssetCondition::Available->value)
                                         ->required()
@@ -303,7 +303,7 @@ class AssetResource extends ShelfResource
                                             }
                                         }),
                                     Select::make('nbh_status')
-                                        ->label(__('shelf::filament.resources.asset.lifecycle.nbh_status'))
+                                        ->label(__('shelf::filament/resources/asset.lifecycle.nbh_status'))
                                         ->options(function (callable $get): array {
                                             $condition = $get('condition_status');
 
@@ -320,11 +320,11 @@ class AssetResource extends ShelfResource
                                         ->columnSpan(1)
                                         ->visible(fn (callable $get) => in_array($get('condition_status'), [AssetCondition::Lost->value, AssetCondition::Damaged->value], true) || $get('nbh_status') !== NbhStatus::None->value),
                                     DatePicker::make('nbh_reported_at')
-                                        ->label(__('shelf::filament.resources.asset.lifecycle.incident_date'))
+                                        ->label(__('shelf::filament/resources/asset.lifecycle.incident_date'))
                                         ->columnSpan(1)
                                         ->visible(fn (callable $get) => in_array($get('condition_status'), [AssetCondition::Lost->value, AssetCondition::Damaged->value], true) || $get('nbh_status') !== NbhStatus::None->value),
                                     Select::make('nbh_responsible_user_id')
-                                        ->label(__('shelf::filament.resources.asset.lifecycle.responsible_person'))
+                                        ->label(__('shelf::filament/resources/asset.lifecycle.responsible_person'))
                                         ->options(fn () => Cache::remember('shelf_selectable_user_options', 300, fn () => User::selectableOptions()))
                                         ->searchable()
                                         ->prefixIcon('heroicon-m-user')
@@ -337,7 +337,7 @@ class AssetResource extends ShelfResource
                                         ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'],
                                         4096,
                                     )
-                                        ->label(__('shelf::filament.resources.asset.lifecycle.audit_document'))
+                                        ->label(__('shelf::filament/resources/asset.lifecycle.audit_document'))
                                         ->columnSpan(2)
                                         ->required(fn (callable $get) => $get('nbh_status') === NbhStatus::Resolved->value)
                                         ->visible(fn (callable $get) => in_array($get('condition_status'), [AssetCondition::Lost->value, AssetCondition::Damaged->value], true)),
@@ -347,13 +347,13 @@ class AssetResource extends ShelfResource
                                         ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'],
                                         4096,
                                     )
-                                        ->label(__('shelf::filament.resources.asset.lifecycle.nbh_document'))
+                                        ->label(__('shelf::filament/resources/asset.lifecycle.nbh_document'))
                                         ->columnSpan(2)
                                         ->required(fn (callable $get) => $get('nbh_status') === NbhStatus::Resolved->value)
                                         ->visible(fn (callable $get) => $get('nbh_status') === NbhStatus::Resolved->value),
                                     Textarea::make('nbh_notes')
-                                        ->label(__('shelf::filament.resources.asset.lifecycle.nbh_notes'))
-                                        ->placeholder(__('shelf::filament.resources.asset.lifecycle.nbh_notes_placeholder'))
+                                        ->label(__('shelf::filament/resources/asset.lifecycle.nbh_notes'))
+                                        ->placeholder(__('shelf::filament/resources/asset.lifecycle.nbh_notes_placeholder'))
                                         ->rows(3)
                                         ->columnSpanFull()
                                         ->visible(fn (callable $get) => in_array($get('condition_status'), [AssetCondition::Lost->value, AssetCondition::Damaged->value], true) || $get('nbh_status') !== NbhStatus::None->value),
@@ -422,7 +422,7 @@ class AssetResource extends ShelfResource
                                         false,
                                         true,
                                     )
-                                        ->label(__('shelf::filament.resources.asset.labels.asset_image'))
+                                        ->label(__('shelf::filament/resources/asset.labels.asset_image'))
                                         ->maxSize(2048),
                                 ])
                                 ->columns(1),
@@ -489,13 +489,13 @@ class AssetResource extends ShelfResource
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('assetLocation.name')->translateLabel()->sortable()->searchable()->toggleable(),
                 TextColumn::make('condition_status')
-                    ->label(__('shelf::filament.resources.asset.lifecycle.condition_status'))
+                    ->label(__('shelf::filament/resources/asset.lifecycle.condition_status'))
                     ->badge()
                     ->formatStateUsing(fn ($state) => $state?->label() ?? 'Tidak Diketahui')
                     ->color(fn ($state) => $state?->color() ?? 'secondary')
                     ->toggleable(),
                 TextColumn::make('nbh_status')
-                    ->label(__('shelf::filament.resources.asset.lifecycle.nbh_status'))
+                    ->label(__('shelf::filament/resources/asset.lifecycle.nbh_status'))
                     ->badge()
                     ->formatStateUsing(fn (?NbhStatus $state): string => $state?->label() ?? NbhStatus::None->label())
                     ->color(fn (?NbhStatus $state): string => $state?->color() ?? NbhStatus::None->color())
@@ -510,16 +510,16 @@ class AssetResource extends ShelfResource
                     ->preload(),
                 SelectFilter::make('category')
                     ->relationship('category', 'name')
-                    ->label(__('shelf::filament.resources.asset.labels.category'))
+                    ->label(__('shelf::filament/resources/asset.labels.category'))
                     ->multiple()
                     ->searchable()
                     ->preload(),
                 SelectFilter::make('condition_status')
-                    ->label(__('shelf::filament.resources.asset.lifecycle.condition_status'))
+                    ->label(__('shelf::filament/resources/asset.lifecycle.condition_status'))
                     ->options(AssetCondition::options())
                     ->multiple(),
                 SelectFilter::make('nbh_status')
-                    ->label(__('shelf::filament.resources.asset.lifecycle.nbh_status'))
+                    ->label(__('shelf::filament/resources/asset.lifecycle.nbh_status'))
                     ->options(NbhStatus::options())
                     ->multiple(),
                 SelectFilter::make('assetLocation')
@@ -529,21 +529,21 @@ class AssetResource extends ShelfResource
                     ->searchable()
                     ->preload(),
                 Filter::make('table_data_filter')
-                    ->label(__('shelf::filament.resources.asset.filters.label'))
+                    ->label(__('shelf::filament/resources/asset.filters.label'))
                     ->form([
                         Grid::make(2)
                             ->schema([
                                 TextInput::make('serial_number')
-                                    ->label(__('shelf::filament.resources.asset.filters.serial_number'))
-                                    ->placeholder(__('shelf::filament.resources.asset.filters.serial_number_placeholder')),
+                                    ->label(__('shelf::filament/resources/asset.filters.serial_number'))
+                                    ->placeholder(__('shelf::filament/resources/asset.filters.serial_number_placeholder')),
                                 TextInput::make('imei')
-                                    ->label(__('shelf::filament.resources.asset.filters.imei'))
-                                    ->placeholder(__('shelf::filament.resources.asset.filters.imei_placeholder')),
+                                    ->label(__('shelf::filament/resources/asset.filters.imei'))
+                                    ->placeholder(__('shelf::filament/resources/asset.filters.imei_placeholder')),
                                 TextInput::make('item_price_min')
-                                    ->label(__('shelf::filament.resources.asset.filters.min_price'))
+                                    ->label(__('shelf::filament/resources/asset.filters.min_price'))
                                     ->numeric(),
                                 TextInput::make('item_price_max')
-                                    ->label(__('shelf::filament.resources.asset.filters.max_price'))
+                                    ->label(__('shelf::filament/resources/asset.filters.max_price'))
                                     ->numeric(),
                             ]),
                     ])
@@ -570,7 +570,7 @@ class AssetResource extends ShelfResource
             ->filtersLayout(FiltersLayout::Modal)
             ->filtersFormWidth('4xl')
             ->filtersTriggerAction(fn (Action $action) => $action
-                ->label(__('shelf::filament.resources.asset.filters.filter_audit'))
+                ->label(__('shelf::filament/resources/asset.filters.filter_audit'))
                 ->slideOver())
             ->actions([
                 ViewAction::make(),
@@ -582,7 +582,7 @@ class AssetResource extends ShelfResource
                     DeleteBulkAction::make(),
                 ]),
                 BulkAction::make('pindahkanKeAtribut')
-                    ->label(__('shelf::filament.resources.asset.actions.move_to_attributes'))
+                    ->label(__('shelf::filament/resources/asset.actions.move_to_attributes'))
                     ->action(fn (Collection $records) => self::pindahkanKeAssetAttributeBulk($records))
                     ->requiresConfirmation()
                     ->color('primary')
@@ -614,30 +614,30 @@ class AssetResource extends ShelfResource
                 ComponentsGrid::make(['default' => 1, 'sm' => 3])
                     ->schema([
                         Group::make([
-                            ComponentsSection::make(__('shelf::filament.resources.asset.info_section'))
+                            ComponentsSection::make(__('shelf::filament/resources/asset.info_section'))
                                 ->schema([
                                     ComponentsGrid::make(3)
                                         ->schema([
                                             Group::make([
                                                 TextEntry::make('name')
-                                                    ->label(__('shelf::filament.resources.asset.fields.name'))
+                                                    ->label(__('shelf::filament/resources/asset.fields.name'))
                                                     ->extraAttributes(['class' => 'text-xl font-bold text-primary-600 dark:text-primary-400 mb-2'])
                                                     ->columnSpan(2),
                                                 ComponentsGrid::make(2)
                                                     ->schema([
                                                         TextEntry::make('category.name')
-                                                            ->label(__('shelf::filament.resources.asset.labels.category'))
+                                                            ->label(__('shelf::filament/resources/asset.labels.category'))
                                                             ->icon('heroicon-m-tag'),
                                                         TextEntry::make('brand.name')
-                                                            ->label(__('shelf::filament.resources.asset.labels.brand'))
+                                                            ->label(__('shelf::filament/resources/asset.labels.brand'))
                                                             ->icon('heroicon-m-building-storefront'),
                                                         TextEntry::make('type')
-                                                            ->label(__('shelf::filament.resources.asset.labels.type'))
+                                                            ->label(__('shelf::filament/resources/asset.labels.type'))
                                                             ->icon('heroicon-m-squares-plus'),
                                                     ]),
                                             ])->columnSpan(2),
                                             ImageEntry::make('image')
-                                                ->label(__('shelf::filament.resources.asset.labels.asset_image'))
+                                                ->label(__('shelf::filament/resources/asset.labels.asset_image'))
                                                 ->hiddenLabel()
                                                 ->getStateUsing(fn (Asset $record): ?string => $record->managedFileUrl('image'))
                                                 ->checkFileExistence(false)
@@ -650,7 +650,7 @@ class AssetResource extends ShelfResource
                                         ]),
                                 ]),
 
-                            ComponentsSection::make(__('shelf::filament.resources.asset.attributes_section'))
+                            ComponentsSection::make(__('shelf::filament/resources/asset.attributes_section'))
                                 ->schema([
                                     ComponentsGrid::make(3)
                                         ->schema(function ($record) {
@@ -666,18 +666,18 @@ class AssetResource extends ShelfResource
                                 ])
                                 ->visible(fn (Asset $record): bool => $record->attributes()->count() > 0),
 
-                            ComponentsSection::make(__('shelf::filament.resources.asset.documents_section'))
+                            ComponentsSection::make(__('shelf::filament/resources/asset.documents_section'))
                                 ->schema([
                                     ComponentsGrid::make(2)
                                         ->schema([
                                             TextEntry::make('audit_document_path')
-                                                ->label(__('shelf::filament.resources.asset.lifecycle.audit_document'))
+                                                ->label(__('shelf::filament/resources/asset.lifecycle.audit_document'))
                                                 ->url(fn (Asset $record): ?string => $record->managedFileUrl('audit_document_path'), true)
                                                 ->openUrlInNewTab()
                                                 ->icon('heroicon-m-document-text')
                                                 ->visible(fn (Asset $record): bool => filled($record->audit_document_path)),
                                             TextEntry::make('nbh_document_path')
-                                                ->label(__('shelf::filament.resources.asset.lifecycle.nbh_document'))
+                                                ->label(__('shelf::filament/resources/asset.lifecycle.nbh_document'))
                                                 ->url(fn (Asset $record): ?string => $record->managedFileUrl('nbh_document_path'), true)
                                                 ->openUrlInNewTab()
                                                 ->icon('heroicon-m-document-text')
@@ -688,31 +688,31 @@ class AssetResource extends ShelfResource
                         ])->columnSpan(['sm' => 3, 'md' => 3, 'lg' => 2]),
 
                         Group::make([
-                            ComponentsSection::make(__('shelf::filament.resources.asset.status_section'))
+                            ComponentsSection::make(__('shelf::filament/resources/asset.status_section'))
                                 ->schema([
                                     TextEntry::make('condition_status_label')
-                                        ->label(__('shelf::filament.resources.asset.lifecycle.condition_status'))
+                                        ->label(__('shelf::filament/resources/asset.lifecycle.condition_status'))
                                         ->badge()
                                         ->color(fn ($state, Asset $record): string => $record->condition_status_color ?? 'secondary'),
                                     TextEntry::make('nbh_status')
-                                        ->label(__('shelf::filament.resources.asset.lifecycle.nbh_status'))
+                                        ->label(__('shelf::filament/resources/asset.lifecycle.nbh_status'))
                                         ->badge()
                                         ->formatStateUsing(fn (?NbhStatus $state): string => $state?->label() ?? NbhStatus::None->label())
                                         ->color(fn (?NbhStatus $state): string => $state?->color() ?? NbhStatus::None->color()),
                                     TextEntry::make('validasi_status')
-                                        ->label(__('shelf::filament.resources.asset.validation_status'))
+                                        ->label(__('shelf::filament/resources/asset.validation_status'))
                                         ->badge()
                                         ->color(fn ($state, Asset $record): string => $record->checkValidRecipient() ? 'success' : 'danger')
-                                        ->state(fn (Asset $record): string => $record->checkValidRecipient() ? __('shelf::filament.resources.asset.valid') : __('shelf::filament.resources.asset.invalid')),
+                                        ->state(fn (Asset $record): string => $record->checkValidRecipient() ? __('shelf::filament/resources/asset.valid') : __('shelf::filament/resources/asset.invalid')),
 
                                     ComponentsGrid::make(1)
                                         ->schema([
                                             TextEntry::make('asset_location_display')
-                                                ->label(__('shelf::filament.resources.asset.labels.asset_location'))
+                                                ->label(__('shelf::filament/resources/asset.labels.asset_location'))
                                                 ->state(fn (Asset $record): string => $record->assetLocation?->name ?? '-')
                                                 ->icon('heroicon-m-map-pin'),
                                             TextEntry::make('recipient_display')
-                                                ->label(__('shelf::filament.resources.asset.asset_holder'))
+                                                ->label(__('shelf::filament/resources/asset.asset_holder'))
                                                 ->state(fn (Asset $record): string => $record->recipient?->name ?? '-')
                                                 ->icon('heroicon-m-user'),
                                         ])->extraAttributes(['class' => 'mt-4']),
@@ -720,13 +720,13 @@ class AssetResource extends ShelfResource
                                     ComponentsGrid::make(1)
                                         ->schema([
                                             TextEntry::make('nbh_reported_at_display')
-                                                ->label(__('shelf::filament.resources.asset.lifecycle.incident_date'))
+                                                ->label(__('shelf::filament/resources/asset.lifecycle.incident_date'))
                                                 ->state(fn (Asset $record): string => $record->nbh_status instanceof NbhStatus && $record->nbh_status !== NbhStatus::None
                                                     ? optional($record->nbh_reported_at)?->format('d M Y') ?? '-'
                                                     : '-')
                                                 ->icon('heroicon-m-calendar'),
                                             TextEntry::make('nbh_responsible_display')
-                                                ->label(__('shelf::filament.resources.asset.lifecycle.responsible_person'))
+                                                ->label(__('shelf::filament/resources/asset.lifecycle.responsible_person'))
                                                 ->state(fn (Asset $record): string => $record->nbh_status instanceof NbhStatus && $record->nbh_status !== NbhStatus::None
                                                     ? $record->nbhResponsible?->name ?? '-'
                                                     : '-')
@@ -736,28 +736,28 @@ class AssetResource extends ShelfResource
                                         ->extraAttributes(['class' => 'mt-4']),
 
                                     TextEntry::make('nbh_notes')
-                                        ->label(__('shelf::filament.resources.asset.lifecycle.nbh_notes'))
+                                        ->label(__('shelf::filament/resources/asset.lifecycle.nbh_notes'))
                                         ->columnSpanFull()
                                         ->visible(fn (Asset $record): bool => filled($record->nbh_notes)),
                                 ])->columns(2),
 
-                            ComponentsSection::make(__('shelf::filament.resources.asset.purchase_section'))
+                            ComponentsSection::make(__('shelf::filament/resources/asset.purchase_section'))
                                 ->schema([
                                     TextEntry::make('purchase_date')
-                                        ->label(__('shelf::filament.resources.asset.labels.purchase_date'))
+                                        ->label(__('shelf::filament/resources/asset.labels.purchase_date'))
                                         ->formatStateUsing(fn ($state) => Carbon::parse($state)->format('d F Y'))
                                         ->icon('heroicon-m-calendar-days'),
                                     TextEntry::make('item_price')
-                                        ->label(__('shelf::filament.resources.asset.labels.item_price'))
+                                        ->label(__('shelf::filament/resources/asset.labels.item_price'))
                                         ->formatStateUsing(fn ($state) => 'Rp '.number_format(intval($state), 0, ',', '.'))
                                         ->extraAttributes(['class' => 'text-lg font-bold text-green-600 dark:text-green-400'])
                                         ->icon('heroicon-m-banknotes'),
                                     TextEntry::make('qty')
-                                        ->label(__('shelf::filament.resources.asset.labels.qty'))
+                                        ->label(__('shelf::filament/resources/asset.labels.qty'))
                                         ->badge()
                                         ->color('info'),
                                     TextEntry::make('company.name')
-                                        ->label(__('shelf::filament.resources.asset.labels.business_entity'))
+                                        ->label(__('shelf::filament/resources/asset.labels.business_entity'))
                                         ->icon('heroicon-m-building-office-2'),
                                 ])->columns(1),
                         ])->columnSpan(['sm' => 3, 'md' => 3, 'lg' => 1]),
@@ -791,8 +791,8 @@ class AssetResource extends ShelfResource
         }
 
         Notification::make()
-            ->title(__('shelf::filament.resources.asset.notifications.success'))
-            ->body(__('shelf::filament.resources.asset.notifications.attributes_moved'))
+            ->title(__('shelf::filament/resources/asset.notifications.success'))
+            ->body(__('shelf::filament/resources/asset.notifications.attributes_moved'))
             ->success()
             ->send();
     }

@@ -76,9 +76,4 @@ class TransferApprovalWorkflowPolicy
     {
         return $user->can('restore_any_form_transfer_approval::workflow');
     }
-
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_form_transfer_approval::workflow');
-    }
 }

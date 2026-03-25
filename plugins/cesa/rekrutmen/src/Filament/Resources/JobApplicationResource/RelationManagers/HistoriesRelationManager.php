@@ -15,7 +15,7 @@ class HistoriesRelationManager extends RelationManager
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
-        return __('rekrutmen::app.relation_managers.histories.title');
+        return __('rekrutmen::filament/resources/job-application/relation-managers/histories.title');
     }
 
     public function form(Schema $schema): Schema
@@ -34,21 +34,21 @@ class HistoriesRelationManager extends RelationManager
             ->recordTitleAttribute('status')
             ->columns([
                 Tables\Columns\TextColumn::make('fromStage.name')
-                    ->label(__('rekrutmen::app.relation_managers.histories.columns.from_stage'))
-                    ->placeholder(__('rekrutmen::app.relation_managers.histories.placeholders.from_stage')),
+                    ->label(__('rekrutmen::filament/resources/job-application/relation-managers/histories.columns.from_stage'))
+                    ->placeholder(__('rekrutmen::filament/resources/job-application/relation-managers/histories.placeholders.from_stage')),
                 Tables\Columns\TextColumn::make('toStage.name')
-                    ->label(__('rekrutmen::app.relation_managers.histories.columns.to_stage'))
-                    ->placeholder(__('rekrutmen::app.relation_managers.histories.placeholders.to_stage')),
+                    ->label(__('rekrutmen::filament/resources/job-application/relation-managers/histories.columns.to_stage'))
+                    ->placeholder(__('rekrutmen::filament/resources/job-application/relation-managers/histories.placeholders.to_stage')),
                 Tables\Columns\TextColumn::make('status')
-                    ->label(__('rekrutmen::app.relation_managers.histories.columns.status'))
+                    ->label(__('rekrutmen::filament/resources/job-application/relation-managers/histories.columns.status'))
                     ->badge(),
                 Tables\Columns\TextColumn::make('notes')
-                    ->label(__('rekrutmen::app.relation_managers.histories.columns.notes'))
+                    ->label(__('rekrutmen::filament/resources/job-application/relation-managers/histories.columns.notes'))
                     ->limit(50),
                 Tables\Columns\TextColumn::make('performer.name')
-                    ->label(__('rekrutmen::app.relation_managers.histories.columns.performed_by')),
+                    ->label(__('rekrutmen::filament/resources/job-application/relation-managers/histories.columns.performed_by')),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label(__('rekrutmen::app.relation_managers.histories.columns.created_at'))
+                    ->label(__('rekrutmen::filament/resources/job-application/relation-managers/histories.columns.created_at'))
                     ->dateTime()
                     ->sortable(),
             ])

@@ -75,11 +75,12 @@ class GeneratePayrollService
                 if ($lateMinutes > 0) {
                     $totalLateMinutes += $lateMinutes;
                     $penaltyAmount = $this->calculateLatePenalty($lateMinutes);
+                    $attendanceDate = $attendance->attendanceDate()?->toDateString();
 
                     if ($penaltyAmount > 0) {
                         $totalPenalties += $penaltyAmount;
                         $penaltiesBreakdown[] = [
-                            'date'           => $actualStart->toDateString(),
+                            'date'           => $attendanceDate,
                             'minutes_late'   => $lateMinutes,
                             'penalty_amount' => $penaltyAmount,
                         ];

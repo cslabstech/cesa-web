@@ -152,11 +152,6 @@ class TicketPolicy
         return $user->can('restore_any_helpdesk_ticket');
     }
 
-    public function reorder(User $user): bool
-    {
-        return $user->can('reorder_helpdesk_ticket');
-    }
-
     protected function belongsToTicketUnit(User $user, Ticket $ticket): bool
     {
         return DB::table('helpdesk_unit_user')

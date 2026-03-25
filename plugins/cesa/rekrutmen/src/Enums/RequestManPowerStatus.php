@@ -14,9 +14,9 @@ enum RequestManPowerStatus: string implements HasColor, HasLabel
     public function getLabel(): ?string
     {
         return match ($this) {
-            self::PENDING  => __('rekrutmen::app.enums.request_man_power_status.pending'),
-            self::APPROVED => __('rekrutmen::app.enums.request_man_power_status.approved'),
-            self::REJECTED => __('rekrutmen::app.enums.request_man_power_status.rejected'),
+            self::PENDING  => __('rekrutmen::enums/request-man-power-status.pending'),
+            self::APPROVED => __('rekrutmen::enums/request-man-power-status.approved'),
+            self::REJECTED => __('rekrutmen::enums/request-man-power-status.rejected'),
         };
     }
 

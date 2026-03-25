@@ -173,39 +173,42 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
     protected function getValidationAttributes(): array
     {
         return [
-            'data.name'                           => __('exit-clearance::app.form.fields.name'),
-            'data.email'                          => __('exit-clearance::app.form.fields.email'),
-            'data.phone'                          => __('exit-clearance::app.form.fields.phone'),
-            'data.position'                       => __('exit-clearance::app.form.fields.position'),
-            'data.placement'                      => __('exit-clearance::app.form.fields.placement'),
-            'data.department_id'                  => __('exit-clearance::app.form.fields.department'),
-            'data.join_date'                      => __('exit-clearance::app.form.fields.join_date'),
-            'data.departure_date'                 => __('exit-clearance::app.form.fields.departure_date'),
-            'data.reason'                         => __('exit-clearance::app.form.exit_interview.q1'),
-            'data.workload_feedback'              => __('exit-clearance::app.form.exit_interview.q2'),
-            'data.career_growth_feedback'         => __('exit-clearance::app.form.exit_interview.q3'),
-            'data.facility_welfare_feedback'      => __('exit-clearance::app.form.exit_interview.q4'),
-            'data.work_relationship_feedback'     => __('exit-clearance::app.form.exit_interview.q5'),
-            'data.compensation_feedback'          => __('exit-clearance::app.form.exit_interview.q6'),
-            'data.division_feedback'              => __('exit-clearance::app.form.exit_interview.q7'),
-            'data.company_feedback'               => __('exit-clearance::app.form.exit_interview.q8'),
-            'data.clearance_kartu_halo'           => __('exit-clearance::app.form.clearance.item_1'),
-            'data.clearance_employee_debt'        => __('exit-clearance::app.form.clearance.item_2'),
-            'data.clearance_uniform_return'       => __('exit-clearance::app.form.clearance.item_3'),
-            'data.clearance_vehicle_return'       => __('exit-clearance::app.form.clearance.item_4'),
-            'data.clearance_inventory_return'     => __('exit-clearance::app.form.clearance.item_5'),
-            'data.clearance_account_deactivation' => __('exit-clearance::app.form.clearance.item_6'),
-            'data.clearance_receivable_data'      => __('exit-clearance::app.form.clearance.item_7'),
-            'data.clearance_promotor_internal'    => __('exit-clearance::app.form.clearance.item_8'),
-            'data.clearance_nota_pending'         => __('exit-clearance::app.form.clearance.item_9'),
-            'data.clearance_stock_opname'         => __('exit-clearance::app.form.clearance.item_10'),
+            'data.name'                           => __('exit-clearance::filament/resources/request.fields.name'),
+            'data.email'                          => __('exit-clearance::filament/resources/request.fields.email'),
+            'data.phone'                          => __('exit-clearance::filament/resources/request.fields.phone'),
+            'data.position'                       => __('exit-clearance::filament/resources/request.fields.position'),
+            'data.placement'                      => __('exit-clearance::filament/resources/request.fields.placement'),
+            'data.department_id'                  => __('exit-clearance::filament/resources/request.fields.department'),
+            'data.join_date'                      => __('exit-clearance::filament/resources/request.fields.join_date'),
+            'data.departure_date'                 => __('exit-clearance::filament/resources/request.fields.departure_date'),
+            'data.reason'                         => __('exit-clearance::filament/resources/request.exit_interview.q1'),
+            'data.workload_feedback'              => __('exit-clearance::filament/resources/request.exit_interview.q2'),
+            'data.career_growth_feedback'         => __('exit-clearance::filament/resources/request.exit_interview.q3'),
+            'data.facility_welfare_feedback'      => __('exit-clearance::filament/resources/request.exit_interview.q4'),
+            'data.work_relationship_feedback'     => __('exit-clearance::filament/resources/request.exit_interview.q5'),
+            'data.compensation_feedback'          => __('exit-clearance::filament/resources/request.exit_interview.q6'),
+            'data.division_feedback'              => __('exit-clearance::filament/resources/request.exit_interview.q7'),
+            'data.company_feedback'               => __('exit-clearance::filament/resources/request.exit_interview.q8'),
+            'data.clearance_kartu_halo'           => __('exit-clearance::filament/resources/request.clearance.item_1'),
+            'data.clearance_employee_debt'        => __('exit-clearance::filament/resources/request.clearance.item_2'),
+            'data.clearance_uniform_return'       => __('exit-clearance::filament/resources/request.clearance.item_3'),
+            'data.clearance_vehicle_return'       => __('exit-clearance::filament/resources/request.clearance.item_4'),
+            'data.clearance_inventory_return'     => __('exit-clearance::filament/resources/request.clearance.item_5'),
+            'data.clearance_account_deactivation' => __('exit-clearance::filament/resources/request.clearance.item_6'),
+            'data.clearance_receivable_data'      => __('exit-clearance::filament/resources/request.clearance.item_7'),
+            'data.clearance_promotor_internal'    => __('exit-clearance::filament/resources/request.clearance.item_8'),
+            'data.clearance_nota_pending'         => __('exit-clearance::filament/resources/request.clearance.item_9'),
+            'data.clearance_stock_opname'         => __('exit-clearance::filament/resources/request.clearance.item_10'),
         ];
     }
 
-    protected $messages = [
-        'required' => 'Wajib diisi.',
-        'email'    => 'Format email tidak valid.',
-    ];
+    protected function getMessages(): array
+    {
+        return [
+            'required' => __('exit-clearance::livewire/public-exit-clearance-request-form.messages.required'),
+            'email'    => __('exit-clearance::livewire/public-exit-clearance-request-form.messages.email'),
+        ];
+    }
 
     public function form(Schema $schema): Schema
     {
@@ -218,10 +221,10 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
                     ->dehydratedWhenHidden()
                     ->schema([
                         FileUpload::make('resignation_letter_url')
-                            ->label(__('exit-clearance::app.form.resignation_letter.info'))
+                            ->label(__('exit-clearance::filament/resources/request.resignation_letter.info'))
                             ->helperText(
-                                __('exit-clearance::app.form.file_upload.helper_text').' '.
-                                __('exit-clearance::app.form.resignation_letter.not_required')
+                                __('exit-clearance::filament/resources/request.file_upload.helper_text').' '.
+                                __('exit-clearance::filament/resources/request.resignation_letter.not_required')
                             )
                             ->directory('resignation-letters')
                             ->visibility('private')
@@ -243,50 +246,50 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
                     ->dehydratedWhenHidden()
                     ->schema([
                         TextInput::make('name')
-                            ->label(__('exit-clearance::app.form.fields.name'))
+                            ->label(__('exit-clearance::filament/resources/request.fields.name'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer'))
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer'))
                             ->maxLength(255),
                         TextInput::make('email')
-                            ->label(__('exit-clearance::app.form.fields.email'))
+                            ->label(__('exit-clearance::filament/resources/request.fields.email'))
                             ->email()
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer'))
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer'))
                             ->maxLength(255),
                         TextInput::make('phone')
-                            ->label(__('exit-clearance::app.form.fields.phone'))
+                            ->label(__('exit-clearance::filament/resources/request.fields.phone'))
                             ->tel()
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer'))
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer'))
                             ->maxLength(255),
                         TextInput::make('position')
-                            ->label(__('exit-clearance::app.form.fields.position'))
+                            ->label(__('exit-clearance::filament/resources/request.fields.position'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer'))
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer'))
                             ->maxLength(255),
                         TextInput::make('placement')
-                            ->label(__('exit-clearance::app.form.fields.placement'))
+                            ->label(__('exit-clearance::filament/resources/request.fields.placement'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer'))
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer'))
                             ->maxLength(255),
                         Select::make('department_id')
-                            ->label(__('exit-clearance::app.form.fields.department'))
+                            ->label(__('exit-clearance::filament/resources/request.fields.department'))
                             ->options(fn (): array => Department::query()
                                 ->orderBy('name')
                                 ->pluck('name', 'id')
                                 ->all())
                             ->searchable()
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.choose')),
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.choose')),
                         DatePicker::make('join_date')
-                            ->label(__('exit-clearance::app.form.fields.join_date'))
+                            ->label(__('exit-clearance::filament/resources/request.fields.join_date'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.date'))
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.date'))
                             ->displayFormat('Y-m-d'),
                         DatePicker::make('departure_date')
-                            ->label(__('exit-clearance::app.form.fields.departure_date'))
+                            ->label(__('exit-clearance::filament/resources/request.fields.departure_date'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.date'))
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.date'))
                             ->displayFormat('Y-m-d'),
                     ])->columns(1),
 
@@ -296,58 +299,58 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
                     ->dehydratedWhenHidden()
                     ->schema([
                         Textarea::make('reason')
-                            ->label(__('exit-clearance::app.form.exit_interview.q1'))
+                            ->label(__('exit-clearance::filament/resources/request.exit_interview.q1'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer'))
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer'))
                             ->rows(3)
                             ->maxLength(2000)
                             ->columnSpanFull(),
                         Textarea::make('workload_feedback')
-                            ->label(__('exit-clearance::app.form.exit_interview.q2'))
+                            ->label(__('exit-clearance::filament/resources/request.exit_interview.q2'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer'))
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer'))
                             ->rows(3)
                             ->maxLength(2000)
                             ->columnSpanFull(),
                         Textarea::make('career_growth_feedback')
-                            ->label(__('exit-clearance::app.form.exit_interview.q3'))
+                            ->label(__('exit-clearance::filament/resources/request.exit_interview.q3'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer'))
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer'))
                             ->rows(3)
                             ->maxLength(2000)
                             ->columnSpanFull(),
                         Textarea::make('facility_welfare_feedback')
-                            ->label(__('exit-clearance::app.form.exit_interview.q4'))
+                            ->label(__('exit-clearance::filament/resources/request.exit_interview.q4'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer'))
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer'))
                             ->rows(3)
                             ->maxLength(2000)
                             ->columnSpanFull(),
                         Textarea::make('work_relationship_feedback')
-                            ->label(__('exit-clearance::app.form.exit_interview.q5'))
+                            ->label(__('exit-clearance::filament/resources/request.exit_interview.q5'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer'))
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer'))
                             ->rows(3)
                             ->maxLength(2000)
                             ->columnSpanFull(),
                         Textarea::make('compensation_feedback')
-                            ->label(__('exit-clearance::app.form.exit_interview.q6'))
+                            ->label(__('exit-clearance::filament/resources/request.exit_interview.q6'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer'))
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer'))
                             ->rows(3)
                             ->maxLength(2000)
                             ->columnSpanFull(),
                         Textarea::make('division_feedback')
-                            ->label(__('exit-clearance::app.form.exit_interview.q7'))
+                            ->label(__('exit-clearance::filament/resources/request.exit_interview.q7'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer'))
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer'))
                             ->rows(3)
                             ->maxLength(2000)
                             ->columnSpanFull(),
                         Textarea::make('company_feedback')
-                            ->label(__('exit-clearance::app.form.exit_interview.q8'))
+                            ->label(__('exit-clearance::filament/resources/request.exit_interview.q8'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer'))
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer'))
                             ->rows(3)
                             ->maxLength(2000)
                             ->columnSpanFull(),
@@ -359,45 +362,45 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
                     ->dehydratedWhenHidden()
                     ->schema([
                         TextInput::make('clearance_kartu_halo')
-                            ->label(__('exit-clearance::app.form.clearance.item_1'))
+                            ->label(__('exit-clearance::filament/resources/request.clearance.item_1'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer')),
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer')),
                         TextInput::make('clearance_employee_debt')
-                            ->label(__('exit-clearance::app.form.clearance.item_2'))
+                            ->label(__('exit-clearance::filament/resources/request.clearance.item_2'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer')),
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer')),
                         TextInput::make('clearance_uniform_return')
-                            ->label(__('exit-clearance::app.form.clearance.item_3'))
+                            ->label(__('exit-clearance::filament/resources/request.clearance.item_3'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer')),
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer')),
                         TextInput::make('clearance_vehicle_return')
-                            ->label(__('exit-clearance::app.form.clearance.item_4'))
+                            ->label(__('exit-clearance::filament/resources/request.clearance.item_4'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer')),
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer')),
                         TextInput::make('clearance_inventory_return')
-                            ->label(__('exit-clearance::app.form.clearance.item_5'))
+                            ->label(__('exit-clearance::filament/resources/request.clearance.item_5'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer')),
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer')),
                         TextInput::make('clearance_account_deactivation')
-                            ->label(__('exit-clearance::app.form.clearance.item_6'))
+                            ->label(__('exit-clearance::filament/resources/request.clearance.item_6'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer')),
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer')),
                         TextInput::make('clearance_receivable_data')
-                            ->label(__('exit-clearance::app.form.clearance.item_7'))
+                            ->label(__('exit-clearance::filament/resources/request.clearance.item_7'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer')),
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer')),
                         TextInput::make('clearance_promotor_internal')
-                            ->label(__('exit-clearance::app.form.clearance.item_8'))
+                            ->label(__('exit-clearance::filament/resources/request.clearance.item_8'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer')),
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer')),
                         TextInput::make('clearance_nota_pending')
-                            ->label(__('exit-clearance::app.form.clearance.item_9'))
+                            ->label(__('exit-clearance::filament/resources/request.clearance.item_9'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer')),
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer')),
                         TextInput::make('clearance_stock_opname')
-                            ->label(__('exit-clearance::app.form.clearance.item_10'))
+                            ->label(__('exit-clearance::filament/resources/request.clearance.item_10'))
                             ->required()
-                            ->placeholder(__('exit-clearance::app.public.form.placeholders.answer')),
+                            ->placeholder(__('exit-clearance::livewire/public-exit-clearance-request-form.placeholders.answer')),
                     ])->columns(1),
                 Hidden::make('recaptcha_token')
                     ->default('')
@@ -469,7 +472,7 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
             $this->dispatch('submission-success', detail: $this->recentSubmission);
 
             Notification::make()
-                ->title('Pengajuan exit clearance berhasil dikirim.')
+                ->title(__('exit-clearance::livewire/public-exit-clearance-request-form.notifications.submitted.title'))
                 ->success()
                 ->send();
 
@@ -486,8 +489,8 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
             $this->dispatch('form-processing-finished');
 
             Notification::make()
-                ->title('Pengajuan gagal dikirim.')
-                ->body('Silakan coba lagi.')
+                ->title(__('exit-clearance::livewire/public-exit-clearance-request-form.notifications.submit_failed.title'))
+                ->body(__('exit-clearance::livewire/public-exit-clearance-request-form.notifications.submit_failed.body'))
                 ->danger()
                 ->send();
 
@@ -550,8 +553,8 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
     protected function handleValidationError(): void
     {
         Notification::make()
-            ->title(__('exit-clearance::app.public.form.validation_title'))
-            ->body(__('exit-clearance::app.public.form.validation_body'))
+            ->title(__('exit-clearance::livewire/public-exit-clearance-request-form.validation.title'))
+            ->body(__('exit-clearance::livewire/public-exit-clearance-request-form.validation.body'))
             ->warning()
             ->send();
     }
@@ -576,7 +579,7 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
         $token = Arr::get($state, 'recaptcha_token');
 
         if (! $token) {
-            $this->addError('data.recaptcha_token', __('exit-clearance::app.public.form.recaptcha_required'));
+            $this->addError('data.recaptcha_token', __('exit-clearance::livewire/public-exit-clearance-request-form.recaptcha.required'));
 
             return false;
         }
@@ -596,7 +599,7 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
                     'body'   => $response->body(),
                 ]);
 
-                $this->addError('data.recaptcha_token', __('exit-clearance::app.public.form.recaptcha_failed'));
+                $this->addError('data.recaptcha_token', __('exit-clearance::livewire/public-exit-clearance-request-form.recaptcha.failed'));
 
                 return false;
             }
@@ -608,7 +611,7 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
                     'errors' => Arr::get($payload, 'error-codes'),
                 ]);
 
-                $this->addError('data.recaptcha_token', __('exit-clearance::app.public.form.recaptcha_failed'));
+                $this->addError('data.recaptcha_token', __('exit-clearance::livewire/public-exit-clearance-request-form.recaptcha.failed'));
 
                 return false;
             }
@@ -625,7 +628,7 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
                     'threshold' => $this->recaptchaScoreThreshold,
                 ]);
 
-                $this->addError('data.recaptcha_token', __('exit-clearance::app.public.form.recaptcha_failed'));
+                $this->addError('data.recaptcha_token', __('exit-clearance::livewire/public-exit-clearance-request-form.recaptcha.failed'));
 
                 return false;
             }
@@ -638,7 +641,7 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
                     'received' => $action,
                 ]);
 
-                $this->addError('data.recaptcha_token', __('exit-clearance::app.public.form.recaptcha_failed'));
+                $this->addError('data.recaptcha_token', __('exit-clearance::livewire/public-exit-clearance-request-form.recaptcha.failed'));
 
                 return false;
             }
@@ -647,7 +650,7 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
                 'error' => $exception->getMessage(),
             ]);
 
-            $this->addError('data.recaptcha_token', __('exit-clearance::app.public.form.recaptcha_failed'));
+            $this->addError('data.recaptcha_token', __('exit-clearance::livewire/public-exit-clearance-request-form.recaptcha.failed'));
 
             return false;
         }

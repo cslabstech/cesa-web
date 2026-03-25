@@ -27,17 +27,17 @@ class PriorityResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('helpdesk::app.resources.priority.plural');
+        return __('helpdesk::filament/resources/priority.label.plural');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('helpdesk::app.resources.priority.plural');
+        return __('helpdesk::filament/resources/priority.label.plural');
     }
 
     public static function getModelLabel(): string
     {
-        return __('helpdesk::app.resources.priority.single');
+        return __('helpdesk::filament/resources/priority.label.single');
     }
 
     public static function form(Schema $schema): Schema
@@ -59,7 +59,7 @@ class PriorityResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('tickets_count')
                     ->counts('tickets')
-                    ->label('Tickets')
+                    ->label(__('helpdesk::filament/resources/priority.table.columns.tickets_count'))
                     ->sortable(),
             ])
             ->recordActions([

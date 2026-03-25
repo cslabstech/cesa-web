@@ -13,7 +13,7 @@ class ViewAssetRequest extends ViewRecord
 
     public function getTitle(): string|Htmlable
     {
-        return __('shelf::filament.resources.asset-request.pages.view-asset-request.title');
+        return __('shelf::filament/resources/asset-request/pages/view-asset-request.title');
     }
 
     public function getSubheading(): string|Htmlable|null
