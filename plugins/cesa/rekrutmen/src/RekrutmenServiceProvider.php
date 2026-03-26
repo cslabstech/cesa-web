@@ -64,12 +64,12 @@ class RekrutmenServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
-        if (! ($this->package->isCore || $this->package->isInstalled())) {
-            return;
-        }
+        // if (! ($this->package->isCore || $this->package->isInstalled())) {
+        //     return;
+        // }
 
-        Livewire::component('rekrutmen::public-man-power-request-form', PublicRequestManPowerForm::class);
-        Livewire::component('rekrutmen::public-man-power-progress-page', PublicRequestManPowerProgressPage::class);
+        Livewire::component('cesa.rekrutmen.livewire.public-man-power-request-form', PublicRequestManPowerForm::class);
+        Livewire::component('cesa.rekrutmen.livewire.public-man-power-progress-page', PublicRequestManPowerProgressPage::class);
         Gate::policy(RekrutmenPipeline::class, RekrutmenPipelinePolicy::class);
         Gate::policy(JobPosting::class, JobPostingPolicy::class);
         Gate::policy(JobApplication::class, JobApplicationPolicy::class);

@@ -22,7 +22,6 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
-use Filament\Schemas\Components\Wizard;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -107,170 +106,169 @@ class RequestResource extends ExitClearanceResource
     {
         return $form
             ->schema([
-                Wizard::make([
-                    Wizard\Step::make(__('exit-clearance::filament/resources/request.steps.resignation_letter'))
+                Grid::make(3)->schema([
+                    Group::make()
                         ->schema([
-                            Section::make(__('exit-clearance::filament/resources/request.resignation_letter.info'))
+                            Section::make(__('exit-clearance::filament/resources/request.steps.personal_data'))
+                                ->schema([
+                                    TextInput::make('name')
+                                        ->label(__('exit-clearance::filament/resources/request.fields.name'))
+                                        ->required()
+                                        ->maxLength(255),
+                                    TextInput::make('email')
+                                        ->label(__('exit-clearance::filament/resources/request.fields.email'))
+                                        ->email()
+                                        ->required()
+                                        ->maxLength(255),
+                                    TextInput::make('phone')
+                                        ->label(__('exit-clearance::filament/resources/request.fields.phone'))
+                                        ->tel()
+                                        ->required()
+                                        ->maxLength(255),
+                                    TextInput::make('position')
+                                        ->label(__('exit-clearance::filament/resources/request.fields.position'))
+                                        ->required()
+                                        ->maxLength(255),
+                                    TextInput::make('placement')
+                                        ->label(__('exit-clearance::filament/resources/request.fields.placement'))
+                                        ->required()
+                                        ->maxLength(255),
+                                    Select::make('department_id')
+                                        ->label(__('exit-clearance::filament/resources/request.fields.department'))
+                                        ->relationship('department', 'name')
+                                        ->searchable()
+                                        ->required()
+                                        ->live()
+                                        ->afterStateUpdated(function (Set $set, ?string $state): void {
+                                            if (! $state) {
+                                                $set('approvers', []);
+
+                                                return;
+                                            }
+
+                                            $approverIds = Department::query()
+                                                ->find($state)?->approvers()
+                                                ->whereNull('exit_clearance_approvers.deleted_at')
+                                                ->pluck('id')
+                                                ->all() ?? [];
+
+                                            $set('approvers', $approverIds);
+                                        })
+                                        ->preload(),
+                                    DatePicker::make('join_date')
+                                        ->label(__('exit-clearance::filament/resources/request.fields.join_date'))
+                                        ->required()
+                                        ->displayFormat('Y-m-d'),
+                                    DatePicker::make('departure_date')
+                                        ->label(__('exit-clearance::filament/resources/request.fields.departure_date'))
+                                        ->required()
+                                        ->displayFormat('Y-m-d'),
+                                ])
+                                ->columns(2),
+
+                            Section::make(__('exit-clearance::filament/resources/request.steps.resignation_letter'))
                                 ->description(__('exit-clearance::filament/resources/request.resignation_letter.not_required'))
                                 ->collapsible()
-                                ->collapsed(),
-                            FileUpload::make('resignation_letter_url')
-                                ->label(__('exit-clearance::filament/resources/request.file_upload.label'))
-                                ->helperText(__('exit-clearance::filament/resources/request.file_upload.helper_text'))
-                                ->directory('resignation-letters')
-                                ->downloadable()
-                                ->openable()
-                                ->maxSize(10240)
-                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
-                                ->visibility('private')
-                                ->getUploadedFileUsing(function (?Request $record, string $file, string|array|null $storedFileNames, $component): ?array {
-                                    if (! $record?->form_response_id) {
-                                        return null;
-                                    }
-
-                                    $storage = $component->getDisk();
-                                    $shouldFetchFileInformation = $component->shouldFetchFileInformation();
-
-                                    if ($shouldFetchFileInformation) {
-                                        try {
-                                            if (! $storage->exists($file)) {
+                                ->collapsed()
+                                ->schema([
+                                    FileUpload::make('resignation_letter_url')
+                                        ->label(__('exit-clearance::filament/resources/request.file_upload.label'))
+                                        ->helperText(__('exit-clearance::filament/resources/request.file_upload.helper_text'))
+                                        ->directory('resignation-letters')
+                                        ->downloadable()
+                                        ->openable()
+                                        ->maxSize(10240)
+                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
+                                        ->visibility('private')
+                                        ->getUploadedFileUsing(function (?Request $record, string $file, string|array|null $storedFileNames, $component): ?array {
+                                            if (! $record?->form_response_id) {
                                                 return null;
                                             }
-                                        } catch (UnableToCheckFileExistence $e) {
-                                            return null;
-                                        }
-                                    }
 
-                                    return [
-                                        'name' => ($component->isMultiple() ? ($storedFileNames[$file] ?? null) : $storedFileNames) ?? basename($file),
-                                        'size' => $shouldFetchFileInformation ? $storage->size($file) : 0,
-                                        'type' => $shouldFetchFileInformation ? $storage->mimeType($file) : null,
-                                        'url'  => URL::temporarySignedRoute(
-                                            'exit-clearance.public.attachments.download',
-                                            now()->addMinutes(60),
-                                            [
-                                                'response'   => $record->form_response_id,
-                                                'attachment' => 'resignation-letter',
-                                            ],
-                                        ),
-                                    ];
-                                })
-                                ->columnSpanFull(),
-                        ])
-                        ->columns(1),
+                                            $storage = $component->getDisk();
+                                            $shouldFetchFileInformation = $component->shouldFetchFileInformation();
 
-                    Wizard\Step::make(__('exit-clearance::filament/resources/request.steps.personal_data'))
-                        ->schema([
-                            TextInput::make('name')
-                                ->label(__('exit-clearance::filament/resources/request.fields.name'))
-                                ->required()
-                                ->maxLength(255),
-                            TextInput::make('email')
-                                ->label(__('exit-clearance::filament/resources/request.fields.email'))
-                                ->email()
-                                ->required()
-                                ->maxLength(255),
-                            TextInput::make('phone')
-                                ->label(__('exit-clearance::filament/resources/request.fields.phone'))
-                                ->tel()
-                                ->required()
-                                ->maxLength(255),
-                            TextInput::make('position')
-                                ->label(__('exit-clearance::filament/resources/request.fields.position'))
-                                ->required()
-                                ->maxLength(255),
-                            TextInput::make('placement')
-                                ->label(__('exit-clearance::filament/resources/request.fields.placement'))
-                                ->required()
-                                ->maxLength(255),
-                            Select::make('department_id')
-                                ->label(__('exit-clearance::filament/resources/request.fields.department'))
-                                ->relationship('department', 'name')
-                                ->searchable()
-                                ->required()
-                                ->live()
-                                ->afterStateUpdated(function (Set $set, ?string $state): void {
-                                    if (! $state) {
-                                        $set('approvers', []);
+                                            if ($shouldFetchFileInformation) {
+                                                try {
+                                                    if (! $storage->exists($file)) {
+                                                        return null;
+                                                    }
+                                                } catch (UnableToCheckFileExistence $e) {
+                                                    return null;
+                                                }
+                                            }
 
-                                        return;
-                                    }
+                                            return [
+                                                'name' => ($component->isMultiple() ? ($storedFileNames[$file] ?? null) : $storedFileNames) ?? basename($file),
+                                                'size' => $shouldFetchFileInformation ? $storage->size($file) : 0,
+                                                'type' => $shouldFetchFileInformation ? $storage->mimeType($file) : null,
+                                                'url'  => URL::temporarySignedRoute(
+                                                    'exit-clearance.public.attachments.download',
+                                                    now()->addMinutes(60),
+                                                    [
+                                                        'response'   => $record->form_response_id,
+                                                        'attachment' => 'resignation-letter',
+                                                    ],
+                                                ),
+                                            ];
+                                        })
+                                        ->columnSpanFull(),
+                                ]),
 
-                                    $approverIds = Department::query()
-                                        ->find($state)?->approvers()
-                                        ->whereNull('exit_clearance_approvers.deleted_at')
-                                        ->pluck('id')
-                                        ->all() ?? [];
+                            Section::make(__('exit-clearance::filament/resources/request.steps.exit_interview'))
+                                ->schema([
+                                    Textarea::make('reason')
+                                        ->label(__('exit-clearance::filament/resources/request.exit_interview.q1'))
+                                        ->required()
+                                        ->rows(3)
+                                        ->maxLength(2000)
+                                        ->columnSpanFull(),
+                                    Textarea::make('workload_feedback')
+                                        ->label(__('exit-clearance::filament/resources/request.exit_interview.q2'))
+                                        ->required()
+                                        ->rows(3)
+                                        ->maxLength(2000)
+                                        ->columnSpanFull(),
+                                    Textarea::make('career_growth_feedback')
+                                        ->label(__('exit-clearance::filament/resources/request.exit_interview.q3'))
+                                        ->required()
+                                        ->rows(3)
+                                        ->maxLength(2000)
+                                        ->columnSpanFull(),
+                                    Textarea::make('facility_welfare_feedback')
+                                        ->label(__('exit-clearance::filament/resources/request.exit_interview.q4'))
+                                        ->required()
+                                        ->rows(3)
+                                        ->maxLength(2000)
+                                        ->columnSpanFull(),
+                                    Textarea::make('work_relationship_feedback')
+                                        ->label(__('exit-clearance::filament/resources/request.exit_interview.q5'))
+                                        ->required()
+                                        ->rows(3)
+                                        ->maxLength(2000)
+                                        ->columnSpanFull(),
+                                    Textarea::make('compensation_feedback')
+                                        ->label(__('exit-clearance::filament/resources/request.exit_interview.q6'))
+                                        ->required()
+                                        ->rows(3)
+                                        ->maxLength(2000)
+                                        ->columnSpanFull(),
+                                    Textarea::make('division_feedback')
+                                        ->label(__('exit-clearance::filament/resources/request.exit_interview.q7'))
+                                        ->required()
+                                        ->rows(3)
+                                        ->maxLength(2000)
+                                        ->columnSpanFull(),
+                                    Textarea::make('company_feedback')
+                                        ->label(__('exit-clearance::filament/resources/request.exit_interview.q8'))
+                                        ->required()
+                                        ->rows(3)
+                                        ->maxLength(2000)
+                                        ->columnSpanFull(),
+                                ])
+                                ->collapsible()
+                                ->collapsed(),
 
-                                    $set('approvers', $approverIds);
-                                })
-                                ->preload(),
-                            DatePicker::make('join_date')
-                                ->label(__('exit-clearance::filament/resources/request.fields.join_date'))
-                                ->required()
-                                ->displayFormat('Y-m-d'),
-                            DatePicker::make('departure_date')
-                                ->label(__('exit-clearance::filament/resources/request.fields.departure_date'))
-                                ->required()
-                                ->displayFormat('Y-m-d'),
-                        ])
-                        ->columns(1),
-
-                    Wizard\Step::make(__('exit-clearance::filament/resources/request.steps.exit_interview'))
-                        ->schema([
-                            Textarea::make('reason')
-                                ->label(__('exit-clearance::filament/resources/request.exit_interview.q1'))
-                                ->required()
-                                ->rows(3)
-                                ->maxLength(2000)
-                                ->columnSpanFull(),
-                            Textarea::make('workload_feedback')
-                                ->label(__('exit-clearance::filament/resources/request.exit_interview.q2'))
-                                ->required()
-                                ->rows(3)
-                                ->maxLength(2000)
-                                ->columnSpanFull(),
-                            Textarea::make('career_growth_feedback')
-                                ->label(__('exit-clearance::filament/resources/request.exit_interview.q3'))
-                                ->required()
-                                ->rows(3)
-                                ->maxLength(2000)
-                                ->columnSpanFull(),
-                            Textarea::make('facility_welfare_feedback')
-                                ->label(__('exit-clearance::filament/resources/request.exit_interview.q4'))
-                                ->required()
-                                ->rows(3)
-                                ->maxLength(2000)
-                                ->columnSpanFull(),
-                            Textarea::make('work_relationship_feedback')
-                                ->label(__('exit-clearance::filament/resources/request.exit_interview.q5'))
-                                ->required()
-                                ->rows(3)
-                                ->maxLength(2000)
-                                ->columnSpanFull(),
-                            Textarea::make('compensation_feedback')
-                                ->label(__('exit-clearance::filament/resources/request.exit_interview.q6'))
-                                ->required()
-                                ->rows(3)
-                                ->maxLength(2000)
-                                ->columnSpanFull(),
-                            Textarea::make('division_feedback')
-                                ->label(__('exit-clearance::filament/resources/request.exit_interview.q7'))
-                                ->required()
-                                ->rows(3)
-                                ->maxLength(2000)
-                                ->columnSpanFull(),
-                            Textarea::make('company_feedback')
-                                ->label(__('exit-clearance::filament/resources/request.exit_interview.q8'))
-                                ->required()
-                                ->rows(3)
-                                ->maxLength(2000)
-                                ->columnSpanFull(),
-                        ])
-                        ->columns(1),
-
-                    Wizard\Step::make(__('exit-clearance::filament/resources/request.steps.exit_clearance'))
-                        ->schema([
                             Section::make(__('exit-clearance::filament/resources/request.clearance.section_title'))
                                 ->schema([
                                     TextInput::make('clearance_kartu_halo')
@@ -304,9 +302,14 @@ class RequestResource extends ExitClearanceResource
                                         ->label(__('exit-clearance::filament/resources/request.clearance.item_10'))
                                         ->required(),
                                 ])
-                                ->columns(1)
-                                ->collapsible(),
+                                ->columns(2)
+                                ->collapsible()
+                                ->collapsed(),
+                        ])
+                        ->columnSpan(2),
 
+                    Group::make()
+                        ->schema([
                             Section::make(__('exit-clearance::filament/resources/request.approvals.section_title'))
                                 ->schema([
                                     Select::make('approvers')
@@ -343,12 +346,12 @@ class RequestResource extends ExitClearanceResource
                                         ->disabled()
                                         ->dehydrated(false),
                                 ])
-                                ->columns(3)
+                                ->columns(1)
                                 ->collapsible()
                                 ->collapsed(),
-                        ]),
-                ])
-                    ->columnSpanFull(),
+                        ])
+                        ->columnSpan(1),
+                ]),
             ]);
     }
 

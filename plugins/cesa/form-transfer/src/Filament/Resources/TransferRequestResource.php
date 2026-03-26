@@ -40,8 +40,6 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
-use Filament\Schemas\Components\Wizard;
-use Filament\Schemas\Components\Wizard\Step;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -130,156 +128,161 @@ class TransferRequestResource extends FormTransferResource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Wizard::make([
-                Step::make(__('form-transfer::filament/resources/transfer-request/fields.form_transfer'))
-                    ->icon('heroicon-o-document-text')
-                    ->schema([
-                        Select::make('form_transfer_id')
-                            ->label(__('form-transfer::filament/resources/transfer-request/fields.form_transfer'))
-                            ->relationship(
-                                'formTransfer',
-                                'name',
-                                function (Builder $query): Builder {
-                                    $query
-                                        ->whereNull($query->qualifyColumn('deleted_at'))
-                                        ->where('is_active', true);
+            Grid::make(3)->schema([
+                Group::make([
+                    Section::make(__('form-transfer::filament/resources/transfer-request/fields.form_transfer'))
+                        ->schema([
+                            Select::make('form_transfer_id')
+                                ->label(__('form-transfer::filament/resources/transfer-request/fields.form_transfer'))
+                                ->relationship(
+                                    'formTransfer',
+                                    'name',
+                                    function (Builder $query): Builder {
+                                        $query
+                                            ->whereNull($query->qualifyColumn('deleted_at'))
+                                            ->where('is_active', true);
 
-                                    $accessibleIds = static::getAccessibleFormTransferIds();
+                                        $accessibleIds = static::getAccessibleFormTransferIds();
 
-                                    if ($accessibleIds !== null) {
-                                        if (empty($accessibleIds)) {
-                                            return $query->whereRaw('1 = 0');
+                                        if ($accessibleIds !== null) {
+                                            if (empty($accessibleIds)) {
+                                                return $query->whereRaw('1 = 0');
+                                            }
+
+                                            return $query->whereIn('id', $accessibleIds);
                                         }
 
-                                        return $query->whereIn('id', $accessibleIds);
+                                        return $query;
+                                    },
+                                )
+                                ->required()
+                                ->searchable()
+                                ->preload()
+                                ->live()
+                                ->afterStateUpdated(function (Set $set, Get $get, ?string $state): void {
+                                    $set('division_id', null);
+                                    $set('division_name', null);
+                                    $set('reference_note', null);
+
+                                    if (! $state) {
+                                        return;
                                     }
+                                })
+                                ->columnSpanFull(),
+                        ]),
+                    Section::make(__('form-transfer::filament/resources/transfer-request/forms.requester'))
+                        ->schema([
+                            TextInput::make('email')
+                                ->label(__('form-transfer::filament/resources/transfer-request/fields.email'))
+                                ->email()
+                                ->maxLength(191)
+                                ->required(),
+                            TextInput::make('requester_name')
+                                ->label(__('form-transfer::filament/resources/transfer-request/fields.requester_name'))
+                                ->required()
+                                ->maxLength(191),
+                            Select::make('division_id')
+                                ->label(__('form-transfer::filament/resources/transfer-request/fields.division'))
+                                ->options(fn (Get $get): array => static::getDivisionOptions($get('form_transfer_id')))
+                                ->searchable()
+                                ->required(fn (Get $get): bool => ! empty(static::getDivisionOptions($get('form_transfer_id'))))
+                                ->disabled(fn (Get $get): bool => ! $get('form_transfer_id'))
+                                ->live()
+                                ->afterStateUpdated(function (Set $set, Get $get, ?string $state): void {
+                                    $set('division_name', static::resolveDivisionName($state));
+                                    $set('reference_note', null);
 
-                                    return $query;
-                                },
-                            )
-                            ->required()
-                            ->searchable()
-                            ->preload()
-                            ->live()
-                            ->afterStateUpdated(function (Set $set, Get $get, ?string $state): void {
-                                $set('division_id', null);
-                                $set('division_name', null);
-                                $set('reference_note', null);
+                                    $formTransferId = (int) ($get('form_transfer_id') ?? 0);
 
-                                if (! $state) {
-                                    return;
-                                }
-                            })
-                            ->columnSpanFull(),
-                    ])
-                    ->columns(1),
-                Step::make(__('form-transfer::filament/resources/transfer-request/forms.request'))
-                    ->icon('heroicon-o-clipboard-document')
-                    ->schema([
-                        Section::make(__('form-transfer::filament/resources/transfer-request/forms.requester'))
-                            ->schema([
-                                TextInput::make('email')
-                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.email'))
-                                    ->email()
-                                    ->maxLength(191)
-                                    ->required(),
-                                TextInput::make('requester_name')
-                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.requester_name'))
-                                    ->required()
-                                    ->maxLength(191),
-                                Select::make('division_id')
-                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.division'))
-                                    ->options(fn (Get $get): array => static::getDivisionOptions($get('form_transfer_id')))
-                                    ->searchable()
-                                    ->required(fn (Get $get): bool => ! empty(static::getDivisionOptions($get('form_transfer_id'))))
-                                    ->disabled(fn (Get $get): bool => ! $get('form_transfer_id'))
-                                    ->live()
-                                    ->afterStateUpdated(function (Set $set, Get $get, ?string $state): void {
-                                        $set('division_name', static::resolveDivisionName($state));
-                                        $set('reference_note', null);
+                                    if (! $formTransferId) {
+                                        return;
+                                    }
+                                })
+                                ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.division')),
+                            Hidden::make('division_name')
+                                ->dehydrated(),
+                        ])
+                        ->columns(2)
+                        ->visible(fn (Get $get): bool => filled($get('form_transfer_id'))),
+                    Section::make(__('form-transfer::filament/resources/transfer-request/forms.bank'))
+                        ->schema([
+                            TextInput::make('account_number')
+                                ->label(__('form-transfer::filament/resources/transfer-request/fields.account_number'))
+                                ->required()
+                                ->maxLength(191),
+                            TextInput::make('account_name')
+                                ->label(__('form-transfer::filament/resources/transfer-request/fields.account_name'))
+                                ->required()
+                                ->maxLength(191),
+                            Select::make('bank_id')
+                                ->label(__('form-transfer::filament/resources/transfer-request/fields.bank_name'))
+                                ->options(fn (): array => static::getBankOptions())
+                                ->required()
+                                ->searchable()
+                                ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.bank')),
+                        ])
+                        ->columns(2)
+                        ->visible(fn (Get $get): bool => filled($get('form_transfer_id'))),
+                    Section::make(__('form-transfer::filament/resources/transfer-request/forms.transfer'))
+                        ->schema([
+                            TextInput::make('transfer_amount')
+                                ->label(__('form-transfer::filament/resources/transfer-request/fields.transfer_amount'))
+                                ->numeric()
+                                ->prefix('Rp')
+                                ->required()
+                                ->rule('min:0')
+                                ->columnSpanFull(),
+                            Textarea::make('purpose')
+                                ->label(__('form-transfer::filament/resources/transfer-request/fields.purpose'))
+                                ->rows(3)
+                                ->required()
+                                ->columnSpanFull(),
+                            TransferRequestAttachmentField::makeInvoice()
+                                ->getUploadedFileUsing(fn (FileUpload $component, string $file, string|array|null $storedFileNames): ?array => static::buildAttachmentFileInfo(
+                                    $component,
+                                    $file,
+                                    $storedFileNames,
+                                    'invoice',
+                                )),
+                            TransferRequestAttachmentField::makeAccountAttachment()
+                                ->getUploadedFileUsing(fn (FileUpload $component, string $file, string|array|null $storedFileNames): ?array => static::buildAttachmentFileInfo(
+                                    $component,
+                                    $file,
+                                    $storedFileNames,
+                                    'account-attachment',
+                                )),
+                        ])
+                        ->columns(2)
+                        ->visible(fn (Get $get): bool => filled($get('form_transfer_id'))),
+                ])->columnSpan(2),
 
-                                        $formTransferId = (int) ($get('form_transfer_id') ?? 0);
-
-                                        if (! $formTransferId) {
-                                            return;
-                                        }
-                                    })
-                                    ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.division')),
-                                Hidden::make('division_name')
-                                    ->dehydrated(),
-                            ])
-                            ->columns(2),
-                        Section::make(__('form-transfer::filament/resources/transfer-request/forms.bank'))
-                            ->schema([
-                                TextInput::make('account_number')
-                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.account_number'))
-                                    ->required()
-                                    ->maxLength(191),
-                                TextInput::make('account_name')
-                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.account_name'))
-                                    ->required()
-                                    ->maxLength(191),
-                                Select::make('bank_id')
-                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.bank_name'))
-                                    ->options(fn (): array => static::getBankOptions())
-                                    ->required()
-                                    ->searchable()
-                                    ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.bank')),
-                            ])
-                            ->columns(3),
-                        Section::make(__('form-transfer::filament/resources/transfer-request/forms.transfer'))
-                            ->schema([
-                                TextInput::make('transfer_amount')
-                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.transfer_amount'))
-                                    ->numeric()
-                                    ->prefix('Rp')
-                                    ->required()
-                                    ->rule('min:0'),
-                                Textarea::make('purpose')
-                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.purpose'))
-                                    ->rows(3)
-                                    ->required(),
-                                Select::make('submission_status')
-                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.submission_status'))
-                                    ->options(static::getSubmissionStatusOptions())
-                                    ->default(TransferRequestSubmissionStatus::BARU->value)
-                                    ->formatStateUsing(fn ($state) => $state instanceof TransferRequestSubmissionStatus ? $state->value : $state)
-                                    ->required()
-                                    ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.submission_status')),
-                                Select::make('reference_note')
-                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.reference_note'))
-                                    ->options(fn (Get $get): array => static::getReferenceNoteOptions($get('form_transfer_id')))
-                                    ->searchable()
-                                    ->disabled(fn (Get $get): bool => ! $get('form_transfer_id'))
-                                    ->required(fn (Get $get): bool => ! empty(static::getReferenceNoteOptions($get('form_transfer_id'))))
-                                    ->visible(fn (Get $get): bool => ! empty(static::getReferenceNoteOptions($get('form_transfer_id'))))
-                                    ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.reference_note')),
-                                Textarea::make('reference_note')
-                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.reference_note'))
-                                    ->rows(3)
-                                    ->visible(fn (Get $get): bool => empty(static::getReferenceNoteOptions($get('form_transfer_id'))))
-                                    ->required(fn (Get $get): bool => empty(static::getReferenceNoteOptions($get('form_transfer_id')))),
-                                TransferRequestAttachmentField::makeInvoice()
-                                    ->getUploadedFileUsing(fn (FileUpload $component, string $file, string|array|null $storedFileNames): ?array => static::buildAttachmentFileInfo(
-                                        $component,
-                                        $file,
-                                        $storedFileNames,
-                                        'invoice',
-                                    )),
-                                TransferRequestAttachmentField::makeAccountAttachment()
-                                    ->getUploadedFileUsing(fn (FileUpload $component, string $file, string|array|null $storedFileNames): ?array => static::buildAttachmentFileInfo(
-                                        $component,
-                                        $file,
-                                        $storedFileNames,
-                                        'account-attachment',
-                                    )),
-                            ])
-                            ->columns(3),
-                    ])
-                    ->visible(fn (Get $get): bool => filled($get('form_transfer_id'))),
-            ])
-                ->skippable(false)
-                ->columnSpanFull(),
+                Group::make([
+                    Section::make(__('form-transfer::filament/resources/transfer-request/fields.submission_status'))
+                        ->schema([
+                            Select::make('submission_status')
+                                ->label(__('form-transfer::filament/resources/transfer-request/fields.submission_status'))
+                                ->options(static::getSubmissionStatusOptions())
+                                ->default(TransferRequestSubmissionStatus::BARU->value)
+                                ->formatStateUsing(fn ($state) => $state instanceof TransferRequestSubmissionStatus ? $state->value : $state)
+                                ->required()
+                                ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.submission_status')),
+                            Select::make('reference_note')
+                                ->label(__('form-transfer::filament/resources/transfer-request/fields.reference_note'))
+                                ->options(fn (Get $get): array => static::getReferenceNoteOptions($get('form_transfer_id')))
+                                ->searchable()
+                                ->disabled(fn (Get $get): bool => ! $get('form_transfer_id'))
+                                ->required(fn (Get $get): bool => ! empty(static::getReferenceNoteOptions($get('form_transfer_id'))))
+                                ->visible(fn (Get $get): bool => ! empty(static::getReferenceNoteOptions($get('form_transfer_id'))))
+                                ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.reference_note')),
+                            Textarea::make('reference_note')
+                                ->label(__('form-transfer::filament/resources/transfer-request/fields.reference_note'))
+                                ->rows(3)
+                                ->visible(fn (Get $get): bool => empty(static::getReferenceNoteOptions($get('form_transfer_id'))))
+                                ->required(fn (Get $get): bool => empty(static::getReferenceNoteOptions($get('form_transfer_id')))),
+                        ])
+                        ->visible(fn (Get $get): bool => filled($get('form_transfer_id'))),
+                ])->columnSpan(1),
+            ])->columnSpanFull(),
         ]);
     }
 

@@ -24,6 +24,12 @@ return [
         'description' => 'Isi formulir berikut untuk mengajukan kebutuhan tenaga kerja.',
         'required'    => '* Wajib diisi',
     ],
+    'sections' => [
+        'applicant_information'            => 'Informasi Pengaju',
+        'position_requirements'            => 'Kebutuhan Posisi',
+        'qualifications_and_description'   => 'Kualifikasi & Deskripsi',
+        'requirement_status'               => 'Status Kebutuhan',
+    ],
     'fields' => [
         'nama_pengaju'               => 'Nama Pengaju',
         'posisi_pengaju'             => 'Posisi / Jabatan Pengaju',

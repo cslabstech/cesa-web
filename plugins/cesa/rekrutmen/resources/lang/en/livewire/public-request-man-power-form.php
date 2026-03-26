@@ -24,6 +24,12 @@ return [
         'description' => 'Complete the following form to submit a manpower request.',
         'required'    => '* Required',
     ],
+    'sections' => [
+        'applicant_information'            => 'Applicant Information',
+        'position_requirements'            => 'Position Requirements',
+        'qualifications_and_description'   => 'Qualifications & Description',
+        'requirement_status'               => 'Requirement Status',
+    ],
     'fields' => [
         'nama_pengaju'               => 'Requester Name',
         'posisi_pengaju'             => 'Requester Position / Title',
