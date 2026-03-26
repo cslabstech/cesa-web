@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 use Webkul\Security\Models\User;
 
 class Lead extends Model
@@ -23,6 +24,7 @@ class Lead extends Model
         'store_team_position',
         'store_branch',
         'phone_transaction_range',
+        'public_response_id',
         'created_by',
     ];
 
@@ -34,7 +36,17 @@ class Lead extends Model
         return [
             'store_team_position'     => StoreTeamPosition::class,
             'phone_transaction_range' => PhoneTransactionRange::class,
+            'public_response_id'      => 'string',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $lead): void {
+            if (blank($lead->public_response_id)) {
+                $lead->public_response_id = (string) Str::ulid();
+            }
+        });
     }
 
     /**
@@ -110,6 +122,18 @@ class Lead extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the public-facing URL for the lead progress/confirmation page.
+     */
+    public function getPublicProgressUrl(): string
+    {
+        if (blank($this->public_response_id)) {
+            return route('lead.public.form');
+        }
+
+        return route('lead.public.show', $this->public_response_id);
     }
 
     /**

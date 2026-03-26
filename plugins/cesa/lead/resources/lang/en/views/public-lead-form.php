@@ -14,6 +14,21 @@ return [
         'single_page' => 'Page :current of :total',
     ],
 
+    'summary' => [
+        'title'              => 'Lead Submitted Successfully',
+        'description'        => 'Use the following summary to confirm that the submitted lead information is correct.',
+        'submitted_by'       => 'Submitted by',
+        'current_status'     => 'Current status',
+        'status_submitted'   => 'Submitted',
+        'submission_summary' => 'Submission Summary',
+        'fields'             => [
+            'response_id'  => 'Lead ID',
+            'form'         => 'Form',
+            'submitted_at' => 'Submitted At',
+            'address'      => 'Address',
+        ],
+    ],
+
     'messages' => [
         'success' => 'Thank you. Your lead has been submitted successfully.',
         'generic' => 'Something went wrong while submitting the form. Please try again.',

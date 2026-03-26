@@ -12,13 +12,19 @@ class PublicLeadSubmissionTest extends TestCase
 {
     public function test_can_render_public_lead_form_page(): void
     {
-        $this->get('/leads')
+        $this->get('/lead')
             ->assertOk();
+    }
+
+    public function test_legacy_public_lead_url_redirects_to_new_path(): void
+    {
+        $this->get('/leads')
+            ->assertRedirect('/lead');
     }
 
     public function test_can_submit_public_lead_form_and_persist_lead(): void
     {
-        Livewire::test(PublicLeadForm::class)
+        $component = Livewire::test(PublicLeadForm::class)
             ->set('data.name', 'john doe')
             ->set('data.phone', '08123456789')
             ->set('data.address', 'Jl. Test No. 123')
@@ -29,6 +35,10 @@ class PublicLeadSubmissionTest extends TestCase
             ->call('submit')
             ->assertHasNoErrors();
 
+        $lead = Lead::query()->firstOrFail();
+
+        $component->assertRedirect($lead->getPublicProgressUrl());
+
         $this->assertDatabaseHas('leads', [
             'name'                => 'JOHN DOE',
             'phone'               => '628123456789',
@@ -36,8 +46,20 @@ class PublicLeadSubmissionTest extends TestCase
             'sales_person'        => 'Jane Doe',
             'store_team_position' => 'Kepala Toko',
             'store_branch'        => 'Complete Selular Babakan',
+            'public_response_id'  => $lead->public_response_id,
             'created_by'          => null,
         ]);
+    }
+
+    public function test_can_render_public_lead_progress_page(): void
+    {
+        $lead = Lead::factory()->create([
+            'public_response_id' => '01jqqqqqqqqqqqqqqqqqqqqqqq',
+        ]);
+
+        $this->get('/lead/'.$lead->public_response_id)
+            ->assertOk()
+            ->assertSee($lead->name);
     }
 
     public function test_public_lead_form_rejects_duplicate_phone_after_normalization(): void

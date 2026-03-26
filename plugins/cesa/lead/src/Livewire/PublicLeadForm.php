@@ -42,8 +42,6 @@ class PublicLeadForm extends SimplePage
 
     public ?array $data = [];
 
-    public ?array $recentSubmission = null;
-
     public ?string $whatsappValidationStatus = null;
 
     protected bool $whatsappValidationEnabled = false;
@@ -211,17 +209,13 @@ class PublicLeadForm extends SimplePage
                 'created_by' => null,
             ]);
 
-            $this->recentSubmission = [
-                'id'    => $lead->getKey(),
-                'name'  => $lead->name,
-                'phone' => $lead->phone,
-            ];
-
             Notification::make()
                 ->title(__('lead::views/public-lead-form.notifications.submitted.title'))
                 ->body(__('lead::views/public-lead-form.notifications.submitted.body'))
                 ->success()
                 ->send();
+
+            $this->redirect($lead->getPublicProgressUrl(), navigate: true);
         } catch (QueryException $e) {
             if (str_contains(strtolower($e->getMessage()), 'leads_phone_unique')) {
                 $this->addError('data.phone', __('lead::filament/resources/lead.validation.phone_unique'));

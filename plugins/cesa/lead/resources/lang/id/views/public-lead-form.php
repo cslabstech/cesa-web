@@ -14,6 +14,21 @@ return [
         'single_page' => 'Halaman :current dari :total',
     ],
 
+    'summary' => [
+        'title'              => 'Lead Berhasil Dikirim',
+        'description'        => 'Gunakan ringkasan berikut untuk memastikan data lead yang dikirim sudah sesuai.',
+        'submitted_by'       => 'Dikirim oleh',
+        'current_status'     => 'Status saat ini',
+        'status_submitted'   => 'Terkirim',
+        'submission_summary' => 'Ringkasan Pengajuan',
+        'fields'             => [
+            'response_id'  => 'ID Lead',
+            'form'         => 'Form',
+            'submitted_at' => 'Waktu Pengiriman',
+            'address'      => 'Alamat',
+        ],
+    ],
+
     'messages' => [
         'success' => 'Terima kasih. Lead Anda berhasil dikirim.',
         'generic' => 'Terjadi kesalahan saat mengirim formulir. Silakan coba lagi.',
