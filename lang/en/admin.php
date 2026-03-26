@@ -22,6 +22,8 @@ return [
         'presensi'       => 'Presensi',
         'rekrutmen'      => 'Rekrutmen',
         'shelf'          => 'Shelf',
+        'lead'           => 'Leads',
+        'document'       => 'Documents',
         'plugin'         => 'Plugins',
         'setting'        => 'Settings',
     ],

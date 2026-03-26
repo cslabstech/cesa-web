@@ -1,0 +1,28 @@
+{
+    "name": "cesa/lead",
+    "description": "Lead management plugin (HMVC) for CESA.",
+    "type": "library",
+    "authors": [
+        {"name": "apriansyahrs", "email": "apriansyah@rizqis.com"}
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Cesa\\Lead\\LeadServiceProvider"
+            ],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Cesa\\Lead\\": "src/",
+            "Cesa\\Lead\\Database\\Factories\\": "database/factories/",
+            "Cesa\\Lead\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Cesa\\Lead\\Tests\\": "tests/"
+        }
+    }
+}

@@ -3,10 +3,12 @@
 use App\Providers\AppServiceProvider;
 use App\Providers\Filament\AdminPanelProvider;
 use App\Providers\Filament\CustomerPanelProvider;
+use Cesa\Document\DocumentServiceProvider;
 use Cesa\ExitClearance\ExitClearanceServiceProvider;
 use Cesa\FormTransfer\FormTransferServiceProvider;
 use Cesa\Helpdesk\HelpdeskServiceProvider;
 use Cesa\Kepegawaian\KepegawaianServiceProvider;
+use Cesa\Lead\LeadServiceProvider;
 use Cesa\Payroll\PayrollServiceProvider;
 use Cesa\Presensi\PresensiServiceProvider;
 use Cesa\Rekrutmen\RekrutmenServiceProvider;
@@ -73,10 +75,12 @@ return [
     WebsiteServiceProvider::class,
 
     // CESA Plugins
+    DocumentServiceProvider::class,
     ExitClearanceServiceProvider::class,
     FormTransferServiceProvider::class,
     HelpdeskServiceProvider::class,
     KepegawaianServiceProvider::class,
+    LeadServiceProvider::class,
     PayrollServiceProvider::class,
     PresensiServiceProvider::class,
     RekrutmenServiceProvider::class,

@@ -119,6 +119,12 @@ class AdminPanelProvider extends PanelProvider
                     ->label(__('admin.navigation.shelf'))
                     ->icon('icon-shelf'),
                 NavigationGroup::make()
+                    ->label(__('admin.navigation.lead'))
+                    ->icon('icon-lead'),
+                NavigationGroup::make()
+                    ->label(__('admin.navigation.document'))
+                    ->icon('icon-document'),
+                NavigationGroup::make()
                     ->label(__('admin.navigation.plugin'))
                     ->icon('icon-plugin'),
                 NavigationGroup::make()

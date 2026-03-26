@@ -1,0 +1,28 @@
+{
+    "name": "cesa/document",
+    "description": "Document feature plugin (HMVC) for CESA.",
+    "type": "library",
+    "authors": [
+        {"name": "apriansyahrs", "email": "apriansyah@rizqis.com"}
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Cesa\\Document\\DocumentServiceProvider"
+            ],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Cesa\\Document\\": "src/",
+            "Cesa\\Document\\Database\\Factories\\": "database/factories/",
+            "Cesa\\Document\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Cesa\\Document\\Tests\\": "tests/"
+        }
+    }
+}

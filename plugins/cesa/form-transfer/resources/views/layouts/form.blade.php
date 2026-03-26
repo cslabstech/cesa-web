@@ -8,6 +8,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $documentTitle }}</title>
+    <link rel="icon" href="{{ asset('images/favicon.ico') }}" type="image/x-icon">
     @vite('resources/css/filament/public/theme.css')
     @filamentStyles
     @livewireStyles
