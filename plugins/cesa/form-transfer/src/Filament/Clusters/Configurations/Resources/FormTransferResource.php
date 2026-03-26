@@ -52,12 +52,12 @@ class FormTransferResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('form-transfer::app.config.forms.navigation.label');
+        return __('form-transfer::filament/clusters/configurations/resources/form-transfer.navigation.label');
     }
 
     public static function getNavigationGroup(): string
     {
-        return __('form-transfer::app.config.forms.navigation.group');
+        return __('form-transfer::filament/clusters/configurations/resources/form-transfer.navigation.group');
     }
 
     public static function form(Schema $schema): Schema
@@ -74,28 +74,28 @@ class FormTransferResource extends Resource
                                 ->schema([
                                     Group::make()
                                         ->schema([
-                                            Section::make(__('form-transfer::app.config.forms.sections.basic_information'))
+                                            Section::make(__('form-transfer::filament/clusters/configurations/resources/form-transfer.sections.basic_information'))
                                                 ->schema([
                                                     TextInput::make('name')
-                                                        ->label(__('form-transfer::app.config.forms.fields.name'))
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.name'))
                                                         ->required()
                                                         ->maxLength(191)
                                                         ->columnSpanFull(),
                                                     Textarea::make('description')
-                                                        ->label(__('form-transfer::app.config.forms.fields.description'))
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.description'))
                                                         ->rows(3)
                                                         ->columnSpanFull(),
                                                 ]),
-                                            Section::make(__('form-transfer::app.config.forms.sections.access_control'))
-                                                ->description(__('form-transfer::app.config.forms.sections.access_control_description'))
+                                            Section::make(__('form-transfer::filament/clusters/configurations/resources/form-transfer.sections.access_control'))
+                                                ->description(__('form-transfer::filament/clusters/configurations/resources/form-transfer.sections.access_control_description'))
                                                 ->schema([
                                                     Select::make('allowed_users')
-                                                        ->label(__('form-transfer::app.config.forms.fields.allowed_users'))
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.allowed_users'))
                                                         ->relationship('allowedUsers', 'name')
                                                         ->multiple()
                                                         ->preload()
                                                         ->searchable()
-                                                        ->helperText(__('form-transfer::app.config.forms.fields.allowed_users_helper')),
+                                                        ->helperText(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.allowed_users_helper')),
                                                 ]),
                                         ])
                                         ->columnSpan(2),
@@ -104,17 +104,17 @@ class FormTransferResource extends Resource
                                             Section::make('Status')
                                                 ->schema([
                                                     Toggle::make('is_active')
-                                                        ->label(__('form-transfer::app.config.forms.fields.is_active'))
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.is_active'))
                                                         ->default(true),
                                                 ]),
                                             Section::make('Identification')
                                                 ->schema([
                                                     TextInput::make('code')
-                                                        ->label(__('form-transfer::app.config.forms.fields.code'))
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.code'))
                                                         ->maxLength(50)
                                                         ->rule(static fn (Get $_, ?FormTransfer $record) => Rule::unique('form_transfers', 'code')->ignore($record)),
                                                     TextInput::make('uid_prefix')
-                                                        ->label(__('form-transfer::app.config.forms.fields.uid_prefix'))
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.uid_prefix'))
                                                         ->maxLength(20)
                                                         ->required()
                                                         ->live()
@@ -123,17 +123,17 @@ class FormTransferResource extends Resource
                                                         })
                                                         ->rule(static fn (Get $_, ?FormTransfer $record) => Rule::unique('form_transfers', 'uid_prefix')->ignore($record)),
                                                     TextInput::make('uid_padding')
-                                                        ->label(__('form-transfer::app.config.forms.fields.uid_padding'))
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.uid_padding'))
                                                         ->numeric()
                                                         ->minValue(1)
                                                         ->maxValue(10)
                                                         ->default(5),
                                                     TextInput::make('uid_sequence')
-                                                        ->label(__('form-transfer::app.config.forms.fields.uid_sequence'))
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.uid_sequence'))
                                                         ->disabled()
                                                         ->dehydrated(false)
                                                         ->default(fn (?FormTransfer $record): string => (string) ($record?->uid_sequence ?? 0))
-                                                        ->helperText(__('form-transfer::app.config.forms.fields.uid_sequence_helper')),
+                                                        ->helperText(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.uid_sequence_helper')),
                                                 ]),
                                         ])
                                         ->columnSpan(1),
@@ -145,23 +145,23 @@ class FormTransferResource extends Resource
                             Section::make('Approver Notifications')
                                 ->schema([
                                     TextInput::make('approver_mail_subject')
-                                        ->label(__('form-transfer::app.config.forms.fields.approver_mail_subject'))
+                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.approver_mail_subject'))
                                         ->maxLength(191)
                                         ->required()
                                         ->default($notificationDefaults['approver_mail_subject'])
                                         ->columnSpanFull(),
                                     Textarea::make('approver_mail_template')
-                                        ->label(__('form-transfer::app.config.forms.fields.approver_mail_template'))
+                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.approver_mail_template'))
                                         ->rows(8)
                                         ->required()
                                         ->default($notificationDefaults['approver_mail_template'])
-                                        ->helperText(__('form-transfer::app.config.forms.fields.template_helper', [
+                                        ->helperText(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.template_helper', [
                                             'placeholders' => self::formatPlaceholders(TransferApprovalNotificationService::getApproverPlaceholders()),
                                         ]))
                                         ->columnSpanFull(),
                                     Actions::make([
                                         Action::make('copy_default_approver_template')
-                                            ->label(__('form-transfer::app.config.forms.actions.copy_default_template'))
+                                            ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.actions.copy_default_template'))
                                             ->icon('heroicon-o-clipboard-document')
                                             ->color('gray')
                                             ->action(function (Set $set): void {
@@ -170,15 +170,15 @@ class FormTransferResource extends Resource
                                     ])
                                         ->alignment('right')
                                         ->columnSpanFull(),
-                                    Section::make(__('form-transfer::app.config.forms.sections.optional_settings'))
-                                        ->description(__('form-transfer::app.config.forms.fields.optional_settings_hint'))
+                                    Section::make(__('form-transfer::filament/clusters/configurations/resources/form-transfer.sections.optional_settings'))
+                                        ->description(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.optional_settings_hint'))
                                         ->schema([
                                             TextInput::make('approver_mail_greeting')
-                                                ->label(__('form-transfer::app.config.forms.fields.approver_mail_greeting'))
+                                                ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.approver_mail_greeting'))
                                                 ->default($notificationDefaults['approver_mail_greeting'])
                                                 ->maxLength(191),
                                             TextInput::make('approver_mail_action_text')
-                                                ->label(__('form-transfer::app.config.forms.fields.approver_mail_action_text'))
+                                                ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.approver_mail_action_text'))
                                                 ->default($notificationDefaults['approver_mail_action_text'])
                                                 ->maxLength(191),
                                         ])
@@ -186,9 +186,9 @@ class FormTransferResource extends Resource
                                         ->collapsible()
                                         ->collapsed(),
                                     Textarea::make('approver_whatsapp_template')
-                                        ->label(__('form-transfer::app.config.forms.fields.approver_whatsapp_template'))
+                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.approver_whatsapp_template'))
                                         ->rows(6)
-                                        ->helperText(__('form-transfer::app.config.forms.fields.whatsapp_template_helper', [
+                                        ->helperText(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.whatsapp_template_helper', [
                                             'placeholders' => self::formatPlaceholders(TransferApprovalNotificationService::getApproverPlaceholders()),
                                         ]))
                                         ->columnSpanFull(),
@@ -196,23 +196,23 @@ class FormTransferResource extends Resource
                             Section::make('Requester Notifications')
                                 ->schema([
                                     TextInput::make('requester_mail_subject')
-                                        ->label(__('form-transfer::app.config.forms.fields.requester_mail_subject'))
+                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.requester_mail_subject'))
                                         ->maxLength(191)
                                         ->required()
                                         ->default($notificationDefaults['requester_mail_subject'])
                                         ->columnSpanFull(),
                                     Textarea::make('requester_mail_template')
-                                        ->label(__('form-transfer::app.config.forms.fields.requester_mail_template'))
+                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.requester_mail_template'))
                                         ->rows(8)
                                         ->required()
                                         ->default($notificationDefaults['requester_mail_template'])
-                                        ->helperText(__('form-transfer::app.config.forms.fields.template_helper', [
+                                        ->helperText(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.template_helper', [
                                             'placeholders' => self::formatPlaceholders(TransferApprovalNotificationService::getRequesterPlaceholders()),
                                         ]))
                                         ->columnSpanFull(),
                                     Actions::make([
                                         Action::make('copy_default_requester_template')
-                                            ->label(__('form-transfer::app.config.forms.actions.copy_default_template'))
+                                            ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.actions.copy_default_template'))
                                             ->icon('heroicon-o-clipboard-document')
                                             ->color('gray')
                                             ->action(function (Set $set): void {
@@ -221,15 +221,15 @@ class FormTransferResource extends Resource
                                     ])
                                         ->alignment('right')
                                         ->columnSpanFull(),
-                                    Section::make(__('form-transfer::app.config.forms.sections.optional_settings'))
-                                        ->description(__('form-transfer::app.config.forms.fields.optional_settings_hint'))
+                                    Section::make(__('form-transfer::filament/clusters/configurations/resources/form-transfer.sections.optional_settings'))
+                                        ->description(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.optional_settings_hint'))
                                         ->schema([
                                             TextInput::make('requester_mail_greeting')
-                                                ->label(__('form-transfer::app.config.forms.fields.requester_mail_greeting'))
+                                                ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.requester_mail_greeting'))
                                                 ->default($notificationDefaults['requester_mail_greeting'])
                                                 ->maxLength(191),
                                             TextInput::make('requester_mail_action_text')
-                                                ->label(__('form-transfer::app.config.forms.fields.requester_mail_action_text'))
+                                                ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.requester_mail_action_text'))
                                                 ->default($notificationDefaults['requester_mail_action_text'])
                                                 ->maxLength(191),
                                         ])
@@ -272,41 +272,41 @@ class FormTransferResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label(__('form-transfer::app.config.forms.columns.name'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.name'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('code')
-                    ->label(__('form-transfer::app.config.forms.columns.code'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.code'))
                     ->toggleable()
                     ->searchable(),
                 TextColumn::make('uid_prefix')
-                    ->label(__('form-transfer::app.config.forms.columns.uid_prefix'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.uid_prefix'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('uid_sequence')
-                    ->label(__('form-transfer::app.config.forms.columns.uid_sequence'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.uid_sequence'))
                     ->sortable(),
                 IconColumn::make('has_custom_notification_templates')
-                    ->label(__('form-transfer::app.config.forms.columns.custom_notifications'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.custom_notifications'))
                     ->boolean()
                     ->getStateUsing(fn (FormTransfer $record): bool => $record->hasCustomNotificationTemplates())
                     ->tooltip(fn (FormTransfer $record): ?string => $record->hasCustomNotificationTemplates()
-                        ? __('form-transfer::app.config.forms.tooltips.custom_notifications_enabled')
-                        : __('form-transfer::app.config.forms.tooltips.custom_notifications_disabled'))
+                        ? __('form-transfer::filament/clusters/configurations/resources/form-transfer.tooltips.custom_notifications_enabled')
+                        : __('form-transfer::filament/clusters/configurations/resources/form-transfer.tooltips.custom_notifications_disabled'))
                     ->toggleable(),
                 TextColumn::make('updated_at')
-                    ->label(__('form-transfer::app.config.forms.columns.updated_at'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.updated_at'))
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 IconColumn::make('is_active')
                     ->boolean()
-                    ->label(__('form-transfer::app.config.forms.columns.is_active'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.is_active'))
                     ->sortable(),
             ])
             ->filters([
                 TernaryFilter::make('is_active')
-                    ->label(__('form-transfer::app.config.forms.filters.is_active')),
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.filters.is_active')),
                 TrashedFilter::make(),
             ])
             ->recordActions([
@@ -335,21 +335,21 @@ class FormTransferResource extends Resource
                                 ->schema([
                                     Group::make()
                                         ->schema([
-                                            Section::make(__('form-transfer::app.config.forms.sections.basic_information'))
+                                            Section::make(__('form-transfer::filament/clusters/configurations/resources/form-transfer.sections.basic_information'))
                                                 ->schema([
                                                     TextEntry::make('name')
-                                                        ->label(__('form-transfer::app.config.forms.fields.name'))
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.name'))
                                                         ->placeholder('—'),
                                                     TextEntry::make('description')
-                                                        ->label(__('form-transfer::app.config.forms.fields.description'))
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.description'))
                                                         ->placeholder('—')
                                                         ->columnSpanFull()
                                                         ->extraAttributes(['class' => 'whitespace-pre-wrap']),
                                                 ]),
-                                            Section::make(__('form-transfer::app.config.forms.sections.access_control'))
+                                            Section::make(__('form-transfer::filament/clusters/configurations/resources/form-transfer.sections.access_control'))
                                                 ->schema([
                                                     TextEntry::make('allowedUsers.name')
-                                                        ->label(__('form-transfer::app.config.forms.fields.allowed_users'))
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.allowed_users'))
                                                         ->badge()
                                                         ->placeholder('—'),
                                                 ]),
@@ -360,26 +360,26 @@ class FormTransferResource extends Resource
                                             Section::make('Status')
                                                 ->schema([
                                                     TextEntry::make('is_active')
-                                                        ->label(__('form-transfer::app.config.forms.fields.is_active'))
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.is_active'))
                                                         ->badge()
                                                         ->color(fn (string $state): string => $state === '1' ? 'success' : 'danger')
-                                                        ->formatStateUsing(fn (string $state): string => $state === '1' ? __('form-transfer::app.general.yes') : __('form-transfer::app.general.no')),
+                                                        ->formatStateUsing(fn (string $state): string => $state === '1' ? __('form-transfer::filament/resources/transfer-request/general.yes') : __('form-transfer::filament/resources/transfer-request/general.no')),
                                                 ]),
                                             Section::make('Identification')
                                                 ->schema([
                                                     TextEntry::make('code')
-                                                        ->label(__('form-transfer::app.config.forms.fields.code'))
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.code'))
                                                         ->placeholder('—'),
                                                     TextEntry::make('uid_prefix')
-                                                        ->label(__('form-transfer::app.config.forms.fields.uid_prefix'))
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.uid_prefix'))
                                                         ->placeholder('—'),
                                                     TextEntry::make('uid_padding')
-                                                        ->label(__('form-transfer::app.config.forms.fields.uid_padding'))
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.uid_padding'))
                                                         ->placeholder('—'),
                                                     TextEntry::make('uid_sequence')
-                                                        ->label(__('form-transfer::app.config.forms.fields.uid_sequence'))
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.uid_sequence'))
                                                         ->placeholder('—')
-                                                        ->helperText(__('form-transfer::app.config.forms.fields.uid_sequence_helper')),
+                                                        ->helperText(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.uid_sequence_helper')),
                                                 ]),
                                         ])
                                         ->columnSpan(1),
@@ -391,22 +391,22 @@ class FormTransferResource extends Resource
                             Section::make('Approver Notifications')
                                 ->schema([
                                     TextEntry::make('approver_mail_subject')
-                                        ->label(__('form-transfer::app.config.forms.fields.approver_mail_subject'))
+                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.approver_mail_subject'))
                                         ->placeholder('—')
                                         ->columnSpanFull(),
                                     TextEntry::make('approver_mail_template')
-                                        ->label(__('form-transfer::app.config.forms.fields.approver_mail_template'))
+                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.approver_mail_template'))
                                         ->placeholder('—')
                                         ->columnSpanFull()
                                         ->extraAttributes(['class' => 'whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300']),
                                     TextEntry::make('approver_mail_greeting')
-                                        ->label(__('form-transfer::app.config.forms.fields.approver_mail_greeting'))
+                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.approver_mail_greeting'))
                                         ->placeholder('—'),
                                     TextEntry::make('approver_mail_action_text')
-                                        ->label(__('form-transfer::app.config.forms.fields.approver_mail_action_text'))
+                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.approver_mail_action_text'))
                                         ->placeholder('—'),
                                     TextEntry::make('approver_whatsapp_template')
-                                        ->label(__('form-transfer::app.config.forms.fields.approver_whatsapp_template'))
+                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.approver_whatsapp_template'))
                                         ->placeholder('—')
                                         ->extraAttributes(['class' => 'whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300'])
                                         ->columnSpanFull(),
@@ -414,19 +414,19 @@ class FormTransferResource extends Resource
                             Section::make('Requester Notifications')
                                 ->schema([
                                     TextEntry::make('requester_mail_subject')
-                                        ->label(__('form-transfer::app.config.forms.fields.requester_mail_subject'))
+                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.requester_mail_subject'))
                                         ->placeholder('—')
                                         ->columnSpanFull(),
                                     TextEntry::make('requester_mail_template')
-                                        ->label(__('form-transfer::app.config.forms.fields.requester_mail_template'))
+                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.requester_mail_template'))
                                         ->placeholder('—')
                                         ->columnSpanFull()
                                         ->extraAttributes(['class' => 'whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300']),
                                     TextEntry::make('requester_mail_greeting')
-                                        ->label(__('form-transfer::app.config.forms.fields.requester_mail_greeting'))
+                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.requester_mail_greeting'))
                                         ->placeholder('—'),
                                     TextEntry::make('requester_mail_action_text')
-                                        ->label(__('form-transfer::app.config.forms.fields.requester_mail_action_text'))
+                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.requester_mail_action_text'))
                                         ->placeholder('—'),
                                 ]),
                         ]),

@@ -148,7 +148,7 @@ class TransferRequestService
      * Prepare approval steps from workflow.
      *
      * @param  array<int, array{label: ?string, name: ?string, email: ?string, status: ?string, task_id: ?string}>  $currentApprovals
-     * @return array<int, array{label: string, name: ?string, email: ?string, title: ?string, phone: ?string, status: string, comments: ?string, noted_at: ?string, notes: ?string, task_id: string, task_token: string, notified_at: ?string, is_mandatory: bool, has_next: bool, sort_order: int}>
+     * @return array<int, array{label: string, name: ?string, email: ?string, title: ?string, phone: ?string, status: string, comments: ?string, noted_at: ?string, notes: ?string, task_id: string, notified_at: ?string, is_mandatory: bool, has_next: bool, sort_order: int}>
      */
     public function prepareApprovalsFromWorkflow(int $workflowId, array $currentApprovals = []): array
     {

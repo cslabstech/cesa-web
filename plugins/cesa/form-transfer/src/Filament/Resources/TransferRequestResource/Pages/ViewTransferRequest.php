@@ -20,6 +20,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class ViewTransferRequest extends ViewRecord
 {
@@ -32,7 +33,7 @@ class ViewTransferRequest extends ViewRecord
             Actions\RestoreAction::make(),
             Actions\ForceDeleteAction::make(),
             Action::make('download-pdf')
-                ->label('Download PDF')
+                ->label(__('form-transfer::filament/resources/transfer-request/view.transfer_request.actions.download_pdf'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('gray')
                 ->action(function (TransferRequest $record) {
@@ -42,25 +43,28 @@ class ViewTransferRequest extends ViewRecord
                         'record' => $record,
                     ])->setPaper('a4', 'portrait');
 
-                    $fileName = 'pengajuan-transfer-'.($record->uid ?: $record->id).'.pdf';
+                    $fileName = __('form-transfer::filament/resources/transfer-request/view.transfer_request.actions.download_pdf_filename_prefix')
+                        .'-'.($record->uid ?: $record->id).'.pdf';
 
                     return response()->streamDownload(function () use ($pdf): void {
                         echo $pdf->output();
                     }, $fileName);
                 }),
             Action::make('resend-pending-approver')
-                ->label('Kirim ulang ke approver pending')
+                ->label(__('form-transfer::filament/resources/transfer-request/view.transfer_request.actions.resend_pending_approver'))
                 ->icon('heroicon-o-paper-airplane')
                 ->color('primary')
                 ->requiresConfirmation()
-                ->modalHeading('Kirim ulang notifikasi')
-                ->modalDescription('Notifikasi akan dikirim ulang ke approver pending di tahap saat ini.')
-                ->visible(fn (TransferRequest $record): bool => $this->hasPendingApprover($record))
+                ->modalHeading(__('form-transfer::filament/resources/transfer-request/view.transfer_request.actions.resend_notification_heading'))
+                ->modalDescription(__('form-transfer::filament/resources/transfer-request/view.transfer_request.actions.resend_notification_description'))
+                ->visible(fn (TransferRequest $record): bool => $this->hasPendingApprover($record) && Gate::allows('update', $record))
                 ->action(function (TransferRequest $record): void {
+                    Gate::authorize('update', $record);
+
                     if ($record->approval_status !== TransferRequestApprovalStatus::PENDING) {
                         Notification::make()
-                            ->title('Approval sudah selesai')
-                            ->body('Status approval sudah bukan pending.')
+                            ->title(__('form-transfer::filament/resources/transfer-request/view.transfer_request.notifications.approval_completed_title'))
+                            ->body(__('form-transfer::filament/resources/transfer-request/view.transfer_request.notifications.approval_completed_body'))
                             ->warning()
                             ->send();
 
@@ -71,8 +75,8 @@ class ViewTransferRequest extends ViewRecord
 
                     if (! $pending) {
                         Notification::make()
-                            ->title('Tidak ada approver pending')
-                            ->body('Tidak ditemukan approver yang sedang pending.')
+                            ->title(__('form-transfer::filament/resources/transfer-request/view.transfer_request.notifications.no_pending_approver_title'))
+                            ->body(__('form-transfer::filament/resources/transfer-request/view.transfer_request.notifications.no_pending_approver_body'))
                             ->warning()
                             ->send();
 
@@ -81,12 +85,12 @@ class ViewTransferRequest extends ViewRecord
 
                     $approval = $pending['approval'] ?? [];
                     $approverEmail = $approval['email'] ?? null;
-                    $approverName = $approval['name'] ?? 'Approver';
+                    $approverName = $approval['name'] ?? __('form-transfer::filament/resources/transfer-request/view.transfer_request.defaults.approver_name');
 
                     if (! $approverEmail) {
                         Notification::make()
-                            ->title('Email approver kosong')
-                            ->body('Notifikasi tidak dapat dikirim karena email approver belum diisi.')
+                            ->title(__('form-transfer::filament/resources/transfer-request/view.transfer_request.notifications.empty_approver_email_title'))
+                            ->body(__('form-transfer::filament/resources/transfer-request/view.transfer_request.notifications.empty_approver_email_body'))
                             ->warning()
                             ->send();
 
@@ -103,27 +107,29 @@ class ViewTransferRequest extends ViewRecord
                     }
 
                     Notification::make()
-                        ->title('Notifikasi dikirim ulang')
-                        ->body("Dikirim ke {$approverName}.")
+                        ->title(__('form-transfer::filament/resources/transfer-request/view.transfer_request.notifications.notification_resent_title'))
+                        ->body(__('form-transfer::filament/resources/transfer-request/view.transfer_request.notifications.notification_resent_body', [
+                            'approver' => $approverName,
+                        ]))
                         ->success()
                         ->send();
                 }),
             Action::make('realize-transfer')
                 ->label(fn (TransferRequest $record): string => $record->realization_status === TransferRequestRealizationStatus::DONE
-                    ? __('form-transfer::app.actions.edit_realization')
-                    : __('form-transfer::app.actions.realize_transfer'))
+                    ? __('form-transfer::filament/resources/transfer-request/actions.edit_realization')
+                    : __('form-transfer::filament/resources/transfer-request/actions.realize_transfer'))
                 ->icon('heroicon-m-banknotes')
                 ->color('success')
                 ->slideOver()
                 ->modalWidth('md')
-                ->visible(fn (TransferRequest $record): bool => in_array($record->realization_status, [
+                ->visible(fn (TransferRequest $record): bool => Gate::allows('update', $record) && in_array($record->realization_status, [
                     TransferRequestRealizationStatus::PENDING,
                     TransferRequestRealizationStatus::DONE,
                     TransferRequestRealizationStatus::CANCELLED,
                 ], true))
                 ->form([
                     Select::make('realization_status')
-                        ->label(__('form-transfer::app.fields.realization_status'))
+                        ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_status'))
                         ->options([
                             TransferRequestRealizationStatus::DONE->value      => TransferRequestRealizationStatus::DONE->getLabel(),
                             TransferRequestRealizationStatus::CANCELLED->value => TransferRequestRealizationStatus::CANCELLED->getLabel(),
@@ -132,12 +138,12 @@ class ViewTransferRequest extends ViewRecord
                         ->required()
                         ->live(),
                     DatePicker::make('realized_at')
-                        ->label(__('form-transfer::app.fields.realized_at'))
+                        ->label(__('form-transfer::filament/resources/transfer-request/fields.realized_at'))
                         ->native(false)
                         ->required(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::DONE->value)
                         ->visible(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::DONE->value),
                     Textarea::make('realization_notes')
-                        ->label(__('form-transfer::app.fields.realization_notes'))
+                        ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_notes'))
                         ->rows(3)
                         ->required(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::CANCELLED->value),
                     TransferRequestAttachmentField::makeRealizationProof()
@@ -152,6 +158,8 @@ class ViewTransferRequest extends ViewRecord
                     'realization_notes'       => $record->realization_notes,
                 ])
                 ->action(function (TransferRequest $record, array $data): void {
+                    Gate::authorize('update', $record);
+
                     $targetStatus = TransferRequestRealizationStatus::tryFrom((string) ($data['realization_status'] ?? ''));
 
                     if ($targetStatus === TransferRequestRealizationStatus::CANCELLED) {
@@ -181,8 +189,8 @@ class ViewTransferRequest extends ViewRecord
                     $record->save();
                 })
                 ->modalHeading(fn (TransferRequest $record): string => $record->realization_status === TransferRequestRealizationStatus::DONE
-                    ? __('form-transfer::app.actions.edit_realization')
-                    : __('form-transfer::app.actions.realize_transfer')),
+                    ? __('form-transfer::filament/resources/transfer-request/actions.edit_realization')
+                    : __('form-transfer::filament/resources/transfer-request/actions.realize_transfer')),
         ];
     }
 

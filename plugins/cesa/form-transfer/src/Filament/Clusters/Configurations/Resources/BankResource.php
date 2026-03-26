@@ -34,12 +34,12 @@ class BankResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('form-transfer::app.config.banks.navigation.label');
+        return __('form-transfer::filament/clusters/configurations/resources/bank.navigation.label');
     }
 
     public static function getNavigationGroup(): string
     {
-        return __('form-transfer::app.config.banks.navigation.group');
+        return __('form-transfer::filament/clusters/configurations/resources/bank.navigation.group');
     }
 
     public static function form(Schema $schema): Schema
@@ -47,25 +47,25 @@ class BankResource extends Resource
         return $schema
             ->components([
                 TextInput::make('code')
-                    ->label(__('form-transfer::app.config.banks.fields.code'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/bank.fields.code'))
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(10)
-                    ->helperText(__('form-transfer::app.config.banks.fields.code_hint')),
+                    ->helperText(__('form-transfer::filament/clusters/configurations/resources/bank.fields.code_hint')),
                 TextInput::make('name')
-                    ->label(__('form-transfer::app.config.banks.fields.name'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/bank.fields.name'))
                     ->maxLength(191)
                     ->required(),
                 TextInput::make('short_name')
-                    ->label(__('form-transfer::app.config.banks.fields.short_name'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/bank.fields.short_name'))
                     ->maxLength(50)
-                    ->helperText(__('form-transfer::app.config.banks.fields.short_name_hint')),
+                    ->helperText(__('form-transfer::filament/clusters/configurations/resources/bank.fields.short_name_hint')),
                 TextInput::make('sort_order')
-                    ->label(__('form-transfer::app.config.banks.fields.sort_order'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/bank.fields.sort_order'))
                     ->numeric()
                     ->default(0),
                 Toggle::make('is_active')
-                    ->label(__('form-transfer::app.config.banks.fields.is_active'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/bank.fields.is_active'))
                     ->default(true),
             ])
             ->columns(2);
@@ -76,32 +76,32 @@ class BankResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('code')
-                    ->label(__('form-transfer::app.config.banks.columns.code'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/bank.columns.code'))
                     ->searchable()
                     ->sortable()
                     ->copyable(),
                 TextColumn::make('name')
-                    ->label(__('form-transfer::app.config.banks.columns.name'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/bank.columns.name'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('short_name')
-                    ->label(__('form-transfer::app.config.banks.columns.short_name'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/bank.columns.short_name'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('sort_order')
-                    ->label(__('form-transfer::app.config.banks.columns.sort_order'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/bank.columns.sort_order'))
                     ->sortable()
                     ->alignCenter(),
                 IconColumn::make('is_active')
                     ->boolean()
-                    ->label(__('form-transfer::app.config.banks.columns.is_active'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/bank.columns.is_active'))
                     ->sortable()
                     ->alignCenter(),
             ])
             ->defaultSort('sort_order')
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')
-                    ->label(__('form-transfer::app.config.banks.filters.is_active')),
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/bank.filters.is_active')),
                 TrashedFilter::make(),
             ])
             ->recordActions([

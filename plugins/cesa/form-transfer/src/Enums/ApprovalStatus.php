@@ -13,11 +13,11 @@ enum ApprovalStatus: string
     public function getLabel(): string
     {
         return match ($this) {
-            self::PENDING  => __('form-transfer::app.approval_statuses.pending'),
-            self::WAITING  => __('form-transfer::app.approval_statuses.waiting'),
-            self::APPROVED => __('form-transfer::app.approval_statuses.approved'),
-            self::REVISI   => __('form-transfer::app.approval_statuses.revisi'),
-            self::DITOLAK  => __('form-transfer::app.approval_statuses.ditolak'),
+            self::PENDING  => __('form-transfer::enums/approval-status.pending'),
+            self::WAITING  => __('form-transfer::enums/approval-status.waiting'),
+            self::APPROVED => __('form-transfer::enums/approval-status.approved'),
+            self::REVISI   => __('form-transfer::enums/approval-status.revisi'),
+            self::DITOLAK  => __('form-transfer::enums/approval-status.ditolak'),
         };
     }
 

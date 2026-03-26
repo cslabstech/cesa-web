@@ -315,7 +315,7 @@ class TransferApprovalNotificationService
             '*Jumlah Transfer:* Rp '.$summary['transfer_amount'],
             '*Keperluan:* '.$summary['purpose'],
             '*Reffnote:* '.$summary['reference_note'],
-            '*Lampiran Invoice:* '.($summary['invoice'] ?? __('form-transfer::app.notifications.invoice_missing')),
+            '*Lampiran Invoice:* '.($summary['invoice'] ?? __('form-transfer::filament/resources/transfer-request/notifications.invoice_missing')),
             '*Status Transfer:* '.$summary['status'],
             '',
             '*Klik link berikut untuk Approve atau Reject:*',
@@ -563,7 +563,7 @@ class TransferApprovalNotificationService
             return $submissionStatus->getLabel();
         }
 
-        return $submissionStatus?->getLabel() ?? __('form-transfer::app.statuses.unknown');
+        return $submissionStatus?->getLabel() ?? __('form-transfer::enums/status.unknown');
     }
 
     protected function resolveStatusColor(TransferRequest $request): string
@@ -676,8 +676,8 @@ class TransferApprovalNotificationService
             'transfer_amount'    => $summary['transfer_amount'],
             'purpose'            => $summary['purpose'],
             'reference_note'     => $summary['reference_note'],
-            'invoice'            => $summary['invoice'] ?? __('form-transfer::app.notifications.invoice_missing'),
-            'account_attachment' => $summary['account_attachment'] ?? __('form-transfer::app.notifications.account_attachment_missing'),
+            'invoice'            => $summary['invoice'] ?? __('form-transfer::filament/resources/transfer-request/notifications.invoice_missing'),
+            'account_attachment' => $summary['account_attachment'] ?? __('form-transfer::filament/resources/transfer-request/notifications.account_attachment_missing'),
             'status'             => $summary['status'],
             'summary_table'      => $this->buildSummaryTable($summary),
             'action_text'        => '',
@@ -701,19 +701,19 @@ class TransferApprovalNotificationService
     protected function buildSummaryTable(array $summary): string
     {
         $rows = [
-            __('form-transfer::app.fields.uid')                => $summary['uid'] ?? '—',
-            __('form-transfer::app.fields.requester_name')     => $summary['requester_name'] ?? '—',
-            __('form-transfer::app.fields.email')              => $summary['email'] ?? '—',
-            __('form-transfer::app.fields.division')           => $summary['division'] ?? '—',
-            __('form-transfer::app.fields.account_number')     => $summary['account_number'] ?? '—',
-            __('form-transfer::app.fields.account_name')       => $summary['account_name'] ?? '—',
-            __('form-transfer::app.fields.bank_name')          => $summary['bank'] ?? '—',
-            __('form-transfer::app.fields.transfer_amount')    => 'Rp '.$summary['transfer_amount'],
-            __('form-transfer::app.fields.purpose')            => $summary['purpose'] ?? '—',
-            __('form-transfer::app.fields.reference_note')     => $summary['reference_note'] ?? '—',
-            __('form-transfer::app.fields.status')             => $summary['status'] ?? '—',
-            __('form-transfer::app.fields.invoice')            => $summary['invoice_links'] ?? ($summary['invoice'] ?? '—'),
-            __('form-transfer::app.fields.account_attachment') => $summary['account_attachment_links'] ?? ($summary['account_attachment'] ?? '—'),
+            __('form-transfer::filament/resources/transfer-request/fields.uid')                => $summary['uid'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.requester_name')     => $summary['requester_name'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.email')              => $summary['email'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.division')           => $summary['division'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.account_number')     => $summary['account_number'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.account_name')       => $summary['account_name'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.bank_name')          => $summary['bank'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.transfer_amount')    => 'Rp '.$summary['transfer_amount'],
+            __('form-transfer::filament/resources/transfer-request/fields.purpose')            => $summary['purpose'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.reference_note')     => $summary['reference_note'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.status')             => $summary['status'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.invoice')            => $summary['invoice_links'] ?? ($summary['invoice'] ?? '—'),
+            __('form-transfer::filament/resources/transfer-request/fields.account_attachment') => $summary['account_attachment_links'] ?? ($summary['account_attachment'] ?? '—'),
         ];
 
         return $this->buildKeyValueTable($rows);
@@ -726,11 +726,11 @@ class TransferApprovalNotificationService
         }
 
         $headers = [
-            __('form-transfer::app.fields.approver_name'),
-            __('form-transfer::app.fields.approver_title'),
-            __('form-transfer::app.fields.approver_status'),
-            __('form-transfer::app.fields.approver_notes'),
-            __('form-transfer::app.fields.approver_noted_at'),
+            __('form-transfer::filament/resources/transfer-request/fields.approver_name'),
+            __('form-transfer::filament/resources/transfer-request/fields.approver_title'),
+            __('form-transfer::filament/resources/transfer-request/fields.approver_status'),
+            __('form-transfer::filament/resources/transfer-request/fields.approver_notes'),
+            __('form-transfer::filament/resources/transfer-request/fields.approver_noted_at'),
         ];
 
         $rows = collect($approvals)->map(function (array $approval): array {

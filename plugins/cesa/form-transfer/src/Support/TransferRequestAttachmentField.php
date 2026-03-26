@@ -9,7 +9,7 @@ class TransferRequestAttachmentField
     public static function makeInvoice(string $name = 'invoice_path'): FileUpload
     {
         return FileUpload::make($name)
-            ->label(__('form-transfer::app.fields.invoice'))
+            ->label(__('form-transfer::filament/resources/transfer-request/fields.invoice'))
             ->directory('form-transfer/invoices')
             ->visibility('private')
             ->multiple()
@@ -24,13 +24,13 @@ class TransferRequestAttachmentField
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             ])
             ->maxSize(5120)
-            ->helperText(__('form-transfer::app.helpers.invoice_upload'));
+            ->helperText(__('form-transfer::filament/resources/transfer-request/helpers.invoice_upload'));
     }
 
     public static function makeAccountAttachment(string $name = 'account_attachment_path'): FileUpload
     {
         return FileUpload::make($name)
-            ->label(__('form-transfer::app.fields.account_attachment'))
+            ->label(__('form-transfer::filament/resources/transfer-request/fields.account_attachment'))
             ->directory('form-transfer/account-attachments')
             ->visibility('private')
             ->multiple()
@@ -43,13 +43,13 @@ class TransferRequestAttachmentField
                 'image/png',
             ])
             ->maxSize(5120)
-            ->helperText(__('form-transfer::app.helpers.account_attachment_upload'));
+            ->helperText(__('form-transfer::filament/resources/transfer-request/helpers.account_attachment_upload'));
     }
 
     public static function makeRealizationProof(string $name = 'realization_proof_path'): FileUpload
     {
         return FileUpload::make($name)
-            ->label(__('form-transfer::app.fields.realization_proof'))
+            ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_proof'))
             ->directory('form-transfer/realizations')
             ->visibility('private')
             ->downloadable()
@@ -61,6 +61,6 @@ class TransferRequestAttachmentField
                 'image/png',
             ])
             ->maxSize(5120)
-            ->helperText(__('form-transfer::app.helpers.realization_proof_upload'));
+            ->helperText(__('form-transfer::filament/resources/transfer-request/helpers.realization_proof_upload'));
     }
 }

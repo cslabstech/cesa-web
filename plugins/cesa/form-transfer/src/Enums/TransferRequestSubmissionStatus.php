@@ -10,8 +10,8 @@ enum TransferRequestSubmissionStatus: string
     public function getLabel(): string
     {
         return match ($this) {
-            self::BARU   => __('form-transfer::app.submission_statuses.baru'),
-            self::REVISI => __('form-transfer::app.submission_statuses.revisi'),
+            self::BARU   => __('form-transfer::enums/submission-status.baru'),
+            self::REVISI => __('form-transfer::enums/submission-status.revisi'),
         };
     }
 

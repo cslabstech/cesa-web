@@ -19,7 +19,7 @@ class ApprovalWorkflowService
      * Prepare approval steps from workflow template.
      *
      * @param  array<int, array{label: ?string, name: ?string, email: ?string, status: ?string, task_id: ?string}>  $currentApprovals  Existing approvals to preserve
-     * @return array<int, array{label: string, name: ?string, email: ?string, title: ?string, phone: ?string, status: string, comments: ?string, noted_at: ?string, notes: ?string, task_id: string, task_token: string, notified_at: ?string, is_mandatory: bool, has_next: bool, sort_order: int}>
+     * @return array<int, array{label: string, name: ?string, email: ?string, title: ?string, phone: ?string, status: string, comments: ?string, noted_at: ?string, notes: ?string, task_id: string, notified_at: ?string, is_mandatory: bool, has_next: bool, sort_order: int}>
      */
     public function prepareApprovalsFromWorkflow(int $workflowId, array $currentApprovals = []): array
     {
@@ -206,7 +206,7 @@ class ApprovalWorkflowService
      *
      * @param  array<int, array<string, mixed>>  $steps  Normalized workflow steps
      * @param  array<int, array<string, mixed>>  $currentApprovals  Existing approvals
-     * @return array<int, array{label: string, name: ?string, email: ?string, title: ?string, phone: ?string, status: string, comments: ?string, noted_at: ?string, notes: ?string, task_id: string, task_token: string, notified_at: ?string, is_mandatory: bool, has_next: bool, sort_order: int}>
+     * @return array<int, array{label: string, name: ?string, email: ?string, title: ?string, phone: ?string, status: string, comments: ?string, noted_at: ?string, notes: ?string, task_id: string, notified_at: ?string, is_mandatory: bool, has_next: bool, sort_order: int}>
      */
     protected function finalizeApprovals(array $steps, array $currentApprovals = []): array
     {
@@ -237,7 +237,6 @@ class ApprovalWorkflowService
                     'noted_at'     => $existing['noted_at'] ?? null,
                     'notes'        => $existing['notes'] ?? null,
                     'task_id'      => $generatedTaskId,
-                    'task_token'   => $existing['task_token'] ?? base64_encode($generatedTaskId),
                     'notified_at'  => $existing['notified_at'] ?? ($index === 0 ? Carbon::now()->toISOString() : null),
                     'is_mandatory' => $existing['is_mandatory'] ?? ($step['is_mandatory'] ?? true),
                     'has_next'     => $existing['has_next'] ?? ($index < ($count - 1)),

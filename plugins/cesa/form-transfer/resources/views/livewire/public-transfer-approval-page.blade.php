@@ -11,56 +11,56 @@
                 $uid = $summary['uid'] ?? null;
                 $summaryItems = [
                     [
-                        'label' => __('form-transfer::app.fields.uid'),
+                        'label' => __('form-transfer::filament/resources/transfer-request/fields.uid'),
                         'value' => $summary['uid'] ?? '-',
                     ],
                     [
-                        'label' => __('form-transfer::app.fields.email'),
+                        'label' => __('form-transfer::filament/resources/transfer-request/fields.email'),
                         'value' => $summary['email'] ?? '-',
                     ],
                     [
-                        'label' => __('form-transfer::app.fields.requester_name'),
+                        'label' => __('form-transfer::filament/resources/transfer-request/fields.requester_name'),
                         'value' => $summary['requester_name'] ?? '-',
                     ],
                     [
-                        'label' => __('form-transfer::app.fields.division'),
+                        'label' => __('form-transfer::filament/resources/transfer-request/fields.division'),
                         'value' => $summary['division'] ?? '-',
                     ],
                     [
-                        'label' => __('form-transfer::app.fields.account_number'),
+                        'label' => __('form-transfer::filament/resources/transfer-request/fields.account_number'),
                         'value' => $summary['account_number'] ?? '-',
                     ],
                     [
-                        'label' => __('form-transfer::app.fields.account_name'),
+                        'label' => __('form-transfer::filament/resources/transfer-request/fields.account_name'),
                         'value' => $summary['account_name'] ?? '-',
                     ],
                     [
-                        'label' => __('form-transfer::app.fields.bank_name'),
+                        'label' => __('form-transfer::filament/resources/transfer-request/fields.bank_name'),
                         'value' => $summary['bank'] ?? '-',
                     ],
                     [
-                        'label' => __('form-transfer::app.fields.transfer_amount'),
+                        'label' => __('form-transfer::filament/resources/transfer-request/fields.transfer_amount'),
                         'value' => 'Rp '.($summary['transfer_amount'] ?? '0'),
                     ],
                     [
-                        'label' => __('form-transfer::app.fields.purpose'),
+                        'label' => __('form-transfer::filament/resources/transfer-request/fields.purpose'),
                         'value' => $summary['purpose'] ?? '-',
                     ],
                     [
-                        'label' => __('form-transfer::app.fields.reference_note'),
+                        'label' => __('form-transfer::filament/resources/transfer-request/fields.reference_note'),
                         'value' => $summary['reference_note'] ?? '-',
                     ],
                     [
-                        'label' => __('form-transfer::app.fields.invoice'),
+                        'label' => __('form-transfer::filament/resources/transfer-request/fields.invoice'),
                         'value' => $summary['invoice_links'] ?? ($summary['invoice'] ?? null),
                         'type' => 'link',
-                        'link_label' => __('form-transfer::app.notifications.view_attachment'),
+                        'link_label' => __('form-transfer::filament/resources/transfer-request/notifications.view_attachment'),
                     ],
                     [
-                        'label' => __('form-transfer::app.fields.account_attachment'),
+                        'label' => __('form-transfer::filament/resources/transfer-request/fields.account_attachment'),
                         'value' => $summary['account_attachment_links'] ?? ($summary['account_attachment'] ?? null),
                         'type' => 'link',
-                        'link_label' => __('form-transfer::app.notifications.view_attachment'),
+                        'link_label' => __('form-transfer::filament/resources/transfer-request/notifications.view_attachment'),
                     ],
                 ];
             @endphp
@@ -114,14 +114,14 @@
                                                     @foreach ($links as $linkIndex => $link)
                                                         <a class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-500 hover:underline" href="{{ $link }}" target="_blank" rel="noopener">
                                                             <x-filament::icon icon="heroicon-m-paper-clip" class="h-4 w-4" />
-                                                            {{ ($item['link_label'] ?? __('form-transfer::app.notifications.view_attachment')) }} {{ $linkIndex + 1 }}
+                                                            {{ ($item['link_label'] ?? __('form-transfer::filament/resources/transfer-request/notifications.view_attachment')) }} {{ $linkIndex + 1 }}
                                                         </a>
                                                     @endforeach
                                                 </div>
                                             @else
                                                 <a class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-500 hover:underline" href="{{ $item['value'] }}" target="_blank" rel="noopener">
                                                     <x-filament::icon icon="heroicon-m-paper-clip" class="h-4 w-4" />
-                                                    {{ $item['link_label'] ?? __('form-transfer::app.notifications.view_attachment') }}
+                                                    {{ $item['link_label'] ?? __('form-transfer::filament/resources/transfer-request/notifications.view_attachment') }}
                                                 </a>
                                             @endif
                                         @else

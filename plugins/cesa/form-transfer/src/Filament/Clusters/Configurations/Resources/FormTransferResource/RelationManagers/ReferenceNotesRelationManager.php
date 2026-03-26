@@ -29,21 +29,21 @@ class ReferenceNotesRelationManager extends RelationManager
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
-        return __('form-transfer::app.relation_managers.reference_notes');
+        return __('form-transfer::filament/resources/transfer-request/relation-managers.reference_notes');
     }
 
     public function form(Schema $schema): Schema
     {
         return $schema->components([
             TextInput::make('label')
-                ->label(__('form-transfer::app.config.reference_notes.fields.label'))
+                ->label(__('form-transfer::filament/clusters/configurations/resources/reference-note.fields.label'))
                 ->required()
                 ->maxLength(191),
             Toggle::make('is_active')
-                ->label(__('form-transfer::app.config.reference_notes.fields.is_active'))
+                ->label(__('form-transfer::filament/clusters/configurations/resources/reference-note.fields.is_active'))
                 ->default(true),
             Textarea::make('description')
-                ->label(__('form-transfer::app.config.reference_notes.fields.description'))
+                ->label(__('form-transfer::filament/clusters/configurations/resources/reference-note.fields.description'))
                 ->rows(3)
                 ->columnSpanFull(),
         ])->columns(2);
@@ -54,16 +54,16 @@ class ReferenceNotesRelationManager extends RelationManager
         return $table
             ->headerActions([
                 CreateAction::make()->icon('heroicon-o-plus-circle')->slideOver()
-                    ->modalHeading(__('form-transfer::app.config.reference_notes.navigation.label')),
+                    ->modalHeading(__('form-transfer::filament/clusters/configurations/resources/reference-note.navigation.label')),
             ])
             ->columns([
                 TextColumn::make('label')
-                    ->label(__('form-transfer::app.config.reference_notes.columns.label'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/reference-note.columns.label'))
                     ->searchable()
                     ->sortable(),
                 IconColumn::make('is_active')
                     ->boolean()
-                    ->label(__('form-transfer::app.config.reference_notes.columns.is_active'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/reference-note.columns.is_active'))
                     ->sortable(),
             ])
             ->recordActions([

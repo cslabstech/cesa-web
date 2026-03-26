@@ -138,35 +138,35 @@ class PublicTransferRequestForm extends SimplePage
     {
         $fields = [
             TextInput::make('email')
-                ->label(__('form-transfer::app.fields.email'))
+                ->label(__('form-transfer::filament/resources/transfer-request/fields.email'))
                 ->email()
                 ->placeholder(__('form-transfer::public.form.placeholders.email'))
                 ->maxLength(191)
                 ->required(),
             TextInput::make('requester_name')
-                ->label(__('form-transfer::app.fields.requester_name'))
+                ->label(__('form-transfer::filament/resources/transfer-request/fields.requester_name'))
                 ->required()
                 ->placeholder(__('form-transfer::public.form.placeholders.requester_name'))
                 ->maxLength(191),
             Select::make('division_id')
-                ->label(__('form-transfer::app.fields.division'))
+                ->label(__('form-transfer::filament/resources/transfer-request/fields.division'))
                 ->options(fn (Get $get): array => $this->transferRequestService->getDivisionOptions(
                     (int) ($get('form_transfer_id') ?? 0)
                 ))
                 ->searchable()
                 ->disabled(fn (Get $get): bool => ! $get('form_transfer_id'))
                 ->required()
-                ->placeholder(__('form-transfer::app.placeholders.division')),
+                ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.division')),
             Select::make('bank_id')
-                ->label(__('form-transfer::app.fields.bank_name'))
+                ->label(__('form-transfer::filament/resources/transfer-request/fields.bank_name'))
                 ->options(fn (): array => $this->transferRequestService->getBankOptions())
                 ->required()
                 ->searchable()
-                ->placeholder(__('form-transfer::app.placeholders.bank'))
+                ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.bank'))
                 ->live()
                 ->afterStateUpdated(fn (): mixed => $this->resetAccountValidationFeedback()),
             TextInput::make('account_number')
-                ->label(__('form-transfer::app.fields.account_number'))
+                ->label(__('form-transfer::filament/resources/transfer-request/fields.account_number'))
                 ->required()
                 ->placeholder(__('form-transfer::public.form.placeholders.account_number'))
                 ->maxLength(191)
@@ -182,12 +182,12 @@ class PublicTransferRequestForm extends SimplePage
                 )
                 ->afterStateUpdated(fn (): mixed => $this->resetAccountValidationFeedback()),
             TextInput::make('account_name')
-                ->label(__('form-transfer::app.fields.account_name'))
+                ->label(__('form-transfer::filament/resources/transfer-request/fields.account_name'))
                 ->required()
                 ->placeholder(__('form-transfer::public.form.placeholders.account_name'))
                 ->maxLength(191),
             TextInput::make('transfer_amount')
-                ->label(__('form-transfer::app.fields.transfer_amount'))
+                ->label(__('form-transfer::filament/resources/transfer-request/fields.transfer_amount'))
                 ->inputMode('numeric')
                 ->placeholder(__('form-transfer::public.form.placeholders.transfer_amount'))
                 ->extraAlpineAttributes([
@@ -201,18 +201,18 @@ class PublicTransferRequestForm extends SimplePage
                 ->rule('numeric')
                 ->rule('min:0'),
             Textarea::make('purpose')
-                ->label(__('form-transfer::app.fields.purpose'))
+                ->label(__('form-transfer::filament/resources/transfer-request/fields.purpose'))
                 ->rows(3)
                 ->placeholder(__('form-transfer::public.form.placeholders.purpose'))
                 ->required(),
             Select::make('submission_status')
-                ->label(__('form-transfer::app.fields.submission_status'))
+                ->label(__('form-transfer::filament/resources/transfer-request/fields.submission_status'))
                 ->options(TransferRequestSubmissionStatus::getOptions())
                 ->required()
                 ->default(TransferRequestSubmissionStatus::BARU->value)
-                ->placeholder(__('form-transfer::app.placeholders.submission_status')),
+                ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.submission_status')),
             Select::make('reference_note')
-                ->label(__('form-transfer::app.fields.reference_note'))
+                ->label(__('form-transfer::filament/resources/transfer-request/fields.reference_note'))
                 ->options(fn (Get $get): array => $this->transferRequestService->getReferenceNoteOptions(
                     (int) ($get('form_transfer_id') ?? 0)
                 ))
@@ -222,9 +222,9 @@ class PublicTransferRequestForm extends SimplePage
                     (int) ($get('form_transfer_id') ?? 0)
                 )))
                 ->required()
-                ->placeholder(__('form-transfer::app.placeholders.reference_note')),
+                ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.reference_note')),
             Textarea::make('reference_note')
-                ->label(__('form-transfer::app.fields.reference_note'))
+                ->label(__('form-transfer::filament/resources/transfer-request/fields.reference_note'))
                 ->rows(3)
                 ->placeholder(__('form-transfer::public.form.placeholders.reference_note'))
                 ->visible(fn (Get $get): bool => empty($this->transferRequestService->getReferenceNoteOptions(
@@ -270,8 +270,8 @@ class PublicTransferRequestForm extends SimplePage
                 'error' => $exception->getMessage(),
             ]);
 
-            $this->addError('data.invoice_path', __('form-transfer::app.validation.upload_temporary_invalid'));
-            $this->addError('data.account_attachment_path', __('form-transfer::app.validation.upload_temporary_invalid'));
+            $this->addError('data.invoice_path', __('form-transfer::filament/resources/transfer-request/validation.upload_temporary_invalid'));
+            $this->addError('data.account_attachment_path', __('form-transfer::filament/resources/transfer-request/validation.upload_temporary_invalid'));
             $this->handleValidationError();
             $this->dispatch('form-processing-finished');
 
@@ -289,7 +289,7 @@ class PublicTransferRequestForm extends SimplePage
             $formTransfer = $this->formTransferModel;
 
             if (! $formTransfer) {
-                $this->addError('data.form_transfer_id', __('form-transfer::app.validation.form_transfer_invalid'));
+                $this->addError('data.form_transfer_id', __('form-transfer::filament/resources/transfer-request/validation.form_transfer_invalid'));
                 $this->handleValidationError();
                 $this->dispatch('form-processing-finished');
 
@@ -300,7 +300,7 @@ class PublicTransferRequestForm extends SimplePage
             $submittedFormTransferId = Arr::get($state, 'form_transfer_id');
 
             if ($submittedFormTransferId !== null && (int) $submittedFormTransferId !== $formTransferId) {
-                $this->addError('data.form_transfer_id', __('form-transfer::app.validation.form_transfer_invalid'));
+                $this->addError('data.form_transfer_id', __('form-transfer::filament/resources/transfer-request/validation.form_transfer_invalid'));
                 $this->handleValidationError();
                 $this->dispatch('form-processing-finished');
 
@@ -309,7 +309,7 @@ class PublicTransferRequestForm extends SimplePage
 
             $division = $this->resolveDivision($formTransferId, Arr::get($state, 'division_id'));
             if ($division === false) {
-                $this->addError('data.division_id', __('form-transfer::app.validation.division_invalid'));
+                $this->addError('data.division_id', __('form-transfer::filament/resources/transfer-request/validation.division_invalid'));
                 $this->handleValidationError();
                 $this->dispatch('form-processing-finished');
 
@@ -318,7 +318,7 @@ class PublicTransferRequestForm extends SimplePage
 
             $bank = $this->resolveBank(Arr::get($state, 'bank_id'));
             if (! $bank) {
-                $this->addError('data.bank_id', __('form-transfer::app.validation.bank_invalid'));
+                $this->addError('data.bank_id', __('form-transfer::filament/resources/transfer-request/validation.bank_invalid'));
                 $this->handleValidationError();
                 $this->dispatch('form-processing-finished');
 
@@ -538,27 +538,27 @@ class PublicTransferRequestForm extends SimplePage
         $accountNumber = data_get($this->data, 'account_number');
 
         if (! $bankId) {
-            $this->addError('data.bank_id', __('form-transfer::app.validation.bank_invalid'));
+            $this->addError('data.bank_id', __('form-transfer::filament/resources/transfer-request/validation.bank_invalid'));
 
             return;
         }
 
         if (blank($accountNumber)) {
-            $this->addError('data.account_number', __('form-transfer::app.validation.account_number_required'));
+            $this->addError('data.account_number', __('form-transfer::filament/resources/transfer-request/validation.account_number_required'));
 
             return;
         }
 
         $bank = $this->resolveBank($bankId);
         if (! $bank || blank($bank->code)) {
-            $this->addError('data.bank_id', __('form-transfer::app.validation.bank_invalid'));
+            $this->addError('data.bank_id', __('form-transfer::filament/resources/transfer-request/validation.bank_invalid'));
 
             return;
         }
 
         $normalizedAccountNumber = $this->normalizeAccountNumber($accountNumber);
         if ($normalizedAccountNumber === '') {
-            $this->addError('data.account_number', __('form-transfer::app.validation.account_number_required'));
+            $this->addError('data.account_number', __('form-transfer::filament/resources/transfer-request/validation.account_number_required'));
 
             return;
         }
@@ -703,14 +703,14 @@ class PublicTransferRequestForm extends SimplePage
     protected function getAccountValidationErrorMessage(string $status): string
     {
         if ($status === AccountValidationStatus::NOT_FOUND->value) {
-            return __('form-transfer::app.validation.account_validation_not_found');
+            return __('form-transfer::filament/resources/transfer-request/validation.account_validation_not_found');
         }
 
         if ($status === AccountValidationStatus::RATE_LIMITED->value) {
-            return __('form-transfer::app.validation.account_validation_rate_limited');
+            return __('form-transfer::filament/resources/transfer-request/validation.account_validation_rate_limited');
         }
 
-        return __('form-transfer::app.validation.account_validation_failed');
+        return __('form-transfer::filament/resources/transfer-request/validation.account_validation_failed');
     }
 
     protected function resetFormAfterSubmission(FormTransfer $formTransfer): void
@@ -771,7 +771,7 @@ class PublicTransferRequestForm extends SimplePage
         $token = Arr::get($state, 'recaptcha_token');
 
         if (! $token) {
-            $this->addError('data.recaptcha_token', __('form-transfer::app.validation.recaptcha_required'));
+            $this->addError('data.recaptcha_token', __('form-transfer::filament/resources/transfer-request/validation.recaptcha_required'));
 
             return false;
         }
@@ -791,7 +791,7 @@ class PublicTransferRequestForm extends SimplePage
                     'body'   => $response->body(),
                 ]);
 
-                $this->addError('data.recaptcha_token', __('form-transfer::app.validation.recaptcha_failed'));
+                $this->addError('data.recaptcha_token', __('form-transfer::filament/resources/transfer-request/validation.recaptcha_failed'));
 
                 return false;
             }
@@ -803,7 +803,7 @@ class PublicTransferRequestForm extends SimplePage
                     'errors' => Arr::get($payload, 'error-codes'),
                 ]);
 
-                $this->addError('data.recaptcha_token', __('form-transfer::app.validation.recaptcha_failed'));
+                $this->addError('data.recaptcha_token', __('form-transfer::filament/resources/transfer-request/validation.recaptcha_failed'));
 
                 return false;
             }
@@ -820,7 +820,7 @@ class PublicTransferRequestForm extends SimplePage
                     'threshold' => $this->recaptchaScoreThreshold,
                 ]);
 
-                $this->addError('data.recaptcha_token', __('form-transfer::app.validation.recaptcha_failed'));
+                $this->addError('data.recaptcha_token', __('form-transfer::filament/resources/transfer-request/validation.recaptcha_failed'));
 
                 return false;
             }
@@ -833,7 +833,7 @@ class PublicTransferRequestForm extends SimplePage
                     'received' => $action,
                 ]);
 
-                $this->addError('data.recaptcha_token', __('form-transfer::app.validation.recaptcha_failed'));
+                $this->addError('data.recaptcha_token', __('form-transfer::filament/resources/transfer-request/validation.recaptcha_failed'));
 
                 return false;
             }
@@ -842,7 +842,7 @@ class PublicTransferRequestForm extends SimplePage
                 'error' => $exception->getMessage(),
             ]);
 
-            $this->addError('data.recaptcha_token', __('form-transfer::app.validation.recaptcha_failed'));
+            $this->addError('data.recaptcha_token', __('form-transfer::filament/resources/transfer-request/validation.recaptcha_failed'));
 
             return false;
         }
@@ -870,7 +870,7 @@ class PublicTransferRequestForm extends SimplePage
             ->warning()
             ->send();
 
-        $this->addError('rate_limit', __('form-transfer::app.validation.rate_limited', [
+        $this->addError('rate_limit', __('form-transfer::filament/resources/transfer-request/validation.rate_limited', [
             'seconds' => $secondsRemaining,
         ]));
 

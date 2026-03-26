@@ -10,6 +10,7 @@ use Cesa\FormTransfer\Filament\Resources\TransferRequestResource\Pages\CreateTra
 use Cesa\FormTransfer\Filament\Resources\TransferRequestResource\Pages\EditTransferRequest;
 use Cesa\FormTransfer\Filament\Resources\TransferRequestResource\Pages\ListTransferRequests;
 use Cesa\FormTransfer\Filament\Resources\TransferRequestResource\Pages\ViewTransferRequest;
+use Cesa\FormTransfer\Models\FormTransfer;
 use Cesa\FormTransfer\Models\TransferApprovalWorkflow;
 use Cesa\FormTransfer\Models\TransferRequest;
 use Cesa\FormTransfer\Services\TransferApprovalNotificationService;
@@ -50,6 +51,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema as SchemaFacade;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
@@ -64,7 +66,7 @@ class TransferRequestResource extends FormTransferResource
 
     public static function getNavigationLabel(): string
     {
-        return __('form-transfer::app.navigation.label');
+        return __('form-transfer::filament/resources/transfer-request/navigation.label');
     }
 
     public static function getNavigationBadge(): ?string
@@ -92,12 +94,12 @@ class TransferRequestResource extends FormTransferResource
 
     public static function getPluralModelLabel(): string
     {
-        return __('form-transfer::app.navigation.plural');
+        return __('form-transfer::filament/resources/transfer-request/navigation.plural');
     }
 
     public static function getModelLabel(): string
     {
-        return __('form-transfer::app.navigation.singular');
+        return __('form-transfer::filament/resources/transfer-request/navigation.singular');
     }
 
     public static function getNavigationGroup(): ?string
@@ -112,40 +114,28 @@ class TransferRequestResource extends FormTransferResource
                 SoftDeletingScope::class,
             ]);
 
-        // Apply form transfer access control
-        $user = Auth::user();
+        $accessibleIds = static::getAccessibleFormTransferIds();
 
-        if ($user && method_exists($user, 'hasRole') && $user->hasRole('super_admin')) {
+        if ($accessibleIds === null) {
             return $query;
         }
 
-        if ($user && method_exists($user, 'hasAllFormTransferAccess') && $user->hasAllFormTransferAccess()) {
-            return $query;
+        if ($accessibleIds === []) {
+            return $query->whereRaw('1 = 0');
         }
 
-        if ($user && method_exists($user, 'getAccessibleFormTransferIds')) {
-            $accessibleIds = $user->getAccessibleFormTransferIds();
-
-            if (empty($accessibleIds)) {
-                // User has no access to any form transfers
-                return $query->whereRaw('1 = 0');
-            }
-
-            return $query->whereIn('form_transfer_id', $accessibleIds);
-        }
-
-        return $query;
+        return $query->whereIn('form_transfer_id', $accessibleIds);
     }
 
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
             Wizard::make([
-                Step::make(__('form-transfer::app.fields.form_transfer'))
+                Step::make(__('form-transfer::filament/resources/transfer-request/fields.form_transfer'))
                     ->icon('heroicon-o-document-text')
                     ->schema([
                         Select::make('form_transfer_id')
-                            ->label(__('form-transfer::app.fields.form_transfer'))
+                            ->label(__('form-transfer::filament/resources/transfer-request/fields.form_transfer'))
                             ->relationship(
                                 'formTransfer',
                                 'name',
@@ -183,22 +173,22 @@ class TransferRequestResource extends FormTransferResource
                             ->columnSpanFull(),
                     ])
                     ->columns(1),
-                Step::make(__('form-transfer::app.forms.request'))
+                Step::make(__('form-transfer::filament/resources/transfer-request/forms.request'))
                     ->icon('heroicon-o-clipboard-document')
                     ->schema([
-                        Section::make(__('form-transfer::app.forms.requester'))
+                        Section::make(__('form-transfer::filament/resources/transfer-request/forms.requester'))
                             ->schema([
                                 TextInput::make('email')
-                                    ->label(__('form-transfer::app.fields.email'))
+                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.email'))
                                     ->email()
                                     ->maxLength(191)
                                     ->required(),
                                 TextInput::make('requester_name')
-                                    ->label(__('form-transfer::app.fields.requester_name'))
+                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.requester_name'))
                                     ->required()
                                     ->maxLength(191),
                                 Select::make('division_id')
-                                    ->label(__('form-transfer::app.fields.division'))
+                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.division'))
                                     ->options(fn (Get $get): array => static::getDivisionOptions($get('form_transfer_id')))
                                     ->searchable()
                                     ->required(fn (Get $get): bool => ! empty(static::getDivisionOptions($get('form_transfer_id'))))
@@ -214,58 +204,58 @@ class TransferRequestResource extends FormTransferResource
                                             return;
                                         }
                                     })
-                                    ->placeholder(__('form-transfer::app.placeholders.division')),
+                                    ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.division')),
                                 Hidden::make('division_name')
                                     ->dehydrated(),
                             ])
                             ->columns(2),
-                        Section::make(__('form-transfer::app.forms.bank'))
+                        Section::make(__('form-transfer::filament/resources/transfer-request/forms.bank'))
                             ->schema([
                                 TextInput::make('account_number')
-                                    ->label(__('form-transfer::app.fields.account_number'))
+                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.account_number'))
                                     ->required()
                                     ->maxLength(191),
                                 TextInput::make('account_name')
-                                    ->label(__('form-transfer::app.fields.account_name'))
+                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.account_name'))
                                     ->required()
                                     ->maxLength(191),
                                 Select::make('bank_id')
-                                    ->label(__('form-transfer::app.fields.bank_name'))
+                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.bank_name'))
                                     ->options(fn (): array => static::getBankOptions())
                                     ->required()
                                     ->searchable()
-                                    ->placeholder(__('form-transfer::app.placeholders.bank')),
+                                    ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.bank')),
                             ])
                             ->columns(3),
-                        Section::make(__('form-transfer::app.forms.transfer'))
+                        Section::make(__('form-transfer::filament/resources/transfer-request/forms.transfer'))
                             ->schema([
                                 TextInput::make('transfer_amount')
-                                    ->label(__('form-transfer::app.fields.transfer_amount'))
+                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.transfer_amount'))
                                     ->numeric()
                                     ->prefix('Rp')
                                     ->required()
                                     ->rule('min:0'),
                                 Textarea::make('purpose')
-                                    ->label(__('form-transfer::app.fields.purpose'))
+                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.purpose'))
                                     ->rows(3)
                                     ->required(),
                                 Select::make('submission_status')
-                                    ->label(__('form-transfer::app.fields.submission_status'))
+                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.submission_status'))
                                     ->options(static::getSubmissionStatusOptions())
                                     ->default(TransferRequestSubmissionStatus::BARU->value)
                                     ->formatStateUsing(fn ($state) => $state instanceof TransferRequestSubmissionStatus ? $state->value : $state)
                                     ->required()
-                                    ->placeholder(__('form-transfer::app.placeholders.submission_status')),
+                                    ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.submission_status')),
                                 Select::make('reference_note')
-                                    ->label(__('form-transfer::app.fields.reference_note'))
+                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.reference_note'))
                                     ->options(fn (Get $get): array => static::getReferenceNoteOptions($get('form_transfer_id')))
                                     ->searchable()
                                     ->disabled(fn (Get $get): bool => ! $get('form_transfer_id'))
                                     ->required(fn (Get $get): bool => ! empty(static::getReferenceNoteOptions($get('form_transfer_id'))))
                                     ->visible(fn (Get $get): bool => ! empty(static::getReferenceNoteOptions($get('form_transfer_id'))))
-                                    ->placeholder(__('form-transfer::app.placeholders.reference_note')),
+                                    ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.reference_note')),
                                 Textarea::make('reference_note')
-                                    ->label(__('form-transfer::app.fields.reference_note'))
+                                    ->label(__('form-transfer::filament/resources/transfer-request/fields.reference_note'))
                                     ->rows(3)
                                     ->visible(fn (Get $get): bool => empty(static::getReferenceNoteOptions($get('form_transfer_id'))))
                                     ->required(fn (Get $get): bool => empty(static::getReferenceNoteOptions($get('form_transfer_id')))),
@@ -301,42 +291,42 @@ class TransferRequestResource extends FormTransferResource
                     Group::make()
                         ->columnSpan(2)
                         ->schema([
-                            Section::make(__('form-transfer::app.forms.request'))
+                            Section::make(__('form-transfer::filament/resources/transfer-request/forms.request'))
                                 ->schema([
                                     Grid::make(3)
                                         ->schema([
                                             TextEntry::make('uid')
-                                                ->label(__('form-transfer::app.fields.uid'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.uid'))
                                                 ->icon('heroicon-o-hashtag')
                                                 ->copyable()
                                                 ->placeholder('—'),
                                             TextEntry::make('formTransfer.name')
-                                                ->label(__('form-transfer::app.fields.form_transfer'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.form_transfer'))
                                                 ->icon('heroicon-o-document-text')
                                                 ->placeholder('—'),
                                             TextEntry::make('submission_status')
-                                                ->label(__('form-transfer::app.fields.submission_status'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.submission_status'))
                                                 ->icon('heroicon-o-document-check')
                                                 ->placeholder('—')
                                                 ->formatStateUsing(fn ($state) => static::formatSubmissionStatusLabel($state))
                                                 ->badge()
                                                 ->color(fn ($state) => static::resolveSubmissionStatusColor($state)),
                                             TextEntry::make('approval_status')
-                                                ->label(__('form-transfer::app.fields.approval_status'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.approval_status'))
                                                 ->icon('heroicon-o-shield-check')
                                                 ->placeholder('—')
                                                 ->formatStateUsing(fn ($state) => static::formatApprovalStatusLabel($state))
                                                 ->badge()
                                                 ->color(fn ($state) => static::resolveApprovalStatusColor($state)),
                                             TextEntry::make('realization_status')
-                                                ->label(__('form-transfer::app.fields.realization_status'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_status'))
                                                 ->icon('heroicon-o-banknotes')
                                                 ->placeholder('—')
                                                 ->formatStateUsing(fn ($state) => static::formatRealizationStatusLabel($state))
                                                 ->badge()
                                                 ->color(fn ($state) => static::resolveRealizationStatusColor($state)),
                                             TextEntry::make('created_at')
-                                                ->label(__('form-transfer::app.table.requested_at'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/table.requested_at'))
                                                 ->icon('heroicon-o-calendar')
                                                 ->dateTime('d M Y H:i')
                                                 ->placeholder('—'),
@@ -344,7 +334,7 @@ class TransferRequestResource extends FormTransferResource
                                 ])
                                 ->columns(1)
                                 ->collapsible(),
-                            Section::make(__('form-transfer::app.forms.requester'))
+                            Section::make(__('form-transfer::filament/resources/transfer-request/forms.requester'))
                                 ->headerActions([
                                     Action::make('resend-requester-email')
                                         ->label('Kirim ulang email pengaju')
@@ -390,72 +380,72 @@ class TransferRequestResource extends FormTransferResource
                                     Grid::make(3)
                                         ->schema([
                                             TextEntry::make('requester_name')
-                                                ->label(__('form-transfer::app.fields.requester_name'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.requester_name'))
                                                 ->icon('heroicon-o-user')
                                                 ->placeholder('—'),
                                             TextEntry::make('email')
-                                                ->label(__('form-transfer::app.fields.email'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.email'))
                                                 ->icon('heroicon-o-envelope')
                                                 ->placeholder('—'),
                                             TextEntry::make('division_name')
-                                                ->label(__('form-transfer::app.fields.division'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.division'))
                                                 ->icon('heroicon-o-building-office-2')
                                                 ->placeholder('—'),
                                         ]),
                                 ])
                                 ->collapsible(),
-                            Section::make(__('form-transfer::app.forms.bank'))
+                            Section::make(__('form-transfer::filament/resources/transfer-request/forms.bank'))
                                 ->schema([
                                     Grid::make(3)
                                         ->schema([
                                             TextEntry::make('bank_display_name')
-                                                ->label(__('form-transfer::app.table.bank_name'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/table.bank_name'))
                                                 ->icon('heroicon-o-building-library')
                                                 ->placeholder('—'),
                                             TextEntry::make('account_number')
-                                                ->label(__('form-transfer::app.fields.account_number'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.account_number'))
                                                 ->icon('heroicon-o-credit-card')
                                                 ->placeholder('—'),
                                             TextEntry::make('account_name')
-                                                ->label(__('form-transfer::app.fields.account_name'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.account_name'))
                                                 ->icon('heroicon-o-user')
                                                 ->placeholder('—'),
                                         ]),
                                 ])
                                 ->collapsible(),
-                            Section::make(__('form-transfer::app.forms.transfer'))
+                            Section::make(__('form-transfer::filament/resources/transfer-request/forms.transfer'))
                                 ->schema([
                                     Grid::make(3)
                                         ->schema([
                                             TextEntry::make('transfer_amount')
-                                                ->label(__('form-transfer::app.fields.transfer_amount'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.transfer_amount'))
                                                 ->icon('heroicon-o-banknotes')
                                                 ->placeholder('—')
                                                 ->formatStateUsing(fn ($state) => static::formatCurrency($state)),
                                             TextEntry::make('reference_note')
-                                                ->label(__('form-transfer::app.fields.reference_note'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.reference_note'))
                                                 ->icon('heroicon-o-clipboard-document')
                                                 ->placeholder('—')
                                                 ->wrap(),
                                             TextEntry::make('purpose')
-                                                ->label(__('form-transfer::app.fields.purpose'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.purpose'))
                                                 ->icon('heroicon-o-document-text')
                                                 ->placeholder('—')
                                                 ->wrap(),
                                             TextEntry::make('invoice_path')
-                                                ->label(__('form-transfer::app.fields.invoice'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.invoice'))
                                                 ->icon(fn (TextEntry $entry) => $entry->getRecord()?->invoice_path ? 'heroicon-o-paper-clip' : 'heroicon-o-no-symbol')
                                                 ->color(fn (TextEntry $entry) => $entry->getRecord()?->invoice_path ? 'primary' : 'gray')
                                                 ->listWithLineBreaks()
-                                                ->placeholder(__('form-transfer::app.notifications.invoice_missing'))
+                                                ->placeholder(__('form-transfer::filament/resources/transfer-request/notifications.invoice_missing'))
                                                 ->formatStateUsing(fn (?string $state, TransferRequest $record): string => static::formatAttachmentLabel($record, 'invoice_path', $state))
                                                 ->url(fn (?string $state, TransferRequest $record): ?string => static::getAttachmentUrlFor($record, 'invoice_path', $state), true),
                                             TextEntry::make('account_attachment_path')
-                                                ->label(__('form-transfer::app.fields.account_attachment'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.account_attachment'))
                                                 ->icon(fn (TextEntry $entry) => $entry->getRecord()?->account_attachment_path ? 'heroicon-o-paper-clip' : 'heroicon-o-no-symbol')
                                                 ->color(fn (TextEntry $entry) => $entry->getRecord()?->account_attachment_path ? 'primary' : 'gray')
                                                 ->listWithLineBreaks()
-                                                ->placeholder(__('form-transfer::app.notifications.account_attachment_missing'))
+                                                ->placeholder(__('form-transfer::filament/resources/transfer-request/notifications.account_attachment_missing'))
                                                 ->formatStateUsing(fn (?string $state, TransferRequest $record): string => static::formatAttachmentLabel($record, 'account_attachment_path', $state))
                                                 ->url(fn (?string $state, TransferRequest $record): ?string => static::getAttachmentUrlFor($record, 'account_attachment_path', $state), true),
                                         ]),
@@ -465,20 +455,20 @@ class TransferRequestResource extends FormTransferResource
                     Group::make()
                         ->columnSpan(1)
                         ->schema([
-                            Section::make(__('form-transfer::app.forms.approvals'))
+                            Section::make(__('form-transfer::filament/resources/transfer-request/forms.approvals'))
                                 ->schema([
                                     RepeatableEntry::make('approvals')
-                                        ->label(__('form-transfer::app.fields.approvals'))
+                                        ->label(__('form-transfer::filament/resources/transfer-request/fields.approvals'))
                                         ->visible(fn (TransferRequest $record): bool => filled($record->approvals))
                                         ->schema([
                                             Grid::make(2)
                                                 ->schema([
                                                     TextEntry::make('name')
-                                                        ->label(__('form-transfer::app.fields.approver_name'))
+                                                        ->label(__('form-transfer::filament/resources/transfer-request/fields.approver_name'))
                                                         ->icon('heroicon-o-user')
                                                         ->placeholder('—'),
                                                     TextEntry::make('status')
-                                                        ->label(__('form-transfer::app.fields.approver_status'))
+                                                        ->label(__('form-transfer::filament/resources/transfer-request/fields.approver_status'))
                                                         ->icon('heroicon-o-check-circle')
                                                         ->placeholder('—')
                                                         ->formatStateUsing(fn ($state) => static::formatApproverStatusLabel($state))
@@ -489,51 +479,51 @@ class TransferRequestResource extends FormTransferResource
                                         ->columns(1),
                                 ])
                                 ->collapsible(),
-                            Section::make(__('form-transfer::app.forms.realisasi'))
+                            Section::make(__('form-transfer::filament/resources/transfer-request/forms.realisasi'))
                                 ->schema([
                                     Grid::make(2)
                                         ->schema([
                                             TextEntry::make('realization_status')
-                                                ->label(__('form-transfer::app.fields.realization_status'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_status'))
                                                 ->icon('heroicon-o-adjustments-vertical')
                                                 ->placeholder('—')
                                                 ->formatStateUsing(fn ($state) => static::formatRealizationStatusLabel($state))
                                                 ->badge()
                                                 ->color(fn ($state) => static::resolveRealizationStatusColor($state)),
                                             TextEntry::make('realized_at')
-                                                ->label(__('form-transfer::app.fields.realized_at'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.realized_at'))
                                                 ->icon('heroicon-o-check-circle')
                                                 ->dateTime('d M Y H:i')
                                                 ->placeholder('—'),
                                             TextEntry::make('realization_notes')
-                                                ->label(__('form-transfer::app.fields.realization_notes'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_notes'))
                                                 ->icon('heroicon-o-document-text')
                                                 ->placeholder('—')
                                                 ->columnSpan(2)
                                                 ->wrap(),
                                             TextEntry::make('realization_proof_path')
-                                                ->label(__('form-transfer::app.fields.realization_proof'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_proof'))
                                                 ->badge()
                                                 ->icon(fn (TextEntry $entry) => $entry->getRecord()?->realization_proof_path ? 'heroicon-o-paper-clip' : 'heroicon-o-no-symbol')
                                                 ->color(fn (TextEntry $entry) => $entry->getRecord()?->realization_proof_path ? 'primary' : 'gray')
                                                 ->formatStateUsing(fn ($state) => $state
-                                                    ? __('form-transfer::app.notifications.view_attachment')
-                                                    : __('form-transfer::app.notifications.realization_proof_missing'))
+                                                    ? __('form-transfer::filament/resources/transfer-request/notifications.view_attachment')
+                                                    : __('form-transfer::filament/resources/transfer-request/notifications.realization_proof_missing'))
                                                 ->url(fn (TextEntry $entry) => static::getAttachmentUrlFor($entry->getRecord(), 'realization_proof_path'), true),
                                         ]),
                                 ])
                                 ->collapsible(),
-                            Section::make(__('form-transfer::app.forms.system_meta'))
+                            Section::make(__('form-transfer::filament/resources/transfer-request/forms.system_meta'))
                                 ->schema([
                                     Grid::make(2)
                                         ->schema([
                                             TextEntry::make('status_response_id')
-                                                ->label(__('form-transfer::app.fields.status_response_id'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.status_response_id'))
                                                 ->icon('heroicon-o-identification')
                                                 ->copyable()
                                                 ->placeholder('—'),
                                             TextEntry::make('created_at')
-                                                ->label(__('form-transfer::app.table.requested_at'))
+                                                ->label(__('form-transfer::filament/resources/transfer-request/table.requested_at'))
                                                 ->icon('heroicon-o-calendar')
                                                 ->dateTime('d M Y H:i')
                                                 ->placeholder('—'),
@@ -552,8 +542,8 @@ class TransferRequestResource extends FormTransferResource
         return $table
             ->columns([
                 TextColumn::make('finance_followup_copy')
-                    ->label(__('form-transfer::app.table.copy_followup'))
-                    ->state(fn (): string => __('form-transfer::app.table.copy_followup'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/table.copy_followup'))
+                    ->state(fn (): string => __('form-transfer::filament/resources/transfer-request/table.copy_followup'))
                     ->badge()
                     ->color('gray')
                     ->icon('heroicon-o-clipboard-document')
@@ -561,41 +551,41 @@ class TransferRequestResource extends FormTransferResource
                     ->copyableState(fn (TransferRequest $record): string => static::buildFinanceFollowupTemplate($record))
                     ->alignCenter(),
                 TextColumn::make('uid')
-                    ->label(__('form-transfer::app.table.uid'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/table.uid'))
                     ->copyable()
                     ->icon('heroicon-o-clipboard-document')
                     ->iconPosition('after')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('requester_name')
-                    ->label(__('form-transfer::app.table.requester_name'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/table.requester_name'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('formTransfer.name')
-                    ->label(__('form-transfer::app.table.form_transfer'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/table.form_transfer'))
                     ->searchable()
                     ->sortable()
                     ->toggleable(),
                 TextColumn::make('division_name')
-                    ->label(__('form-transfer::app.table.division'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/table.division'))
                     ->searchable()
                     ->toggleable(),
                 TextColumn::make('email')
-                    ->label(__('form-transfer::app.table.email'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/table.email'))
                     ->searchable()
                     ->toggleable(),
                 TextColumn::make('bank_display_name')
-                    ->label(__('form-transfer::app.table.bank_name'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/table.bank_name'))
                     ->formatStateUsing(fn ($record): ?string => $record->bank_display_name),
                 TextColumn::make('account_number')
-                    ->label(__('form-transfer::app.fields.account_number'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/fields.account_number'))
                     ->copyable()
                     ->icon('heroicon-o-clipboard-document')
                     ->iconPosition('after')
                     ->searchable()
                     ->toggleable(),
                 TextColumn::make('transfer_amount')
-                    ->label(__('form-transfer::app.table.transfer_amount'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/table.transfer_amount'))
                     ->formatStateUsing(fn (?string $state): ?string => $state !== null
                         ? 'Rp '.number_format((float) $state, 2, ',', '.')
                         : null)
@@ -608,13 +598,13 @@ class TransferRequestResource extends FormTransferResource
                     ->sortable()
                     ->extraAttributes(['class' => 'text-right']),
                 TextColumn::make('purpose')
-                    ->label(__('form-transfer::app.fields.purpose'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/fields.purpose'))
                     ->limit(50)
                     ->wrap()
                     ->searchable()
                     ->toggleable(),
                 BadgeColumn::make('submission_status')
-                    ->label(__('form-transfer::app.table.submission_status'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/table.submission_status'))
                     ->formatStateUsing(fn (TransferRequestSubmissionStatus $state): string => static::getSubmissionStatusOptions()[$state->value] ?? $state->value)
                     ->colors([
                         'primary' => TransferRequestSubmissionStatus::BARU,
@@ -623,7 +613,7 @@ class TransferRequestResource extends FormTransferResource
                     ->sortable()
                     ->searchable(),
                 BadgeColumn::make('approval_status')
-                    ->label(__('form-transfer::app.table.approval_status'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/table.approval_status'))
                     ->formatStateUsing(fn (TransferRequestApprovalStatus $state): string => static::getApprovalStatusOptions()[$state->value] ?? $state->value)
                     ->colors([
                         'warning' => TransferRequestApprovalStatus::PENDING,
@@ -633,7 +623,7 @@ class TransferRequestResource extends FormTransferResource
                     ->sortable()
                     ->searchable(),
                 BadgeColumn::make('realization_status')
-                    ->label(__('form-transfer::app.table.realization_status'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/table.realization_status'))
                     ->formatStateUsing(fn (TransferRequestRealizationStatus $state): string => static::getRealizationStatusOptions()[$state->value] ?? $state->value)
                     ->colors([
                         'warning' => TransferRequestRealizationStatus::PENDING,
@@ -643,44 +633,44 @@ class TransferRequestResource extends FormTransferResource
                     ->sortable()
                     ->searchable(),
                 TextColumn::make('realization_notes')
-                    ->label(__('form-transfer::app.fields.realization_notes'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_notes'))
                     ->limit(50)
                     ->wrap()
                     ->toggleable(),
                 TextColumn::make('realized_at')
-                    ->label(__('form-transfer::app.table.realized_at'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/table.realized_at'))
                     ->date()
                     ->sortable(),
                 TextColumn::make('created_at')
-                    ->label(__('form-transfer::app.table.requested_at'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/table.requested_at'))
                     ->dateTime('d M Y H:i')
                     ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('form_transfer_id')
-                    ->label(__('form-transfer::app.fields.form_transfer'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/fields.form_transfer'))
                     ->relationship('formTransfer', 'name')
                     ->searchable()
                     ->preload(),
                 SelectFilter::make('division_id')
-                    ->label(__('form-transfer::app.fields.division'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/fields.division'))
                     ->relationship('division', 'name')
                     ->searchable()
                     ->preload(),
                 SelectFilter::make('bank_id')
-                    ->label(__('form-transfer::app.table.bank_name'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/table.bank_name'))
                     ->options(static::getBankOptions()),
                 SelectFilter::make('submission_status')
-                    ->label(__('form-transfer::app.fields.submission_status'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/fields.submission_status'))
                     ->options(static::getSubmissionStatusOptions()),
                 SelectFilter::make('approval_status')
-                    ->label(__('form-transfer::app.fields.approval_status'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/fields.approval_status'))
                     ->options(static::getApprovalStatusOptions()),
                 SelectFilter::make('realization_status')
-                    ->label(__('form-transfer::app.fields.realization_status'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_status'))
                     ->options(static::getRealizationStatusOptions()),
                 SelectFilter::make('user_id')
-                    ->label(__('form-transfer::app.fields.handler'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/fields.handler'))
                     ->relationship('user', 'name')
                     ->searchable()
                     ->preload(),
@@ -692,7 +682,7 @@ class TransferRequestResource extends FormTransferResource
                 RestoreAction::make(),
                 ForceDeleteAction::make(),
                 Action::make('realize-transfer')
-                    ->label(__('form-transfer::app.actions.realize_transfer'))
+                    ->label(__('form-transfer::filament/resources/transfer-request/actions.realize_transfer'))
                     ->icon('heroicon-m-banknotes')
                     ->color('success')
                     ->slideOver()
@@ -700,7 +690,7 @@ class TransferRequestResource extends FormTransferResource
                     ->visible(fn (TransferRequest $record): bool => $record->realization_status === TransferRequestRealizationStatus::PENDING)
                     ->form([
                         ToggleButtons::make('realization_status')
-                            ->label(__('form-transfer::app.fields.realization_status'))
+                            ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_status'))
                             ->options([
                                 TransferRequestRealizationStatus::DONE->value      => TransferRequestRealizationStatus::DONE->getLabel(),
                                 TransferRequestRealizationStatus::CANCELLED->value => TransferRequestRealizationStatus::CANCELLED->getLabel(),
@@ -714,12 +704,12 @@ class TransferRequestResource extends FormTransferResource
                             ->inline()
                             ->live(),
                         DatePicker::make('realized_at')
-                            ->label(__('form-transfer::app.fields.realized_at'))
+                            ->label(__('form-transfer::filament/resources/transfer-request/fields.realized_at'))
                             ->native(false)
                             ->required(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::DONE->value)
                             ->visible(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::DONE->value),
                         Textarea::make('realization_notes')
-                            ->label(__('form-transfer::app.fields.realization_notes'))
+                            ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_notes'))
                             ->rows(3)
                             ->required(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::CANCELLED->value)
                             ->nullable(),
@@ -753,7 +743,7 @@ class TransferRequestResource extends FormTransferResource
 
                         $record->save();
                     })
-                    ->modalHeading(__('form-transfer::app.actions.realize_transfer')),
+                    ->modalHeading(__('form-transfer::filament/resources/transfer-request/actions.realize_transfer')),
                 DeleteAction::make(),
             ])
             ->bulkActions([
@@ -782,13 +772,13 @@ class TransferRequestResource extends FormTransferResource
         $invoiceAttachments = static::formatFinanceFollowupAttachmentList(
             $record,
             'invoice_path',
-            __('form-transfer::app.notifications.invoice_missing'),
+            __('form-transfer::filament/resources/transfer-request/notifications.invoice_missing'),
         );
 
         $accountAttachments = static::formatFinanceFollowupAttachmentList(
             $record,
             'account_attachment_path',
-            __('form-transfer::app.notifications.account_attachment_missing'),
+            __('form-transfer::filament/resources/transfer-request/notifications.account_attachment_missing'),
         );
 
         $submissionStatus = static::formatSubmissionStatusLabel($record->submission_status);
@@ -971,7 +961,7 @@ class TransferRequestResource extends FormTransferResource
 
     /**
      * Get accessible form transfer IDs for the current user.
-     * Returns null if user has full access (super_admin or has_all_form_transfer_access).
+     * Returns null if user has full access (default user, admin role, or has_all_form_transfer_access).
      * Returns array of IDs if user has restricted access.
      */
     protected static function getAccessibleFormTransferIds(): ?array
@@ -982,22 +972,38 @@ class TransferRequestResource extends FormTransferResource
             return [];
         }
 
-        // super_admin bypasses access control
-        if (method_exists($user, 'hasRole') && $user->hasRole('super_admin')) {
+        if (! SchemaFacade::hasTable('form_transfer_user_accesses')) {
             return null;
         }
 
-        // has_all_form_transfer_access = true bypasses access control
+        // Default users, admin-role users, and manual overrides bypass access control.
         if (method_exists($user, 'hasAllFormTransferAccess') && $user->hasAllFormTransferAccess()) {
             return null;
         }
 
-        // Return specific IDs from pivot table
+        $accessibleIds = static::getOpenAccessFormTransferIds();
+
         if (method_exists($user, 'getAccessibleFormTransferIds')) {
-            return $user->getAccessibleFormTransferIds();
+            $accessibleIds = array_values(array_unique([
+                ...$accessibleIds,
+                ...$user->getAccessibleFormTransferIds(),
+            ]));
         }
 
-        return [];
+        return $accessibleIds;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    protected static function getOpenAccessFormTransferIds(): array
+    {
+        return FormTransfer::query()
+            ->doesntHave('allowedUsers')
+            ->orderBy('id')
+            ->pluck('id')
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->all();
     }
 
     protected static function getDivisionOptions(?int $formTransferId): array
@@ -1186,9 +1192,9 @@ class TransferRequestResource extends FormTransferResource
         $index = static::resolveAttachmentIndex($paths, $path);
 
         $labelBase = match ($attribute) {
-            'invoice_path'            => __('form-transfer::app.fields.invoice'),
-            'account_attachment_path' => __('form-transfer::app.fields.account_attachment'),
-            default                   => __('form-transfer::app.notifications.view_attachment'),
+            'invoice_path'            => __('form-transfer::filament/resources/transfer-request/fields.invoice'),
+            'account_attachment_path' => __('form-transfer::filament/resources/transfer-request/fields.account_attachment'),
+            default                   => __('form-transfer::filament/resources/transfer-request/notifications.view_attachment'),
         };
 
         if ($index === null) {

@@ -97,11 +97,11 @@ class TemplateRenderer
         }
 
         $headers = [
-            __('form-transfer::app.fields.approver_name'),
-            __('form-transfer::app.fields.approver_title'),
-            __('form-transfer::app.fields.approver_status'),
-            __('form-transfer::app.fields.approver_notes'),
-            __('form-transfer::app.fields.approver_noted_at'),
+            __('form-transfer::filament/resources/transfer-request/fields.approver_name'),
+            __('form-transfer::filament/resources/transfer-request/fields.approver_title'),
+            __('form-transfer::filament/resources/transfer-request/fields.approver_status'),
+            __('form-transfer::filament/resources/transfer-request/fields.approver_notes'),
+            __('form-transfer::filament/resources/transfer-request/fields.approver_noted_at'),
         ];
 
         $rows = collect($approvals)->map(function (array $approval): array {

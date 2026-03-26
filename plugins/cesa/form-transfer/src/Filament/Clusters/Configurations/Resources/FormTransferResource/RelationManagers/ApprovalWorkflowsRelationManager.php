@@ -32,14 +32,14 @@ class ApprovalWorkflowsRelationManager extends RelationManager
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
-        return __('form-transfer::app.relation_managers.approval_workflows');
+        return __('form-transfer::filament/resources/transfer-request/relation-managers.approval_workflows');
     }
 
     public function form(Schema $schema): Schema
     {
         return $schema->components([
             Select::make('division_id')
-                ->label(__('form-transfer::app.config.workflows.fields.division'))
+                ->label(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.fields.division'))
                 ->relationship(
                     name: 'division',
                     titleAttribute: 'name',
@@ -49,44 +49,44 @@ class ApprovalWorkflowsRelationManager extends RelationManager
                 )
                 ->searchable()
                 ->preload()
-                ->helperText(__('form-transfer::app.config.workflows.fields.division_hint'))
+                ->helperText(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.fields.division_hint'))
                 ->native(false)
                 ->columnSpanFull(),
             Textarea::make('description')
-                ->label(__('form-transfer::app.config.workflows.fields.description'))
+                ->label(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.fields.description'))
                 ->rows(3)
                 ->columnSpanFull(),
             Toggle::make('is_active')
-                ->label(__('form-transfer::app.config.workflows.fields.is_active'))
+                ->label(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.fields.is_active'))
                 ->default(true)
                 ->columnSpanFull(),
             Repeater::make('steps')
-                ->label(__('form-transfer::app.config.workflows.fields.steps'))
+                ->label(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.fields.steps'))
                 ->columns(2)
                 ->default([])
                 ->schema([
                     TextInput::make('label')
-                        ->label(__('form-transfer::app.config.workflows.fields.step_label'))
+                        ->label(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.fields.step_label'))
                         ->required()
                         ->maxLength(191),
                     TextInput::make('default_name')
-                        ->label(__('form-transfer::app.config.workflows.fields.step_default_name'))
+                        ->label(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.fields.step_default_name'))
                         ->maxLength(191),
                     TextInput::make('default_email')
-                        ->label(__('form-transfer::app.config.workflows.fields.step_default_email'))
+                        ->label(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.fields.step_default_email'))
                         ->email()
                         ->maxLength(191),
                     TextInput::make('default_title')
-                        ->label(__('form-transfer::app.config.workflows.fields.step_default_title'))
+                        ->label(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.fields.step_default_title'))
                         ->maxLength(191),
                     TextInput::make('default_phone')
-                        ->label(__('form-transfer::app.config.workflows.fields.step_default_phone'))
+                        ->label(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.fields.step_default_phone'))
                         ->maxLength(30),
                     Toggle::make('is_mandatory')
-                        ->label(__('form-transfer::app.config.workflows.fields.step_is_mandatory'))
+                        ->label(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.fields.step_is_mandatory'))
                         ->default(true),
                 ])
-                ->addActionLabel(__('form-transfer::app.config.workflows.actions.add_step'))
+                ->addActionLabel(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.actions.add_step'))
                 ->reorderable()
                 ->columnSpanFull()
                 ->minItems(1),
@@ -98,23 +98,23 @@ class ApprovalWorkflowsRelationManager extends RelationManager
         return $table
             ->headerActions([
                 CreateAction::make()->icon('heroicon-o-plus-circle')->slideOver()
-                    ->modalHeading(__('form-transfer::app.config.workflows.navigation.label')),
+                    ->modalHeading(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.navigation.label')),
             ])
             ->columns([
                 TextColumn::make('division.name')
-                    ->label(__('form-transfer::app.config.workflows.columns.division'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.columns.division'))
                     ->toggleable()
                     ->searchable(),
                 TextColumn::make('step_count')
-                    ->label(__('form-transfer::app.config.workflows.columns.steps'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.columns.steps'))
                     ->sortable(),
                 TextColumn::make('step_summary')
-                    ->label(__('form-transfer::app.config.workflows.columns.step_summary'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.columns.step_summary'))
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->wrap(),
                 IconColumn::make('is_active')
                     ->boolean()
-                    ->label(__('form-transfer::app.config.workflows.columns.is_active'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.columns.is_active'))
                     ->sortable(),
             ])
             ->recordActions([

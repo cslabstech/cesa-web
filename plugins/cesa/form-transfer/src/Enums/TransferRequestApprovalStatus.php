@@ -11,9 +11,9 @@ enum TransferRequestApprovalStatus: string
     public function getLabel(): string
     {
         return match ($this) {
-            self::PENDING  => __('form-transfer::app.statuses.approval.pending'),
-            self::APPROVED => __('form-transfer::app.statuses.approval.approved'),
-            self::REJECTED => __('form-transfer::app.statuses.approval.rejected'),
+            self::PENDING  => __('form-transfer::enums/transfer-request-approval-status.pending'),
+            self::APPROVED => __('form-transfer::enums/transfer-request-approval-status.approved'),
+            self::REJECTED => __('form-transfer::enums/transfer-request-approval-status.rejected'),
         };
     }
 

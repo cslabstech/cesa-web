@@ -14,7 +14,7 @@ class Configurations extends Cluster
 
     public static function getNavigationLabel(): string
     {
-        return __('form-transfer::app.config.navigation.label');
+        return __('form-transfer::filament/clusters/configurations.navigation.label');
     }
 
     public static function getNavigationGroup(): string

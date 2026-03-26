@@ -18,6 +18,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Spatie\Permission\Traits\HasRoles;
 use Webkul\Employee\Models\Department;
 use Webkul\Employee\Models\Employee;
@@ -44,14 +47,16 @@ class User extends BaseUser implements FilamentUser, HasAppAuthentication, HasAp
             'is_active',
             'default_company_id',
             'resource_permission',
+            'has_all_form_transfer_access',
             'is_default',
         ]);
 
         $this->mergeCasts([
-            'default_company_id'  => 'integer',
-            'resource_permission' => PermissionType::class,
-            'is_default'          => 'boolean',
-            'is_active'           => 'boolean',
+            'default_company_id'            => 'integer',
+            'resource_permission'           => PermissionType::class,
+            'has_all_form_transfer_access'  => 'boolean',
+            'is_default'                    => 'boolean',
+            'is_active'                     => 'boolean',
         ]);
 
         parent::__construct($attributes);
@@ -112,6 +117,86 @@ class User extends BaseUser implements FilamentUser, HasAppAuthentication, HasAp
     public function defaultCompany(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'default_company_id');
+    }
+
+    public function isDefaultUser(): bool
+    {
+        return (bool) $this->getAttribute('is_default');
+    }
+
+    public function hasAllFormTransferAccess(): bool
+    {
+        return $this->isDefaultUser()
+            || $this->hasAdminRole()
+            || (bool) $this->getAttribute('has_all_form_transfer_access');
+    }
+
+    public function hasAdminRole(): bool
+    {
+        if (! $this->exists) {
+            return false;
+        }
+
+        $adminRoleNames = static::getAdminRoleNames();
+
+        if ($adminRoleNames === []) {
+            return false;
+        }
+
+        $this->loadMissing('roles');
+
+        return $this->roles->contains(function (Role $role) use ($adminRoleNames): bool {
+            $normalizedRoleName = Str::of((string) ($role->getRawOriginal('name') ?: $role->name))
+                ->trim()
+                ->lower()
+                ->toString();
+
+            return in_array($normalizedRoleName, $adminRoleNames, true)
+                || str_contains($normalizedRoleName, 'admin');
+        });
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function getAccessibleFormTransferIds(): array
+    {
+        if (! $this->exists || $this->hasAllFormTransferAccess()) {
+            return [];
+        }
+
+        if (! Schema::hasTable('form_transfer_user_accesses')) {
+            return [];
+        }
+
+        return DB::table('form_transfer_user_accesses')
+            ->where('user_id', $this->getKey())
+            ->orderBy('form_transfer_id')
+            ->pluck('form_transfer_id')
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->all();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function getAdminRoleNames(): array
+    {
+        return collect(array_merge(
+            Role::getSystemRoleNames(),
+            [
+                config('filament-shield.panel_user.name'),
+                config('filament-shield.super_admin.name'),
+                'admin',
+                'panel_user',
+                'super_admin',
+            ],
+        ))
+            ->filter(fn (mixed $name): bool => is_string($name) && $name !== '')
+            ->map(fn (string $name): string => Str::of($name)->trim()->lower()->toString())
+            ->unique()
+            ->values()
+            ->all();
     }
 
     protected static function boot()

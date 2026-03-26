@@ -1,0 +1,61 @@
+<?php
+
+return [
+    'navigation' => [
+        'group' => 'Global Settings',
+        'label' => 'Form Transfers',
+    ],
+    'fields' => [
+        'code'                       => 'Form Code',
+        'name'                       => 'Form Name',
+        'description'                => 'Description',
+        'uid_prefix'                 => 'UID Prefix',
+        'uid_sequence'               => 'Current UID Sequence',
+        'uid_sequence_helper'        => 'This sequence number will auto-increment for each new transfer request.',
+        'uid_padding'                => 'UID Padding',
+        'is_active'                  => 'Active',
+        'approver_mail_subject'      => 'Approver Email Subject',
+        'approver_mail_greeting'     => 'Approver Email Greeting',
+        'approver_mail_action_text'  => 'Approver Email Button Label',
+        'approver_mail_template'     => 'Approver Email Body Template',
+        'requester_mail_subject'     => 'Requester Email Subject',
+        'requester_mail_greeting'    => 'Requester Email Greeting',
+        'requester_mail_action_text' => 'Requester Email Button Label',
+        'requester_mail_template'    => 'Requester Email Body Template',
+        'approver_whatsapp_template' => 'Approver WhatsApp Template',
+        'template_helper'            => 'Paste your HTML or text template. Available placeholders: :placeholders',
+        'optional_settings_hint'     => 'Leave greeting or button label empty to use defaults.',
+        'whatsapp_template_helper'   => 'Available placeholders: :placeholders',
+        'allowed_users'              => 'Allowed Users',
+        'allowed_users_helper'       => 'Select specific users who can access this form transfer. Leave empty to allow default users, admin-role users, or users granted has_all_form_transfer_access.',
+    ],
+    'sections' => [
+        'notifications'              => 'Notifications',
+        'approver_email'             => 'Approver Email',
+        'requester_email'            => 'Requester Email',
+        'approver_whatsapp'          => 'Approver WhatsApp',
+        'optional_settings'          => 'Optional Settings',
+        'basic_information'          => 'Basic Information',
+        'access_control'             => 'Access Control',
+        'access_control_description' => 'Configure which users can manage transfer requests for this form. Leave empty to allow all users.',
+    ],
+    'actions' => [
+        'copy_default_template' => 'Copy default template',
+    ],
+    'columns' => [
+        'code'                 => 'Code',
+        'name'                 => 'Name',
+        'is_active'            => 'Active',
+        'uid_prefix'           => 'UID Prefix',
+        'uid_sequence'         => 'UID Sequence',
+        'custom_notifications' => 'Custom Notifications',
+        'updated_at'           => 'Updated At',
+    ],
+    'filters' => [
+        'is_active' => 'Active Status',
+    ],
+    'tooltips' => [
+        'custom_notifications_enabled'  => 'Custom email or WhatsApp templates are active for this form.',
+        'custom_notifications_disabled' => 'Using default notification templates.',
+    ],
+];

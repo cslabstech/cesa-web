@@ -11,9 +11,9 @@ enum TransferRequestRealizationStatus: string
     public function getLabel(): string
     {
         return match ($this) {
-            self::PENDING   => __('form-transfer::app.statuses.realization.pending'),
-            self::DONE      => __('form-transfer::app.statuses.realization.done'),
-            self::CANCELLED => __('form-transfer::app.statuses.realization.cancelled'),
+            self::PENDING   => __('form-transfer::enums/transfer-request-realization-status.pending'),
+            self::DONE      => __('form-transfer::enums/transfer-request-realization-status.done'),
+            self::CANCELLED => __('form-transfer::enums/transfer-request-realization-status.cancelled'),
         };
     }
 

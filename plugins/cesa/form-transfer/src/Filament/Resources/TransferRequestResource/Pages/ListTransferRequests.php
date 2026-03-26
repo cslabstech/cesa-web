@@ -24,7 +24,7 @@ class ListTransferRequests extends ListRecords
             Actions\CreateAction::make()->icon('heroicon-o-plus-circle')->slideOver(),
             Actions\ExportAction::make()
                 ->exporter(TransferRequestExporter::class)
-                ->label(__('form-transfer::app.actions.export_transfer_requests'))
+                ->label(__('form-transfer::filament/resources/transfer-request/actions.export_transfer_requests'))
                 ->icon('heroicon-o-arrow-down-tray'),
         ];
     }
@@ -35,14 +35,14 @@ class ListTransferRequests extends ListRecords
     public function getPresetTableViews(): array
     {
         return [
-            'finance-awaiting-approval' => PresetView::make(__('form-transfer::app.statuses.approval.pending'))
+            'finance-awaiting-approval' => PresetView::make(__('form-transfer::enums/transfer-request-approval-status.pending'))
                 ->icon('heroicon-m-clock')
                 ->modifyQueryUsing(
                     fn (Builder $query): Builder => $query
                         ->where('approval_status', TransferRequestApprovalStatus::PENDING->value)
                         ->where('realization_status', TransferRequestRealizationStatus::PENDING->value)
                 ),
-            'finance-completed' => PresetView::make(__('form-transfer::app.statuses.realization.done'))
+            'finance-completed' => PresetView::make(__('form-transfer::enums/transfer-request-realization-status.done'))
                 ->icon('heroicon-m-check-circle')
                 ->modifyQueryUsing(
                     fn (Builder $query): Builder => $query

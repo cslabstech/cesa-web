@@ -29,21 +29,21 @@ class DivisionsRelationManager extends RelationManager
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
-        return __('form-transfer::app.relation_managers.divisions');
+        return __('form-transfer::filament/resources/transfer-request/relation-managers.divisions');
     }
 
     public function form(Schema $schema): Schema
     {
         return $schema->components([
             TextInput::make('name')
-                ->label(__('form-transfer::app.config.divisions.fields.name'))
+                ->label(__('form-transfer::filament/clusters/configurations/resources/division.fields.name'))
                 ->required()
                 ->maxLength(191),
             Toggle::make('is_active')
-                ->label(__('form-transfer::app.config.divisions.fields.is_active'))
+                ->label(__('form-transfer::filament/clusters/configurations/resources/division.fields.is_active'))
                 ->default(true),
             Textarea::make('description')
-                ->label(__('form-transfer::app.config.divisions.fields.description'))
+                ->label(__('form-transfer::filament/clusters/configurations/resources/division.fields.description'))
                 ->rows(3)
                 ->columnSpanFull(),
         ])->columns(2);
@@ -54,16 +54,16 @@ class DivisionsRelationManager extends RelationManager
         return $table
             ->headerActions([
                 CreateAction::make()->icon('heroicon-o-plus-circle')->slideOver()
-                    ->modalHeading(__('form-transfer::app.config.divisions.navigation.label')),
+                    ->modalHeading(__('form-transfer::filament/clusters/configurations/resources/division.navigation.label')),
             ])
             ->columns([
                 TextColumn::make('name')
-                    ->label(__('form-transfer::app.config.divisions.columns.name'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/division.columns.name'))
                     ->searchable()
                     ->sortable(),
                 IconColumn::make('is_active')
                     ->boolean()
-                    ->label(__('form-transfer::app.config.divisions.columns.is_active'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/division.columns.is_active'))
                     ->sortable(),
             ])
             ->recordActions([

@@ -37,12 +37,12 @@ class DivisionResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('form-transfer::app.config.divisions.navigation.label');
+        return __('form-transfer::filament/clusters/configurations/resources/division.navigation.label');
     }
 
     public static function getNavigationGroup(): string
     {
-        return __('form-transfer::app.config.divisions.navigation.group');
+        return __('form-transfer::filament/clusters/configurations/resources/division.navigation.group');
     }
 
     public static function form(Schema $schema): Schema
@@ -50,7 +50,7 @@ class DivisionResource extends Resource
         return $schema
             ->components([
                 Select::make('form_transfer_id')
-                    ->label(__('form-transfer::app.config.divisions.fields.form_transfer'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/division.fields.form_transfer'))
                     ->relationship(
                         name: 'formTransfer',
                         titleAttribute: 'name',
@@ -61,14 +61,14 @@ class DivisionResource extends Resource
                     ->preload()
                     ->columnSpanFull(),
                 TextInput::make('name')
-                    ->label(__('form-transfer::app.config.divisions.fields.name'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/division.fields.name'))
                     ->maxLength(191)
                     ->required(),
                 Toggle::make('is_active')
-                    ->label(__('form-transfer::app.config.divisions.fields.is_active'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/division.fields.is_active'))
                     ->default(true),
                 Textarea::make('description')
-                    ->label(__('form-transfer::app.config.divisions.fields.description'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/division.fields.description'))
                     ->rows(3)
                     ->columnSpanFull(),
             ])
@@ -80,21 +80,21 @@ class DivisionResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label(__('form-transfer::app.config.divisions.columns.name'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/division.columns.name'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('formTransfer.name')
-                    ->label(__('form-transfer::app.config.divisions.columns.form_transfer'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/division.columns.form_transfer'))
                     ->sortable()
                     ->searchable(),
                 IconColumn::make('is_active')
                     ->boolean()
-                    ->label(__('form-transfer::app.config.divisions.columns.is_active'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/division.columns.is_active'))
                     ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('form_transfer_id')
-                    ->label(__('form-transfer::app.config.divisions.filters.form_transfer'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/division.filters.form_transfer'))
                     ->relationship(
                         'formTransfer',
                         'name',
@@ -102,7 +102,7 @@ class DivisionResource extends Resource
                     )
                     ->searchable(),
                 Tables\Filters\TernaryFilter::make('is_active')
-                    ->label(__('form-transfer::app.config.divisions.filters.is_active')),
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/division.filters.is_active')),
                 TrashedFilter::make(),
             ])
             ->recordActions([

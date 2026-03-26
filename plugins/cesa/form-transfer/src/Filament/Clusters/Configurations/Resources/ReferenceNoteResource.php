@@ -37,12 +37,12 @@ class ReferenceNoteResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('form-transfer::app.config.reference_notes.navigation.label');
+        return __('form-transfer::filament/clusters/configurations/resources/reference-note.navigation.label');
     }
 
     public static function getNavigationGroup(): string
     {
-        return __('form-transfer::app.config.reference_notes.navigation.group');
+        return __('form-transfer::filament/clusters/configurations/resources/reference-note.navigation.group');
     }
 
     public static function form(Schema $schema): Schema
@@ -50,7 +50,7 @@ class ReferenceNoteResource extends Resource
         return $schema
             ->components([
                 Select::make('form_transfer_id')
-                    ->label(__('form-transfer::app.config.reference_notes.fields.form_transfer'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/reference-note.fields.form_transfer'))
                     ->relationship(
                         name: 'formTransfer',
                         titleAttribute: 'name',
@@ -61,14 +61,14 @@ class ReferenceNoteResource extends Resource
                     ->preload()
                     ->columnSpanFull(),
                 TextInput::make('label')
-                    ->label(__('form-transfer::app.config.reference_notes.fields.label'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/reference-note.fields.label'))
                     ->maxLength(191)
                     ->required(),
                 Toggle::make('is_active')
-                    ->label(__('form-transfer::app.config.reference_notes.fields.is_active'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/reference-note.fields.is_active'))
                     ->default(true),
                 Textarea::make('description')
-                    ->label(__('form-transfer::app.config.reference_notes.fields.description'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/reference-note.fields.description'))
                     ->rows(3)
                     ->columnSpanFull(),
             ])
@@ -80,21 +80,21 @@ class ReferenceNoteResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('label')
-                    ->label(__('form-transfer::app.config.reference_notes.columns.label'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/reference-note.columns.label'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('formTransfer.name')
-                    ->label(__('form-transfer::app.config.reference_notes.columns.form_transfer'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/reference-note.columns.form_transfer'))
                     ->sortable()
                     ->searchable(),
                 IconColumn::make('is_active')
                     ->boolean()
-                    ->label(__('form-transfer::app.config.reference_notes.columns.is_active'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/reference-note.columns.is_active'))
                     ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('form_transfer_id')
-                    ->label(__('form-transfer::app.config.reference_notes.filters.form_transfer'))
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/reference-note.filters.form_transfer'))
                     ->relationship(
                         'formTransfer',
                         'name',
@@ -102,7 +102,7 @@ class ReferenceNoteResource extends Resource
                     )
                     ->searchable(),
                 Tables\Filters\TernaryFilter::make('is_active')
-                    ->label(__('form-transfer::app.config.reference_notes.filters.is_active')),
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/reference-note.filters.is_active')),
                 TrashedFilter::make(),
             ])
             ->recordActions([
