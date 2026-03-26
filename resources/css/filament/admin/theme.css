@@ -1,0 +1,511 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+@source '../../../../resources/views/vendor/filament*/**/*';
+@source '../../../../plugins/**/resources/views/filament/**/*';
+@source '../../../../plugins/**/resources/views/livewire/**/*';
+
+/* App Panel Custom Layout */
+.fi-app-layout {
+    @apply flex h-screen;
+}
+
+.fi-app-main-wrapper {
+    @apply flex-1 flex flex-col min-w-0;
+
+    /* Only the content area scrolls, not the topbar */
+    >.fi-layout {
+        @apply flex-1 overflow-y-auto;
+    }
+}
+
+.fi-header-heading {
+    @apply text-2xl font-bold;
+}
+
+/* Sidebar Enhancements */
+.fi-sidebar {
+    @apply bg-gray-50 border-r border-gray-200 dark:bg-gray-800 dark:border-gray-800;
+
+    .fi-dropdown-list-item-image {
+        @apply rounded-md;
+    }
+}
+
+.fi-sidebar-nav {
+    @apply space-y-1 pt-2.5;
+}
+
+.fi-sidebar-item {
+    @apply transition-colors duration-200 ease-in-out;
+
+    .fi-sidebar-item-btn {
+        @apply dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800;
+        padding-block: calc(var(--spacing) * 1.7);
+    }
+
+    .fi-sidebar-item-icon {
+        width: calc(var(--spacing) * 5);
+        height: calc(var(--spacing) * 5);
+    }
+
+    .fi-sidebar-item-grouped-border {
+        width: calc(var(--spacing) * 5);
+        height: calc(var(--spacing) * 5);
+    }
+}
+
+.fi-sidebar-item.fi-active {
+    >.fi-sidebar-item-btn {
+        @apply bg-gray-100 dark:bg-gray-800 font-semibold;
+    }
+}
+
+.fi-sidebar-group {
+    @apply rounded-xl;
+}
+
+.fi-sidebar-group-items {
+    @apply rounded-xl;
+}
+
+/* Top Navigation Bar */
+.fi-topbar {
+    @apply min-h-14;
+}
+
+.fi-topbar nav {
+    @apply px-4 lg:px-6;
+}
+
+/* Button Enhancements */
+.fi-btn {
+    @apply relative overflow-hidden transition-shadow duration-200 rounded-xl;
+}
+
+/* Icon Buttons */
+.fi-icon-btn {
+    @apply rounded-xl;
+}
+
+/* Cards & Sections */
+
+/* Form Components */
+.fi-fo-component-ctn {
+    @apply rounded-xl;
+}
+
+/* Select & Dropdown Inputs */
+.fi-select-input {
+    @apply rounded-lg;
+}
+
+/* Tables */
+
+.fi-ta-ctn {
+    @apply rounded-xl shadow-sm;
+}
+
+.fi-ta-content {
+    @apply rounded-xl overflow-hidden;
+}
+
+.fi-ta-table {
+    /*@apply rounded-xl overflow-hidden;*/
+}
+
+.fi-ta-table thead {
+    @apply bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900;
+}
+
+/* Table header actions */
+.fi-ta-header {
+    /*@apply rounded-t-xl;*/
+}
+
+/* Table bulk actions */
+.fi-ta-bulk-actions {
+    @apply rounded-xl;
+}
+
+/* Pagination container */
+.fi-ta-pagination {
+    @apply rounded-b-xl bg-white dark:bg-gray-900;
+}
+
+.fi-pagination {
+    @apply rounded-b-xl;
+}
+
+/* Stats Widgets */
+.fi-wi-stats-overview-stat {
+    @apply relative overflow-hidden transition-shadow duration-300 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 hover:shadow-md rounded-xl;
+}
+
+/* Widget Containers */
+.fi-wi-widget {
+    @apply rounded-xl;
+}
+
+/* Badges */
+.fi-badge {
+    @apply rounded-lg;
+}
+
+/* Pills & Tags */
+.fi-tag {
+    @apply rounded-lg;
+}
+
+/* Modals */
+.fi-modal-slide-over {
+    .fi-modal-window {
+        @apply mt-2.5 mr-3 rounded-xl shadow-xl backdrop-blur-sm;
+        max-height: calc(100vh - 2rem);
+    }
+}
+
+.fi-modal-content {
+    @apply rounded-xl;
+}
+
+/* Dropdowns */
+.fi-dropdown-panel {
+    @apply rounded-xl;
+}
+
+.fi-dropdown-list-item {
+    @apply rounded-lg;
+}
+
+/* Panels */
+.fi-panel {
+    @apply rounded-xl;
+}
+
+/* Infolists */
+.fi-in-component {
+    @apply rounded-xl;
+}
+
+/* Action Modals */
+.fi-ac-modal {
+    @apply rounded-xl;
+}
+
+/* Breadcrumbs */
+.fi-breadcrumbs {
+    @apply text-sm;
+}
+
+.fi-breadcrumbs-item a {
+    @apply transition-colors duration-200 hover:text-primary-600 dark:hover:text-primary-400;
+}
+
+/* Actions */
+.fi-ac-action:hover,
+.fi-ta-actions button:hover {
+    @apply transition-opacity duration-200 opacity-80;
+}
+
+/* Smooth Transitions */
+.fi-panel-content {
+    @apply transition-opacity duration-300 ease-out;
+}
+
+/* Custom Scrollbar Styling */
+.fi-sidebar {
+    @apply h-full bg-white dark:bg-gray-900;
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.gray.400') theme('colors.gray.100');
+}
+
+/* Sidebar scrollable content area - allow tenant menu to overflow */
+.fi-sidebar-nav {
+    @apply overflow-y-auto overflow-x-visible;
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.gray.400') theme('colors.gray.100');
+}
+
+.fi-sidebar::-webkit-scrollbar {
+    @apply w-2;
+}
+
+.fi-sidebar::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+}
+
+html.dark .fi-sidebar::-webkit-scrollbar-track {
+    @apply bg-gray-800;
+}
+
+.fi-sidebar::-webkit-scrollbar-thumb {
+    @apply bg-gray-400 rounded-full;
+}
+
+.fi-sidebar::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500;
+}
+
+html.dark .fi-sidebar::-webkit-scrollbar-thumb {
+    @apply bg-gray-600;
+}
+
+html.dark .fi-sidebar::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500;
+}
+
+/* Additional Component Polish */
+
+/* Avatar */
+.fi-avatar {
+    @apply rounded-full;
+}
+
+/* User Menu */
+.fi-user-menu-trigger {
+    @apply rounded-xl;
+}
+
+/* Tenant Menu */
+.fi-tenant-menu-trigger {
+    @apply rounded-lg;
+
+    .fi-tenant-avatar {
+        @apply rounded-md w-6 h-6;
+    }
+}
+
+/* Tenant Menu Dropdown - avatar images in the dropdown list */
+.fi-tenant-menu .fi-dropdown-list-item-image {
+    @apply rounded-md w-6 h-6 shrink-0;
+}
+
+/* Ensure tenant menu dropdown is visible above content when sidebar is collapsed */
+.fi-tenant-menu .fi-dropdown-panel {
+    @apply z-50;
+}
+
+/* Checkbox and Radio */
+.fi-checkbox-input {
+    @apply rounded-md;
+}
+
+.fi-radio-input {
+    @apply rounded-lg;
+}
+
+.fi-input-wrp {
+    @apply rounded-lg;
+}
+
+/* Toggle Switch */
+.fi-toggle {
+    @apply rounded-full;
+}
+
+/* Color Picker */
+.fi-color-picker {
+    @apply rounded-xl;
+}
+
+/* Date Picker */
+.fi-date-picker {
+    @apply rounded-xl;
+}
+
+/* File Upload */
+.fi-file-upload {
+    @apply rounded-xl;
+}
+
+.fi-file-upload-button {
+    @apply rounded-xl;
+}
+
+/* Rich Editor */
+.fi-rich-editor {
+    @apply rounded-xl;
+}
+
+/* Tabs */
+.fi-tabs-tab {
+    @apply rounded-xl;
+}
+
+/* Wizard */
+.fi-wizard {
+    @apply rounded-xl;
+}
+
+.fi-wizard-step {
+    @apply rounded-xl;
+}
+
+/* Account Widget */
+.fi-account-widget {
+    @apply rounded-xl;
+}
+
+/* Simple Page */
+.fi-simple-main {
+    @apply rounded-xl;
+}
+
+/* Layout Components */
+.fi-layout-component {
+    @apply rounded-xl;
+}
+
+/* Grid and Split Layouts */
+.fi-fo-grid {
+    @apply rounded-xl;
+}
+
+.fi-fo-split {
+    @apply rounded-xl;
+}
+
+/* Fieldset */
+.fi-fo-fieldset {
+    @apply rounded-xl border border-gray-200 dark:border-gray-700;
+}
+
+/* Repeater */
+.fi-fo-repeater {
+    @apply rounded-xl;
+}
+
+.fi-fo-repeater-item {
+    @apply rounded-xl;
+}
+
+/* Admin Auth Layout */
+.cesa-auth-layout {
+    @apply min-h-screen bg-white;
+}
+
+.dark .cesa-auth-layout {
+    @apply bg-black;
+}
+
+.cesa-auth-layout__main {
+    @apply min-h-screen;
+}
+
+.cesa-auth-shell {
+    @apply grid min-h-screen;
+}
+
+@media (min-width: 1024px) {
+    .cesa-auth-shell {
+        grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    }
+}
+
+.cesa-auth-layout .fi-theme-switcher {
+    @apply fixed right-4 bottom-4 z-50 rounded-2xl border border-white/70 bg-white/80 p-1.5 backdrop-blur md:right-6 md:bottom-6;
+    box-shadow: 0 20px 60px -30px rgba(15, 23, 42, 0.65);
+}
+
+.dark .cesa-auth-layout .fi-theme-switcher {
+    @apply border-white/10 bg-slate-900/80;
+}
+
+.cesa-auth-layout .fi-theme-switcher-btn {
+    @apply rounded-xl;
+}
+
+.cesa-auth-media {
+    @apply relative hidden overflow-hidden lg:block;
+    background:
+        radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.24), transparent 28%),
+        radial-gradient(circle at 78% 16%, rgba(255, 184, 77, 0.18), transparent 20%),
+        linear-gradient(180deg, #c0d8e3 0%, #90b6c9 40%, #8a6e4f 100%);
+}
+
+.cesa-auth-media::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(15, 23, 42, 0.08)),
+        radial-gradient(circle at 55% 82%, rgba(36, 25, 12, 0.38), transparent 32%);
+    pointer-events: none;
+}
+
+.cesa-auth-panel {
+    @apply flex min-h-screen items-center justify-center bg-white px-6 py-10 sm:px-10 lg:px-12 xl:px-16;
+}
+
+.dark .cesa-auth-panel {
+    @apply bg-black;
+}
+
+.cesa-auth-panel__inner {
+    @apply flex w-full max-w-sm flex-col gap-6;
+}
+
+.cesa-auth-panel__brand-text {
+    @apply text-sm font-semibold tracking-tight text-slate-900;
+}
+
+.dark .cesa-auth-panel__brand-text {
+    @apply text-white;
+}
+
+.cesa-auth-panel__card {
+    @apply p-0;
+}
+
+.cesa-auth-panel__header {
+    @apply mb-6 flex flex-col gap-2;
+}
+
+.cesa-auth-panel__title {
+    @apply font-semibold tracking-tight text-slate-950;
+    font-size: 2rem;
+}
+
+.dark .cesa-auth-panel__title {
+    @apply text-white;
+}
+
+.cesa-auth-panel__subtitle {
+    @apply hidden;
+}
+
+@media (max-width: 1023px) {
+    .cesa-auth-media {
+        @apply hidden;
+    }
+}
+
+/* Admin app launcher */
+.cesa-app-launcher-dropdown .fi-dropdown-panel {
+    @apply rounded-xl border border-gray-200 bg-white p-0 shadow-lg ring-1 ring-gray-950/5 dark:border-white/10 dark:bg-gray-950 dark:ring-white/10;
+}
+
+.cesa-app-launcher {
+    @apply grid grid-cols-3 items-stretch gap-3 overflow-y-auto p-3;
+    max-height: 80vh;
+}
+
+.cesa-app-launcher__item {
+    @apply flex h-28 w-full flex-col items-center justify-center gap-2 rounded-lg border border-transparent px-2 py-3 text-center text-sm font-medium text-gray-900 no-underline outline-none hover:bg-gray-50 focus-visible:border-blue-200 focus-visible:ring-2 focus-visible:ring-blue-500/20 dark:text-white dark:hover:bg-white/5 dark:focus-visible:border-blue-500/40;
+}
+
+.cesa-app-launcher__item.is-active {
+    @apply border-blue-100 bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10;
+}
+
+.cesa-app-launcher__icon-svg {
+    @apply h-10 w-10 shrink-0;
+}
+
+.cesa-app-launcher__label {
+    @apply flex min-h-8 w-full max-w-24 items-center justify-center text-center leading-4 text-gray-900 dark:text-white;
+    font-size: 13px;
+    text-wrap: balance;
+}

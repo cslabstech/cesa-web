@@ -51,24 +51,28 @@ class BankResource extends Resource
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(10)
-                    ->helperText(__('form-transfer::filament/clusters/configurations/resources/bank.fields.code_hint')),
+                    ->helperText(__('form-transfer::filament/clusters/configurations/resources/bank.fields.code_hint'))
+                    ->columnSpanFull(),
                 TextInput::make('name')
                     ->label(__('form-transfer::filament/clusters/configurations/resources/bank.fields.name'))
                     ->maxLength(191)
-                    ->required(),
+                    ->required()
+                    ->columnSpanFull(),
                 TextInput::make('short_name')
                     ->label(__('form-transfer::filament/clusters/configurations/resources/bank.fields.short_name'))
                     ->maxLength(50)
-                    ->helperText(__('form-transfer::filament/clusters/configurations/resources/bank.fields.short_name_hint')),
+                    ->helperText(__('form-transfer::filament/clusters/configurations/resources/bank.fields.short_name_hint'))
+                    ->columnSpanFull(),
                 TextInput::make('sort_order')
                     ->label(__('form-transfer::filament/clusters/configurations/resources/bank.fields.sort_order'))
                     ->numeric()
-                    ->default(0),
+                    ->default(0)
+                    ->columnSpanFull(),
                 Toggle::make('is_active')
                     ->label(__('form-transfer::filament/clusters/configurations/resources/bank.fields.is_active'))
-                    ->default(true),
-            ])
-            ->columns(2);
+                    ->default(true)
+                    ->columnSpanFull(),
+            ]);
     }
 
     public static function table(Table $table): Table
@@ -105,7 +109,7 @@ class BankResource extends Resource
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                EditAction::make()->slideOver(),
+                EditAction::make()->slideOver()->modalWidth('md'),
                 DeleteAction::make(),
                 RestoreAction::make(),
                 ForceDeleteAction::make(),

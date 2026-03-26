@@ -63,16 +63,17 @@ class DivisionResource extends Resource
                 TextInput::make('name')
                     ->label(__('form-transfer::filament/clusters/configurations/resources/division.fields.name'))
                     ->maxLength(191)
-                    ->required(),
+                    ->required()
+                    ->columnSpanFull(),
                 Toggle::make('is_active')
                     ->label(__('form-transfer::filament/clusters/configurations/resources/division.fields.is_active'))
-                    ->default(true),
+                    ->default(true)
+                    ->columnSpanFull(),
                 Textarea::make('description')
                     ->label(__('form-transfer::filament/clusters/configurations/resources/division.fields.description'))
                     ->rows(3)
                     ->columnSpanFull(),
-            ])
-            ->columns(2);
+            ]);
     }
 
     public static function table(Table $table): Table
@@ -106,7 +107,7 @@ class DivisionResource extends Resource
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()->slideOver()->modalWidth('md'),
                 DeleteAction::make(),
                 RestoreAction::make(),
                 ForceDeleteAction::make(),

@@ -10,7 +10,7 @@ return [
     ],
     'resignation_letter' => [
         'info'         => 'Surat Pengunduran Diri',
-        'not_required' => 'Tidak diperlukan jika karyawan yang bersangkutan habis kontrak',
+        'not_required' => 'Tidak diperlukan jika karyawan yang bersangkutan habis kontrak atau diselesaikan sepihak oleh perusahaan.',
     ],
     'fields' => [
         'name'           => 'Nama Lengkap',

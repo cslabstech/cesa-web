@@ -10,7 +10,7 @@ return [
     ],
     'resignation_letter' => [
         'info'         => 'Resignation Letter',
-        'not_required' => 'Not required if the employee\'s contract has expired',
+        'not_required' => 'Not required if the employee\'s contract has expired or the employment is terminated unilaterally by the company.',
     ],
     'fields' => [
         'name'           => 'Full Name',

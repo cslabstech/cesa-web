@@ -63,16 +63,17 @@ class ReferenceNoteResource extends Resource
                 TextInput::make('label')
                     ->label(__('form-transfer::filament/clusters/configurations/resources/reference-note.fields.label'))
                     ->maxLength(191)
-                    ->required(),
+                    ->required()
+                    ->columnSpanFull(),
                 Toggle::make('is_active')
                     ->label(__('form-transfer::filament/clusters/configurations/resources/reference-note.fields.is_active'))
-                    ->default(true),
+                    ->default(true)
+                    ->columnSpanFull(),
                 Textarea::make('description')
                     ->label(__('form-transfer::filament/clusters/configurations/resources/reference-note.fields.description'))
                     ->rows(3)
                     ->columnSpanFull(),
-            ])
-            ->columns(2);
+            ]);
     }
 
     public static function table(Table $table): Table
@@ -106,7 +107,7 @@ class ReferenceNoteResource extends Resource
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                EditAction::make()->slideOver(),
+                EditAction::make()->slideOver()->modalWidth('md'),
                 DeleteAction::make(),
                 RestoreAction::make(),
                 ForceDeleteAction::make(),
