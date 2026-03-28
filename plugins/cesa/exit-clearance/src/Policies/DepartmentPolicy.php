@@ -18,7 +18,8 @@ class DepartmentPolicy
 
     public function view(User $user, Department $department): bool
     {
-        return $user->can('view_exit_clearance_department');
+        return $user->can('view_exit_clearance_department')
+            && $this->hasAccess($user, $department, 'createdBy');
     }
 
     public function create(User $user): bool
@@ -32,7 +33,7 @@ class DepartmentPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $department);
+        return $this->hasAccess($user, $department, 'createdBy');
     }
 
     public function delete(User $user, Department $department): bool
@@ -41,7 +42,7 @@ class DepartmentPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $department);
+        return $this->hasAccess($user, $department, 'createdBy');
     }
 
     public function deleteAny(User $user): bool
@@ -55,7 +56,7 @@ class DepartmentPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $department);
+        return $this->hasAccess($user, $department, 'createdBy');
     }
 
     public function forceDeleteAny(User $user): bool
@@ -69,7 +70,7 @@ class DepartmentPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $department);
+        return $this->hasAccess($user, $department, 'createdBy');
     }
 
     public function restoreAny(User $user): bool

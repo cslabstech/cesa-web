@@ -5,9 +5,12 @@ namespace Cesa\ExitClearance\Filament\Resources;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Webkul\PluginManager\Package;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 abstract class ExitClearanceResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static BackedEnum|string|null $navigationIcon = null;
 
     protected static ?int $navigationSort = null;

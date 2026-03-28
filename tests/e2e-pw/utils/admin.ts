@@ -1,3 +1,16 @@
+export async function loginWithCredentials(
+    page: any,
+    credentials: { email: string; password: string }
+) {
+    await page.goto("/admin/login");
+    await page.fill('input[type="email"]', credentials.email);
+    await page.fill('input[type="password"]', credentials.password);
+    await page.press('input[type="password"]', "Enter");
+    await page.waitForNavigation();
+
+    return credentials;
+}
+
 export async function loginAsAdmin(page:any) {
     /**
      * Admin credentials.
@@ -10,10 +23,5 @@ export async function loginAsAdmin(page:any) {
     /**
      * Authenticate the admin user.
      */
-    await page.goto("/admin/login");
-    await page.fill('input[type="email"]', adminCredentials.email);
-    await page.fill('input[type="password"]', adminCredentials.password);
-    await page.press('input[type="password"]', "Enter");
-    await page.waitForNavigation();
-    return adminCredentials;
+    return loginWithCredentials(page, adminCredentials);
 }

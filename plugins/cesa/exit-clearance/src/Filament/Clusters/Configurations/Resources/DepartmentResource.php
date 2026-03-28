@@ -9,16 +9,20 @@ use Cesa\ExitClearance\Models\Department;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
-class DepartmentResource extends Resource
+class DepartmentResource extends ExitClearanceConfigurationResource
 {
     protected static ?string $model = Department::class;
 
@@ -62,7 +66,7 @@ class DepartmentResource extends Resource
                     ->maxLength(1000),
                 Select::make('approvers')
                     ->label(__('exit-clearance::filament/resources/department.fields.approvers'))
-                    ->relationship('approvers', 'name')
+                    ->relationship('approvers', 'name', modifyQueryUsing: fn (Builder $query): Builder => $query->applyPermissionScope())
                     ->multiple()
                     ->preload()
                     ->searchable()
@@ -98,11 +102,24 @@ class DepartmentResource extends Resource
                     ->sortable(),
             ])
             ->recordActions([
-                EditAction::make()->slideOver()->modalWidth('md'),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->slideOver()
+                    ->modalWidth('md')
+                    ->visible(fn (Department $record): bool => ! $record->trashed()),
+                DeleteAction::make()
+                    ->visible(fn (Department $record): bool => ! $record->trashed()),
+                RestoreAction::make()
+                    ->visible(fn (Department $record): bool => $record->trashed()),
+                ForceDeleteAction::make()
+                    ->visible(fn (Department $record): bool => $record->trashed()),
             ])
             ->bulkActions([
-                DeleteBulkAction::make(),
+                DeleteBulkAction::make()
+                    ->visible(fn ($livewire = null): bool => ! static::isArchivedTab($livewire)),
+                RestoreBulkAction::make()
+                    ->visible(fn ($livewire = null): bool => static::isArchivedTab($livewire)),
+                ForceDeleteBulkAction::make()
+                    ->visible(fn ($livewire = null): bool => static::isArchivedTab($livewire)),
             ])
             ->defaultSort('name');
     }

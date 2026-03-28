@@ -9,13 +9,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasPermissionScope;
 
 class Request extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasPermissionScope, SoftDeletes;
 
     protected ?string $originalResignationLetterPath = null;
 
@@ -68,6 +70,10 @@ class Request extends Model
     protected static function booted(): void
     {
         static::creating(function (Request $request): void {
+            if (empty($request->created_by) && Auth::id()) {
+                $request->created_by = Auth::id();
+            }
+
             if (empty($request->request_date)) {
                 $request->request_date = now()->toDateString();
             }
@@ -106,6 +112,16 @@ class Request extends Model
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class, 'department_id')->withTrashed();
+    }
+
+    protected function getOwnerColumn(): string
+    {
+        return 'created_by';
+    }
+
+    protected function getAssignmentColumn(): ?string
+    {
+        return null;
     }
 
     public function createdBy(): BelongsTo

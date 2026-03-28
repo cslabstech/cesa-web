@@ -18,7 +18,8 @@ class ApproverPolicy
 
     public function view(User $user, Approver $approver): bool
     {
-        return $user->can('view_exit_clearance_approver');
+        return $user->can('view_exit_clearance_approver')
+            && $this->hasAccess($user, $approver, 'createdBy');
     }
 
     public function create(User $user): bool
@@ -32,7 +33,7 @@ class ApproverPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $approver);
+        return $this->hasAccess($user, $approver, 'createdBy');
     }
 
     public function delete(User $user, Approver $approver): bool
@@ -41,7 +42,7 @@ class ApproverPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $approver);
+        return $this->hasAccess($user, $approver, 'createdBy');
     }
 
     public function deleteAny(User $user): bool
@@ -55,7 +56,7 @@ class ApproverPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $approver);
+        return $this->hasAccess($user, $approver, 'createdBy');
     }
 
     public function forceDeleteAny(User $user): bool
@@ -69,7 +70,7 @@ class ApproverPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $approver);
+        return $this->hasAccess($user, $approver, 'createdBy');
     }
 
     public function restoreAny(User $user): bool

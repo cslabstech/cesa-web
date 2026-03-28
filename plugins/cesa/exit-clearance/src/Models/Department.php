@@ -9,11 +9,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasPermissionScope;
 
 class Department extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasPermissionScope, SoftDeletes;
 
     protected $table = 'exit_clearance_departments';
 
@@ -30,6 +32,25 @@ class Department extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Department $department): void {
+            if (empty($department->created_by) && Auth::id()) {
+                $department->created_by = Auth::id();
+            }
+        });
+    }
+
+    protected function getOwnerColumn(): string
+    {
+        return 'created_by';
+    }
+
+    protected function getAssignmentColumn(): ?string
+    {
+        return null;
+    }
 
     /**
      * Get the user who created this department.

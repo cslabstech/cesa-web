@@ -7,11 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasPermissionScope;
 
 class Approver extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasPermissionScope, SoftDeletes;
 
     protected $table = 'exit_clearance_approvers';
 
@@ -28,6 +30,25 @@ class Approver extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Approver $approver): void {
+            if (empty($approver->created_by) && Auth::id()) {
+                $approver->created_by = Auth::id();
+            }
+        });
+    }
+
+    protected function getOwnerColumn(): string
+    {
+        return 'created_by';
+    }
+
+    protected function getAssignmentColumn(): ?string
+    {
+        return null;
+    }
 
     public function createdBy(): BelongsTo
     {

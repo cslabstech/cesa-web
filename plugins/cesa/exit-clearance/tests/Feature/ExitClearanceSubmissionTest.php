@@ -64,6 +64,20 @@ class ExitClearanceSubmissionTest extends ExitClearanceTestCase
         ]);
     }
 
+    public function test_create_public_request_keeps_created_by_null_for_guest_submission(): void
+    {
+        $service = app(ExitClearanceRequestService::class);
+        $department = Department::factory()->create();
+
+        $request = $service->createPublicRequest([
+            'department_id' => $department->id,
+            'name'          => 'Guest Submitter',
+            'email'         => 'guest.submitter@example.com',
+        ]);
+
+        $this->assertNull($request->created_by);
+    }
+
     public function test_sync_overall_status_updates_request_status_from_approver_pivots(): void
     {
         $service = app(ExitClearanceRequestService::class);

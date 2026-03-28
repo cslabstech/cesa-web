@@ -5,6 +5,7 @@ namespace Cesa\ExitClearance\Tests\Feature;
 use Cesa\ExitClearance\Filament\Resources\RequestResource\Pages\ListRequests;
 use Cesa\ExitClearance\Models\Request;
 use Cesa\ExitClearance\Tests\ExitClearanceTestCase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 use Webkul\Security\Models\User as SecurityUser;
@@ -55,6 +56,17 @@ class RequestListFiltersTest extends ExitClearanceTestCase
                 return in_array($ability, $this->grantedAbilities, true);
             }
         };
+
+        DB::table('users')->updateOrInsert(
+            ['id' => 1],
+            [
+                'name'       => 'Exit Clearance Test User',
+                'email'      => 'exit-clearance-test@example.com',
+                'password'   => bcrypt('password'),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
 
         $user->id = 1;
         $user->grantedAbilities = $abilities;
