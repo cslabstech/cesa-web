@@ -4,6 +4,7 @@ namespace Cesa\ExitClearance\Tests\Feature;
 
 use Cesa\ExitClearance\Livewire\PublicExitClearanceApprovalPage;
 use Cesa\ExitClearance\Livewire\PublicExitClearanceProgressPage;
+use Cesa\ExitClearance\Livewire\PublicExitClearanceRequestForm;
 use Cesa\ExitClearance\Models\Approver;
 use Cesa\ExitClearance\Models\Request;
 use Cesa\ExitClearance\Tests\ExitClearanceTestCase;
@@ -50,5 +51,17 @@ class PublicExitClearancePagesTest extends ExitClearanceTestCase
             'request'  => $request->id,
             'approver' => $approver->id,
         ])->assertSee('EXC-12345');
+    }
+
+    public function test_next_step_validation_dispatches_feedback_events_on_the_public_form(): void
+    {
+        Livewire::test(PublicExitClearanceRequestForm::class)
+            ->set('currentStep', 2)
+            ->call('nextStep')
+            ->assertSet('currentStep', 2)
+            ->assertHasErrors([
+                'data.name',
+            ])
+            ->assertDispatched('form-errors-presented');
     }
 }

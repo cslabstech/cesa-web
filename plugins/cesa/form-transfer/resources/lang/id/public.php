@@ -9,7 +9,7 @@ return [
     'form' => [
         'heading'       => 'FORM PENGAJUAN TRANSFER - :form',
         'description'   => 'Isi informasi berikut untuk mengajukan permintaan transfer :form.',
-        'submit'        => 'Kirim Permintaan',
+        'submit'        => 'Kirim Pengajuan',
         'placeholders'  => [
             'email'           => 'Masukkan email',
             'requester_name'  => 'Masukkan nama pemohon',

@@ -289,15 +289,56 @@ class RequestManPowerSubmittedNotification extends Notification
     {
         return (new MailMessage)
             ->subject(__('rekrutmen::mail/request-man-power-submitted.subject'))
-            ->greeting(__('rekrutmen::mail/request-man-power-submitted.greeting', ['name' => $this->requestManPower->nama_pengaju]))
-            ->line(__('rekrutmen::mail/request-man-power-submitted.body'))
-            ->line(__('rekrutmen::mail/request-man-power-submitted.position', ['value' => $this->requestManPower->posisi_dibutuhkan]))
-            ->line(__('rekrutmen::mail/request-man-power-submitted.requirement_status', ['value' => $this->requestManPower->status_kebutuhan->getLabel()]))
-            ->line(__('rekrutmen::mail/request-man-power-submitted.submission_id', ['id' => $this->requestManPower->status_response_id]))
             ->action(
                 __('rekrutmen::mail/request-man-power-submitted.view_progress'),
                 $this->requestManPower->getPublicProgressUrl(),
-            );
+            )
+            ->view('rekrutmen::mail.request-man-power-submitted', [
+                'request'     => $this->requestManPower,
+                'summary'     => $this->buildSummary(),
+                'progressUrl' => $this->requestManPower->getPublicProgressUrl(),
+            ]);
+    }
+
+    /**
+     * @return array<int, array{label: string, value: string}>
+     */
+    private function buildSummary(): array
+    {
+        return [
+            [
+                'label' => __('rekrutmen::mail/request-man-power-submitted.summary_fields.submission_id'),
+                'value' => $this->requestManPower->status_response_id ?? '-',
+            ],
+            [
+                'label' => __('rekrutmen::mail/request-man-power-submitted.summary_fields.submission_date'),
+                'value' => $this->requestManPower->getTanggalPengajuanFormattedAttribute(),
+            ],
+            [
+                'label' => __('rekrutmen::mail/request-man-power-submitted.summary_fields.applicant'),
+                'value' => $this->requestManPower->nama_pengaju ?? '-',
+            ],
+            [
+                'label' => __('rekrutmen::mail/request-man-power-submitted.summary_fields.position'),
+                'value' => $this->requestManPower->posisi_dibutuhkan ?? '-',
+            ],
+            [
+                'label' => __('rekrutmen::mail/request-man-power-submitted.summary_fields.requirement'),
+                'value' => $this->requestManPower->status_kebutuhan?->getLabel() ?? '-',
+            ],
+            [
+                'label' => __('rekrutmen::mail/request-man-power-submitted.summary_fields.division'),
+                'value' => $this->requestManPower->divisi ?? '-',
+            ],
+            [
+                'label' => __('rekrutmen::mail/request-man-power-submitted.summary_fields.business_entity'),
+                'value' => $this->requestManPower->badan_usaha ?? '-',
+            ],
+            [
+                'label' => __('rekrutmen::mail/request-man-power-submitted.summary_fields.estimated_join'),
+                'value' => $this->requestManPower->getEstimasiTanggalJoinFormattedAttribute(),
+            ],
+        ];
     }
 }
 
@@ -316,22 +357,60 @@ class RequestManPowerStatusChangedNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $mail = (new MailMessage)
+        return (new MailMessage)
             ->subject(__('rekrutmen::mail/request-man-power-status-changed.subject'))
-            ->greeting(__('rekrutmen::mail/request-man-power-status-changed.greeting', ['name' => $this->requestManPower->nama_pengaju]))
-            ->line(__('rekrutmen::mail/request-man-power-status-changed.body'))
-            ->line(__('rekrutmen::mail/request-man-power-status-changed.position', ['value' => $this->requestManPower->posisi_dibutuhkan]))
-            ->line(__('rekrutmen::mail/request-man-power-status-changed.latest_status', ['value' => $this->toStatus->getLabel()]));
-
-        if ($this->fromStatus) {
-            $mail->line(__('rekrutmen::mail/request-man-power-status-changed.previous_status', ['value' => $this->fromStatus->getLabel()]));
-        }
-
-        return $mail
-            ->line(__('rekrutmen::mail/request-man-power-status-changed.submission_id', ['id' => $this->requestManPower->status_response_id]))
             ->action(
                 __('rekrutmen::mail/request-man-power-status-changed.view_progress'),
                 $this->requestManPower->getPublicProgressUrl(),
-            );
+            )
+            ->view('rekrutmen::mail.request-man-power-status-changed', [
+                'request'     => $this->requestManPower,
+                'summary'     => $this->buildSummary(),
+                'progressUrl' => $this->requestManPower->getPublicProgressUrl(),
+            ]);
+    }
+
+    /**
+     * @return array<int, array{label: string, value: string}>
+     */
+    private function buildSummary(): array
+    {
+        $summary = [
+            [
+                'label' => __('rekrutmen::mail/request-man-power-status-changed.summary_fields.submission_id'),
+                'value' => $this->requestManPower->status_response_id ?? '-',
+            ],
+            [
+                'label' => __('rekrutmen::mail/request-man-power-status-changed.summary_fields.applicant'),
+                'value' => $this->requestManPower->nama_pengaju ?? '-',
+            ],
+            [
+                'label' => __('rekrutmen::mail/request-man-power-status-changed.summary_fields.position'),
+                'value' => $this->requestManPower->posisi_dibutuhkan ?? '-',
+            ],
+            [
+                'label' => __('rekrutmen::mail/request-man-power-status-changed.summary_fields.latest_status'),
+                'value' => $this->toStatus->getLabel(),
+            ],
+        ];
+
+        if ($this->fromStatus) {
+            $summary[] = [
+                'label' => __('rekrutmen::mail/request-man-power-status-changed.summary_fields.previous_status'),
+                'value' => $this->fromStatus->getLabel(),
+            ];
+        }
+
+        $summary[] = [
+            'label' => __('rekrutmen::mail/request-man-power-status-changed.summary_fields.division'),
+            'value' => $this->requestManPower->divisi ?? '-',
+        ];
+
+        $summary[] = [
+            'label' => __('rekrutmen::mail/request-man-power-status-changed.summary_fields.business_entity'),
+            'value' => $this->requestManPower->badan_usaha ?? '-',
+        ];
+
+        return $summary;
     }
 }

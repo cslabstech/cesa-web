@@ -48,6 +48,11 @@
                     4 => __('exit-clearance::filament/resources/request.steps.exit_clearance'),
                     default => null,
                 };
+                $fieldErrorMessages = collect($errors->getMessages())
+                    ->except(['data', 'data.recaptcha_token'])
+                    ->flatten()
+                    ->unique()
+                    ->values();
             @endphp
 
             <form
@@ -60,6 +65,7 @@
                 x-on:submit.prevent="handleSubmit"
                 x-on:form-processing-started="isProcessing = true"
                 x-on:form-processing-finished="isProcessing = false"
+                x-on:form-errors-presented.window="handleErrorsPresented"
             >
                 <div class="mb-4 rounded-lg border-t-[10px] cesa-primary-border bg-white shadow-sm">
                     <div class="px-6 pt-5 pb-6">
@@ -75,17 +81,10 @@
                     </div>
                 </div>
 
-                @error('data')
-                    <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                        {{ $message }}
-                    </div>
-                @enderror
-
-                @error('data.recaptcha_token')
-                    <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                        {{ $message }}
-                    </div>
-                @enderror
+                @include('exit-clearance::livewire.partials._error-summary', [
+                    'validationTitle' => __('exit-clearance::livewire/public-exit-clearance-request-form.validation.title'),
+                    'validationBody'  => __('exit-clearance::livewire/public-exit-clearance-request-form.validation.body'),
+                ])
 
                 <div class="space-y-4">
                     <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
@@ -155,6 +154,20 @@
                         siteKey,
                         action,
                         isProcessing: false,
+                        handleErrorsPresented() {
+                            this.isProcessing = false;
+
+                            this.$nextTick(() => {
+                                const summary = this.$refs.errorSummary;
+
+                                if (! summary) {
+                                    return;
+                                }
+
+                                summary.focus({ preventScroll: true });
+                                summary.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            });
+                        },
                         handleSubmit() {
                             if (this.isProcessing) {
                                 return;

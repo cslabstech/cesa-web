@@ -84,6 +84,8 @@ class PublicRequestManPowerForm extends SimplePage
             && filled($this->recaptchaSiteKey)
             && filled($this->recaptchaSecretKey);
 
+        $this->data['tanggal_pengajuan'] ??= now()->toDateString();
+
         if ($this->recaptchaEnabled) {
             $this->data['recaptcha_token'] = null;
         }
@@ -195,7 +197,15 @@ class PublicRequestManPowerForm extends SimplePage
     {
         $this->dispatch('form-processing-started');
 
-        $state = $this->form->getState();
+        try {
+            $state = $this->form->getState();
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->errors());
+            $this->handleValidationError();
+            $this->dispatch('form-processing-finished');
+
+            return null;
+        }
 
         if ($this->recaptchaEnabled && ! $this->verifyRecaptchaToken($state)) {
             $this->handleValidationError();
@@ -217,6 +227,7 @@ class PublicRequestManPowerForm extends SimplePage
 
         try {
             $dataToSave = Arr::except($state, ['recaptcha_token']);
+            $dataToSave['tanggal_pengajuan'] = $dataToSave['tanggal_pengajuan'] ?? now()->toDateString();
 
             $rmp = RequestManPower::create($dataToSave);
 
@@ -249,6 +260,7 @@ class PublicRequestManPowerForm extends SimplePage
             ]);
 
             $this->addError('data', __('rekrutmen::livewire/public-request-man-power-form.errors.system'));
+            $this->dispatch('form-errors-presented');
             $this->dispatch('form-processing-finished');
 
             return null;
@@ -258,12 +270,11 @@ class PublicRequestManPowerForm extends SimplePage
             ]);
 
             $this->addError('data', __('rekrutmen::livewire/public-request-man-power-form.errors.system'));
+            $this->dispatch('form-errors-presented');
             $this->dispatch('form-processing-finished');
 
             return null;
         }
-
-        return null;
     }
 
     protected function getFormActions(): array
@@ -298,6 +309,8 @@ class PublicRequestManPowerForm extends SimplePage
 
     protected function handleValidationError(): void
     {
+        $this->dispatch('form-errors-presented');
+
         Notification::make()
             ->title(__('rekrutmen::livewire/public-request-man-power-form.notifications.validation.title'))
             ->body(__('rekrutmen::livewire/public-request-man-power-form.notifications.validation.body'))

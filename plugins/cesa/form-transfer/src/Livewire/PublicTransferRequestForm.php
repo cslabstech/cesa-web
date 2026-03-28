@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
 use League\Flysystem\UnableToRetrieveMetadata;
 use Throwable;
 use Webkul\PluginManager\Package;
@@ -253,14 +254,22 @@ class PublicTransferRequestForm extends SimplePage
 
     public function submit(): mixed
     {
+        $this->dispatch('form-processing-started');
+
         if ($this->isRateLimited()) {
+            $this->dispatch('form-processing-finished');
+
             return null;
         }
 
-        $this->dispatch('form-processing-started');
-
         try {
             $state = $this->form->getState();
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->errors());
+            $this->handleValidationError();
+            $this->dispatch('form-processing-finished');
+
+            return null;
         } catch (Throwable $exception) {
             if (! $this->isTemporaryUploadMetadataException($exception)) {
                 throw $exception;
@@ -401,6 +410,8 @@ class PublicTransferRequestForm extends SimplePage
                 'error' => $exception->getMessage(),
             ]);
 
+            $this->addError('data', __('form-transfer::public.form.notifications.error.body'));
+            $this->dispatch('form-errors-presented');
             $this->dispatch('form-processing-finished');
 
             Notification::make()
@@ -470,6 +481,9 @@ class PublicTransferRequestForm extends SimplePage
     {
         return Action::make('submit')
             ->label(__('form-transfer::public.form.submit'))
+            ->extraAttributes([
+                'class' => '!bg-primary-700 !text-white shadow-sm hover:!bg-primary-800 hover:!text-white focus-visible:!ring-primary-300',
+            ], merge: true)
             ->submit('submit');
     }
 
@@ -730,6 +744,8 @@ class PublicTransferRequestForm extends SimplePage
 
     protected function handleValidationError(): void
     {
+        $this->dispatch('form-errors-presented');
+
         Notification::make()
             ->title(__('form-transfer::public.form.notifications.validation.title'))
             ->body(__('form-transfer::public.form.notifications.validation.body'))
@@ -873,6 +889,7 @@ class PublicTransferRequestForm extends SimplePage
         $this->addError('rate_limit', __('form-transfer::filament/resources/transfer-request/validation.rate_limited', [
             'seconds' => $secondsRemaining,
         ]));
+        $this->dispatch('form-errors-presented');
 
         return true;
     }

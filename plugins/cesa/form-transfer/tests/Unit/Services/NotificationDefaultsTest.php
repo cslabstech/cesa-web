@@ -28,6 +28,10 @@ class NotificationDefaultsTest extends FormTransferTestCase
             TransferApprovalNotificationService::getDefaultRequesterMailTemplate(),
             $defaults['requester_mail_template']
         );
+        $this->assertStringContainsString('<!DOCTYPE html>', $defaults['approver_mail_template']);
+        $this->assertStringContainsString('{{ summary_table }}', $defaults['approver_mail_template']);
+        $this->assertStringContainsString('{{ approvals_table }}', $defaults['requester_mail_template']);
+        $this->assertStringContainsString('{{ action_button }}', $defaults['requester_mail_template']);
 
         foreach ($defaults as $value) {
             $this->assertNotSame('', trim($value));

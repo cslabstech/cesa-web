@@ -76,21 +76,12 @@ class TransferApprovalNotificationService
     ];
 
     /**
-     * Get the default plain-text template for approver email content.
+     * Get the default HTML template for approver email content.
      */
     public static function getDefaultApproverMailTemplate(): string
     {
-        return implode("\n", [
-            'Mohon tinjau pengajuan transfer berikut:',
-            'UID: {{ uid }}',
-            'Nama Pemohon: {{ requester_name }}',
-            'Divisi: {{ division }}',
-            'Jumlah Transfer: Rp {{ transfer_amount }}',
-            'Keperluan: {{ purpose }}',
-            'Status saat ini: {{ status }}',
-            'Daftar approver:',
-            '{{ approver_list }}',
-            'Terima kasih.',
+        return self::buildDefaultMailTemplate('approval', [
+            'approver' => '{{ approver_name }}',
         ]);
     }
 
@@ -98,47 +89,115 @@ class TransferApprovalNotificationService
     {
         $prefix = config('form-transfer.notifications.mail.subject_prefix', '[Transfer Request]');
 
-        return "{$prefix} Approval Required - {{ title }}";
+        return __('form-transfer::mail.approval.subject', [
+            'prefix' => $prefix,
+            'title'  => '{{ title }}',
+        ]);
     }
 
     public static function getDefaultApproverMailGreeting(): string
     {
-        return 'Halo {{ approver_name }},';
+        return __('form-transfer::mail.approval.greeting', [
+            'name' => '{{ approver_name }}',
+        ]);
     }
 
     public static function getDefaultApproverMailActionText(): string
     {
-        return 'Buka Halaman Approval';
+        return __('form-transfer::mail.approval.action_text');
     }
 
     /**
-     * Get the default plain-text template for requester email content.
+     * Get the default HTML template for requester email content.
      */
     public static function getDefaultRequesterMailTemplate(): string
     {
-        return implode("\n", [
-            'Status pengajuan transfer Anda diperbarui menjadi: {{ status_label }}',
-            'UID: {{ uid }}',
-            'Divisi: {{ division }}',
-            'Jumlah Transfer: Rp {{ transfer_amount }}',
+        return self::buildDefaultMailTemplate('status', [
+            'status' => '{{ status_label }}',
         ]);
+    }
+
+    /**
+     * Build a default mail HTML template for the given lang key prefix.
+     *
+     * @param  array<string, string>  $introReplacements
+     */
+    private static function buildDefaultMailTemplate(string $langPrefix, array $introReplacements = []): string
+    {
+        $heading = e(__('form-transfer::mail.'.$langPrefix.'.heading'));
+        $intro = e(__('form-transfer::mail.'.$langPrefix.'.intro', $introReplacements));
+        $summaryHeading = e(__('form-transfer::mail.'.$langPrefix.'.summary_heading'));
+        $approvalsHeading = e(__('form-transfer::mail.'.$langPrefix.'.approvals_heading'));
+        $progressHint = e(__('form-transfer::mail.'.$langPrefix.'.progress_hint'));
+        $progressLink = e(__('form-transfer::mail.'.$langPrefix.'.progress_link'));
+
+        return <<<HTML
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+  </head>
+  <body style="margin:0; padding:0; font-family: Arial, sans-serif; color:#333;">
+    <table cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td width="100%" style="background:#f2f2f2; padding:24px;">
+          <table cellpadding="0" cellspacing="0" width="100%" style="background:#fff; border-radius:6px; overflow:hidden;">
+            <tr>
+              <td style="background:#B32324; color:#fff; text-align:center; padding:18px 24px;">
+                <h1 style="margin:0; font-size:20px; color:#fff;">{$heading}</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px;">
+                <p style="margin-top:0;">{$intro}</p>
+                <p style="margin:16px 0 8px; font-weight:bold;">{$summaryHeading}</p>
+                {{ summary_table }}
+                <p style="margin:16px 0 8px; font-weight:bold;">{$approvalsHeading}</p>
+                {{ approvals_table }}
+                <table style="width:100%; margin:16px 0;" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="text-align:left;">
+                      {{ action_button }}
+                    </td>
+                  </tr>
+                </table>
+                <p>
+                  <small>
+                    {$progressHint} <a href="{{ progress_url }}" target="_blank">{$progressLink}</a>.
+                  </small>
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+HTML;
     }
 
     public static function getDefaultRequesterMailSubject(): string
     {
         $prefix = config('form-transfer.notifications.mail.subject_prefix', '[Transfer Request]');
 
-        return "{$prefix} {{ title }} - {{ status_label }}";
+        return __('form-transfer::mail.status.subject', [
+            'prefix' => $prefix,
+            'title'  => '{{ title }}',
+            'status' => '{{ status_label }}',
+        ]);
     }
 
     public static function getDefaultRequesterMailGreeting(): string
     {
-        return 'Halo {{ requester_name }},';
+        return __('form-transfer::mail.status.greeting', [
+            'name' => '{{ requester_name }}',
+        ]);
     }
 
     public static function getDefaultRequesterMailActionText(): string
     {
-        return 'Lihat Progres Approval';
+        return __('form-transfer::mail.status.action_text');
     }
 
     /**
@@ -336,31 +395,35 @@ class TransferApprovalNotificationService
         $baseVariables = $this->buildApproverTemplateVariables($summary, $approval, $approvals, $actionUrl, $progressUrl);
 
         $defaultSubject = $this->buildApproverMailSubject($request);
-        $defaultGreeting = 'Halo '.($baseVariables['approver_name'] ?? 'Approver').',';
-        $defaultActionText = 'Buka Halaman Approval';
+        $defaultGreeting = $this->renderTemplate(self::getDefaultApproverMailGreeting(), $baseVariables)
+            ?? ('Halo '.($baseVariables['approver_name'] ?? 'Approver').',');
+        $defaultActionText = $this->renderTemplate(self::getDefaultApproverMailActionText(), $baseVariables)
+            ?? 'Buka Halaman Approval';
         $defaultLines = [
-            'Mohon tinjau pengajuan transfer berikut:',
-            'UID: '.$summary['uid'],
-            'Nama Pemohon: '.$summary['requester_name'],
-            'Divisi: '.$summary['division'],
-            'Jumlah Transfer: Rp '.$summary['transfer_amount'],
-            'Keperluan: '.$summary['purpose'],
-            'Status saat ini: '.$summary['status'],
-            'Daftar approver:',
+            __('form-transfer::mail.approval.plain.intro'),
+            __('form-transfer::mail.approval.plain.uid', ['uid' => $summary['uid']]),
+            __('form-transfer::mail.approval.plain.requester', ['requester' => $summary['requester_name']]),
+            __('form-transfer::mail.approval.plain.division', ['division' => $summary['division']]),
+            __('form-transfer::mail.approval.plain.amount', ['amount' => $summary['transfer_amount']]),
+            __('form-transfer::mail.approval.plain.purpose', ['purpose' => $summary['purpose']]),
+            __('form-transfer::mail.approval.plain.status', ['status' => $summary['status']]),
+            __('form-transfer::mail.approval.plain.approvers'),
             $baseVariables['approver_list'] ?? '',
-            'Terima kasih.',
+            __('form-transfer::mail.approval.plain.thanks'),
         ];
 
         $actionText = $this->renderTemplate($form?->approver_mail_action_text, $baseVariables) ?? $defaultActionText;
+        $greeting = $this->renderTemplate($form?->approver_mail_greeting, $baseVariables) ?? $defaultGreeting;
         $variables = array_merge($baseVariables, [
+            'greeting'      => $greeting,
             'action_text'   => $actionText,
             'action_button' => $this->buildActionButton($actionUrl, $actionText),
         ]);
 
         $subject = $this->renderTemplate($form?->approver_mail_subject, $variables) ?? $defaultSubject;
-        $greeting = $this->renderTemplate($form?->approver_mail_greeting, $variables) ?? $defaultGreeting;
         $body = $this->prepareMailBody(
-            $this->renderTemplate($form?->approver_mail_template, $variables),
+            $this->renderTemplate($form?->approver_mail_template, $variables)
+                ?? $this->renderTemplate(self::getDefaultApproverMailTemplate(), $variables),
             $defaultLines
         );
 
@@ -381,25 +444,29 @@ class TransferApprovalNotificationService
         $baseVariables = $this->buildRequesterTemplateVariables($summary, $statusLabel, $progressUrl, $request->approvals ?? []);
 
         $defaultSubject = $this->buildRequesterMailSubject($request, $statusLabel);
-        $defaultGreeting = 'Halo '.$summary['requester_name'].',';
-        $defaultActionText = 'Lihat Progres Approval';
+        $defaultGreeting = $this->renderTemplate(self::getDefaultRequesterMailGreeting(), $baseVariables)
+            ?? ('Halo '.$summary['requester_name'].',');
+        $defaultActionText = $this->renderTemplate(self::getDefaultRequesterMailActionText(), $baseVariables)
+            ?? 'Lihat Progres Approval';
         $defaultLines = [
-            'Status pengajuan transfer Anda diperbarui menjadi: '.$statusLabel,
-            'UID: '.$summary['uid'],
-            'Divisi: '.$summary['division'],
-            'Jumlah Transfer: Rp '.$summary['transfer_amount'],
+            __('form-transfer::mail.status.plain.intro', ['status' => $statusLabel]),
+            __('form-transfer::mail.status.plain.uid', ['uid' => $summary['uid']]),
+            __('form-transfer::mail.status.plain.division', ['division' => $summary['division']]),
+            __('form-transfer::mail.status.plain.amount', ['amount' => $summary['transfer_amount']]),
         ];
 
         $actionText = $this->renderTemplate($form?->requester_mail_action_text, $baseVariables) ?? $defaultActionText;
+        $greeting = $this->renderTemplate($form?->requester_mail_greeting, $baseVariables) ?? $defaultGreeting;
         $variables = array_merge($baseVariables, [
+            'greeting'      => $greeting,
             'action_text'   => $actionText,
             'action_button' => $this->buildActionButton($progressUrl, $actionText),
         ]);
 
         $subject = $this->renderTemplate($form?->requester_mail_subject, $variables) ?? $defaultSubject;
-        $greeting = $this->renderTemplate($form?->requester_mail_greeting, $variables) ?? $defaultGreeting;
         $body = $this->prepareMailBody(
-            $this->renderTemplate($form?->requester_mail_template, $variables),
+            $this->renderTemplate($form?->requester_mail_template, $variables)
+                ?? $this->renderTemplate(self::getDefaultRequesterMailTemplate(), $variables),
             $defaultLines
         );
 
@@ -417,7 +484,10 @@ class TransferApprovalNotificationService
         $prefix = config('form-transfer.notifications.mail.subject_prefix', '[Transfer Request]');
         $formName = $request->formTransfer?->name ?? 'Form Transfer';
 
-        return "{$prefix} Approval Required - {$formName}";
+        return __('form-transfer::mail.approval.subject', [
+            'prefix' => $prefix,
+            'title'  => $formName,
+        ]);
     }
 
     protected function buildRequesterMailSubject(TransferRequest $request, string $statusLabel): string
@@ -425,7 +495,11 @@ class TransferApprovalNotificationService
         $prefix = config('form-transfer.notifications.mail.subject_prefix', '[Transfer Request]');
         $formName = $request->formTransfer?->name ?? 'Form Transfer';
 
-        return sprintf('%s %s - %s', $prefix, $formName, $statusLabel);
+        return __('form-transfer::mail.status.subject', [
+            'prefix' => $prefix,
+            'title'  => $formName,
+            'status' => $statusLabel,
+        ]);
     }
 
     public function getRequestSummary(TransferRequest $request): array

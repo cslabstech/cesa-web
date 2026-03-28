@@ -150,10 +150,14 @@ class RequestManPowerTest extends RekrutmenTestCase
             RequestManPowerStatus::APPROVED,
         ))->toMail(new \stdClass);
 
+        $this->assertSame('rekrutmen::mail.request-man-power-submitted', $submittedMail->view);
+        $this->assertSame('rekrutmen::mail.request-man-power-status-changed', $statusChangedMail->view);
         $this->assertSame($request->getPublicProgressUrl(), $submittedMail->actionUrl);
         $this->assertSame(__('rekrutmen::mail/request-man-power-submitted.view_progress'), $submittedMail->actionText);
         $this->assertSame($request->getPublicProgressUrl(), $statusChangedMail->actionUrl);
         $this->assertSame(__('rekrutmen::mail/request-man-power-status-changed.view_progress'), $statusChangedMail->actionText);
+        $this->assertNotEmpty($submittedMail->viewData['summary'] ?? []);
+        $this->assertNotEmpty($statusChangedMail->viewData['summary'] ?? []);
     }
 
     public function test_soft_deleted_relations_remain_readable(): void

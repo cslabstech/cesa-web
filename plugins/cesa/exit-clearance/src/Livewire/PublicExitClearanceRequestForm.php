@@ -21,6 +21,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Throwable;
@@ -99,7 +100,14 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
 
     public function nextStep(): void
     {
-        $this->validateCurrentStep();
+        try {
+            $this->validateCurrentStep();
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->errors());
+            $this->handleValidationError();
+
+            return;
+        }
 
         if ($this->currentStep < $this->totalSteps) {
             $this->currentStep++;
@@ -412,7 +420,15 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
     {
         $this->dispatch('form-processing-started');
 
-        $state = $this->form->getState();
+        try {
+            $state = $this->form->getState();
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->errors());
+            $this->handleValidationError();
+            $this->dispatch('form-processing-finished');
+
+            return null;
+        }
 
         if ($this->recaptchaEnabled && ! $this->verifyRecaptchaToken($state)) {
             $this->handleValidationError();
@@ -486,6 +502,8 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
                 'error' => $exception->getMessage(),
             ]);
 
+            $this->addError('data', __('exit-clearance::livewire/public-exit-clearance-request-form.notifications.submit_failed.body'));
+            $this->dispatch('form-errors-presented');
             $this->dispatch('form-processing-finished');
 
             Notification::make()
@@ -552,6 +570,8 @@ class PublicExitClearanceRequestForm extends Component implements HasForms
 
     protected function handleValidationError(): void
     {
+        $this->dispatch('form-errors-presented');
+
         Notification::make()
             ->title(__('exit-clearance::livewire/public-exit-clearance-request-form.validation.title'))
             ->body(__('exit-clearance::livewire/public-exit-clearance-request-form.validation.body'))
