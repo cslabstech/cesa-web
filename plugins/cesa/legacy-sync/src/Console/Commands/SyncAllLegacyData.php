@@ -14,7 +14,10 @@ class SyncAllLegacyData extends Command
                             {--port= : Override legacy DB port}
                             {--username= : Override legacy DB username}
                             {--password= : Override legacy DB password}
-                            {--old-database=app_old : Source database for form-transfer and exit-clearance}
+                            {--document-database=app_cesa : Source database for document}
+                            {--form-transfer-database=app_cesa : Source database for form-transfer}
+                            {--exit-clearance-database=app_cesa : Source database for exit-clearance}
+                            {--lead-database=app_lead : Source database for lead}
                             {--presensi-database=app_presensi : Source database for presensi}
                             {--shelf-database=app_shelf : Source database for shelf}
                             {--helpdesk-database=app_helpdesk : Source database for helpdesk}
@@ -33,8 +36,10 @@ class SyncAllLegacyData extends Command
      */
     protected array $pluginsToInstall = [
         'kepegawaian',
+        'document',
         'exit-clearance',
         'form-transfer',
+        'lead',
         'presensi',
         'payroll',
         'shelf',
@@ -133,8 +138,20 @@ class SyncAllLegacyData extends Command
     {
         return [
             [
-                'database' => (string) $this->option('old-database'),
-                'modules'  => ['form-transfer', 'exit-clearance'],
+                'database' => (string) $this->option('document-database'),
+                'modules'  => ['document'],
+            ],
+            [
+                'database' => (string) $this->option('form-transfer-database'),
+                'modules'  => ['form-transfer'],
+            ],
+            [
+                'database' => (string) $this->option('exit-clearance-database'),
+                'modules'  => ['exit-clearance'],
+            ],
+            [
+                'database' => (string) $this->option('lead-database'),
+                'modules'  => ['lead'],
             ],
             [
                 'database' => (string) $this->option('presensi-database'),

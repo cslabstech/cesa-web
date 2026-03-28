@@ -179,10 +179,11 @@ class AssetTransfer extends ShelfModel
 
     private static function isCustodianUser(User $user): bool
     {
-        $candidates = [
-            $user->name,
-            $user->jobTitle?->title,
-        ];
+        $candidates = [$user->name];
+
+        if (User::supportsJobTitles()) {
+            $candidates[] = $user->jobTitle?->title;
+        }
 
         foreach ($candidates as $candidate) {
             if (! is_string($candidate)) {

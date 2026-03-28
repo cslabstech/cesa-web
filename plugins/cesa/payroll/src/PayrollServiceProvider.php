@@ -34,8 +34,10 @@ class PayrollServiceProvider extends PackageServiceProvider
                 '2026_02_09_000002_create_payroll_records_table',
             ])
             ->runsMigrations()
-            ->hasInstallCommand(function (InstallCommand $command) {
-                $command->runsMigrations();
+            ->hasInstallCommand(function (InstallCommand $command): void {
+                $command
+                    ->installDependencies()
+                    ->runsMigrations();
             })
             ->hasUninstallCommand(function (UninstallCommand $command) {});
     }

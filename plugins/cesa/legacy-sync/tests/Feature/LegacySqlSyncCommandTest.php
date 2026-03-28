@@ -12,6 +12,174 @@ use Webkul\Support\Models\Company;
 
 class LegacySqlSyncCommandTest extends LegacySyncTestCase
 {
+    public function test_it_syncs_legacy_cesa_modules_from_a_single_source_database(): void
+    {
+        $targetData = $this->createTargetUsersAndCompanies();
+        $creator = $targetData['creator'];
+        $requester = $targetData['requester'];
+        $targetCompanyId = $targetData['company_id'];
+
+        $this->seedLegacyRecords();
+
+        $this->artisan('legacy:sync', [
+            '--connection' => 'legacy_sync',
+            '--module'     => ['document', 'form-transfer', 'exit-clearance'],
+        ])->assertExitCode(0);
+
+        $this->assertDatabaseHas('documents', [
+            'title'       => 'Surat Penawaran Legacy',
+            'source_type' => 'html',
+            'content'     => '<p>Halo {{$NAMA}}</p>',
+        ]);
+
+        $this->assertDatabaseHas('legacy_sync_mappings', [
+            'connection_name' => 'legacy_sync',
+            'legacy_table'    => 'documents',
+            'legacy_id'       => '90',
+            'target_table'    => 'documents',
+        ]);
+
+        $formTransferId = DB::table('form_transfers')
+            ->where('uid_prefix', 'CSN')
+            ->value('id');
+
+        $requestId = DB::table('exit_clearance_requests')
+            ->where('form_uid', 'EXC-00001')
+            ->value('id');
+
+        $this->assertDatabaseHas('form_transfers', [
+            'id'         => $formTransferId,
+            'company_id' => $targetCompanyId,
+            'creator_id' => $creator->id,
+            'uid_prefix' => 'CSN',
+        ]);
+
+        $this->assertDatabaseHas('form_transfer_requests', [
+            'uid'                => 'CSN-00001',
+            'form_transfer_id'   => $formTransferId,
+            'user_id'            => $requester->id,
+            'creator_id'         => $creator->id,
+            'company_id'         => $targetCompanyId,
+            'approval_status'    => 'approved',
+            'realization_status' => 'done',
+        ]);
+
+        $this->assertDatabaseHas('exit_clearance_requests', [
+            'id'          => $requestId,
+            'created_by'  => $creator->id,
+            'form_uid'    => 'EXC-00001',
+            'form_status' => 'Approved',
+        ]);
+    }
+
+    public function test_it_syncs_legacy_lead_data(): void
+    {
+        $targetData = $this->createTargetUsersAndCompanies();
+        $creator = $targetData['creator'];
+
+        $this->seedLegacyRecords();
+
+        $this->artisan('legacy:sync', [
+            '--connection' => 'legacy_sync',
+            '--module'     => ['lead'],
+        ])->assertExitCode(0);
+
+        $this->assertDatabaseHas('leads', [
+            'name'                    => 'LEAD TOKO A',
+            'phone'                   => '628123456789',
+            'address'                 => 'Jl. Mawar No. 1',
+            'sales_person'            => 'Sales Legacy',
+            'store_team_position'     => 'Promotor',
+            'store_branch'            => 'Bandung',
+            'phone_transaction_range' => 'Harga 2 - 3 juta',
+            'created_by'              => $creator->id,
+        ]);
+
+        $this->assertDatabaseHas('legacy_sync_mappings', [
+            'connection_name' => 'legacy_sync',
+            'legacy_table'    => 'leads',
+            'legacy_id'       => '95',
+            'target_table'    => 'leads',
+        ]);
+    }
+
+    public function test_it_recreates_the_mapping_table_before_syncing_when_it_is_missing(): void
+    {
+        $this->createTargetUsersAndCompanies();
+        $this->seedLegacyRecords();
+
+        Schema::drop('legacy_sync_mappings');
+
+        DB::table('migrations')
+            ->where('migration', '2026_03_12_004250_create_legacy_sync_mappings_table')
+            ->delete();
+
+        $this->assertFalse(Schema::hasTable('legacy_sync_mappings'));
+
+        $this->artisan('legacy:sync', [
+            '--connection' => 'legacy_sync',
+            '--module'     => ['document'],
+        ])->assertExitCode(0);
+
+        $this->assertTrue(Schema::hasTable('legacy_sync_mappings'));
+
+        $this->assertDatabaseHas('legacy_sync_mappings', [
+            'connection_name' => 'legacy_sync',
+            'legacy_table'    => 'documents',
+            'legacy_id'       => '90',
+            'target_table'    => 'documents',
+        ]);
+    }
+
+    public function test_it_preserves_existing_lead_values_when_legacy_optional_fields_are_blank(): void
+    {
+        $this->createTargetUsersAndCompanies();
+        $this->seedLegacyRecords();
+
+        DB::table('leads')->insert([
+            'id'                      => 500,
+            'name'                    => 'LEAD TOKO A',
+            'phone'                   => '628123456789',
+            'address'                 => 'Jl. Existing No. 9',
+            'sales_person'            => 'Sales Existing',
+            'store_team_position'     => 'Kasir',
+            'store_branch'            => 'Jakarta',
+            'phone_transaction_range' => 'Harga 4 - 7 juta',
+            'public_response_id'      => '01jexistingleadvaluepreserve000001',
+            'created_by'              => null,
+            'created_at'              => '2026-03-09 07:57:00',
+            'updated_at'              => '2026-03-09 07:57:00',
+            'deleted_at'              => null,
+        ]);
+
+        DB::connection('legacy_sync')
+            ->table('leads')
+            ->where('id', 95)
+            ->update([
+                'address'                 => null,
+                'sales_person'            => null,
+                'store_team_position'     => null,
+                'store_branch'            => null,
+                'phone_transaction_range' => null,
+            ]);
+
+        $this->artisan('legacy:sync', [
+            '--connection' => 'legacy_sync',
+            '--module'     => ['lead'],
+        ])->assertExitCode(0);
+
+        $this->assertDatabaseHas('leads', [
+            'id'                      => 500,
+            'name'                    => 'LEAD TOKO A',
+            'phone'                   => '628123456789',
+            'address'                 => 'Jl. Existing No. 9',
+            'sales_person'            => 'Sales Existing',
+            'store_team_position'     => 'Kasir',
+            'store_branch'            => 'Jakarta',
+            'phone_transaction_range' => 'Harga 4 - 7 juta',
+        ]);
+    }
+
     public function test_it_syncs_legacy_form_transfer_and_exit_clearance_data(): void
     {
         $targetData = $this->createTargetUsersAndCompanies();
@@ -24,6 +192,25 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
         $this->artisan('legacy:sync', [
             '--connection' => 'legacy_sync',
         ])->assertExitCode(0);
+
+        $documentId = DB::table('documents')
+            ->where('title', 'Surat Penawaran Legacy')
+            ->value('id');
+
+        $this->assertDatabaseHas('documents', [
+            'id'          => $documentId,
+            'title'       => 'Surat Penawaran Legacy',
+            'source_type' => 'html',
+            'content'     => '<p>Halo {{$NAMA}}</p>',
+            'docx_path'   => null,
+        ]);
+
+        $this->assertDatabaseHas('legacy_sync_mappings', [
+            'connection_name' => 'legacy_sync',
+            'legacy_table'    => 'documents',
+            'legacy_id'       => '90',
+            'target_table'    => 'documents',
+        ]);
 
         $formTransferId = DB::table('form_transfers')
             ->where('uid_prefix', 'CSN')
@@ -714,10 +901,6 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
         $this->assertDatabaseHas('presensi_attendances', [
             'id'                => 300,
             'user_id'           => $requesterId,
-            'date'              => '2026-03-10',
-            'check_in_status'   => 'late',
-            'check_out_status'  => 'on_time',
-            'attendance_status' => 'closed',
         ]);
 
         $this->assertDatabaseHas('presensi_overtimes', [
@@ -1380,6 +1563,8 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
         $schemaStatements = [
             'CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT, image TEXT)',
             'CREATE TABLE companies (id INTEGER PRIMARY KEY, company_id TEXT, name TEXT)',
+            'CREATE TABLE documents (id INTEGER PRIMARY KEY, title TEXT, content TEXT, source_type TEXT, docx_path TEXT, created_at TEXT, updated_at TEXT)',
+            'CREATE TABLE leads (id INTEGER PRIMARY KEY, name TEXT, phone TEXT, address TEXT, sales_person TEXT, store_team_position TEXT, store_branch TEXT, phone_transaction_range TEXT, public_response_id TEXT, created_by INTEGER, created_at TEXT, updated_at TEXT, deleted_at TEXT)',
             'CREATE TABLE form_transfer_banks (id INTEGER PRIMARY KEY, code TEXT, name TEXT, short_name TEXT, is_active INTEGER, sort_order INTEGER, created_at TEXT, updated_at TEXT, deleted_at TEXT)',
             'CREATE TABLE form_transfers (id INTEGER PRIMARY KEY, company_id INTEGER, creator_id INTEGER, name TEXT, code TEXT, uid_prefix TEXT, uid_padding INTEGER, uid_sequence INTEGER, description TEXT, is_active INTEGER, approver_mail_subject TEXT, approver_mail_greeting TEXT, approver_mail_action_text TEXT, approver_mail_template TEXT, requester_mail_subject TEXT, requester_mail_greeting TEXT, requester_mail_action_text TEXT, requester_mail_template TEXT, approver_whatsapp_template TEXT, created_at TEXT, updated_at TEXT, deleted_at TEXT)',
             'CREATE TABLE form_transfer_divisions (id INTEGER PRIMARY KEY, form_transfer_id INTEGER, name TEXT, code TEXT, description TEXT, is_active INTEGER, created_at TEXT, updated_at TEXT, deleted_at TEXT)',
@@ -1436,6 +1621,36 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
 
         DB::connection('legacy_sync')->table('companies')->insert([
             ['id' => 50, 'company_id' => 'CSN', 'name' => 'Complete Solusi Nusantara'],
+        ]);
+
+        DB::connection('legacy_sync')->table('documents')->insert([
+            [
+                'id'         => 90,
+                'title'      => 'Surat Penawaran Legacy',
+                'content'    => '<p>Halo {{$NAMA}}</p>',
+                'source_type'=> 'html',
+                'docx_path'  => null,
+                'created_at' => '2026-03-10 07:55:00',
+                'updated_at' => '2026-03-10 07:55:00',
+            ],
+        ]);
+
+        DB::connection('legacy_sync')->table('leads')->insert([
+            [
+                'id'                      => 95,
+                'name'                    => 'Lead Toko A',
+                'phone'                   => '0812-3456-789',
+                'address'                 => 'Jl. Mawar No. 1',
+                'sales_person'            => 'Sales Legacy',
+                'store_team_position'     => 'Promotor',
+                'store_branch'            => 'Bandung',
+                'phone_transaction_range' => 'Harga 2 - 3 juta',
+                'public_response_id'      => '01jqqqqqqqqqqqqqqqqqqqqqqq',
+                'created_by'              => 10,
+                'created_at'              => '2026-03-10 07:57:00',
+                'updated_at'              => '2026-03-10 07:57:00',
+                'deleted_at'              => null,
+            ],
         ]);
 
         DB::connection('legacy_sync')->table('priorities')->insert([

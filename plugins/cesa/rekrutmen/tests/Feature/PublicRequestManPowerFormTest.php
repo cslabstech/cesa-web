@@ -12,14 +12,19 @@ class PublicRequestManPowerFormTest extends RekrutmenTestCase
 
         $response = $this->get('/man-power');
 
+        $fieldLabels = [
+            __('rekrutmen::livewire/public-request-man-power-form.fields.nama_pengaju'),
+            __('rekrutmen::livewire/public-request-man-power-form.fields.posisi_dibutuhkan'),
+            __('rekrutmen::livewire/public-request-man-power-form.fields.requirements_kualifikasi'),
+            __('rekrutmen::livewire/public-request-man-power-form.fields.job_description'),
+        ];
+
         $response
             ->assertOk()
-            ->assertSee(e(__('rekrutmen::livewire/public-request-man-power-form.sections.applicant_information')), false)
-            ->assertSee(e(__('rekrutmen::livewire/public-request-man-power-form.sections.position_requirements')), false)
-            ->assertSee(e(__('rekrutmen::livewire/public-request-man-power-form.sections.qualifications_and_description')), false)
-            ->assertSee(e(__('rekrutmen::livewire/public-request-man-power-form.sections.requirement_status')), false)
-            ->assertSee(__('rekrutmen::livewire/public-request-man-power-form.fields.requirements_kualifikasi'), false)
-            ->assertSee(__('rekrutmen::livewire/public-request-man-power-form.fields.job_description'), false)
             ->assertDontSee('fi-fo-rich-editor', false);
+
+        foreach ($fieldLabels as $fieldLabel) {
+            $response->assertSee(e($fieldLabel), false);
+        }
     }
 }

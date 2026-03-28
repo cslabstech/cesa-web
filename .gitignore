@@ -29,3 +29,4 @@ opencode.json
 /test-results
 
 .DS_Store
+.codex/config.toml

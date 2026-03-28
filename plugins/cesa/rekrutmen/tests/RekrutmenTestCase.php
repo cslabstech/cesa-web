@@ -4,9 +4,11 @@ namespace Cesa\Rekrutmen\Tests;
 
 use Cesa\Rekrutmen\RekrutmenServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 use Tests\UsesSqliteInMemoryDatabase;
+use Webkul\PluginManager\Package;
 
 abstract class RekrutmenTestCase extends TestCase
 {
@@ -19,6 +21,26 @@ abstract class RekrutmenTestCase extends TestCase
 
         parent::setUp();
         $this->withoutVite();
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/plugin-manager/database/migrations/2024_11_05_105102_create_plugins_table.php',
+            '--realpath' => false,
+        ]);
+
+        DB::table('plugins')->updateOrInsert([
+            'name' => 'rekrutmen',
+        ], [
+            'author'       => 'tests',
+            'summary'      => 'tests',
+            'description'  => 'tests',
+            'is_active'    => true,
+            'is_installed' => true,
+            'created_at'   => now(),
+            'updated_at'   => now(),
+        ]);
+
+        Package::$plugins = [];
+
         $this->app->register(RekrutmenServiceProvider::class);
 
         if (! Route::has('rekrutmen.public.request-man-power.progress')) {

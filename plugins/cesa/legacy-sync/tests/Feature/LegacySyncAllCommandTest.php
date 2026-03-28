@@ -43,7 +43,10 @@ class LegacySyncAllCommandTest extends TestCase
             '--port'                     => '3306',
             '--username'                 => 'root',
             '--password'                 => 'secret',
-            '--old-database'             => 'app_old',
+            '--document-database'        => 'app_cesa',
+            '--form-transfer-database'   => 'app_cesa',
+            '--exit-clearance-database'  => 'app_cesa',
+            '--lead-database'            => 'app_lead',
             '--presensi-database'        => 'app_presensi',
             '--shelf-database'           => 'app_shelf',
             '--helpdesk-database'        => 'app_helpdesk',
@@ -63,11 +66,19 @@ class LegacySyncAllCommandTest extends TestCase
                 'arguments' => ['--no-interaction' => true],
             ],
             [
+                'command'   => 'document:install',
+                'arguments' => ['--no-interaction' => true],
+            ],
+            [
                 'command'   => 'exit-clearance:install',
                 'arguments' => ['--no-interaction' => true],
             ],
             [
                 'command'   => 'form-transfer:install',
+                'arguments' => ['--no-interaction' => true],
+            ],
+            [
+                'command'   => 'lead:install',
                 'arguments' => ['--no-interaction' => true],
             ],
             [
@@ -86,78 +97,13 @@ class LegacySyncAllCommandTest extends TestCase
                 'command'   => 'helpdesk:install',
                 'arguments' => ['--no-interaction' => true],
             ],
-            [
-                'command'   => 'legacy:sync',
-                'arguments' => [
-                    '--module'                    => ['form-transfer', 'exit-clearance'],
-                    '--connection'                => 'legacy_sync',
-                    '--database'                  => 'app_old',
-                    '--chunk'                     => '500',
-                    '--no-interaction'            => true,
-                    '--host'                      => '127.0.0.1',
-                    '--port'                      => '3306',
-                    '--username'                  => 'root',
-                    '--password'                  => 'secret',
-                    '--truncate'                  => true,
-                    '--skip-missing-users'        => true,
-                    '--trust-legacy-user-ids'     => true,
-                    '--trust-legacy-company-ids'  => true,
-                ],
-            ],
-            [
-                'command'   => 'legacy:sync',
-                'arguments' => [
-                    '--module'                    => ['presensi'],
-                    '--connection'                => 'legacy_sync',
-                    '--database'                  => 'app_presensi',
-                    '--chunk'                     => '500',
-                    '--no-interaction'            => true,
-                    '--host'                      => '127.0.0.1',
-                    '--port'                      => '3306',
-                    '--username'                  => 'root',
-                    '--password'                  => 'secret',
-                    '--truncate'                  => true,
-                    '--skip-missing-users'        => true,
-                    '--trust-legacy-user-ids'     => true,
-                    '--trust-legacy-company-ids'  => true,
-                ],
-            ],
-            [
-                'command'   => 'legacy:sync',
-                'arguments' => [
-                    '--module'                    => ['shelf'],
-                    '--connection'                => 'legacy_sync',
-                    '--database'                  => 'app_shelf',
-                    '--chunk'                     => '500',
-                    '--no-interaction'            => true,
-                    '--host'                      => '127.0.0.1',
-                    '--port'                      => '3306',
-                    '--username'                  => 'root',
-                    '--password'                  => 'secret',
-                    '--truncate'                  => true,
-                    '--skip-missing-users'        => true,
-                    '--trust-legacy-user-ids'     => true,
-                    '--trust-legacy-company-ids'  => true,
-                ],
-            ],
-            [
-                'command'   => 'legacy:sync',
-                'arguments' => [
-                    '--module'                    => ['helpdesk'],
-                    '--connection'                => 'legacy_sync',
-                    '--database'                  => 'app_helpdesk',
-                    '--chunk'                     => '500',
-                    '--no-interaction'            => true,
-                    '--host'                      => '127.0.0.1',
-                    '--port'                      => '3306',
-                    '--username'                  => 'root',
-                    '--password'                  => 'secret',
-                    '--truncate'                  => true,
-                    '--skip-missing-users'        => true,
-                    '--trust-legacy-user-ids'     => true,
-                    '--trust-legacy-company-ids'  => true,
-                ],
-            ],
+            $this->buildExpectedSyncCall(['document'], 'app_cesa'),
+            $this->buildExpectedSyncCall(['form-transfer'], 'app_cesa'),
+            $this->buildExpectedSyncCall(['exit-clearance'], 'app_cesa'),
+            $this->buildExpectedSyncCall(['lead'], 'app_lead'),
+            $this->buildExpectedSyncCall(['presensi'], 'app_presensi'),
+            $this->buildExpectedSyncCall(['shelf'], 'app_shelf'),
+            $this->buildExpectedSyncCall(['helpdesk'], 'app_helpdesk'),
         ], $command->recordedCalls);
     }
 
@@ -199,6 +145,35 @@ class LegacySyncAllCommandTest extends TestCase
             'legacy:sync',
             'legacy:sync',
             'legacy:sync',
+            'legacy:sync',
+            'legacy:sync',
+            'legacy:sync',
         ], $command->recordedCommands);
+    }
+
+    /**
+     * @param  array<int, string>  $modules
+     * @return array{command: string, arguments: array<string, mixed>}
+     */
+    protected function buildExpectedSyncCall(array $modules, string $database): array
+    {
+        return [
+            'command'   => 'legacy:sync',
+            'arguments' => [
+                '--module'                    => $modules,
+                '--connection'                => 'legacy_sync',
+                '--database'                  => $database,
+                '--chunk'                     => '500',
+                '--no-interaction'            => true,
+                '--host'                      => '127.0.0.1',
+                '--port'                      => '3306',
+                '--username'                  => 'root',
+                '--password'                  => 'secret',
+                '--truncate'                  => true,
+                '--skip-missing-users'        => true,
+                '--trust-legacy-user-ids'     => true,
+                '--trust-legacy-company-ids'  => true,
+            ],
+        ];
     }
 }

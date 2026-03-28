@@ -2,6 +2,7 @@
 
 namespace Cesa\Shelf;
 
+use Cesa\Kepegawaian\Models\Employee;
 use Cesa\Shelf\Livewire\PublicAssetRequestApprovalPage;
 use Cesa\Shelf\Livewire\PublicAssetRequestForm;
 use Cesa\Shelf\Livewire\PublicAssetRequestIndex;
@@ -32,9 +33,10 @@ use Cesa\Shelf\Policies\VehicleChecksheetPolicy;
 use Cesa\Shelf\Policies\VendorPolicy;
 use Cesa\Shelf\Services\PublicAssetRequestService;
 use Filament\Panel;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
-use Webkul\Employee\Models\Employee;
+use Webkul\Employee\Models\Employee as WebkulEmployee;
 use Webkul\PluginManager\Console\Commands\InstallCommand;
 use Webkul\PluginManager\Console\Commands\UninstallCommand;
 use Webkul\PluginManager\Package;
@@ -78,7 +80,9 @@ class ShelfServiceProvider extends PackageServiceProvider
             ])
             ->runsMigrations()
             ->hasInstallCommand(function (InstallCommand $command): void {
-                $command->runsMigrations();
+                $command
+                    ->installDependencies()
+                    ->runsMigrations();
             })
             ->hasUninstallCommand(function (UninstallCommand $command): void {})
             ->icon('shelf');
@@ -95,10 +99,7 @@ class ShelfServiceProvider extends PackageServiceProvider
         Livewire::component('cesa.shelf.livewire.public-asset-request-progress', PublicAssetRequestProgressPage::class);
         Livewire::component('cesa.shelf.livewire.public-asset-request-approval', PublicAssetRequestApprovalPage::class);
 
-        Employee::deleted(function (Employee $employee): void {
-            app(PublicAssetRequestService::class)
-                ->disconnectPendingApprovalsForEmployee($employee->getKey());
-        });
+        $this->registerEmployeeApprovalDisconnectHooks();
 
         User::deleted(function (User $user): void {
             app(PublicAssetRequestService::class)
@@ -133,5 +134,29 @@ class ShelfServiceProvider extends PackageServiceProvider
         Panel::configureUsing(function (Panel $panel): void {
             $panel->plugin(ShelfPlugin::make());
         });
+    }
+
+    protected function registerEmployeeApprovalDisconnectHooks(): void
+    {
+        foreach ($this->employeeModelsForApprovalDisconnects() as $employeeModel) {
+            $employeeModel::deleted(function (Model $employee): void {
+                app(PublicAssetRequestService::class)
+                    ->disconnectPendingApprovalsForEmployee($employee->getKey());
+            });
+        }
+    }
+
+    /**
+     * @return array<int, class-string<Model>>
+     */
+    protected function employeeModelsForApprovalDisconnects(): array
+    {
+        $employeeModels = [WebkulEmployee::class];
+
+        if (class_exists(Employee::class)) {
+            $employeeModels[] = Employee::class;
+        }
+
+        return array_values(array_unique($employeeModels));
     }
 }

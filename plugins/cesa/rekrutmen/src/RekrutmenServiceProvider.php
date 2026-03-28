@@ -64,9 +64,9 @@ class RekrutmenServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
-        // if (! ($this->package->isCore || $this->package->isInstalled())) {
-        //     return;
-        // }
+        if (! ($this->package->isCore || $this->package->isInstalled())) {
+            return;
+        }
 
         Livewire::component('cesa.rekrutmen.livewire.public-man-power-request-form', PublicRequestManPowerForm::class);
         Livewire::component('cesa.rekrutmen.livewire.public-man-power-progress-page', PublicRequestManPowerProgressPage::class);

@@ -9,6 +9,7 @@ use Cesa\FormTransfer\FormTransferServiceProvider;
 use Cesa\Helpdesk\HelpdeskServiceProvider;
 use Cesa\Kepegawaian\KepegawaianServiceProvider;
 use Cesa\Lead\LeadServiceProvider;
+use Cesa\LegacySync\LegacySyncServiceProvider;
 use Cesa\Payroll\PayrollServiceProvider;
 use Cesa\Presensi\PresensiServiceProvider;
 use Cesa\Rekrutmen\RekrutmenServiceProvider;
@@ -56,23 +57,23 @@ return [
     PluginManagerServiceProvider::class,
 
     // Installable Plugins — each requires `php artisan [module]:install`
-    AccountingServiceProvider::class,
-    AccountServiceProvider::class,
-    BlogServiceProvider::class,
-    ContactServiceProvider::class,
-    EmployeeServiceProvider::class,
-    FullCalendarServiceProvider::class,
-    InventoryServiceProvider::class,
-    InvoiceServiceProvider::class,
-    PaymentServiceProvider::class,
-    ProductServiceProvider::class,
-    ProjectServiceProvider::class,
-    PurchaseServiceProvider::class,
-    RecruitmentServiceProvider::class,
-    SaleServiceProvider::class,
-    TimeOffServiceProvider::class,
-    TimesheetServiceProvider::class,
-    WebsiteServiceProvider::class,
+    // AccountingServiceProvider::class,
+    // AccountServiceProvider::class,
+    // BlogServiceProvider::class,
+    // ContactServiceProvider::class,
+    // EmployeeServiceProvider::class,
+    // FullCalendarServiceProvider::class,
+    // InventoryServiceProvider::class,
+    // InvoiceServiceProvider::class,
+    // PaymentServiceProvider::class,
+    // ProductServiceProvider::class,
+    // ProjectServiceProvider::class,
+    // PurchaseServiceProvider::class,
+    // RecruitmentServiceProvider::class,
+    // SaleServiceProvider::class,
+    // TimeOffServiceProvider::class,
+    // TimesheetServiceProvider::class,
+    // WebsiteServiceProvider::class,
 
     // CESA Plugins
     DocumentServiceProvider::class,
@@ -85,4 +86,5 @@ return [
     PresensiServiceProvider::class,
     RekrutmenServiceProvider::class,
     ShelfServiceProvider::class,
+    LegacySyncServiceProvider::class,
 ];

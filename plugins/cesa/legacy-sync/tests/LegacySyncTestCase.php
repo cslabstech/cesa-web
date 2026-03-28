@@ -2,9 +2,12 @@
 
 namespace Cesa\LegacySync\Tests;
 
+use Cesa\Document\DocumentServiceProvider;
 use Cesa\ExitClearance\ExitClearanceServiceProvider;
 use Cesa\FormTransfer\FormTransferServiceProvider;
 use Cesa\Helpdesk\HelpdeskServiceProvider;
+use Cesa\Kepegawaian\KepegawaianServiceProvider;
+use Cesa\Lead\LeadServiceProvider;
 use Cesa\LegacySync\LegacySyncServiceProvider;
 use Cesa\Presensi\PresensiServiceProvider;
 use Cesa\Shelf\ShelfServiceProvider;
@@ -49,10 +52,13 @@ abstract class LegacySyncTestCase extends TestCase
             ],
         ]);
 
+        $this->app->register(DocumentServiceProvider::class);
         $this->app->register(FormTransferServiceProvider::class);
         $this->app->register(ExitClearanceServiceProvider::class);
         $this->app->register(PresensiServiceProvider::class);
         $this->app->register(HelpdeskServiceProvider::class);
+        $this->app->register(KepegawaianServiceProvider::class);
+        $this->app->register(LeadServiceProvider::class);
         $this->app->register(ShelfServiceProvider::class);
         $this->app->register(LegacySyncServiceProvider::class);
 
@@ -89,6 +95,11 @@ abstract class LegacySyncTestCase extends TestCase
         }
 
         $this->artisan('migrate', [
+            '--path'     => 'plugins/cesa/document/database/migrations',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
             '--path'     => 'plugins/cesa/form-transfer/database/migrations',
             '--realpath' => false,
         ]);
@@ -105,6 +116,21 @@ abstract class LegacySyncTestCase extends TestCase
 
         $this->artisan('migrate', [
             '--path'     => 'plugins/cesa/helpdesk/database/migrations',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/support/database/migrations/2024_12_12_114620_create_activity_plans_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/cesa/kepegawaian/database/migrations',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/cesa/lead/database/migrations',
             '--realpath' => false,
         ]);
 

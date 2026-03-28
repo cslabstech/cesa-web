@@ -102,8 +102,6 @@ class PublicRequestManPowerForm extends SimplePage
 
                 Group::make()
                     ->schema([
-
-                        // -- 2. Informasi Pengaju --
                         TextInput::make('nama_pengaju')
                             ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.nama_pengaju'))
                             ->required()
@@ -130,8 +128,6 @@ class PublicRequestManPowerForm extends SimplePage
                             ->required()
                             ->maxLength(255)
                             ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.badan_usaha')),
-
-                        // -- 3. Konteks Kebutuhan --
                         Select::make('status_kebutuhan')
                             ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.status_kebutuhan'))
                             ->required()
@@ -146,8 +142,6 @@ class PublicRequestManPowerForm extends SimplePage
                             ->helperText(__('rekrutmen::livewire/public-request-man-power-form.helper_texts.nama_karyawan_replacement'))
                             ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.nama_karyawan_replacement'))
                             ->visible(fn (callable $get) => $this->isReplacementStatus($get('status_kebutuhan'))),
-
-                        // -- 4. Informasi Posisi yang Dibutuhkan --
                         TextInput::make('posisi_dibutuhkan')
                             ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.posisi_dibutuhkan'))
                             ->required()
@@ -171,8 +165,6 @@ class PublicRequestManPowerForm extends SimplePage
                         DatePicker::make('estimasi_tanggal_join')
                             ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.estimasi_tanggal_join'))
                             ->required(),
-
-                        // -- 5. Kualifikasi & Deskripsi Pekerjaan --
                         Textarea::make('job_description')
                             ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.job_description'))
                             ->required()
@@ -190,7 +182,8 @@ class PublicRequestManPowerForm extends SimplePage
                             ->nullable()
                             ->columnSpanFull()
                             ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.keterangan')),
-                    ])->columns(1),
+                    ])
+                    ->columns(1),
 
                 Hidden::make('recaptcha_token')
                     ->default('')

@@ -8,7 +8,9 @@ use Cesa\FormTransfer\Enums\ApprovalStatus;
 use Cesa\FormTransfer\Enums\TransferRequestApprovalStatus;
 use Cesa\FormTransfer\Enums\TransferRequestRealizationStatus;
 use Cesa\FormTransfer\Enums\TransferRequestSubmissionStatus;
-use Cesa\Presensi\Models\Attendance as PresensiAttendance;
+use Cesa\Lead\Enums\PhoneTransactionRange;
+use Cesa\Lead\Enums\StoreTeamPosition;
+use Cesa\Lead\Models\Lead as LeadModel;
 use Cesa\Shelf\Models\AssetTransfer;
 use Cesa\Shelf\Support\InteractsWithShelfCreatorBackfill;
 use Illuminate\Console\Command;
@@ -26,7 +28,7 @@ class SyncLegacySqlData extends Command
     use InteractsWithShelfCreatorBackfill;
 
     protected $signature = 'legacy:sync
-                            {--module=* : Modules to sync (form-transfer, exit-clearance, presensi, helpdesk, shelf)}
+                            {--module=* : Modules to sync (document, form-transfer, exit-clearance, lead, presensi, helpdesk, shelf)}
                             {--connection=legacy_sync : Legacy database connection name}
                             {--host= : Override legacy DB host}
                             {--port= : Override legacy DB port}
@@ -45,7 +47,7 @@ class SyncLegacySqlData extends Command
     /**
      * @var array<int, string>
      */
-    protected array $availableModules = ['form-transfer', 'exit-clearance', 'presensi', 'helpdesk', 'shelf'];
+    protected array $availableModules = ['document', 'form-transfer', 'exit-clearance', 'lead', 'presensi', 'helpdesk', 'shelf'];
 
     protected string $legacyConnection = 'legacy_sync';
 
@@ -157,6 +159,7 @@ class SyncLegacySqlData extends Command
 
             $this->setupLegacyConnection();
             $this->verifyLegacyConnection();
+            $this->ensureLegacySyncMappingsTableExists();
 
             $this->info(sprintf(
                 'Connected to legacy database using connection [%s].',
@@ -175,8 +178,10 @@ class SyncLegacySqlData extends Command
 
             foreach ($modules as $module) {
                 match ($module) {
+                    'document'       => $this->syncDocumentModule(),
                     'form-transfer'  => $this->syncFormTransferModule(),
                     'exit-clearance' => $this->syncExitClearanceModule(),
+                    'lead'           => $this->syncLeadModule(),
                     'presensi'       => $this->syncPresensiModule(),
                     'helpdesk'       => $this->syncHelpdeskModule(),
                     'shelf'          => $this->syncShelfModule(),
@@ -261,6 +266,28 @@ class SyncLegacySqlData extends Command
         DB::connection($this->legacyConnection)->getPdo();
     }
 
+    protected function ensureLegacySyncMappingsTableExists(): void
+    {
+        if (Schema::hasTable('legacy_sync_mappings')) {
+            return;
+        }
+
+        $this->warn('Table [legacy_sync_mappings] is missing. Running legacy-sync migrations first.');
+
+        $exitCode = $this->callSilent('migrate', [
+            '--path'           => base_path('plugins/cesa/legacy-sync/database/migrations'),
+            '--realpath'       => true,
+            '--force'          => true,
+            '--no-interaction' => true,
+        ]);
+
+        if ($exitCode !== self::SUCCESS || ! Schema::hasTable('legacy_sync_mappings')) {
+            throw new \RuntimeException(
+                'Unable to prepare [legacy_sync_mappings] for legacy sync.'
+            );
+        }
+    }
+
     protected function shouldTruncate(): bool
     {
         return (bool) $this->option('truncate');
@@ -310,6 +337,21 @@ class SyncLegacySqlData extends Command
         $this->syncTransferRequests();
     }
 
+    protected function syncDocumentModule(): void
+    {
+        $this->components->twoColumnDetail('Module', 'document');
+
+        if (! $this->ensureLegacyTablesExist(['documents'], 'document')) {
+            return;
+        }
+
+        if ($this->shouldTruncate()) {
+            $this->truncateTables(['documents']);
+        }
+
+        $this->syncDocuments();
+    }
+
     protected function syncExitClearanceModule(): void
     {
         $this->components->twoColumnDetail('Module', 'exit-clearance');
@@ -344,6 +386,21 @@ class SyncLegacySqlData extends Command
         $this->syncExitClearanceRequests();
         $this->syncExitClearanceRequestApprovers();
         $this->refreshExitClearanceStatuses();
+    }
+
+    protected function syncLeadModule(): void
+    {
+        $this->components->twoColumnDetail('Module', 'lead');
+
+        if (! $this->ensureLegacyTablesExist(['leads'], 'lead')) {
+            return;
+        }
+
+        if ($this->shouldTruncate()) {
+            $this->truncateTables(['leads']);
+        }
+
+        $this->syncLeads();
     }
 
     protected function syncPresensiModule(): void
@@ -2046,6 +2103,70 @@ class SyncLegacySqlData extends Command
         });
     }
 
+    protected function syncDocuments(): void
+    {
+        $query = DB::connection($this->legacyConnection)->table('documents');
+
+        $this->syncRows('Documents', $query, function (object $row): void {
+            $title = $this->nullableString($row->title ?? null);
+
+            if ($title === null) {
+                $title = sprintf('Legacy Document %s', $row->id);
+
+                $this->warnOnce(
+                    'document:'.$row->id,
+                    sprintf('Legacy document ID [%s] has no title. Using fallback: [%s].', $row->id, $title)
+                );
+            }
+
+            $content = $this->nullableString($row->content ?? $row->body ?? null);
+            $docxPath = $this->nullableString($row->docx_path ?? $row->file_path ?? $row->path ?? null);
+
+            $sourceType = Str::lower((string) ($row->source_type ?? ($docxPath !== null ? 'docx' : 'html')));
+
+            if (! in_array($sourceType, ['html', 'docx'], true)) {
+                $sourceType = $docxPath !== null ? 'docx' : 'html';
+            }
+
+            $targetId = $this->resolveTargetId(
+                'documents',
+                $row->id,
+                'documents',
+                function () use ($title, $sourceType, $docxPath): ?int {
+                    $query = DB::table('documents')
+                        ->where('title', $title)
+                        ->where('source_type', $sourceType);
+
+                    if ($docxPath !== null) {
+                        $query->where('docx_path', $docxPath);
+                    } else {
+                        $query->whereNull('docx_path');
+                    }
+
+                    return $this->nullableInt($query->value('id'));
+                },
+            );
+
+            if ($targetId === null) {
+                return;
+            }
+
+            DB::table('documents')->updateOrInsert(
+                ['id' => $targetId],
+                [
+                    'title'       => $title,
+                    'content'     => $content,
+                    'source_type' => $sourceType,
+                    'docx_path'   => $docxPath,
+                    'created_at'  => $row->created_at ?? now(),
+                    'updated_at'  => $row->updated_at ?? now(),
+                ],
+            );
+
+            $this->rememberMapping('documents', $row->id, 'documents', $targetId);
+        });
+    }
+
     protected function syncFormTransfers(): void
     {
         $query = DB::connection($this->legacyConnection)->table('form_transfers');
@@ -2098,6 +2219,165 @@ class SyncLegacySqlData extends Command
 
             $this->rememberMapping('form_transfers', $row->id, 'form_transfers', $targetId);
         });
+    }
+
+    protected function syncLeads(): void
+    {
+        $query = DB::connection($this->legacyConnection)->table('leads');
+
+        $this->syncRows('Leads', $query, function (object $row): void {
+            $name = $this->nullableString($row->name ?? null);
+            $phone = LeadModel::normalizePhone($this->nullableString($row->phone ?? null));
+
+            if ($name === null || $phone === '') {
+                $this->warnOnce(
+                    'lead:'.$row->id,
+                    sprintf('Skipping legacy lead ID [%s]. Name or phone is missing.', $row->id)
+                );
+
+                return;
+            }
+
+            $publicResponseId = $this->nullableString($row->public_response_id ?? null) ?? (string) Str::ulid();
+            $createdBy = $this->resolveUserId($this->nullableInt($row->created_by ?? null));
+
+            $targetId = $this->resolveTargetId(
+                'leads',
+                $row->id,
+                'leads',
+                fn (): ?int => $this->nullableInt(
+                    DB::table('leads')
+                        ->where('phone', $phone)
+                        ->value('id')
+                ),
+            );
+
+            if ($targetId === null) {
+                return;
+            }
+
+            $existingLead = DB::table('leads')->where('id', $targetId)->first();
+            $address = $this->resolveRequiredLeadString(
+                $row->address ?? null,
+                $existingLead?->address ?? null,
+                'Alamat legacy tidak tersedia'
+            );
+            $salesPerson = $this->resolveRequiredLeadString(
+                $row->sales_person ?? null,
+                $existingLead?->sales_person ?? null,
+                'Sales legacy tidak tersedia'
+            );
+            $storeBranch = $this->resolveRequiredLeadString(
+                $row->store_branch ?? null,
+                $existingLead?->store_branch ?? null,
+                'Cabang legacy tidak tersedia'
+            );
+            $storeTeamPosition = $this->resolveLeadStoreTeamPosition(
+                $row->store_team_position ?? null,
+                $existingLead?->store_team_position ?? null
+            );
+            $phoneTransactionRange = $this->resolveLeadPhoneTransactionRange(
+                $row->phone_transaction_range ?? null,
+                $existingLead?->phone_transaction_range ?? null
+            );
+
+            DB::table('leads')->updateOrInsert(
+                ['id' => $targetId],
+                [
+                    'name'                    => mb_strtoupper($name),
+                    'phone'                   => $phone,
+                    'address'                 => $address,
+                    'sales_person'            => $salesPerson,
+                    'store_team_position'     => $storeTeamPosition,
+                    'store_branch'            => $storeBranch,
+                    'phone_transaction_range' => $phoneTransactionRange,
+                    'public_response_id'      => $publicResponseId,
+                    'created_by'              => $createdBy,
+                    'created_at'              => $row->created_at ?? now(),
+                    'updated_at'              => $row->updated_at ?? now(),
+                    'deleted_at'              => $row->deleted_at ?? null,
+                ],
+            );
+
+            $this->rememberMapping('leads', $row->id, 'leads', $targetId);
+        });
+    }
+
+    protected function resolveRequiredLeadString(mixed $legacyValue, mixed $existingValue, string $fallback): string
+    {
+        return $this->nullableString($legacyValue)
+            ?? $this->nullableString($existingValue)
+            ?? $fallback;
+    }
+
+    protected function resolveLeadStoreTeamPosition(mixed $legacyValue, mixed $existingValue): string
+    {
+        $legacyPosition = $this->normalizeLeadStoreTeamPosition($legacyValue);
+
+        if ($legacyPosition !== null) {
+            return $legacyPosition;
+        }
+
+        $existingPosition = $this->normalizeLeadStoreTeamPosition($existingValue);
+
+        return $existingPosition ?? StoreTeamPosition::Promotor->value;
+    }
+
+    protected function normalizeLeadStoreTeamPosition(mixed $value): ?string
+    {
+        $normalizedValue = $this->nullableString($value);
+
+        if ($normalizedValue === null) {
+            return null;
+        }
+
+        $lookup = strtolower($normalizedValue);
+
+        foreach (StoreTeamPosition::cases() as $case) {
+            if (strtolower($case->value) === $lookup) {
+                return $case->value;
+            }
+        }
+
+        return match ($lookup) {
+            'store head', 'manager', 'store manager' => StoreTeamPosition::StoreHead->value,
+            'promo', 'sales promoter' => StoreTeamPosition::Promotor->value,
+            'cashier' => StoreTeamPosition::Cashier->value,
+            'front line', 'customer service' => StoreTeamPosition::Frontliner->value,
+            default => null,
+        };
+    }
+
+    protected function resolveLeadPhoneTransactionRange(mixed $legacyValue, mixed $existingValue): ?string
+    {
+        return $this->normalizeLeadPhoneTransactionRange($legacyValue)
+            ?? $this->normalizeLeadPhoneTransactionRange($existingValue);
+    }
+
+    protected function normalizeLeadPhoneTransactionRange(mixed $value): ?string
+    {
+        $normalizedValue = $this->nullableString($value);
+
+        if ($normalizedValue === null) {
+            return null;
+        }
+
+        $lookup = strtolower($normalizedValue);
+
+        foreach (PhoneTransactionRange::cases() as $case) {
+            if (strtolower($case->value) === $lookup) {
+                return $case->value;
+            }
+        }
+
+        return match ($lookup) {
+            'below 2 million', '< 2 juta' => PhoneTransactionRange::Below2Million->value,
+            'harga 2-3 juta', '2-3 juta', '2 to 3 million' => PhoneTransactionRange::TwoTo3Million->value,
+            'harga 3-4 juta', '3-4 juta', '3 to 4 million' => PhoneTransactionRange::ThreeTo4Million->value,
+            'harga 4-7 juta', '4-7 juta', '4 to 7 million' => PhoneTransactionRange::FourTo7Million->value,
+            'above 7 million', '> 7 juta' => PhoneTransactionRange::Above7Million->value,
+            default => null,
+        };
     }
 
     protected function syncTransferDivisions(): void
@@ -2770,21 +3050,10 @@ class SyncLegacySqlData extends Command
                 return;
             }
 
-            $attendanceDate = PresensiAttendance::normalizeLegacyDateValue(null, $row->created_at);
-            $resolvedStatuses = PresensiAttendance::deriveLegacyStatuses(
-                attendanceDate: $attendanceDate,
-                scheduleStartTime: $row->schedule_start_time,
-                scheduleEndTime: $row->schedule_end_time,
-                startTime: $row->start_time,
-                endTime: $row->end_time,
-                isLeave: $this->normalizeBoolean($row->is_leave, false),
-            );
-
             DB::table('presensi_attendances')->updateOrInsert(
                 ['id' => $targetId],
                 [
                     'user_id'             => $targetUserId,
-                    'date'                => $attendanceDate,
                     'schedule_latitude'   => $row->schedule_latitude,
                     'schedule_longitude'  => $row->schedule_longitude,
                     'schedule_start_time' => $row->schedule_start_time,
@@ -2794,11 +3063,8 @@ class SyncLegacySqlData extends Command
                     'end_latitude'        => $row->end_latitude,
                     'end_longitude'       => $row->end_longitude,
                     'start_time'          => $row->start_time,
-                    'check_in_status'     => $resolvedStatuses['check_in_status'],
                     'start_photo_path'    => $this->nullableString($row->start_photo_path ?? null),
                     'end_time'            => $row->end_time,
-                    'check_out_status'    => $resolvedStatuses['check_out_status'],
-                    'attendance_status'   => $resolvedStatuses['attendance_status'],
                     'end_photo_path'      => $this->nullableString($row->end_photo_path ?? null),
                     'is_leave'            => $this->normalizeBoolean($row->is_leave, false),
                     'created_at'          => $row->created_at,

@@ -44,7 +44,7 @@ class PdfController extends Controller
 
         $letterNumber = $assetTransfer->letter_number;
         $toUserName = strtolower(str_replace(' ', '_', $assetTransfer->toUser->name));
-        $toUserJobTitle = $assetTransfer->toUser->jobTitle
+        $toUserJobTitle = User::supportsJobTitles() && $assetTransfer->toUser->jobTitle
             ? strtolower(str_replace(' ', '_', $assetTransfer->toUser->jobTitle->title))
             : 'no_title';
 
