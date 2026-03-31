@@ -2,6 +2,8 @@
 
 namespace Cesa\Rekrutmen\Database\Seeders;
 
+use Cesa\Rekrutmen\Enums\JobApplicationGender;
+use Cesa\Rekrutmen\Enums\JobApplicationMaritalStatus;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Enums\StatusKebutuhan;
@@ -79,13 +81,21 @@ class RekrutmenDemoSeeder extends Seeder
                 'email'          => 'kandidat@example.com',
             ],
             [
-                'current_stage_id' => $interviewHrStage->getKey(),
-                'full_name'        => 'Kandidat Rekrutmen',
-                'phone'            => '081234567890',
-                'resume_path'      => 'rekrutmen/cv/sample-cv.pdf',
-                'cover_letter'     => 'Saya tertarik bergabung dan berkontribusi.',
-                'portfolio_url'    => 'https://portfolio.example.com',
-                'status'           => JobApplicationStatus::IN_PROGRESS,
+                'current_stage_id'           => $interviewHrStage->getKey(),
+                'full_name'                  => 'Kandidat Rekrutmen',
+                'gender'                     => JobApplicationGender::Male,
+                'birth_date'                 => now()->subYears(27)->toDateString(),
+                'marital_status'             => JobApplicationMaritalStatus::Single,
+                'address_ktp'                => 'Jl. Contoh KTP No. 10, Jakarta',
+                'address_domicile'           => 'Jl. Contoh Domisili No. 11, Jakarta',
+                'whatsapp_number'            => '081234567890',
+                'active_phone'               => '081234567890',
+                'emergency_contact_name'     => 'Bunga',
+                'emergency_contact_relation' => 'Adik Kandung',
+                'emergency_contact_phone'    => '081111111111',
+                'photo_path'                 => 'rekrutmen/photos/sample-photo.jpg',
+                'resume_path'                => 'rekrutmen/cv/sample-cv.pdf',
+                'status'                     => JobApplicationStatus::IN_PROGRESS,
             ],
         );
 

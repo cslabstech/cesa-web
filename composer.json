@@ -26,6 +26,7 @@
         "maatwebsite/excel": "^3.1",
         "malzariey/filament-daterangepicker-filter": "^4.0",
         "milon/barcode": "^11.0",
+        "relaticle/flowforge": "^4.0",
         "spatie/eloquent-sortable": "^4.4",
         "spatie/laravel-query-builder": "^6.4",
         "wikimedia/composer-merge-plugin": "^2.1"

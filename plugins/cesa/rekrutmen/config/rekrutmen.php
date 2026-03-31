@@ -16,46 +16,103 @@ return [
                 'required' => true,
             ],
             [
-                'name'     => 'phone',
-                'label'    => 'rekrutmen::config/application-form.fields.phone',
+                'name'     => 'gender',
+                'label'    => 'rekrutmen::config/application-form.fields.gender',
+                'type'     => 'select',
+                'required' => true,
+                'options'  => [
+                    [
+                        'value' => 'male',
+                        'label' => 'rekrutmen::enums/job-application-gender.male',
+                    ],
+                    [
+                        'value' => 'female',
+                        'label' => 'rekrutmen::enums/job-application-gender.female',
+                    ],
+                ],
+            ],
+            [
+                'name'     => 'birth_date',
+                'label'    => 'rekrutmen::config/application-form.fields.birth_date',
+                'type'     => 'date',
+                'required' => true,
+            ],
+            [
+                'name'     => 'marital_status',
+                'label'    => 'rekrutmen::config/application-form.fields.marital_status',
+                'type'     => 'select',
+                'required' => true,
+                'options'  => [
+                    [
+                        'value' => 'single',
+                        'label' => 'rekrutmen::enums/job-application-marital-status.single',
+                    ],
+                    [
+                        'value' => 'married',
+                        'label' => 'rekrutmen::enums/job-application-marital-status.married',
+                    ],
+                    [
+                        'value' => 'divorced',
+                        'label' => 'rekrutmen::enums/job-application-marital-status.divorced',
+                    ],
+                ],
+            ],
+            [
+                'name'     => 'address_ktp',
+                'label'    => 'rekrutmen::config/application-form.fields.address_ktp',
+                'type'     => 'textarea',
+                'required' => true,
+            ],
+            [
+                'name'     => 'address_domicile',
+                'label'    => 'rekrutmen::config/application-form.fields.address_domicile',
+                'type'     => 'textarea',
+                'required' => true,
+            ],
+            [
+                'name'     => 'whatsapp_number',
+                'label'    => 'rekrutmen::config/application-form.fields.whatsapp_number',
                 'type'     => 'text',
                 'required' => true,
             ],
             [
-                'name'     => 'portfolio_url',
-                'label'    => 'rekrutmen::config/application-form.fields.portfolio_url',
-                'type'     => 'url',
-                'required' => false,
+                'name'     => 'active_phone',
+                'label'    => 'rekrutmen::config/application-form.fields.active_phone',
+                'type'     => 'text',
+                'required' => true,
             ],
             [
-                'name'     => 'cover_letter',
-                'label'    => 'rekrutmen::config/application-form.fields.cover_letter',
-                'type'     => 'textarea',
-                'required' => false,
+                'name'     => 'emergency_contact_name',
+                'label'    => 'rekrutmen::config/application-form.fields.emergency_contact_name',
+                'type'     => 'text',
+                'required' => true,
+            ],
+            [
+                'name'     => 'emergency_contact_relation',
+                'label'    => 'rekrutmen::config/application-form.fields.emergency_contact_relation',
+                'type'     => 'text',
+                'required' => true,
+            ],
+            [
+                'name'     => 'emergency_contact_phone',
+                'label'    => 'rekrutmen::config/application-form.fields.emergency_contact_phone',
+                'type'     => 'text',
+                'required' => true,
+            ],
+            [
+                'name'     => 'photo',
+                'label'    => 'rekrutmen::config/application-form.fields.photo',
+                'type'     => 'file',
+                'required' => true,
             ],
             [
                 'name'     => 'resume',
                 'label'    => 'rekrutmen::config/application-form.fields.resume',
                 'type'     => 'file',
-                'required' => false,
+                'required' => true,
             ],
         ],
-        'by_slug' => [
-            'software-engineer-jakarta' => [
-                [
-                    'name'     => 'github_url',
-                    'label'    => 'rekrutmen::config/application-form.fields.github_url',
-                    'type'     => 'url',
-                    'required' => true,
-                ],
-                [
-                    'name'     => 'expected_salary',
-                    'label'    => 'rekrutmen::config/application-form.fields.expected_salary',
-                    'type'     => 'number',
-                    'required' => false,
-                ],
-            ],
-        ],
+        'by_slug' => [],
     ],
 
     'security' => [
