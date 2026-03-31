@@ -26,6 +26,10 @@ class I18nTest extends RekrutmenTestCase
             $this->assertSame($expected['job_level'], RequestManPower::getTranslatedLevelPekerjaanOptions()['Staff']);
             $this->assertSame($expected['public_progress_heading'], __('rekrutmen::livewire/public-request-man-power-progress-page.heading'));
             $this->assertSame($expected['mail_progress_action'], __('rekrutmen::mail/request-man-power-submitted.view_progress'));
+            $this->assertSame(
+                $expected['flowforge_empty_column'],
+                __('flowforge::flowforge.no_cards_in_column', ['cardLabel' => 'data'])
+            );
         }
     }
 
@@ -52,7 +56,8 @@ class I18nTest extends RekrutmenTestCase
             $this->assertSame(200, $response->getStatusCode());
             $this->assertSame($expected['job_detail_message'], $payload['message']);
             $this->assertSame($expected['application_form_full_name'], $payload['data']['application_form'][0]['label']);
-            $this->assertSame($expected['application_form_portfolio'], $payload['data']['application_form'][3]['label']);
+            $this->assertSame($expected['application_form_gender'], $payload['data']['application_form'][2]['label']);
+            $this->assertSame($expected['application_form_photo'], $payload['data']['application_form'][12]['label']);
         }
     }
 
@@ -70,9 +75,11 @@ class I18nTest extends RekrutmenTestCase
                 'job_level'                    => 'Staff',
                 'public_progress_heading'      => 'Manpower Request Progress',
                 'mail_progress_action'         => 'View Submission Progress',
+                'flowforge_empty_column'       => 'No data in this column',
                 'job_detail_message'           => 'Job detail retrieved successfully.',
-                'application_form_full_name'   => 'Full Name',
-                'application_form_portfolio'   => 'Portfolio URL',
+                'application_form_full_name'   => 'Full Name (As Per ID Card)',
+                'application_form_gender'      => 'Gender',
+                'application_form_photo'       => 'Latest Personal Photo',
             ],
             'id' => [
                 'navigation_label'             => 'Permintaan Tenaga Kerja',
@@ -82,9 +89,11 @@ class I18nTest extends RekrutmenTestCase
                 'job_level'                    => 'Staf',
                 'public_progress_heading'      => 'Progress Permintaan Tenaga Kerja',
                 'mail_progress_action'         => 'Lihat Progress Pengajuan',
+                'flowforge_empty_column'       => 'Belum ada data di kolom ini',
                 'job_detail_message'           => 'Detail lowongan berhasil diambil.',
-                'application_form_full_name'   => 'Nama Lengkap',
-                'application_form_portfolio'   => 'URL Portofolio',
+                'application_form_full_name'   => 'Nama Lengkap (Sesuai KTP)',
+                'application_form_gender'      => 'Jenis Kelamin',
+                'application_form_photo'       => 'Photo Diri Terbaru',
             ],
         ];
     }

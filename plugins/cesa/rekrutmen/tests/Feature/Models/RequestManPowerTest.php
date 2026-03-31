@@ -3,6 +3,8 @@
 namespace Cesa\Rekrutmen\Tests\Feature\Models;
 
 use App\Models\User;
+use Cesa\Rekrutmen\Enums\JobApplicationGender;
+use Cesa\Rekrutmen\Enums\JobApplicationMaritalStatus;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Enums\StatusKebutuhan;
@@ -180,12 +182,21 @@ class RequestManPowerTest extends RekrutmenTestCase
         $jobPosting = $request->createJobPostingIfMissing();
 
         $application = JobApplication::query()->create([
-            'job_posting_id'   => $jobPosting->id,
-            'current_stage_id' => $stage->id,
-            'full_name'        => 'Candidate One',
-            'email'            => 'candidate@example.com',
-            'phone'            => '08123456789',
-            'status'           => JobApplicationStatus::IN_PROGRESS,
+            'job_posting_id'             => $jobPosting->id,
+            'current_stage_id'           => $stage->id,
+            'full_name'                  => 'Candidate One',
+            'email'                      => 'candidate@example.com',
+            'gender'                     => JobApplicationGender::Male,
+            'birth_date'                 => '1998-05-10',
+            'marital_status'             => JobApplicationMaritalStatus::Single,
+            'address_ktp'                => 'Alamat KTP',
+            'address_domicile'           => 'Alamat Domisili',
+            'whatsapp_number'            => '08123456789',
+            'active_phone'               => '08123456789',
+            'emergency_contact_name'     => 'Bunga',
+            'emergency_contact_relation' => 'Saudara',
+            'emergency_contact_phone'    => '081111111111',
+            'status'                     => JobApplicationStatus::IN_PROGRESS,
         ]);
 
         $performer = User::factory()->create();

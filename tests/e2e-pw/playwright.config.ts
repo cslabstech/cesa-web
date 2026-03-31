@@ -12,6 +12,11 @@ export const ADMIN_AUTH_STATE_PATH = `${STATE_DIR_PATH}/admin-auth.json`;
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
+const baseURL =
+    process.env.PLAYWRIGHT_BASE_URL ??
+    process.env.APP_URL ??
+    "http://web-cesa.test";
+
 export default defineConfig({
     testDir: "./tests",
 
@@ -39,7 +44,7 @@ export default defineConfig({
     ],
 
     use: {
-        baseURL: `http://127.0.0.1:8000`, //process.env.APP_URL,
+        baseURL,
         screenshot: { mode: "only-on-failure", fullPage: true },
         video: "retain-on-failure",
         trace: "retain-on-failure",
