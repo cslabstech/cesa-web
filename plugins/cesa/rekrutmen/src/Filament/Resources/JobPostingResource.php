@@ -9,7 +9,10 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -47,51 +50,71 @@ class JobPostingResource extends Resource
     {
         return $schema
             ->schema([
-                Section::make(__('rekrutmen::filament/resources/job-posting.form.sections.job_information'))
-                    ->schema([
-                        Forms\Components\Select::make('request_man_power_id')
-                            ->relationship('requestManPower', 'posisi_dibutuhkan')
-                            ->searchable()
-                            ->nullable()
-                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.request_man_power_id')),
-                        Forms\Components\Select::make('rekrutmen_pipeline_id')
-                            ->relationship('rekrutmenPipeline', 'name')
-                            ->required()
-                            ->searchable()
-                            ->preload()
-                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.rekrutmen_pipeline_id')),
-                        Forms\Components\TextInput::make('title')
-                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.title'))
-                            ->required()
-                            ->maxLength(255)
-                            ->live(onBlur: true)
-                            ->afterStateUpdated(fn (string $operation, $state, Forms\Set $set) => $operation === 'create' ? $set('slug', Str::slug($state)) : null),
-                        Forms\Components\TextInput::make('slug')
-                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.slug'))
-                            ->required()
-                            ->maxLength(255)
-                            ->unique(JobPosting::class, 'slug', ignoreRecord: true),
-                        Forms\Components\TextInput::make('location')
-                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.location'))
-                            ->maxLength(255),
-                        Forms\Components\DatePicker::make('closing_date')
-                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.closing_date')),
-                        Forms\Components\Toggle::make('is_published')
-                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.is_published'))
-                            ->default(false),
-                    ])->columns(2),
+                Grid::make(3)->schema([
+                    Group::make([
+                        Section::make(__('rekrutmen::filament/resources/job-posting.form.sections.job_information'))
+                            ->schema([
+                                Forms\Components\TextInput::make('title')
+                                    ->label(__('rekrutmen::filament/resources/job-posting.form.fields.title'))
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(fn (string $operation, $state, Set $set) => $operation === 'create' ? $set('slug', Str::slug($state)) : null),
+                                Forms\Components\TextInput::make('slug')
+                                    ->label(__('rekrutmen::filament/resources/job-posting.form.fields.slug'))
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->unique(JobPosting::class, 'slug', ignoreRecord: true),
+                                Forms\Components\TextInput::make('location')
+                                    ->label(__('rekrutmen::filament/resources/job-posting.form.fields.location'))
+                                    ->maxLength(255),
+                            ])->columns(2),
 
-                Section::make(__('rekrutmen::filament/resources/job-posting.form.sections.details'))
-                    ->schema([
-                        Forms\Components\RichEditor::make('description')
-                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.description'))
-                            ->required()
-                            ->columnSpanFull(),
-                        Forms\Components\RichEditor::make('requirements')
-                            ->label(__('rekrutmen::filament/resources/job-posting.form.fields.requirements'))
-                            ->required()
-                            ->columnSpanFull(),
-                    ]),
+                        Section::make(__('rekrutmen::filament/resources/job-posting.form.sections.details'))
+                            ->schema([
+                                Forms\Components\RichEditor::make('description')
+                                    ->label(__('rekrutmen::filament/resources/job-posting.form.fields.description'))
+                                    ->required()
+                                    ->columnSpanFull(),
+                                Forms\Components\RichEditor::make('requirements')
+                                    ->label(__('rekrutmen::filament/resources/job-posting.form.fields.requirements'))
+                                    ->required()
+                                    ->columnSpanFull(),
+                            ]),
+                    ])->columnSpan(2),
+
+                    Group::make([
+                        Section::make(__('rekrutmen::filament/resources/job-posting.form.sections.settings'))
+                            ->schema([
+                                Forms\Components\Select::make('request_man_power_id')
+                                    ->relationship('requestManPower', 'posisi_dibutuhkan')
+                                    ->searchable()
+                                    ->nullable()
+                                    ->label(__('rekrutmen::filament/resources/job-posting.form.fields.request_man_power_id')),
+                                Forms\Components\Select::make('rekrutmen_pipeline_id')
+                                    ->relationship('rekrutmenPipeline', 'name')
+                                    ->required()
+                                    ->searchable()
+                                    ->preload()
+                                    ->label(__('rekrutmen::filament/resources/job-posting.form.fields.rekrutmen_pipeline_id')),
+                                Forms\Components\DatePicker::make('closing_date')
+                                    ->label(__('rekrutmen::filament/resources/job-posting.form.fields.closing_date')),
+                                Forms\Components\Toggle::make('is_published')
+                                    ->label(__('rekrutmen::filament/resources/job-posting.form.fields.is_published'))
+                                    ->default(false),
+                                Forms\Components\FileUpload::make('thumbnail_path')
+                                    ->label(__('rekrutmen::filament/resources/job-posting.form.fields.thumbnail_path'))
+                                    ->disk(JobPosting::thumbnailDisk())
+                                    ->directory(JobPosting::THUMBNAIL_DIRECTORY)
+                                    ->image()
+                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                                    ->maxSize(5120)
+                                    ->visibility('public')
+                                    ->imagePreviewHeight('160')
+                                    ->openable(),
+                            ])->columns(1),
+                    ])->columnSpan(1),
+                ])->columnSpanFull(),
             ]);
     }
 
@@ -103,6 +126,10 @@ class JobPostingResource extends Resource
                     ->label(__('rekrutmen::filament/resources/job-posting.table.columns.title'))
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\ImageColumn::make('thumbnail_path')
+                    ->label(__('rekrutmen::filament/resources/job-posting.table.columns.thumbnail_path'))
+                    ->disk(JobPosting::thumbnailDisk())
+                    ->circular(),
                 Tables\Columns\TextColumn::make('location')
                     ->label(__('rekrutmen::filament/resources/job-posting.table.columns.location'))
                     ->searchable(),

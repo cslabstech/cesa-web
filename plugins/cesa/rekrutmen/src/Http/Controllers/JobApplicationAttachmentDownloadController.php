@@ -12,10 +12,10 @@ class JobApplicationAttachmentDownloadController extends Controller
 {
     public function __invoke(Request $request, JobApplication $jobApplication, string $attachment): Response
     {
-        abort_unless($attachment === 'resume', 404);
+        abort_unless(in_array($attachment, ['resume', 'photo'], true), 404);
         abort_unless($request->user()?->can('view', $jobApplication), 403);
 
-        $path = $jobApplication->resume_path;
+        $path = $jobApplication->resolveAttachmentPath($attachment);
 
         if (blank($path)) {
             abort(404);

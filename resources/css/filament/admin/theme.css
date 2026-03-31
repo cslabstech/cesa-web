@@ -3,8 +3,10 @@
 @source '../../../../app/Filament/**/*';
 @source '../../../../resources/views/filament/**/*';
 @source '../../../../resources/views/vendor/filament*/**/*';
+@source '../../../../resources/views/vendor/flowforge/**/*';
 @source '../../../../plugins/**/resources/views/filament/**/*';
 @source '../../../../plugins/**/resources/views/livewire/**/*';
+@source '../../../../vendor/relaticle/flowforge/resources/views/**/*';
 
 /* App Panel Custom Layout */
 .fi-app-layout {

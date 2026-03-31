@@ -42,6 +42,9 @@ class RekrutmenServiceProvider extends PackageServiceProvider
                 '2026_02_26_140002_rekrutmen_create_job_applications_table',
                 '2026_02_26_140005_rekrutmen_create_job_application_histories_table',
                 '2026_03_12_210000_rekrutmen_add_status_response_id_to_request_man_powers_table',
+                '2026_03_31_224308_rekrutmen_update_job_applications_contact_and_document_fields',
+                '2026_03_31_230839_rekrutmen_add_thumbnail_path_to_job_postings_table',
+                '2026_03_31_234155_rekrutmen_add_position_to_job_applications_table',
             ])
             ->runsMigrations()
             ->runsSeeders()

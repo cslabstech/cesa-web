@@ -13,6 +13,11 @@ class ListJobApplications extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('kanban_board')
+                ->label('Pipeline Board')
+                ->icon('heroicon-o-view-columns')
+                ->color('gray')
+                ->url(JobApplicationResource::getUrl('board')),
             Actions\CreateAction::make()->icon('heroicon-o-plus-circle'),
         ];
     }

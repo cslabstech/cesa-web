@@ -7,10 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class JobPosting extends Model
 {
     use HasFactory, SoftDeletes;
+
+    public const THUMBNAIL_DIRECTORY = 'rekrutmen/job-postings';
 
     protected $table = 'rekrutmen_job_postings';
 
@@ -22,6 +25,7 @@ class JobPosting extends Model
         'description',
         'requirements',
         'location',
+        'thumbnail_path',
         'is_published',
         'closing_date',
     ];
@@ -47,5 +51,23 @@ class JobPosting extends Model
     public function applications(): HasMany
     {
         return $this->hasMany(JobApplication::class, 'job_posting_id');
+    }
+
+    public static function thumbnailDisk(): string
+    {
+        return 'public';
+    }
+
+    public function getThumbnailUrlAttribute(): ?string
+    {
+        if (! is_string($this->thumbnail_path) || $this->thumbnail_path === '') {
+            return null;
+        }
+
+        if (filter_var($this->thumbnail_path, FILTER_VALIDATE_URL)) {
+            return $this->thumbnail_path;
+        }
+
+        return Storage::disk(self::thumbnailDisk())->url($this->thumbnail_path);
     }
 }

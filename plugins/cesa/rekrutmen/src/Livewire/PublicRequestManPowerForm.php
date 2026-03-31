@@ -4,6 +4,7 @@ namespace Cesa\Rekrutmen\Livewire;
 
 use Cesa\Rekrutmen\Enums\StatusKebutuhan;
 use Cesa\Rekrutmen\Models\RequestManPower;
+use Cesa\Rekrutmen\Services\RecaptchaVerificationService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
@@ -18,7 +19,6 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Schema;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -207,11 +207,34 @@ class PublicRequestManPowerForm extends SimplePage
             return null;
         }
 
-        if ($this->recaptchaEnabled && ! $this->verifyRecaptchaToken($state)) {
-            $this->handleValidationError();
-            $this->dispatch('form-processing-finished');
+        if ($this->recaptchaEnabled) {
+            $token = Arr::get($state, 'recaptcha_token');
 
-            return null;
+            if (! $token) {
+                $this->addError('data.recaptcha_token', __('rekrutmen::livewire/public-request-man-power-form.errors.recaptcha_required'));
+                $this->handleValidationError();
+                $this->dispatch('form-processing-finished');
+
+                return null;
+            }
+
+            $service = new RecaptchaVerificationService;
+            $isValid = $service->verify(
+                $token,
+                $this->recaptchaSecretKey,
+                $this->recaptchaAction,
+                $this->recaptchaScoreThreshold,
+                $this->recaptchaTimeout,
+                request()?->ip()
+            );
+
+            if (! $isValid) {
+                $this->addError('data.recaptcha_token', __('rekrutmen::livewire/public-request-man-power-form.errors.recaptcha_failed'));
+                $this->handleValidationError();
+                $this->dispatch('form-processing-finished');
+
+                return null;
+            }
         }
 
         if (
@@ -331,89 +354,5 @@ class PublicRequestManPowerForm extends SimplePage
     public function getRecaptchaAction(): string
     {
         return $this->recaptchaAction ?? 'request_man_power';
-    }
-
-    protected function verifyRecaptchaToken(array $state): bool
-    {
-        $token = Arr::get($state, 'recaptcha_token');
-
-        if (! $token) {
-            $this->addError('data.recaptcha_token', __('rekrutmen::livewire/public-request-man-power-form.errors.recaptcha_required'));
-
-            return false;
-        }
-
-        try {
-            $response = Http::asForm()
-                ->timeout($this->recaptchaTimeout)
-                ->post('https://www.google.com/recaptcha/api/siteverify', [
-                    'secret'   => $this->recaptchaSecretKey,
-                    'response' => $token,
-                    'remoteip' => request()?->ip(),
-                ]);
-
-            if (! $response->successful()) {
-                Log::warning('reCAPTCHA verification request failed.', [
-                    'status' => $response->status(),
-                    'body'   => $response->body(),
-                ]);
-
-                $this->addError('data.recaptcha_token', __('rekrutmen::livewire/public-request-man-power-form.errors.recaptcha_failed'));
-
-                return false;
-            }
-
-            $payload = $response->json();
-
-            if (! Arr::get($payload, 'success')) {
-                Log::info('reCAPTCHA verification rejected.', [
-                    'errors' => Arr::get($payload, 'error-codes'),
-                ]);
-
-                $this->addError('data.recaptcha_token', __('rekrutmen::livewire/public-request-man-power-form.errors.recaptcha_failed'));
-
-                return false;
-            }
-
-            $score = (float) Arr::get($payload, 'score', 1.0);
-
-            if (
-                $this->recaptchaScoreThreshold > 0
-                && Arr::has($payload, 'score')
-                && $score < $this->recaptchaScoreThreshold
-            ) {
-                Log::info('reCAPTCHA score below configured threshold.', [
-                    'score'     => $score,
-                    'threshold' => $this->recaptchaScoreThreshold,
-                ]);
-
-                $this->addError('data.recaptcha_token', __('rekrutmen::livewire/public-request-man-power-form.errors.recaptcha_failed'));
-
-                return false;
-            }
-
-            $action = Arr::get($payload, 'action');
-
-            if ($action && $this->recaptchaAction && $action !== $this->recaptchaAction) {
-                Log::info('reCAPTCHA action mismatch detected.', [
-                    'expected' => $this->recaptchaAction,
-                    'received' => $action,
-                ]);
-
-                $this->addError('data.recaptcha_token', __('rekrutmen::livewire/public-request-man-power-form.errors.recaptcha_failed'));
-
-                return false;
-            }
-        } catch (Throwable $exception) {
-            Log::warning('reCAPTCHA verification failed with exception.', [
-                'error' => $exception->getMessage(),
-            ]);
-
-            $this->addError('data.recaptcha_token', __('rekrutmen::livewire/public-request-man-power-form.errors.recaptcha_failed'));
-
-            return false;
-        }
-
-        return true;
     }
 }

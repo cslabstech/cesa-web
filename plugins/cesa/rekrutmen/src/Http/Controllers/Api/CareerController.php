@@ -3,6 +3,8 @@
 namespace Cesa\Rekrutmen\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use Cesa\Rekrutmen\Enums\JobApplicationGender;
+use Cesa\Rekrutmen\Enums\JobApplicationMaritalStatus;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Cesa\Rekrutmen\Models\JobApplication;
 use Cesa\Rekrutmen\Models\JobApplicationHistory;
@@ -10,7 +12,7 @@ use Cesa\Rekrutmen\Models\JobPosting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rules\Enum;
 
 class CareerController extends Controller
 {
@@ -27,13 +29,20 @@ class CareerController extends Controller
                 'title',
                 'slug',
                 'location',
+                'thumbnail_path',
                 'closing_date',
             ]);
 
         return response()->json([
             'success' => true,
             'message' => __('rekrutmen::api/career.messages.job_listed'),
-            'data'    => $jobs,
+            'data'    => $jobs->map(fn (JobPosting $job): array => [
+                'title'         => $job->title,
+                'slug'          => $job->slug,
+                'location'      => $job->location,
+                'thumbnail_url' => $job->thumbnail_url,
+                'closing_date'  => $job->closing_date,
+            ])->values(),
         ]);
     }
 
@@ -48,6 +57,7 @@ class CareerController extends Controller
                 'description',
                 'requirements',
                 'location',
+                'thumbnail_path',
                 'closing_date',
             ]);
 
@@ -63,6 +73,7 @@ class CareerController extends Controller
             'message' => __('rekrutmen::api/career.messages.job_detail_retrieved'),
             'data'    => [
                 ...$job->toArray(),
+                'thumbnail_url'    => $job->thumbnail_url,
                 'application_form' => $this->resolveApplicationFormFields($job->slug),
             ],
         ]);
@@ -87,65 +98,53 @@ class CareerController extends Controller
         }
 
         $validated = Validator::make($request->all(), [
-            'full_name'             => ['required', 'string', 'max:255'],
-            'email'                 => ['required', 'email', 'max:255'],
-            'phone'                 => ['required', 'string', 'max:30'],
-            'cover_letter'          => ['nullable', 'string'],
-            'portfolio_url'         => ['nullable', 'url', 'max:255'],
-            'resume'                => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:5120'],
-            'additional_answers'    => ['nullable', 'array'],
-            'additional_answers.*'  => ['nullable'],
+            'full_name'                  => ['required', 'string', 'max:255'],
+            'email'                      => ['required', 'email', 'max:255'],
+            'gender'                     => ['required', new Enum(JobApplicationGender::class)],
+            'birth_date'                 => ['required', 'date'],
+            'marital_status'             => ['required', new Enum(JobApplicationMaritalStatus::class)],
+            'address_ktp'                => ['required', 'string'],
+            'address_domicile'           => ['required', 'string'],
+            'whatsapp_number'            => ['required', 'string', 'max:30'],
+            'active_phone'               => ['required', 'string', 'max:30'],
+            'emergency_contact_name'     => ['required', 'string', 'max:255'],
+            'emergency_contact_relation' => ['required', 'string', 'max:255'],
+            'emergency_contact_phone'    => ['required', 'string', 'max:30'],
+            'photo'                      => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'resume'                     => ['required', 'file', 'mimes:pdf,doc,docx', 'max:5120'],
         ], trans('rekrutmen::api/career.validation.messages'), trans('rekrutmen::api/career.validation.attributes'))->validate();
 
-        $additionalAnswers = $request->input('additional_answers', []);
-        $dynamicRules = $this->buildAdditionalAnswersValidationRules($job->slug);
-
-        if ($dynamicRules !== []) {
-            $validator = Validator::make(
-                ['additional_answers' => $additionalAnswers],
-                $dynamicRules,
-                ['required' => __('rekrutmen::api/career.validation.messages.required')],
-                $this->buildAdditionalAnswersValidationAttributes($job->slug),
-            );
-
-            if ($validator->fails()) {
-                throw new ValidationException($validator);
-            }
-        }
-
-        $resumePath = null;
-
-        if ($request->hasFile('resume')) {
-            $resumePath = $request->file('resume')->store(
-                JobApplication::RESUME_DIRECTORY,
-                JobApplication::resumeDisk()
-            );
-        }
-
-        $coverLetter = $validated['cover_letter'] ?? null;
-
-        if ($additionalAnswers !== []) {
-            $answers = json_encode($additionalAnswers, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            $coverLetter = trim(implode("\n\n", array_filter([
-                $coverLetter,
-                __('rekrutmen::api/career.application.additional_answers_prefix').' '.$answers,
-            ])));
-        }
+        $resumePath = $request->file('resume')->store(
+            JobApplication::RESUME_DIRECTORY,
+            JobApplication::resumeDisk()
+        );
+        $photoPath = $request->file('photo')->store(
+            JobApplication::PHOTO_DIRECTORY,
+            JobApplication::resumeDisk()
+        );
 
         $firstStageId = $job->rekrutmen_pipeline_id
             ? $job->rekrutmenPipeline?->stages()->orderBy('order_column')->value('id')
             : null;
 
         $application = JobApplication::query()->create([
-            'job_posting_id'   => $job->getKey(),
-            'current_stage_id' => $firstStageId,
-            'full_name'        => $validated['full_name'],
-            'email'            => $validated['email'],
-            'phone'            => $validated['phone'],
-            'resume_path'      => $resumePath,
-            'cover_letter'     => $coverLetter,
-            'portfolio_url'    => $validated['portfolio_url'] ?? null,
-            'status'           => JobApplicationStatus::IN_PROGRESS,
+            'job_posting_id'             => $job->getKey(),
+            'current_stage_id'           => $firstStageId,
+            'full_name'                  => $validated['full_name'],
+            'email'                      => $validated['email'],
+            'gender'                     => $validated['gender'],
+            'birth_date'                 => $validated['birth_date'],
+            'marital_status'             => $validated['marital_status'],
+            'address_ktp'                => $validated['address_ktp'],
+            'address_domicile'           => $validated['address_domicile'],
+            'whatsapp_number'            => $validated['whatsapp_number'],
+            'active_phone'               => $validated['active_phone'],
+            'emergency_contact_name'     => $validated['emergency_contact_name'],
+            'emergency_contact_relation' => $validated['emergency_contact_relation'],
+            'emergency_contact_phone'    => $validated['emergency_contact_phone'],
+            'photo_path'                 => $photoPath,
+            'resume_path'                => $resumePath,
+            'status'                     => JobApplicationStatus::IN_PROGRESS,
         ]);
 
         JobApplicationHistory::query()->create([
@@ -170,7 +169,7 @@ class CareerController extends Controller
     }
 
     /**
-     * @return array<int, array{name: string, label: string, type: string, required: bool}>
+     * @return array<int, array{name: string, label: string, type: string, required: bool, options?: array<int, array{value: string, label: string}>}>
      */
     private function resolveApplicationFormFields(string $slug): array
     {
@@ -179,70 +178,25 @@ class CareerController extends Controller
 
         return array_map(function (array $field): array {
             $label = $field['label'] ?? null;
+            $options = $field['options'] ?? [];
 
             if (is_string($label) && $label !== '') {
                 $field['label'] = __($label);
             }
 
+            if (is_array($options)) {
+                $field['options'] = array_map(function (array $option): array {
+                    $label = $option['label'] ?? null;
+
+                    if (is_string($label) && $label !== '') {
+                        $option['label'] = __($label);
+                    }
+
+                    return $option;
+                }, $options);
+            }
+
             return $field;
         }, [...$defaultFields, ...$slugFields]);
-    }
-
-    /**
-     * @return array<string, array<int, string>>
-     */
-    private function buildAdditionalAnswersValidationRules(string $slug): array
-    {
-        $slugFields = config("rekrutmen.application_form.by_slug.{$slug}", []);
-
-        $rules = [];
-
-        foreach ($slugFields as $field) {
-            $fieldName = $field['name'] ?? null;
-            $fieldType = $field['type'] ?? 'text';
-            $required = (bool) ($field['required'] ?? false);
-
-            if (! is_string($fieldName) || blank($fieldName)) {
-                continue;
-            }
-
-            $fieldRules = [$required ? 'required' : 'nullable'];
-
-            $fieldRules[] = match ($fieldType) {
-                'email'   => 'email',
-                'url'     => 'url',
-                'number'  => 'numeric',
-                'boolean' => 'boolean',
-                'date'    => 'date',
-                default   => 'string',
-            };
-
-            $rules["additional_answers.{$fieldName}"] = $fieldRules;
-        }
-
-        return $rules;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function buildAdditionalAnswersValidationAttributes(string $slug): array
-    {
-        $slugFields = config("rekrutmen.application_form.by_slug.{$slug}", []);
-
-        $attributes = [];
-
-        foreach ($slugFields as $field) {
-            $fieldName = $field['name'] ?? null;
-            $fieldLabel = $field['label'] ?? null;
-
-            if (! is_string($fieldName) || blank($fieldName) || ! is_string($fieldLabel) || blank($fieldLabel)) {
-                continue;
-            }
-
-            $attributes["additional_answers.{$fieldName}"] = __($fieldLabel);
-        }
-
-        return $attributes;
     }
 }
