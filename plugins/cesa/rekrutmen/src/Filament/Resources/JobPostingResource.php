@@ -72,13 +72,15 @@ class JobPostingResource extends Resource
 
                         Section::make(__('rekrutmen::filament/resources/job-posting.form.sections.details'))
                             ->schema([
-                                Forms\Components\RichEditor::make('description')
+                                Forms\Components\Textarea::make('description')
                                     ->label(__('rekrutmen::filament/resources/job-posting.form.fields.description'))
                                     ->required()
+                                    ->rows(5)
                                     ->columnSpanFull(),
-                                Forms\Components\RichEditor::make('requirements')
+                                Forms\Components\Textarea::make('requirements')
                                     ->label(__('rekrutmen::filament/resources/job-posting.form.fields.requirements'))
                                     ->required()
+                                    ->rows(5)
                                     ->columnSpanFull(),
                             ]),
                     ])->columnSpan(2),
