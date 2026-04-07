@@ -74,12 +74,14 @@ return [
     'workflow_notes' => [
         'stage_changed' => 'Tahap kandidat dipindahkan.',
         'stage_synced'  => 'Tahap kandidat disinkronkan dengan pipeline lowongan.',
+        'submitted'     => 'Kandidat masuk ke tahap awal.',
         'hired'         => 'Kandidat ditandai diterima.',
         'rejected'      => 'Kandidat ditandai ditolak.',
     ],
     'workflow_errors' => [
-        'invalid_stage'          => 'Tahap tujuan tidak sesuai dengan pipeline lowongan.',
-        'terminal_stage_locked'  => 'Kandidat yang sudah diputuskan tidak bisa dipindah tahap.',
-        'decision_note_required' => 'Catatan keputusan kandidat wajib diisi.',
+        'invalid_stage'            => 'Tahap tujuan tidak sesuai dengan pipeline lowongan.',
+        'terminal_stage_locked'    => 'Kandidat yang sudah diputuskan tidak bisa dipindah tahap.',
+        'decision_note_required'   => 'Catatan keputusan kandidat wajib diisi.',
+        'job_posting_has_no_stage' => 'Lowongan yang dipilih belum memiliki tahap awal.',
     ],
 ];

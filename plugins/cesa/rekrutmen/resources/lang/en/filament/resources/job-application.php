@@ -74,12 +74,14 @@ return [
     'workflow_notes' => [
         'stage_changed' => 'Candidate stage was moved.',
         'stage_synced'  => 'Candidate stage was synchronized with the job posting pipeline.',
+        'submitted'     => 'Candidate entered the initial stage.',
         'hired'         => 'Candidate was marked as accepted.',
         'rejected'      => 'Candidate was marked as rejected.',
     ],
     'workflow_errors' => [
-        'invalid_stage'          => 'The target stage does not belong to the selected job posting pipeline.',
-        'terminal_stage_locked'  => 'A decided candidate cannot be moved to another stage.',
-        'decision_note_required' => 'Decision notes are required.',
+        'invalid_stage'            => 'The target stage does not belong to the selected job posting pipeline.',
+        'terminal_stage_locked'    => 'A decided candidate cannot be moved to another stage.',
+        'decision_note_required'   => 'Decision notes are required.',
+        'job_posting_has_no_stage' => 'The selected job posting does not have an initial stage yet.',
     ],
 ];

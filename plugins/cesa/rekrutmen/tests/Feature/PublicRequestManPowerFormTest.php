@@ -85,4 +85,33 @@ class PublicRequestManPowerFormTest extends RekrutmenTestCase
             ->assertDispatched('form-errors-presented')
             ->assertDispatched('form-processing-finished');
     }
+
+    public function test_public_request_man_power_submission_ignores_client_supplied_submission_date(): void
+    {
+        Notification::fake();
+
+        Livewire::test(PublicRequestManPowerForm::class)
+            ->set('data.nama_pengaju', 'Andi Saputra')
+            ->set('data.email_address', 'andi@example.com')
+            ->set('data.posisi_pengaju', 'HR Manager')
+            ->set('data.divisi', 'IT')
+            ->set('data.badan_usaha', 'PT Cesa Indonesia')
+            ->set('data.status_kebutuhan', 'New Hiring')
+            ->set('data.posisi_dibutuhkan', 'Software Engineer')
+            ->set('data.level_pekerjaan', 'Staff')
+            ->set('data.jumlah_karyawan_dibutuhkan', 1)
+            ->set('data.lokasi_penempatan', 'Jakarta')
+            ->set('data.estimasi_tanggal_join', '2026-04-01')
+            ->set('data.job_description', 'Develop internal systems')
+            ->set('data.requirements_kualifikasi', 'PHP, Laravel, SQL')
+            ->set('data.keterangan', 'Urgent hiring')
+            ->set('data.tanggal_pengajuan', '2000-01-01')
+            ->call('submit')
+            ->assertHasNoErrors();
+
+        $request = RequestManPower::query()->first();
+
+        $this->assertNotNull($request);
+        $this->assertSame(now()->toDateString(), $request->tanggal_pengajuan?->toDateString());
+    }
 }

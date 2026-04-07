@@ -11,6 +11,7 @@ use Cesa\Rekrutmen\Enums\StatusKebutuhan;
 use Cesa\Rekrutmen\Livewire\PublicRequestManPowerProgressPage;
 use Cesa\Rekrutmen\Models\JobApplication;
 use Cesa\Rekrutmen\Models\JobApplicationHistory;
+use Cesa\Rekrutmen\Models\JobPosting;
 use Cesa\Rekrutmen\Models\RekrutmenPipeline;
 use Cesa\Rekrutmen\Models\RekrutmenStage;
 use Cesa\Rekrutmen\Models\RequestManPower;
@@ -19,6 +20,7 @@ use Cesa\Rekrutmen\Models\RequestManPowerSubmittedNotification;
 use Cesa\Rekrutmen\Tests\RekrutmenTestCase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Webkul\Security\Models\User as SecurityUser;
 
 class RequestManPowerTest extends RekrutmenTestCase
@@ -99,6 +101,143 @@ class RequestManPowerTest extends RekrutmenTestCase
         $this->assertNotSame($firstPosting->slug, $secondPosting->slug);
         $this->assertStringStartsWith($firstPosting->slug, $secondPosting->slug);
         $this->assertSame($secondPosting->id, $repeatSecondPosting->id);
+    }
+
+    public function test_approve_by_uses_the_configured_default_pipeline_and_refreshes_existing_job_posting(): void
+    {
+        RekrutmenPipeline::query()->create([
+            'name' => 'Fallback Pipeline',
+        ]);
+
+        $preferredPipeline = RekrutmenPipeline::query()->create([
+            'name' => 'Preferred Pipeline',
+        ]);
+
+        config()->set('rekrutmen.default_pipeline_id', $preferredPipeline->id);
+
+        $request = RequestManPower::query()->create($this->basePayload([
+            'email_address' => 'preferred@example.com',
+            'status'        => RequestManPowerStatus::PENDING,
+        ]));
+
+        $approver = User::factory()->create();
+
+        $request->approveBy($approver->id);
+
+        $jobPosting = $request->jobPosting()->first();
+
+        $this->assertNotNull($jobPosting);
+        $this->assertSame($preferredPipeline->id, $jobPosting->rekrutmen_pipeline_id);
+
+        $request->markPending();
+        $request->update([
+            'posisi_dibutuhkan'        => 'Senior Software Engineer',
+            'lokasi_penempatan'        => 'Bandung',
+            'job_description'          => 'Updated job description',
+            'requirements_kualifikasi' => 'Updated requirements',
+            'estimasi_tanggal_join'    => '2026-05-01',
+        ]);
+
+        $request->approveBy($approver->id);
+
+        $jobPosting->refresh();
+
+        $this->assertSame('Senior Software Engineer Bandung', $jobPosting->title);
+        $this->assertSame('senior-software-engineer-bandung', $jobPosting->slug);
+        $this->assertSame('Updated job description', $jobPosting->description);
+        $this->assertSame('Updated requirements', $jobPosting->requirements);
+        $this->assertSame('Bandung', $jobPosting->location);
+        $this->assertSame('2026-05-01', $jobPosting->closing_date?->toDateString());
+        $this->assertSame($preferredPipeline->id, $jobPosting->rekrutmen_pipeline_id);
+    }
+
+    public function test_rejecting_and_marking_pending_unpublish_existing_job_posting(): void
+    {
+        RekrutmenPipeline::query()->create([
+            'name' => 'Default Pipeline',
+        ]);
+
+        $request = RequestManPower::query()->create($this->basePayload([
+            'email_address' => 'lifecycle@example.com',
+            'status'        => RequestManPowerStatus::PENDING,
+        ]));
+
+        $approver = User::factory()->create();
+
+        $request->approveBy($approver->id);
+
+        $jobPosting = $request->jobPosting()->firstOrFail();
+        $jobPosting->update(['is_published' => true]);
+
+        $request->rejectBy($approver->id);
+        $jobPosting->refresh();
+
+        $this->assertSame(RequestManPowerStatus::REJECTED, $request->fresh()->status);
+        $this->assertFalse($jobPosting->is_published);
+
+        $jobPosting->update(['is_published' => true]);
+
+        $request->markPending();
+        $jobPosting->refresh();
+
+        $this->assertSame(RequestManPowerStatus::PENDING, $request->fresh()->status);
+        $this->assertNull($request->fresh()->approved_by);
+        $this->assertFalse($jobPosting->is_published);
+    }
+
+    public function test_approve_by_fails_without_changing_status_when_default_pipeline_cannot_be_resolved(): void
+    {
+        config()->set('rekrutmen.default_pipeline_id', 999999);
+        config()->set('rekrutmen.default_pipeline_name', 'Missing Pipeline');
+
+        $request = RequestManPower::query()->create($this->basePayload([
+            'email_address' => 'missing-pipeline@example.com',
+            'status'        => RequestManPowerStatus::PENDING,
+        ]));
+
+        $approver = User::factory()->create();
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage(__('rekrutmen::filament/resources/request-man-power.errors.default_pipeline_not_configured'));
+
+        try {
+            $request->approveBy($approver->id);
+        } finally {
+            $request->refresh();
+
+            $this->assertSame(RequestManPowerStatus::PENDING, $request->status);
+            $this->assertNull($request->approved_by);
+            $this->assertNull(JobPosting::query()->where('request_man_power_id', $request->id)->first());
+        }
+    }
+
+    public function test_approve_by_falls_back_to_oldest_pipeline_when_configured_name_is_stale(): void
+    {
+        config()->set('rekrutmen.default_pipeline_id', null);
+        config()->set('rekrutmen.default_pipeline_name', 'Default Recruitment Pipeline');
+
+        $renamedDefaultPipeline = RekrutmenPipeline::query()->create([
+            'name' => 'Renamed Default Pipeline',
+        ]);
+
+        RekrutmenPipeline::query()->create([
+            'name' => 'Another Pipeline',
+        ]);
+
+        $request = RequestManPower::query()->create($this->basePayload([
+            'email_address' => 'stale-name@example.com',
+            'status'        => RequestManPowerStatus::PENDING,
+        ]));
+
+        $approver = User::factory()->create();
+
+        $request->approveBy($approver->id);
+
+        $jobPosting = $request->jobPosting()->first();
+
+        $this->assertNotNull($jobPosting);
+        $this->assertSame($renamedDefaultPipeline->id, $jobPosting->rekrutmen_pipeline_id);
+        $this->assertSame(RequestManPowerStatus::APPROVED, $request->fresh()->status);
     }
 
     public function test_scopes_filter_records_by_divisi_status_and_tanggal(): void

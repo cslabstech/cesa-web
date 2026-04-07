@@ -45,6 +45,7 @@ class RekrutmenServiceProvider extends PackageServiceProvider
                 '2026_03_31_224308_rekrutmen_update_job_applications_contact_and_document_fields',
                 '2026_03_31_230839_rekrutmen_add_thumbnail_path_to_job_postings_table',
                 '2026_03_31_234155_rekrutmen_add_position_to_job_applications_table',
+                '2026_04_07_094912_rekrutmen_add_active_email_to_job_applications_table',
             ])
             ->runsMigrations()
             ->runsSeeders()

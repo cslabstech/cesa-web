@@ -23,6 +23,11 @@ class RekrutmenPipeline extends Model
         return $this->hasMany(RekrutmenStage::class, 'rekrutmen_pipeline_id')->withTrashed()->orderBy('order_column');
     }
 
+    public function activeStages(): HasMany
+    {
+        return $this->hasMany(RekrutmenStage::class, 'rekrutmen_pipeline_id')->orderBy('order_column');
+    }
+
     public function jobPostings(): HasMany
     {
         return $this->hasMany(JobPosting::class, 'rekrutmen_pipeline_id')->withTrashed();

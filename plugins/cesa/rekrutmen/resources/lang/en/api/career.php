@@ -6,6 +6,7 @@ return [
         'job_not_found'         => 'Job posting not found.',
         'job_detail_retrieved'  => 'Job detail retrieved successfully.',
         'job_not_open'          => 'Job posting not found or is no longer open.',
+        'job_not_ready'         => 'Job posting is not ready to receive applications yet.',
         'application_submitted' => 'Application submitted successfully.',
     ],
     'validation' => [
@@ -13,6 +14,7 @@ return [
             'full_name.required'                  => 'The full name field is required.',
             'email.required'                      => 'The email field is required.',
             'email.email'                         => 'The email format is invalid.',
+            'email.unique'                        => 'You have already applied for this job posting.',
             'gender.required'                     => 'The gender field is required.',
             'birth_date.required'                 => 'The birth date field is required.',
             'birth_date.date'                     => 'The birth date format is invalid.',

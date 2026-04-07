@@ -100,7 +100,7 @@ class PublicRequestManPowerForm extends SimplePage
             ->components([
                 Hidden::make('tanggal_pengajuan')
                     ->default(fn () => now()->toDateString())
-                    ->dehydrated(),
+                    ->dehydrated(false),
 
                 Group::make()
                     ->schema([
@@ -223,6 +223,7 @@ class PublicRequestManPowerForm extends SimplePage
                 $token,
                 $this->recaptchaSecretKey,
                 $this->recaptchaAction,
+                request()?->getHost(),
                 $this->recaptchaScoreThreshold,
                 $this->recaptchaTimeout,
                 request()?->ip()
@@ -250,7 +251,7 @@ class PublicRequestManPowerForm extends SimplePage
 
         try {
             $dataToSave = Arr::except($state, ['recaptcha_token']);
-            $dataToSave['tanggal_pengajuan'] = $dataToSave['tanggal_pengajuan'] ?? now()->toDateString();
+            $dataToSave['tanggal_pengajuan'] = now()->toDateString();
 
             $rmp = RequestManPower::create($dataToSave);
 

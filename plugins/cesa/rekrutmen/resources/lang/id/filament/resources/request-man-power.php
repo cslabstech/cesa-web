@@ -64,4 +64,8 @@ return [
             'set_pending' => 'Set Pending',
         ],
     ],
+    'errors' => [
+        'default_pipeline_not_configured' => 'Pipeline rekrutmen default belum dikonfigurasi.',
+        'approval_failed'                 => 'Aksi persetujuan tidak dapat diselesaikan.',
+    ],
 ];

@@ -28,7 +28,7 @@ export class JobApplicationAdminPage {
     async markCandidateAsHired(keyword: string, notes: string): Promise<void> {
         await this.gotoListing();
         await this.searchCandidate(keyword);
-        await this.openRowAction(keyword, /Accept Candidate|Terima Kandidat/i);
+        await this.openEditPage(keyword);
         await this.submitDecisionWithNotes(/Accept Candidate|Terima Kandidat/i, notes);
         await this.gotoListing();
         await this.searchCandidate(keyword);
@@ -37,7 +37,7 @@ export class JobApplicationAdminPage {
     async markCandidateAsRejected(keyword: string, notes: string): Promise<void> {
         await this.gotoListing();
         await this.searchCandidate(keyword);
-        await this.openRowAction(keyword, /Reject Candidate|Tolak Kandidat/i);
+        await this.openEditPage(keyword);
         await this.submitDecisionWithNotes(/Reject Candidate|Tolak Kandidat/i, notes);
         await this.gotoListing();
         await this.searchCandidate(keyword);
@@ -65,13 +65,14 @@ export class JobApplicationAdminPage {
         await this.page.waitForLoadState("networkidle");
     }
 
-    private async openRowAction(keyword: string, label: RegExp): Promise<void> {
+    private async openEditPage(keyword: string): Promise<void> {
         const row = this.rowLocator(keyword).first();
         await expect(row).toBeVisible();
 
-        const actionButton = row.locator("a,button").filter({ hasText: label }).first();
-        await expect(actionButton).toBeVisible();
-        await actionButton.click();
+        const editAction = row.locator("a,button").filter({ hasText: /Ubah|Edit/i }).first();
+        await expect(editAction).toBeVisible();
+        await editAction.click();
+        await expect(this.page).toHaveURL(/job-applications\/\d+\/edit/);
     }
 
     private rowLocator(keyword: string): Locator {
@@ -79,16 +80,38 @@ export class JobApplicationAdminPage {
     }
 
     private async submitDecisionWithNotes(actionLabel: RegExp, notes: string): Promise<void> {
-        await this.page
-            .locator("button:visible")
-            .filter({ hasText: actionLabel })
-            .first()
-            .click();
+        let notesField = this.page.locator('textarea[id*="mountedActionSchema"][id$=".notes"]:visible').last();
 
-        const dialog = this.page.locator('[role="dialog"]:visible').last();
-        await expect(dialog).toBeVisible();
-        await dialog.locator("textarea").first().fill(notes);
-        await dialog.getByRole("button", { name: actionLabel }).last().click();
+        if (!(await notesField.isVisible().catch(() => false))) {
+            const pageLevelAction = this.page
+                .locator("button:visible")
+                .filter({ hasText: actionLabel })
+                .first();
+
+            await expect(pageLevelAction).toBeVisible();
+            await pageLevelAction.click();
+            notesField = this.page.locator('textarea[id*="mountedActionSchema"][id$=".notes"]:visible').last();
+        }
+
+        await expect(notesField).toBeVisible();
+        await notesField.fill(notes);
+
+        let submitButton = this.page
+            .locator("button:visible")
+            .filter({ hasText: /Kirim|Submit/i })
+            .last();
+
+        if (!(await submitButton.isVisible().catch(() => false))) {
+            submitButton = this.page
+                .locator("button:visible")
+                .filter({ hasText: /Accept Candidate|Terima Kandidat|Reject Candidate|Tolak Kandidat/i })
+                .last();
+        }
+
+        await expect(submitButton).toBeVisible();
+        await submitButton.click();
+        await expect(notesField).not.toBeVisible({ timeout: 10000 });
+        await this.page.waitForLoadState("networkidle");
     }
 
     private tableSearchInput(): Locator {

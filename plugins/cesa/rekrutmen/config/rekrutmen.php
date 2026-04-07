@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'default_pipeline_id' => env('REKRUTMEN_DEFAULT_PIPELINE_ID'),
+
+    'default_pipeline_name' => env('REKRUTMEN_DEFAULT_PIPELINE_NAME', 'Default Recruitment Pipeline'),
+
     'application_form' => [
         'default_fields' => [
             [
@@ -123,6 +127,20 @@ return [
             'action'          => env('REKRUTMEN_RECAPTCHA_ACTION', 'request_man_power'),
             'score_threshold' => (float) env('REKRUTMEN_RECAPTCHA_SCORE_THRESHOLD', 0.5),
             'timeout'         => (int) env('REKRUTMEN_RECAPTCHA_TIMEOUT', 5),
+        ],
+    ],
+
+    'mail' => [
+        'job_application' => [
+            'mailer' => env('REKRUTMEN_JOB_APPLICATION_MAIL_MAILER', 'rekrutmen_job_application'),
+            'from'   => [
+                'address' => env('REKRUTMEN_JOB_APPLICATION_MAIL_FROM_ADDRESS', env('MAIL_FROM_ADDRESS')),
+                'name'    => env('REKRUTMEN_JOB_APPLICATION_MAIL_FROM_NAME', env('MAIL_FROM_NAME')),
+            ],
+            'reply_to' => [
+                'address' => env('REKRUTMEN_JOB_APPLICATION_MAIL_REPLY_TO_ADDRESS'),
+                'name'    => env('REKRUTMEN_JOB_APPLICATION_MAIL_REPLY_TO_NAME'),
+            ],
         ],
     ],
 ];

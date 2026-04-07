@@ -10,8 +10,6 @@ class EditRequestManPower extends EditRecord
 {
     protected static string $resource = RequestManPowerResource::class;
 
-    protected ?string $previousStatus = null;
-
     protected function getHeaderActions(): array
     {
         return [
@@ -19,19 +17,11 @@ class EditRequestManPower extends EditRecord
         ];
     }
 
-    protected function beforeSave(): void
+    protected function mutateFormDataBeforeSave(array $data): array
     {
-        $this->previousStatus = $this->record->getRawOriginal('status');
-    }
+        $data['status'] = $this->record->status;
+        $data['approved_by'] = $this->record->approved_by;
 
-    protected function afterSave(): void
-    {
-        $currentStatus = $this->record->getRawOriginal('status');
-
-        if ($this->previousStatus === $currentStatus) {
-            return;
-        }
-
-        $this->record->sendStatusChangedNotification($this->previousStatus, $currentStatus);
+        return $data;
     }
 }

@@ -13,9 +13,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Throwable;
 use Webkul\Security\Models\User;
 
@@ -211,18 +213,57 @@ class RequestManPower extends Model
     {
         $previousStatus = $this->status;
 
-        $this->update([
-            'status'      => RequestManPowerStatus::APPROVED,
-            'approved_by' => $approverId,
-        ]);
+        DB::transaction(function () use ($approverId): void {
+            $this->createJobPostingIfMissing();
 
-        $this->createJobPostingIfMissing();
+            $this->update([
+                'status'      => RequestManPowerStatus::APPROVED,
+                'approved_by' => $approverId,
+            ]);
+        });
 
         $this->sendStatusChangedNotification($previousStatus, RequestManPowerStatus::APPROVED);
     }
 
+    public function rejectBy(?int $approverId = null): void
+    {
+        $previousStatus = $this->status;
+
+        DB::transaction(function () use ($approverId): void {
+            $this->update([
+                'status'      => RequestManPowerStatus::REJECTED,
+                'approved_by' => $approverId,
+            ]);
+
+            $this->unpublishLinkedJobPosting();
+        });
+
+        $this->sendStatusChangedNotification($previousStatus, RequestManPowerStatus::REJECTED);
+    }
+
+    public function markPending(): void
+    {
+        $previousStatus = $this->status;
+
+        DB::transaction(function (): void {
+            $this->update([
+                'status'      => RequestManPowerStatus::PENDING,
+                'approved_by' => null,
+            ]);
+
+            $this->unpublishLinkedJobPosting();
+        });
+
+        $this->sendStatusChangedNotification($previousStatus, RequestManPowerStatus::PENDING);
+    }
+
     public function createJobPostingIfMissing(): JobPosting
     {
+        $existingPosting = JobPosting::query()
+            ->withTrashed()
+            ->where('request_man_power_id', $this->getKey())
+            ->first();
+
         $title = trim(implode(' ', array_filter([
             $this->posisi_dibutuhkan,
             $this->lokasi_penempatan,
@@ -234,32 +275,38 @@ class RequestManPower extends Model
 
         $baseSlug = Str::slug($title);
         $baseSlug = $baseSlug !== '' ? $baseSlug : 'job-posting-'.$this->getKey();
-        $slug = $baseSlug;
-        $suffix = 2;
+        $pipelineId = $existingPosting?->rekrutmen_pipeline_id ?? $this->resolveDefaultPipelineId();
+        $slug = $this->resolveAvailableJobPostingSlug($baseSlug, $existingPosting?->getKey());
 
-        while (
-            JobPosting::query()
-                ->where('slug', $slug)
-                ->where('request_man_power_id', '!=', $this->getKey())
-                ->exists()
-        ) {
-            $slug = $baseSlug.'-'.$suffix;
-            $suffix++;
-        }
+        if ($existingPosting) {
+            if ($existingPosting->trashed()) {
+                $existingPosting->restore();
+            }
 
-        return JobPosting::query()->firstOrCreate(
-            ['request_man_power_id' => $this->getKey()],
-            [
-                'rekrutmen_pipeline_id' => RekrutmenPipeline::query()->value('id'),
+            $existingPosting->update([
+                'rekrutmen_pipeline_id' => $pipelineId,
                 'title'                 => $title,
                 'slug'                  => $slug,
                 'description'           => $this->job_description,
                 'requirements'          => $this->requirements_kualifikasi,
                 'location'              => $this->lokasi_penempatan,
-                'is_published'          => false,
                 'closing_date'          => $this->estimasi_tanggal_join,
-            ],
-        );
+            ]);
+
+            return $existingPosting->fresh();
+        }
+
+        return JobPosting::query()->create([
+            'request_man_power_id'  => $this->getKey(),
+            'rekrutmen_pipeline_id' => $pipelineId,
+            'title'                 => $title,
+            'slug'                  => $slug,
+            'description'           => $this->job_description,
+            'requirements'          => $this->requirements_kualifikasi,
+            'location'              => $this->lokasi_penempatan,
+            'is_published'          => false,
+            'closing_date'          => $this->estimasi_tanggal_join,
+        ]);
     }
 
     private function normalizeStatus(mixed $status): ?RequestManPowerStatus
@@ -273,6 +320,77 @@ class RequestManPower extends Model
         }
 
         return RequestManPowerStatus::tryFrom($status);
+    }
+
+    private function resolveDefaultPipelineId(): int
+    {
+        $configuredPipelineId = config('rekrutmen.default_pipeline_id');
+
+        if (is_numeric($configuredPipelineId)) {
+            $configuredPipeline = RekrutmenPipeline::query()
+                ->whereKey((int) $configuredPipelineId)
+                ->value('id');
+
+            if (is_numeric($configuredPipeline)) {
+                return (int) $configuredPipeline;
+            }
+        }
+
+        $configuredPipelineName = config('rekrutmen.default_pipeline_name');
+
+        if (is_string($configuredPipelineName) && $configuredPipelineName !== '') {
+            $configuredPipeline = RekrutmenPipeline::query()
+                ->where('name', $configuredPipelineName)
+                ->value('id');
+
+            if (is_numeric($configuredPipeline)) {
+                return (int) $configuredPipeline;
+            }
+        }
+
+        $fallbackPipelineId = RekrutmenPipeline::query()
+            ->orderBy('id')
+            ->value('id');
+
+        if (is_numeric($fallbackPipelineId)) {
+            return (int) $fallbackPipelineId;
+        }
+
+        throw new RuntimeException(
+            __('rekrutmen::filament/resources/request-man-power.errors.default_pipeline_not_configured')
+        );
+    }
+
+    private function resolveAvailableJobPostingSlug(string $baseSlug, ?int $ignoreJobPostingId = null): string
+    {
+        $slug = $baseSlug;
+        $suffix = 2;
+
+        while (
+            JobPosting::query()
+                ->withTrashed()
+                ->where('slug', $slug)
+                ->when($ignoreJobPostingId, fn (Builder $query) => $query->whereKeyNot($ignoreJobPostingId))
+                ->exists()
+        ) {
+            $slug = $baseSlug.'-'.$suffix;
+            $suffix++;
+        }
+
+        return $slug;
+    }
+
+    private function unpublishLinkedJobPosting(): void
+    {
+        $jobPosting = $this->jobPosting()->first();
+
+        if (! $jobPosting) {
+            return;
+        }
+
+        $jobPosting->update([
+            'is_published' => false,
+        ]);
     }
 }
 

@@ -14,6 +14,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
@@ -22,6 +23,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class RequestManPowerResource extends Resource
 {
@@ -151,7 +153,7 @@ class RequestManPowerResource extends Resource
                                     ->required()
                                     ->options(RequestManPowerStatus::class)
                                     ->default(RequestManPowerStatus::PENDING)
-                                    ->disabled(fn () => ! self::currentUserCanManageApproval()),
+                                    ->disabled(),
                                 Select::make('approved_by')
                                     ->relationship('approver', 'name')
                                     ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.approved_by'))
@@ -229,7 +231,19 @@ class RequestManPowerResource extends Resource
                     ->color('success')
                     ->visible(fn (RequestManPower $record) => self::canApproveOrReject($record))
                     ->action(function (RequestManPower $record) {
-                        $record->approveBy(Auth::id());
+                        try {
+                            $record->approveBy(Auth::id());
+                        } catch (\Throwable $exception) {
+                            Log::error('Failed to approve manpower request.', [
+                                'request_man_power_id' => $record->getKey(),
+                                'exception'            => $exception,
+                            ]);
+
+                            Notification::make()
+                                ->title(__('rekrutmen::filament/resources/request-man-power.errors.approval_failed'))
+                                ->danger()
+                                ->send();
+                        }
                     }),
                 Action::make('reject')
                     ->label(__('rekrutmen::filament/resources/request-man-power.table.actions.reject'))
@@ -238,14 +252,7 @@ class RequestManPowerResource extends Resource
                     ->visible(fn (RequestManPower $record) => self::canApproveOrReject($record))
                     ->requiresConfirmation()
                     ->action(function (RequestManPower $record) {
-                        $previousStatus = $record->status;
-
-                        $record->update([
-                            'status'      => RequestManPowerStatus::REJECTED,
-                            'approved_by' => Auth::id(),
-                        ]);
-
-                        $record->sendStatusChangedNotification($previousStatus, RequestManPowerStatus::REJECTED);
+                        $record->rejectBy(Auth::id());
                     }),
                 Action::make('set_pending')
                     ->label(__('rekrutmen::filament/resources/request-man-power.table.actions.set_pending'))
@@ -254,14 +261,7 @@ class RequestManPowerResource extends Resource
                     ->visible(fn (RequestManPower $record) => self::canSetPending($record))
                     ->requiresConfirmation()
                     ->action(function (RequestManPower $record) {
-                        $previousStatus = $record->status;
-
-                        $record->update([
-                            'status'      => RequestManPowerStatus::PENDING,
-                            'approved_by' => null,
-                        ]);
-
-                        $record->sendStatusChangedNotification($previousStatus, RequestManPowerStatus::PENDING);
+                        $record->markPending();
                     }),
             ])
             ->toolbarActions([

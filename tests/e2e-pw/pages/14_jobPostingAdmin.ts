@@ -80,20 +80,24 @@ export class JobPostingAdminPage {
 
     private async selectBySearch(trigger: Locator, value: string): Promise<void> {
         await trigger.click();
-        await this.page.waitForLoadState("networkidle");
 
-        const listbox = this.page.locator('[role="listbox"]:visible').last();
-        await expect(listbox).toBeVisible();
+        const searchInput = this.page
+            .locator('.fi-dropdown-panel[role="listbox"]:visible input.fi-input[aria-label="Search"], input[type="search"]:visible')
+            .last();
 
-        const searchInput = listbox.locator('input[type="search"], [role="textbox"]').first();
         if (await searchInput.isVisible().catch(() => false)) {
-            await searchInput.fill(value);
-            await this.page.waitForLoadState("networkidle");
+            await searchInput.click();
+            await searchInput.press(process.platform === "darwin" ? "Meta+A" : "Control+A");
+            await searchInput.press("Backspace");
+            await this.page.keyboard.type(value, { delay: 40 });
+            await expect(searchInput).toHaveValue(value);
+            await this.page.waitForTimeout(500);
         }
 
-        const option = listbox.getByRole("option", {
-            name: new RegExp(`^${this.escapeRegExp(value)}$`, "i"),
-        }).first();
+        const option = this.page
+            .locator('[role="option"]:visible, .fi-select-input-option:visible, li.fi-select-input-option:visible')
+            .filter({ hasText: new RegExp(this.escapeRegExp(value), "i") })
+            .first();
 
         await expect(option).toBeVisible();
         await option.click();

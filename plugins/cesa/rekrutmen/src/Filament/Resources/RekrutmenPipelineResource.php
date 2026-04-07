@@ -66,8 +66,8 @@ class RekrutmenPipelineResource extends Resource
                 Section::make(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.sections.stages'))
                     ->description(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.descriptions.stages'))
                     ->schema([
-                        Forms\Components\Repeater::make('stages')
-                            ->relationship()
+                        Forms\Components\Repeater::make('activeStages')
+                            ->relationship('activeStages')
                             ->schema([
                                 Forms\Components\TextInput::make('name')
                                     ->label(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.fields.name'))
@@ -76,6 +76,7 @@ class RekrutmenPipelineResource extends Resource
                             ])
                             ->orderColumn('order_column')
                             ->defaultItems(1)
+                            ->minItems(1)
                             ->addActionLabel(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.actions.add_stage'))
                             ->reorderableWithButtons()
                             ->columnSpanFull(),
@@ -91,7 +92,7 @@ class RekrutmenPipelineResource extends Resource
                     ->label(__('rekrutmen::filament/resources/rekrutmen-pipeline.table.columns.name'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('stages_count')
-                    ->counts('stages')
+                    ->counts('activeStages')
                     ->label(__('rekrutmen::filament/resources/rekrutmen-pipeline.table.columns.stages_count'))
                     ->badge(),
                 Tables\Columns\TextColumn::make('created_at')

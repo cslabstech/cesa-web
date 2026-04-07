@@ -16,6 +16,7 @@ class RecaptchaVerificationService
         string $token,
         string $secretKey,
         ?string $expectedAction = null,
+        ?string $expectedHostname = null,
         float $scoreThreshold = 0.0,
         int $timeout = 5,
         ?string $ipAddress = null
@@ -73,6 +74,17 @@ class RecaptchaVerificationService
                 Log::info('reCAPTCHA action mismatch detected.', [
                     'expected' => $expectedAction,
                     'received' => $action,
+                ]);
+
+                return false;
+            }
+
+            $hostname = Arr::get($payload, 'hostname');
+
+            if ($hostname && $expectedHostname && $hostname !== $expectedHostname) {
+                Log::info('reCAPTCHA hostname mismatch detected.', [
+                    'expected' => $expectedHostname,
+                    'received' => $hostname,
                 ]);
 
                 return false;

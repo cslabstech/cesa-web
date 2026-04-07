@@ -6,6 +6,7 @@ return [
         'job_not_found'         => 'Lowongan kerja tidak ditemukan.',
         'job_detail_retrieved'  => 'Detail lowongan berhasil diambil.',
         'job_not_open'          => 'Lowongan kerja tidak ditemukan atau sudah tidak dibuka.',
+        'job_not_ready'         => 'Lowongan kerja belum siap menerima lamaran.',
         'application_submitted' => 'Lamaran berhasil dikirim.',
     ],
     'validation' => [
@@ -13,6 +14,7 @@ return [
             'full_name.required'                  => 'Nama lengkap wajib diisi.',
             'email.required'                      => 'Email wajib diisi.',
             'email.email'                         => 'Format email tidak valid.',
+            'email.unique'                        => 'Anda sudah pernah melamar pada lowongan ini.',
             'gender.required'                     => 'Jenis kelamin wajib diisi.',
             'birth_date.required'                 => 'Tanggal lahir wajib diisi.',
             'birth_date.date'                     => 'Format tanggal lahir tidak valid.',

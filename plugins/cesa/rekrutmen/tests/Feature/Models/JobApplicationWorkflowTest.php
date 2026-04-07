@@ -10,6 +10,8 @@ use Cesa\Rekrutmen\Models\JobPosting;
 use Cesa\Rekrutmen\Models\RekrutmenPipeline;
 use Cesa\Rekrutmen\Models\RekrutmenStage;
 use Cesa\Rekrutmen\Tests\RekrutmenTestCase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 class JobApplicationWorkflowTest extends RekrutmenTestCase
@@ -127,6 +129,237 @@ class JobApplicationWorkflowTest extends RekrutmenTestCase
         $this->assertNotNull($firstApplication->position);
         $this->assertNotNull($secondApplication->position);
         $this->assertTrue((float) $secondApplication->position > (float) $firstApplication->position);
+    }
+
+    public function test_new_application_records_initial_history_when_created_from_admin_flow(): void
+    {
+        [$jobPosting, $firstStage] = $this->createPipelineFixture('Initial History');
+
+        $application = $this->makeJobApplication($jobPosting, $firstStage, 'initial-history@example.com');
+
+        $this->assertDatabaseHas('rekrutmen_job_application_histories', [
+            'job_application_id' => $application->id,
+            'from_stage_id'      => null,
+            'to_stage_id'        => $firstStage->id,
+            'status'             => JobApplicationStatus::IN_PROGRESS->value,
+            'notes'              => __('rekrutmen::filament/resources/job-application.workflow_notes.submitted'),
+        ]);
+        $this->assertSame(1, $application->histories()->count());
+    }
+
+    public function test_terminal_status_application_does_not_record_initial_submission_history(): void
+    {
+        [$jobPosting, $firstStage] = $this->createPipelineFixture('Terminal Create');
+
+        $application = JobApplication::query()->create([
+            'job_posting_id'             => $jobPosting->id,
+            'current_stage_id'           => $firstStage->id,
+            'full_name'                  => 'Candidate Final',
+            'email'                      => 'terminal@example.com',
+            'gender'                     => JobApplicationGender::Male,
+            'birth_date'                 => '1995-01-10',
+            'marital_status'             => JobApplicationMaritalStatus::Single,
+            'address_ktp'                => 'Alamat KTP',
+            'address_domicile'           => 'Alamat Domisili',
+            'whatsapp_number'            => '081234567890',
+            'active_phone'               => '081234567891',
+            'emergency_contact_name'     => 'Bunga',
+            'emergency_contact_relation' => 'Saudara',
+            'emergency_contact_phone'    => '081234567892',
+            'status'                     => JobApplicationStatus::HIRED,
+        ]);
+
+        $this->assertSame(0, $application->histories()->count());
+    }
+
+    public function test_duplicate_email_cannot_be_created_for_the_same_job_posting(): void
+    {
+        [$jobPosting, $firstStage] = $this->createPipelineFixture('Duplicate Create');
+
+        $this->makeJobApplication($jobPosting, $firstStage, 'duplicate@example.com');
+
+        $this->expectException(ValidationException::class);
+
+        $this->makeJobApplication($jobPosting, $firstStage, ' DUPLICATE@example.com ');
+    }
+
+    public function test_application_email_cannot_be_updated_to_duplicate_for_the_same_job_posting(): void
+    {
+        [$jobPosting, $firstStage] = $this->createPipelineFixture('Duplicate Update');
+
+        $firstApplication = $this->makeJobApplication($jobPosting, $firstStage, 'first@example.com');
+        $secondApplication = $this->makeJobApplication($jobPosting, $firstStage, 'second@example.com');
+
+        $this->expectException(ValidationException::class);
+
+        $secondApplication->update([
+            'email' => ' FIRST@example.com ',
+        ]);
+    }
+
+    public function test_restoring_duplicate_email_application_is_blocked(): void
+    {
+        [$jobPosting, $firstStage] = $this->createPipelineFixture('Duplicate Restore');
+
+        $trashedApplication = $this->makeJobApplication($jobPosting, $firstStage, 'restore@example.com');
+        $trashedApplication->delete();
+
+        $replacementApplication = $this->makeJobApplication($jobPosting, $firstStage, 'restore@example.com');
+
+        $this->expectException(ValidationException::class);
+
+        $trashedApplication->restore();
+
+        $replacementApplication->refresh();
+    }
+
+    public function test_soft_deleted_stage_is_not_counted_as_an_available_pipeline_stage(): void
+    {
+        [$jobPosting, $firstStage, $secondStage] = $this->createPipelineFixture('Soft Deleted Stage');
+
+        $firstStage->delete();
+        $secondStage->delete();
+
+        $jobPosting->rekrutmenPipeline->refresh();
+
+        $this->assertSame(0, $jobPosting->rekrutmenPipeline->activeStages()->count());
+        $this->assertNull(JobApplication::resolveInitialStageIdForJobPostingId($jobPosting->id));
+    }
+
+    public function test_legacy_duplicate_record_can_be_updated_without_reclaiming_active_email(): void
+    {
+        [$jobPosting, $firstStage] = $this->createPipelineFixture('Legacy Duplicate');
+
+        $this->makeJobApplication($jobPosting, $firstStage, 'legacy@example.com');
+
+        $legacyDuplicateId = DB::table('rekrutmen_job_applications')->insertGetId([
+            'job_posting_id'             => $jobPosting->id,
+            'current_stage_id'           => $firstStage->id,
+            'position'                   => null,
+            'full_name'                  => 'Legacy Candidate',
+            'gender'                     => JobApplicationGender::Male->value,
+            'birth_date'                 => '1995-01-10',
+            'marital_status'             => JobApplicationMaritalStatus::Single->value,
+            'address_ktp'                => 'Alamat KTP',
+            'address_domicile'           => 'Alamat Domisili',
+            'whatsapp_number'            => '081234567890',
+            'active_phone'               => '081234567891',
+            'emergency_contact_name'     => 'Bunga',
+            'emergency_contact_relation' => 'Saudara',
+            'emergency_contact_phone'    => '081234567892',
+            'email'                      => 'LEGACY@example.com',
+            'active_email'               => null,
+            'photo_path'                 => null,
+            'resume_path'                => null,
+            'status'                     => JobApplicationStatus::IN_PROGRESS->value,
+            'created_at'                 => now(),
+            'updated_at'                 => now(),
+        ]);
+
+        $legacyDuplicate = JobApplication::query()->findOrFail($legacyDuplicateId);
+
+        $legacyDuplicate->update([
+            'full_name' => 'Legacy Candidate Updated',
+        ]);
+
+        $legacyDuplicate->refresh();
+
+        $this->assertSame('LEGACY CANDIDATE UPDATED', $legacyDuplicate->full_name);
+        $this->assertNull(
+            DB::table('rekrutmen_job_applications')
+                ->where('id', $legacyDuplicateId)
+                ->value('active_email')
+        );
+    }
+
+    public function test_surviving_legacy_duplicate_reclaims_active_email_when_owner_is_deleted(): void
+    {
+        [$jobPosting, $firstStage] = $this->createPipelineFixture('Legacy Reclaim');
+
+        $retainedApplication = $this->makeJobApplication($jobPosting, $firstStage, 'legacy-reclaim@example.com');
+
+        $legacyDuplicateId = DB::table('rekrutmen_job_applications')->insertGetId([
+            'job_posting_id'             => $jobPosting->id,
+            'current_stage_id'           => $firstStage->id,
+            'position'                   => null,
+            'full_name'                  => 'Legacy Candidate',
+            'gender'                     => JobApplicationGender::Male->value,
+            'birth_date'                 => '1995-01-10',
+            'marital_status'             => JobApplicationMaritalStatus::Single->value,
+            'address_ktp'                => 'Alamat KTP',
+            'address_domicile'           => 'Alamat Domisili',
+            'whatsapp_number'            => '081234567890',
+            'active_phone'               => '081234567891',
+            'emergency_contact_name'     => 'Bunga',
+            'emergency_contact_relation' => 'Saudara',
+            'emergency_contact_phone'    => '081234567892',
+            'email'                      => 'LEGACY-RECLAIM@example.com',
+            'active_email'               => null,
+            'photo_path'                 => null,
+            'resume_path'                => null,
+            'status'                     => JobApplicationStatus::IN_PROGRESS->value,
+            'created_at'                 => now(),
+            'updated_at'                 => now(),
+        ]);
+
+        $retainedApplication->delete();
+
+        $this->assertSame(
+            'legacy-reclaim@example.com',
+            DB::table('rekrutmen_job_applications')
+                ->where('id', $legacyDuplicateId)
+                ->value('active_email')
+        );
+
+        $this->expectException(ValidationException::class);
+
+        $this->makeJobApplication($jobPosting, $firstStage, 'legacy-reclaim@example.com');
+    }
+
+    public function test_surviving_legacy_duplicate_reclaims_active_email_when_owner_changes_email(): void
+    {
+        [$jobPosting, $firstStage] = $this->createPipelineFixture('Legacy Email Change');
+
+        $retainedApplication = $this->makeJobApplication($jobPosting, $firstStage, 'legacy-email-change@example.com');
+
+        $legacyDuplicateId = DB::table('rekrutmen_job_applications')->insertGetId([
+            'job_posting_id'             => $jobPosting->id,
+            'current_stage_id'           => $firstStage->id,
+            'position'                   => null,
+            'full_name'                  => 'Legacy Candidate',
+            'gender'                     => JobApplicationGender::Male->value,
+            'birth_date'                 => '1995-01-10',
+            'marital_status'             => JobApplicationMaritalStatus::Single->value,
+            'address_ktp'                => 'Alamat KTP',
+            'address_domicile'           => 'Alamat Domisili',
+            'whatsapp_number'            => '081234567890',
+            'active_phone'               => '081234567891',
+            'emergency_contact_name'     => 'Bunga',
+            'emergency_contact_relation' => 'Saudara',
+            'emergency_contact_phone'    => '081234567892',
+            'email'                      => 'LEGACY-EMAIL-CHANGE@example.com',
+            'active_email'               => null,
+            'photo_path'                 => null,
+            'resume_path'                => null,
+            'status'                     => JobApplicationStatus::IN_PROGRESS->value,
+            'created_at'                 => now(),
+            'updated_at'                 => now(),
+        ]);
+
+        $retainedApplication->update([
+            'email' => 'replacement@example.com',
+        ]);
+
+        $this->assertSame(
+            'legacy-email-change@example.com',
+            DB::table('rekrutmen_job_applications')
+                ->where('id', $legacyDuplicateId)
+                ->value('active_email')
+        );
+
+        $this->expectException(ValidationException::class);
+
+        $this->makeJobApplication($jobPosting, $firstStage, 'legacy-email-change@example.com');
     }
 
     /**

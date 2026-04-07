@@ -7,9 +7,9 @@
     <table cellpadding="0" cellspacing="0" width="100%">
       <tr>
         <td width="100%" style="background:#f2f2f2; padding:24px;">
-          <table cellpadding="0" cellspacing="0" width="100%" style="background:#fff; border-radius:6px; overflow:hidden;">
+          <table cellpadding="0" cellspacing="0" width="100%" style="background:#fff;">
             <tr>
-              <td style="background:#B32324; color:#fff; text-align:center; padding:18px 24px;">
+              <td style="background:#1D4ED8; color:#fff; text-align:center; padding:18px 24px;">
                 <h1 style="margin:0; font-size:20px; color:#fff;">{{ $heading }}</h1>
               </td>
             </tr>
@@ -32,19 +32,27 @@
                   @endforeach
                 </table>
 
-                <table style="width:100%; margin:16px 0;" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td style="text-align:left;">
-                      <a
-                        href="{{ $progressUrl }}"
-                        target="_blank"
-                        style="display:inline-block; padding:12px 20px; background:#B32324; color:#fff; text-decoration:none; border-radius:4px;"
-                      >
-                        {{ $actionLabel }}
-                      </a>
-                    </td>
-                  </tr>
-                </table>
+                @if (filled($progressUrl ?? null) && filled($actionLabel ?? null))
+                  <table style="width:100%; margin:16px 0;" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="text-align:left;">
+                        <a
+                          href="{{ $progressUrl }}"
+                          target="_blank"
+                          style="display:inline-block; padding:12px 20px; background:#1D4ED8; color:#fff; text-decoration:none;"
+                        >
+                          {{ $actionLabel }}
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+                @endif
+
+                @if (filled($footerNote ?? null))
+                  <p style="margin:20px 0 0; font-size:12px; line-height:1.6; color:#6b7280;">
+                    {{ $footerNote }}
+                  </p>
+                @endif
               </td>
             </tr>
           </table>

@@ -139,7 +139,7 @@ class JobApplicationResource extends Resource
                                     ->required()
                                     ->options(JobApplicationStatus::class)
                                     ->default(JobApplicationStatus::IN_PROGRESS)
-                                    ->disabled(fn (string $operation): bool => $operation === 'edit')
+                                    ->disabled()
                                     ->dehydrated(fn (string $operation): bool => $operation === 'create'),
                                 Forms\Components\FileUpload::make('photo_path')
                                     ->label(__('rekrutmen::filament/resources/job-application.form.fields.photo_path'))

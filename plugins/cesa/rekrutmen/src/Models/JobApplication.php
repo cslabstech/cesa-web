@@ -5,15 +5,22 @@ namespace Cesa\Rekrutmen\Models;
 use Cesa\Rekrutmen\Enums\JobApplicationGender;
 use Cesa\Rekrutmen\Enums\JobApplicationMaritalStatus;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Relaticle\Flowforge\Services\DecimalPosition;
+use Throwable;
 
 class JobApplication extends Model
 {
@@ -27,6 +34,11 @@ class JobApplication extends Model
      * @var array<string, ?string>
      */
     protected array $originalAttachmentPaths = [];
+
+    /**
+     * @var array{job_posting_id: int, active_email: string}|null
+     */
+    protected ?array $originalActiveEmailOwnership = null;
 
     protected $table = 'rekrutmen_job_applications';
 
@@ -69,6 +81,9 @@ class JobApplication extends Model
     {
         static::saving(function (JobApplication $application): void {
             $application->normalizeTransactionalInput();
+            $application->snapshotOriginalActiveEmailOwnership();
+            $application->syncActiveEmail();
+            $application->assertActiveEmailIsUniqueForJobPosting();
             $application->ensureBoardPosition();
             $application->snapshotOriginalAttachmentPaths();
             $application->prepareManagedAttachmentPathForPersistence('resume_path', self::RESUME_DIRECTORY, 'CV');
@@ -83,6 +98,35 @@ class JobApplication extends Model
 
             $application->deleteRemovedAttachmentFile('resume_path');
             $application->deleteRemovedAttachmentFile('photo_path');
+            $application->reassignOriginalActiveEmailIfNeeded();
+        });
+
+        static::created(function (JobApplication $application): void {
+            $application->ensureInitialHistory();
+        });
+
+        static::deleted(function (JobApplication $application): void {
+            $normalizedEmail = $application->normalizeEmail($application->getRawOriginal('email') ?? $application->email);
+
+            if (! $application->isForceDeleting()) {
+                static::query()
+                    ->withoutGlobalScopes()
+                    ->whereKey($application->getKey())
+                    ->update(['active_email' => null]);
+
+                $application->active_email = null;
+            }
+
+            $application->reassignActiveEmailToCanonicalPeer($normalizedEmail);
+        });
+
+        static::restored(function (JobApplication $application): void {
+            $application->syncActiveEmail();
+
+            static::query()
+                ->withoutGlobalScopes()
+                ->whereKey($application->getKey())
+                ->update(['active_email' => $application->active_email]);
         });
 
         static::forceDeleted(function (JobApplication $application): void {
@@ -108,6 +152,24 @@ class JobApplication extends Model
     public function histories(): HasMany
     {
         return $this->hasMany(JobApplicationHistory::class, 'job_application_id')->latest();
+    }
+
+    public function sendSubmittedNotification(): void
+    {
+        if (blank($this->email)) {
+            return;
+        }
+
+        try {
+            NotificationFacade::route('mail', $this->email)
+                ->notify(new JobApplicationSubmittedNotification($this->fresh(['jobPosting', 'currentStage']) ?? $this));
+        } catch (Throwable $exception) {
+            Log::error('Failed to send job application submitted notification.', [
+                'job_application_id' => $this->getKey(),
+                'email'              => $this->email,
+                'exception'          => $exception,
+            ]);
+        }
     }
 
     public function isTerminalStatus(): bool
@@ -252,6 +314,23 @@ class JobApplication extends Model
         );
     }
 
+    public function ensureInitialHistory(?string $notes = null, ?int $performedBy = null): void
+    {
+        $status = $this->status ?? JobApplicationStatus::IN_PROGRESS;
+
+        if ($this->current_stage_id === null || $this->histories()->exists() || $status !== JobApplicationStatus::IN_PROGRESS) {
+            return;
+        }
+
+        $this->recordHistory(
+            null,
+            $this->current_stage_id,
+            $status,
+            $notes ?? __('rekrutmen::filament/resources/job-application.workflow_notes.submitted'),
+            $performedBy,
+        );
+    }
+
     public static function resumeDisk(): string
     {
         $disk = config('filament.default_filesystem_disk', config('filesystems.default', 'local'));
@@ -270,6 +349,177 @@ class JobApplication extends Model
         $this->emergency_contact_name = $this->normalizeUppercaseText($this->emergency_contact_name);
         $this->emergency_contact_relation = $this->normalizeUppercaseText($this->emergency_contact_relation);
         $this->emergency_contact_phone = $this->normalizePhoneNumber($this->emergency_contact_phone);
+    }
+
+    protected function syncActiveEmail(): void
+    {
+        if ($this->deleted_at) {
+            $this->active_email = null;
+
+            return;
+        }
+
+        if (! is_string($this->email) || $this->email === '') {
+            $this->active_email = null;
+
+            return;
+        }
+
+        if ($this->shouldTreatAsLegacyDuplicateRecord()) {
+            $this->active_email = $this->shouldClaimActiveEmailForLegacyRecord()
+                ? $this->email
+                : null;
+
+            return;
+        }
+
+        $this->active_email = $this->email;
+    }
+
+    protected function snapshotOriginalActiveEmailOwnership(): void
+    {
+        if (! $this->exists) {
+            $this->originalActiveEmailOwnership = null;
+
+            return;
+        }
+
+        $originalActiveEmail = $this->normalizeEmail($this->getRawOriginal('active_email'));
+        $originalJobPostingId = $this->getRawOriginal('job_posting_id');
+
+        if (! is_string($originalActiveEmail) || $originalActiveEmail === '' || ! is_numeric($originalJobPostingId)) {
+            $this->originalActiveEmailOwnership = null;
+
+            return;
+        }
+
+        $this->originalActiveEmailOwnership = [
+            'job_posting_id' => (int) $originalJobPostingId,
+            'active_email'   => $originalActiveEmail,
+        ];
+    }
+
+    protected function shouldTreatAsLegacyDuplicateRecord(): bool
+    {
+        return $this->exists
+            && $this->getRawOriginal('active_email') === null
+            && $this->normalizeEmail($this->getRawOriginal('email')) === $this->email
+            && ! (
+                $this->getRawOriginal('deleted_at') !== null
+                && $this->deleted_at === null
+            );
+    }
+
+    protected function shouldClaimActiveEmailForLegacyRecord(): bool
+    {
+        if (! $this->exists || ! is_numeric($this->getKey())) {
+            return false;
+        }
+
+        $peerQuery = $this->matchingActiveEmailPeerQuery();
+
+        if ((clone $peerQuery)
+            ->where('active_email', $this->email)
+            ->whereKeyNot($this->getKey())
+            ->exists()) {
+            return false;
+        }
+
+        $canonicalPeerId = (clone $peerQuery)
+            ->orderBy('id')
+            ->value('id');
+
+        return is_numeric($canonicalPeerId)
+            && (int) $canonicalPeerId === (int) $this->getKey();
+    }
+
+    protected function matchingActiveEmailPeerQuery(?string $normalizedEmail = null, mixed $jobPostingId = null): Builder
+    {
+        $normalizedEmail ??= $this->email;
+        $jobPostingId ??= $this->job_posting_id;
+
+        $query = static::query()
+            ->withoutGlobalScopes()
+            ->whereNull('deleted_at');
+
+        if (! is_numeric($jobPostingId) || ! is_string($normalizedEmail) || $normalizedEmail === '') {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query
+            ->where('job_posting_id', (int) $jobPostingId)
+            ->whereRaw('LOWER(TRIM(email)) = ?', [$normalizedEmail]);
+    }
+
+    protected function reassignOriginalActiveEmailIfNeeded(): void
+    {
+        if ($this->originalActiveEmailOwnership === null) {
+            return;
+        }
+
+        $originalActiveEmailOwnership = $this->originalActiveEmailOwnership;
+        $this->originalActiveEmailOwnership = null;
+
+        if (
+            $originalActiveEmailOwnership['job_posting_id'] === (int) $this->job_posting_id
+            && $originalActiveEmailOwnership['active_email'] === $this->active_email
+        ) {
+            return;
+        }
+
+        $this->reassignActiveEmailToCanonicalPeer(
+            $originalActiveEmailOwnership['active_email'],
+            $originalActiveEmailOwnership['job_posting_id'],
+        );
+    }
+
+    protected function reassignActiveEmailToCanonicalPeer(?string $normalizedEmail = null, mixed $jobPostingId = null): void
+    {
+        $normalizedEmail ??= $this->email;
+        $jobPostingId ??= $this->job_posting_id;
+
+        if (! is_string($normalizedEmail) || $normalizedEmail === '') {
+            return;
+        }
+
+        $peerQuery = $this->matchingActiveEmailPeerQuery($normalizedEmail, $jobPostingId);
+
+        if ((clone $peerQuery)->where('active_email', $normalizedEmail)->exists()) {
+            return;
+        }
+
+        $canonicalPeerId = (clone $peerQuery)
+            ->orderBy('id')
+            ->value('id');
+
+        if (! is_numeric($canonicalPeerId)) {
+            return;
+        }
+
+        static::query()
+            ->withoutGlobalScopes()
+            ->whereKey((int) $canonicalPeerId)
+            ->update(['active_email' => $normalizedEmail]);
+    }
+
+    protected function assertActiveEmailIsUniqueForJobPosting(): void
+    {
+        if (! is_numeric($this->job_posting_id) || ! is_string($this->active_email) || $this->active_email === '') {
+            return;
+        }
+
+        $duplicateExists = static::query()
+            ->withoutGlobalScopes()
+            ->where('job_posting_id', (int) $this->job_posting_id)
+            ->where('active_email', $this->active_email)
+            ->whereKeyNot($this->getKey())
+            ->exists();
+
+        if ($duplicateExists) {
+            throw ValidationException::withMessages([
+                'email' => __('rekrutmen::api/career.validation.messages.email.unique'),
+            ]);
+        }
     }
 
     protected function ensureBoardPosition(): void
@@ -521,7 +771,7 @@ class JobApplication extends Model
             Storage::disk($disk)->move($path, $targetPath);
 
             return $targetPath;
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return $path;
         }
     }
@@ -565,7 +815,7 @@ class JobApplication extends Model
 
         try {
             Storage::disk($disk)->delete($path);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return;
         }
     }
@@ -588,7 +838,7 @@ class JobApplication extends Model
                 if (Storage::disk($disk)->exists($path)) {
                     return $disk;
                 }
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 continue;
             }
         }
@@ -628,5 +878,80 @@ class JobApplication extends Model
                 __('rekrutmen::filament/resources/job-application.workflow_errors.decision_note_required')
             );
         }
+    }
+}
+
+class JobApplicationSubmittedNotification extends Notification
+{
+    public function __construct(private readonly JobApplication $jobApplication) {}
+
+    public function via(object $notifiable): array
+    {
+        return ['mail'];
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        $position = $this->jobApplication->jobPosting?->title;
+
+        $message = (new MailMessage)
+            ->subject(
+                is_string($position) && $position !== ''
+                    ? __('rekrutmen::mail/job-application-submitted.subject', ['position' => $position])
+                    : __('rekrutmen::mail/job-application-submitted.subject_generic')
+            )
+            ->view('rekrutmen::mail.job-application-submitted', [
+                'heading'        => __('rekrutmen::mail/job-application-submitted.heading'),
+                'greeting'       => __('rekrutmen::mail/job-application-submitted.greeting', ['name' => $this->jobApplication->full_name]),
+                'body'           => __('rekrutmen::mail/job-application-submitted.body'),
+                'summaryHeading' => __('rekrutmen::mail/job-application-submitted.summary_heading'),
+                'summary'        => $this->buildSummary(),
+                'progressUrl'    => null,
+                'actionLabel'    => null,
+                'footerNote'     => __('rekrutmen::mail/job-application-submitted.footer_note'),
+            ]);
+
+        $mailer = config('rekrutmen.mail.job_application.mailer');
+
+        if (is_string($mailer) && $mailer !== '') {
+            $message->mailer($mailer);
+        }
+
+        $fromAddress = config('rekrutmen.mail.job_application.from.address');
+        $fromName = config('rekrutmen.mail.job_application.from.name');
+
+        if (is_string($fromAddress) && $fromAddress !== '') {
+            $message->from($fromAddress, is_string($fromName) && $fromName !== '' ? $fromName : null);
+        }
+
+        $replyToAddress = config('rekrutmen.mail.job_application.reply_to.address');
+        $replyToName = config('rekrutmen.mail.job_application.reply_to.name');
+
+        if (is_string($replyToAddress) && $replyToAddress !== '') {
+            $message->replyTo($replyToAddress, is_string($replyToName) && $replyToName !== '' ? $replyToName : null);
+        }
+
+        return $message;
+    }
+
+    /**
+     * @return array<int, array{label: string, value: string}>
+     */
+    private function buildSummary(): array
+    {
+        return [
+            [
+                'label' => __('rekrutmen::mail/job-application-submitted.summary_fields.application_id'),
+                'value' => (string) $this->jobApplication->getKey(),
+            ],
+            [
+                'label' => __('rekrutmen::mail/job-application-submitted.summary_fields.submission_date'),
+                'value' => $this->jobApplication->created_at?->translatedFormat('d F Y H:i') ?? '-',
+            ],
+            [
+                'label' => __('rekrutmen::mail/job-application-submitted.summary_fields.position'),
+                'value' => $this->jobApplication->jobPosting?->title ?? '-',
+            ],
+        ];
     }
 }

@@ -79,6 +79,23 @@ return [
             'transport' => 'array',
         ],
 
+        'rekrutmen_job_application' => [
+            'transport'    => env('REKRUTMEN_JOB_APPLICATION_MAIL_TRANSPORT', env('MAIL_MAILER', 'smtp')),
+            'url'          => env('REKRUTMEN_JOB_APPLICATION_MAIL_URL', env('MAIL_URL')),
+            'host'         => env('REKRUTMEN_JOB_APPLICATION_MAIL_HOST', env('MAIL_HOST', '127.0.0.1')),
+            'port'         => env('REKRUTMEN_JOB_APPLICATION_MAIL_PORT', env('MAIL_PORT', 2525)),
+            'encryption'   => env('REKRUTMEN_JOB_APPLICATION_MAIL_ENCRYPTION', env('MAIL_ENCRYPTION', 'tls')),
+            'username'     => env('REKRUTMEN_JOB_APPLICATION_MAIL_USERNAME', env('MAIL_USERNAME')),
+            'password'     => env('REKRUTMEN_JOB_APPLICATION_MAIL_PASSWORD', env('MAIL_PASSWORD')),
+            'timeout'      => null,
+            'local_domain' => env(
+                'REKRUTMEN_JOB_APPLICATION_MAIL_EHLO_DOMAIN',
+                env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST))
+            ),
+            'path'         => env('REKRUTMEN_JOB_APPLICATION_MAIL_SENDMAIL_PATH', env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i')),
+            'channel'      => env('REKRUTMEN_JOB_APPLICATION_MAIL_LOG_CHANNEL', env('MAIL_LOG_CHANNEL')),
+        ],
+
         'failover' => [
             'transport' => 'failover',
             'mailers'   => [

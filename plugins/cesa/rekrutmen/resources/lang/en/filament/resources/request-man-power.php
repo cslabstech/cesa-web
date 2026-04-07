@@ -64,4 +64,8 @@ return [
             'set_pending' => 'Set Pending',
         ],
     ],
+    'errors' => [
+        'default_pipeline_not_configured' => 'A default recruitment pipeline is not configured.',
+        'approval_failed'                 => 'Unable to complete the approval action.',
+    ],
 ];
