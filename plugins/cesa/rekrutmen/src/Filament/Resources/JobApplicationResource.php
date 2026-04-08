@@ -19,6 +19,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -125,7 +126,7 @@ class JobApplicationResource extends Resource
                                     ->searchable()
                                     ->live()
                                     ->disabled(fn (string $operation): bool => $operation === 'edit')
-                                    ->afterStateUpdated(function (mixed $state, Forms\Set $set): void {
+                                    ->afterStateUpdated(function (mixed $state, Set $set): void {
                                         $set('current_stage_id', JobApplication::resolveInitialStageIdForJobPostingId($state));
                                     })
                                     ->label(__('rekrutmen::filament/resources/job-application.form.fields.job_posting_id')),
