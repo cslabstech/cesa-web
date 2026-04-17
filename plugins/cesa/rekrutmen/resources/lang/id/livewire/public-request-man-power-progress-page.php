@@ -1,13 +1,15 @@
 <?php
 
 return [
-    'heading'            => 'Progress Permintaan Tenaga Kerja',
-    'subheading'         => 'Pantau status terbaru permintaan tenaga kerja Anda di halaman ini.',
-    'page_title'         => 'PROGRESS REQUEST MAN POWER',
-    'submitted_by'       => 'Diajukan oleh',
-    'current_status'     => 'Status saat ini',
-    'submission_summary' => 'Ringkasan Pengajuan',
-    'fields'             => [
+    'heading'               => 'Progress Permintaan Tenaga Kerja',
+    'subheading'            => 'Pantau status terbaru permintaan tenaga kerja Anda di halaman ini.',
+    'page_title'            => 'PROGRESS REQUEST MAN POWER',
+    'submitted_by'          => 'Diajukan oleh',
+    'current_status'        => 'Status saat ini',
+    'submission_summary'    => 'Ringkasan Pengajuan',
+    'approval_flow_heading' => 'Tahapan Persetujuan',
+    'step_label'            => 'Tahap :step',
+    'fields'                => [
         'status_response_id'         => 'ID Tracking',
         'tanggal_pengajuan'          => 'Tanggal Pengajuan',
         'posisi_dibutuhkan'          => 'Posisi yang Dibutuhkan',

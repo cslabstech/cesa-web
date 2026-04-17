@@ -2,10 +2,12 @@
 
 namespace Cesa\Rekrutmen\Models;
 
+use Cesa\Rekrutmen\Enums\ActivityEntryResult;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 use Webkul\Security\Models\User;
 
 class JobApplicationHistory extends Model
@@ -18,13 +20,22 @@ class JobApplicationHistory extends Model
         'job_application_id',
         'from_stage_id',
         'to_stage_id',
+        'activity_type',
+        'activity_date',
+        'result',
+        'activity_title',
+        'activity_group_id',
         'status',
         'notes',
         'performed_by',
     ];
 
     protected $casts = [
-        'status' => JobApplicationStatus::class,
+        'status'        => JobApplicationStatus::class,
+        'activity_date' => 'date',
+        'result'        => ActivityEntryResult::class,
+        'created_at'    => 'datetime',
+        'updated_at'    => 'datetime',
     ];
 
     public function jobApplication(): BelongsTo
@@ -45,5 +56,45 @@ class JobApplicationHistory extends Model
     public function performer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'performed_by')->withTrashed();
+    }
+
+    public function isBatchActivity(): bool
+    {
+        return ! is_null($this->activity_group_id);
+    }
+
+    public function activityKey(): ?string
+    {
+        if ($this->toStage) {
+            return $this->toStage->activityKey();
+        }
+
+        if (! is_string($this->activity_type) || $this->activity_type === '') {
+            return null;
+        }
+
+        return $this->activity_type;
+    }
+
+    public function activityLabel(): string
+    {
+        if ($this->toStage) {
+            return $this->toStage->activityLabel();
+        }
+
+        if (! is_string($this->activity_type) || $this->activity_type === '') {
+            return '-';
+        }
+
+        return Str::headline($this->activity_type);
+    }
+
+    public function activityColor(): string|array|null
+    {
+        if ($this->toStage) {
+            return $this->toStage->activityColor();
+        }
+
+        return 'gray';
     }
 }

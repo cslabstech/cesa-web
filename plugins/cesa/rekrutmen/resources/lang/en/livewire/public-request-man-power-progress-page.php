@@ -1,13 +1,15 @@
 <?php
 
 return [
-    'heading'            => 'Manpower Request Progress',
-    'subheading'         => 'Track the latest status of your manpower request on this page.',
-    'page_title'         => 'MAN POWER REQUEST PROGRESS',
-    'submitted_by'       => 'Submitted by',
-    'current_status'     => 'Current status',
-    'submission_summary' => 'Submission Summary',
-    'fields'             => [
+    'heading'               => 'Manpower Request Progress',
+    'subheading'            => 'Track the latest status of your manpower request on this page.',
+    'page_title'            => 'MAN POWER REQUEST PROGRESS',
+    'submitted_by'          => 'Submitted by',
+    'current_status'        => 'Current status',
+    'submission_summary'    => 'Submission Summary',
+    'approval_flow_heading' => 'Approval Steps',
+    'step_label'            => 'Step :step',
+    'fields'                => [
         'status_response_id'         => 'Tracking ID',
         'tanggal_pengajuan'          => 'Submission Date',
         'posisi_dibutuhkan'          => 'Requested Position',

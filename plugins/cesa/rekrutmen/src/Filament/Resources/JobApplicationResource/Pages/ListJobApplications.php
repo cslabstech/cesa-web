@@ -14,7 +14,7 @@ class ListJobApplications extends ListRecords
     {
         return [
             Actions\Action::make('kanban_board')
-                ->label('Pipeline Board')
+                ->label(__('rekrutmen::filament/resources/job-application.board.navigation_label'))
                 ->icon('heroicon-o-view-columns')
                 ->color('gray')
                 ->url(JobApplicationResource::getUrl('board')),

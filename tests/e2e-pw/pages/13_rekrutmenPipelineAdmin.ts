@@ -16,7 +16,7 @@ export class RekrutmenPipelineAdminPage {
     async gotoListing(): Promise<void> {
         await this.page.goto("/admin/rekrutmen-pipelines", { waitUntil: "domcontentloaded" });
         await expect(this.page).toHaveURL(/rekrutmen-pipelines/);
-        await expect(this.page.getByRole("heading", { name: "Pipeline Rekrutmen" })).toBeVisible();
+        await expect(this.page.getByRole("heading", { name: "Pipeline" })).toBeVisible();
         await expect(this.page.locator("table, div.fi-ta-empty-state").first()).toBeVisible();
     }
 

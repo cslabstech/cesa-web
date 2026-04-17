@@ -17,4 +17,9 @@ class CreateRequestManPower extends CreateRecord
 
         return $data;
     }
+
+    protected function afterCreate(): void
+    {
+        $this->record->sendApprovalRequestNotifications();
+    }
 }

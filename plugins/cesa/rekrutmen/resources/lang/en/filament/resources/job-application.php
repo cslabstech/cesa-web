@@ -45,10 +45,12 @@ return [
             'active_phone'    => 'Active Phone Number',
             'current_stage'   => 'Stage',
             'status'          => 'Status',
+            'histories_count' => 'History Entries',
         ],
         'filters' => [
-            'job_posting_id' => 'Job Posting',
-            'status'         => 'Status',
+            'job_posting_id'   => 'Job Posting',
+            'status'           => 'Status',
+            'current_stage_id' => 'Current Stage',
         ],
         'actions' => [
             'change_stage'    => 'Move Stage',
@@ -58,6 +60,7 @@ return [
             'notes'           => 'Notes',
             'download_resume' => 'Download Resume',
             'download_photo'  => 'Download Photo',
+            'more'            => 'Manage',
         ],
     ],
     'notifications' => [
@@ -70,6 +73,20 @@ return [
         'heading_with_job'    => 'Job Application Pipeline - :job',
         'subheading'          => 'Track candidate progress for the selected job posting.',
         'subheading_with_job' => 'Track candidate progress for job posting :job.',
+        'navigation_label'    => 'Pipeline Board',
+        'select_job_posting'  => 'Select Job Posting',
+        'back_to_list'        => 'Table View',
+        'no_job_selected'     => 'Select a Job Posting First',
+        'no_pipeline'         => 'No Pipeline Configured',
+        'no_stages'           => 'No Stages in This Pipeline',
+        'card'                => [
+            'current_stage_fallback' => 'last recorded',
+            'status_context'         => [
+                'hired'     => 'Accepted at stage :stage.',
+                'rejected'  => 'Rejected at stage :stage.',
+                'withdrawn' => 'Withdrawn at stage :stage.',
+            ],
+        ],
     ],
     'workflow_notes' => [
         'stage_changed' => 'Candidate stage was moved.',
@@ -79,9 +96,10 @@ return [
         'rejected'      => 'Candidate was marked as rejected.',
     ],
     'workflow_errors' => [
-        'invalid_stage'            => 'The target stage does not belong to the selected job posting pipeline.',
-        'terminal_stage_locked'    => 'A decided candidate cannot be moved to another stage.',
-        'decision_note_required'   => 'Decision notes are required.',
-        'job_posting_has_no_stage' => 'The selected job posting does not have an initial stage yet.',
+        'invalid_stage'                 => 'The target stage does not belong to the selected job posting pipeline.',
+        'terminal_stage_locked'         => 'A decided candidate cannot be moved to another stage.',
+        'cross_stage_requires_activity' => 'Cross-stage movement must go through Record Recruitment Activity so the process history stays consistent.',
+        'decision_note_required'        => 'Decision notes are required.',
+        'job_posting_has_no_stage'      => 'The selected job posting does not have an initial stage yet.',
     ],
 ];

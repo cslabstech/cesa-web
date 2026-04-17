@@ -8,8 +8,10 @@ return [
         'singular' => 'Job Posting',
         'plural'   => 'Job Postings',
     ],
-    'generated_title' => 'Job Posting #:id',
-    'form'            => [
+    'generated' => [
+        'title' => 'Job Posting #:id',
+    ],
+    'form' => [
         'sections' => [
             'job_information' => 'Job Information',
             'details'         => 'Details',
@@ -30,14 +32,32 @@ return [
     ],
     'table' => [
         'columns' => [
-            'title'          => 'Title',
-            'thumbnail_path' => 'Thumbnail',
-            'location'       => 'Placement Location',
-            'is_published'   => 'Published',
-            'closing_date'   => 'Closing Date',
+            'title'              => 'Title',
+            'rekrutmen_pipeline' => 'Pipeline',
+            'request_man_power'  => 'Manpower Request',
+            'thumbnail_path'     => 'Thumbnail',
+            'location'           => 'Placement Location',
+            'applications_count' => 'Applicants',
+            'is_published'       => 'Published',
+            'closing_date'       => 'Closing Date',
+        ],
+        'placeholders' => [
+            'request_man_power' => '-',
         ],
         'filters' => [
-            'is_published' => 'Published',
+            'is_published'          => 'Published',
+            'rekrutmen_pipeline_id' => 'Pipeline',
+            'request_man_power_id'  => 'Manpower Request',
+            'availability'          => 'Availability',
+        ],
+        'filter_options' => [
+            'availability' => [
+                'open'    => 'Open',
+                'expired' => 'Expired',
+            ],
+        ],
+        'actions' => [
+            'open_pipeline' => 'Open Candidate Pipeline',
         ],
     ],
 ];

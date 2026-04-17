@@ -10,6 +10,7 @@ use Cesa\Rekrutmen\Models\JobPosting;
 use Cesa\Rekrutmen\Models\RekrutmenPipeline;
 use Cesa\Rekrutmen\Models\RekrutmenStage;
 use Cesa\Rekrutmen\Tests\RekrutmenTestCase;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -73,6 +74,31 @@ class JobApplicationWorkflowTest extends RekrutmenTestCase
         ]);
     }
 
+    public function test_marking_candidate_as_hired_moves_to_hired_stage_when_available(): void
+    {
+        [$jobPosting, $firstStage] = $this->createPipelineFixture('Decision Hired Stage');
+
+        $hiredStage = RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $jobPosting->rekrutmen_pipeline_id,
+            'name'                  => 'Hired',
+            'order_column'          => 3,
+        ]);
+
+        $application = $this->makeJobApplication($jobPosting, $firstStage, 'hired-stage@example.com');
+        $application->markAsHired('Accepted');
+        $application->refresh();
+
+        $this->assertSame(JobApplicationStatus::HIRED, $application->status);
+        $this->assertSame($hiredStage->id, $application->current_stage_id);
+        $this->assertDatabaseHas('rekrutmen_job_application_histories', [
+            'job_application_id' => $application->id,
+            'from_stage_id'      => $firstStage->id,
+            'to_stage_id'        => $hiredStage->id,
+            'status'             => JobApplicationStatus::HIRED->value,
+            'notes'              => 'Accepted',
+        ]);
+    }
+
     public function test_marking_candidate_as_hired_requires_notes(): void
     {
         [$jobPosting, $firstStage] = $this->createPipelineFixture('Required Notes');
@@ -102,9 +128,13 @@ class JobApplicationWorkflowTest extends RekrutmenTestCase
 
         $application = $this->makeJobApplication($firstJobPosting, $firstStage);
 
-        $application->update([
-            'job_posting_id' => $secondJobPosting->id,
-        ]);
+        DB::table('rekrutmen_job_applications')
+            ->where('id', $application->id)
+            ->update([
+                'job_posting_id' => $secondJobPosting->id,
+            ]);
+
+        $application->refresh();
 
         $application->syncCurrentStageToJobPosting(notes: 'Sync stage');
         $application->refresh();
@@ -117,6 +147,46 @@ class JobApplicationWorkflowTest extends RekrutmenTestCase
             'status'             => JobApplicationStatus::IN_PROGRESS->value,
             'notes'              => 'Sync stage',
         ]);
+    }
+
+    public function test_updating_job_posting_automatically_realigns_stage_to_target_pipeline(): void
+    {
+        [$firstJobPosting, $firstStage] = $this->createPipelineFixture('Auto Alpha');
+        [$secondJobPosting, $targetStage] = $this->createPipelineFixture('Auto Beta');
+
+        $application = $this->makeJobApplication($firstJobPosting, $firstStage, 'auto-sync@example.com');
+
+        $application->update([
+            'job_posting_id' => $secondJobPosting->id,
+        ]);
+
+        $application->refresh();
+
+        $this->assertSame($targetStage->id, $application->current_stage_id);
+    }
+
+    public function test_hired_application_with_foreign_stage_is_normalized_to_hired_stage(): void
+    {
+        [$jobPosting, $firstStage] = $this->createPipelineFixture('Normalize Hired');
+        [, $foreignStage] = $this->createPipelineFixture('Normalize Foreign');
+
+        $hiredStage = RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $jobPosting->rekrutmen_pipeline_id,
+            'name'                  => 'Hired',
+            'order_column'          => 3,
+        ]);
+
+        $application = $this->makeJobApplication($jobPosting, $firstStage, 'normalize-hired@example.com');
+
+        $application->update([
+            'current_stage_id' => $foreignStage->id,
+            'status'           => JobApplicationStatus::HIRED,
+        ]);
+
+        $application->refresh();
+
+        $this->assertSame(JobApplicationStatus::HIRED, $application->status);
+        $this->assertSame($hiredStage->id, $application->current_stage_id);
     }
 
     public function test_new_application_gets_position_for_board_ordering(): void
@@ -224,6 +294,60 @@ class JobApplicationWorkflowTest extends RekrutmenTestCase
 
         $this->assertSame(0, $jobPosting->rekrutmenPipeline->activeStages()->count());
         $this->assertNull(JobApplication::resolveInitialStageIdForJobPostingId($jobPosting->id));
+    }
+
+    public function test_pipeline_stage_order_must_be_unique_within_the_same_pipeline(): void
+    {
+        $pipeline = RekrutmenPipeline::query()->create([
+            'name' => 'Unique Stage Order',
+        ]);
+
+        RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => 'Screening',
+            'order_column'          => 1,
+        ]);
+
+        $this->expectException(QueryException::class);
+
+        RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => 'Interview',
+            'order_column'          => 1,
+        ]);
+    }
+
+    public function test_database_default_status_matches_supported_enum_values(): void
+    {
+        [$jobPosting, $firstStage] = $this->createPipelineFixture('Default Status');
+
+        $applicationId = DB::table('rekrutmen_job_applications')->insertGetId([
+            'job_posting_id'             => $jobPosting->id,
+            'current_stage_id'           => $firstStage->id,
+            'position'                   => null,
+            'full_name'                  => 'Candidate Default Status',
+            'gender'                     => JobApplicationGender::Male->value,
+            'birth_date'                 => '1995-01-10',
+            'marital_status'             => JobApplicationMaritalStatus::Single->value,
+            'address_ktp'                => 'Alamat KTP',
+            'address_domicile'           => 'Alamat Domisili',
+            'whatsapp_number'            => '081234567890',
+            'active_phone'               => '081234567891',
+            'emergency_contact_name'     => 'Bunga',
+            'emergency_contact_relation' => 'Saudara',
+            'emergency_contact_phone'    => '081234567892',
+            'email'                      => 'default-status@example.com',
+            'active_email'               => 'default-status@example.com',
+            'photo_path'                 => null,
+            'resume_path'                => null,
+            'created_at'                 => now(),
+            'updated_at'                 => now(),
+        ]);
+
+        $this->assertSame(
+            JobApplicationStatus::IN_PROGRESS->value,
+            DB::table('rekrutmen_job_applications')->where('id', $applicationId)->value('status')
+        );
     }
 
     public function test_legacy_duplicate_record_can_be_updated_without_reclaiming_active_email(): void

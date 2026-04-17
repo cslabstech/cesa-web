@@ -20,6 +20,10 @@ class RekrutmenInstallCommandTest extends RekrutmenTestCase
             '2026_03_12_210000_rekrutmen_add_status_response_id_to_request_man_powers_table',
             $package->migrationFileNames,
         );
+        $this->assertContains(
+            '2026_04_09_114253_rekrutmen_fix_status_defaults_and_stage_constraints',
+            $package->migrationFileNames,
+        );
     }
 
     public function test_rekrutmen_install_and_uninstall_commands_are_registered(): void

@@ -3,10 +3,14 @@
 namespace Cesa\Rekrutmen\Tests\Feature;
 
 use Cesa\Rekrutmen\Livewire\PublicRequestManPowerForm;
+use Cesa\Rekrutmen\Models\Approver;
+use Cesa\Rekrutmen\Models\Division;
 use Cesa\Rekrutmen\Models\RequestManPower;
+use Cesa\Rekrutmen\Models\RequestManPowerApprovalRequestedNotification;
 use Cesa\Rekrutmen\Tests\RekrutmenTestCase;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
+use Webkul\Support\Models\Company;
 
 class PublicRequestManPowerFormTest extends RekrutmenTestCase
 {
@@ -36,12 +40,20 @@ class PublicRequestManPowerFormTest extends RekrutmenTestCase
     {
         Notification::fake();
 
+        $company = Company::query()->create([
+            'name' => 'PT Cesa Indonesia',
+        ]);
+        $division = Division::query()->create([
+            'name'       => 'IT',
+            'company_id' => $company->id,
+        ]);
+
         Livewire::test(PublicRequestManPowerForm::class)
             ->set('data.nama_pengaju', 'Andi Saputra')
             ->set('data.email_address', 'andi@example.com')
             ->set('data.posisi_pengaju', 'HR Manager')
-            ->set('data.divisi', 'IT')
-            ->set('data.badan_usaha', 'PT Cesa Indonesia')
+            ->set('data.company_id', $company->id)
+            ->set('data.division_id', $division->id)
             ->set('data.status_kebutuhan', 'New Hiring')
             ->set('data.posisi_dibutuhkan', 'Software Engineer')
             ->set('data.level_pekerjaan', 'Staff')
@@ -63,12 +75,20 @@ class PublicRequestManPowerFormTest extends RekrutmenTestCase
 
     public function test_public_request_man_power_validation_dispatches_feedback_events(): void
     {
+        $company = Company::query()->create([
+            'name' => 'PT Cesa Indonesia',
+        ]);
+        $division = Division::query()->create([
+            'name'       => 'IT',
+            'company_id' => $company->id,
+        ]);
+
         Livewire::test(PublicRequestManPowerForm::class)
             ->set('data.nama_pengaju', 'Andi Saputra')
             ->set('data.email_address', 'andi@example.com')
             ->set('data.posisi_pengaju', 'HR Manager')
-            ->set('data.divisi', 'IT')
-            ->set('data.badan_usaha', 'PT Cesa Indonesia')
+            ->set('data.company_id', $company->id)
+            ->set('data.division_id', $division->id)
             ->set('data.status_kebutuhan', 'Replacement')
             ->set('data.posisi_dibutuhkan', 'Software Engineer')
             ->set('data.level_pekerjaan', 'Staff')
@@ -90,12 +110,20 @@ class PublicRequestManPowerFormTest extends RekrutmenTestCase
     {
         Notification::fake();
 
+        $company = Company::query()->create([
+            'name' => 'PT Cesa Indonesia',
+        ]);
+        $division = Division::query()->create([
+            'name'       => 'IT',
+            'company_id' => $company->id,
+        ]);
+
         Livewire::test(PublicRequestManPowerForm::class)
             ->set('data.nama_pengaju', 'Andi Saputra')
             ->set('data.email_address', 'andi@example.com')
             ->set('data.posisi_pengaju', 'HR Manager')
-            ->set('data.divisi', 'IT')
-            ->set('data.badan_usaha', 'PT Cesa Indonesia')
+            ->set('data.company_id', $company->id)
+            ->set('data.division_id', $division->id)
             ->set('data.status_kebutuhan', 'New Hiring')
             ->set('data.posisi_dibutuhkan', 'Software Engineer')
             ->set('data.level_pekerjaan', 'Staff')
@@ -113,5 +141,66 @@ class PublicRequestManPowerFormTest extends RekrutmenTestCase
 
         $this->assertNotNull($request);
         $this->assertSame(now()->toDateString(), $request->tanggal_pengajuan?->toDateString());
+    }
+
+    public function test_public_request_man_power_submission_notifies_only_the_first_pending_approver(): void
+    {
+        Notification::fake();
+
+        $company = Company::query()->create([
+            'name' => 'PT Cesa Approval',
+        ]);
+        $division = Division::query()->create([
+            'name'       => 'IT',
+            'company_id' => $company->id,
+        ]);
+
+        Approver::query()->create([
+            'name'           => 'IT Approver',
+            'email'          => 'it.approver@example.com',
+            'title'          => 'HR Manager',
+            'approval_order' => 1,
+            'division_id'    => $division->id,
+            'is_active'      => true,
+        ]);
+
+        Approver::query()->create([
+            'name'           => 'GM Approver',
+            'email'          => 'gm.approver@example.com',
+            'title'          => 'General Manager',
+            'approval_order' => 2,
+            'division_id'    => $division->id,
+            'is_active'      => true,
+        ]);
+
+        Livewire::test(PublicRequestManPowerForm::class)
+            ->set('data.nama_pengaju', 'Andi Saputra')
+            ->set('data.email_address', 'andi@example.com')
+            ->set('data.posisi_pengaju', 'HR Manager')
+            ->set('data.company_id', $company->id)
+            ->set('data.division_id', $division->id)
+            ->set('data.status_kebutuhan', 'New Hiring')
+            ->set('data.posisi_dibutuhkan', 'Software Engineer')
+            ->set('data.level_pekerjaan', 'Staff')
+            ->set('data.jumlah_karyawan_dibutuhkan', 1)
+            ->set('data.lokasi_penempatan', 'Jakarta')
+            ->set('data.estimasi_tanggal_join', '2026-04-01')
+            ->set('data.job_description', 'Develop internal systems')
+            ->set('data.requirements_kualifikasi', 'PHP, Laravel, SQL')
+            ->set('data.keterangan', 'Urgent hiring')
+            ->call('submit')
+            ->assertHasNoErrors();
+
+        Notification::assertSentOnDemandTimes(RequestManPowerApprovalRequestedNotification::class, 1);
+
+        Notification::assertSentOnDemand(RequestManPowerApprovalRequestedNotification::class, function (
+            RequestManPowerApprovalRequestedNotification $notification,
+            array $channels,
+            object $notifiable
+        ): bool {
+            return in_array('mail', $channels, true)
+                && ($notifiable->routes['mail'] ?? null) === 'it.approver@example.com';
+        });
+
     }
 }

@@ -4,12 +4,19 @@ namespace Cesa\Rekrutmen;
 
 use Cesa\DatabaseSnapshot\Services\DatabaseSnapshotManager;
 use Cesa\Rekrutmen\Database\Seeders\DatabaseSeeder;
+use Cesa\Rekrutmen\Livewire\PublicRequestManPowerApprovalPage;
 use Cesa\Rekrutmen\Livewire\PublicRequestManPowerForm;
 use Cesa\Rekrutmen\Livewire\PublicRequestManPowerProgressPage;
+use Cesa\Rekrutmen\Models\Approver;
+use Cesa\Rekrutmen\Models\Division;
 use Cesa\Rekrutmen\Models\JobApplication;
+use Cesa\Rekrutmen\Models\JobApplicationHistory;
 use Cesa\Rekrutmen\Models\JobPosting;
 use Cesa\Rekrutmen\Models\RekrutmenPipeline;
 use Cesa\Rekrutmen\Models\RequestManPower;
+use Cesa\Rekrutmen\Policies\ApproverPolicy;
+use Cesa\Rekrutmen\Policies\DivisionPolicy;
+use Cesa\Rekrutmen\Policies\JobApplicationHistoryPolicy;
 use Cesa\Rekrutmen\Policies\JobApplicationPolicy;
 use Cesa\Rekrutmen\Policies\JobPostingPolicy;
 use Cesa\Rekrutmen\Policies\RekrutmenPipelinePolicy;
@@ -46,6 +53,19 @@ class RekrutmenServiceProvider extends PackageServiceProvider
                 '2026_03_31_230839_rekrutmen_add_thumbnail_path_to_job_postings_table',
                 '2026_03_31_234155_rekrutmen_add_position_to_job_applications_table',
                 '2026_04_07_094912_rekrutmen_add_active_email_to_job_applications_table',
+                '2026_04_08_200000_rekrutmen_add_activity_fields_to_job_application_histories_table',
+                '2026_04_08_210000_rekrutmen_add_performance_indexes',
+                '2026_04_08_220000_rekrutmen_add_reporting_indexes',
+                '2026_04_08_230000_rekrutmen_add_filter_indexes',
+                '2026_04_09_114253_rekrutmen_fix_status_defaults_and_stage_constraints',
+                '2026_04_14_144908_rekrutmen_normalize_job_application_pipeline_state',
+                '2026_04_14_151437_rekrutmen_add_company_id_to_request_man_powers_table',
+                '2026_04_15_120000_rekrutmen_create_approvers_table',
+                '2026_04_15_130000_rekrutmen_create_divisions_table',
+                '2026_04_15_140000_rekrutmen_add_division_id_to_request_man_powers_and_approvers',
+                '2026_04_16_142720_rekrutmen_add_source_to_job_applications_table',
+                '2026_04_16_150000_rekrutmen_add_approval_order_to_approvers_table',
+                '2026_04_16_150100_rekrutmen_create_request_man_power_approvals_table',
             ])
             ->runsMigrations()
             ->runsSeeders()
@@ -73,10 +93,14 @@ class RekrutmenServiceProvider extends PackageServiceProvider
         }
 
         Livewire::component('cesa.rekrutmen.livewire.public-man-power-request-form', PublicRequestManPowerForm::class);
+        Livewire::component('cesa.rekrutmen.livewire.public-man-power-approval-page', PublicRequestManPowerApprovalPage::class);
         Livewire::component('cesa.rekrutmen.livewire.public-man-power-progress-page', PublicRequestManPowerProgressPage::class);
+        Gate::policy(Approver::class, ApproverPolicy::class);
+        Gate::policy(Division::class, DivisionPolicy::class);
         Gate::policy(RekrutmenPipeline::class, RekrutmenPipelinePolicy::class);
         Gate::policy(JobPosting::class, JobPostingPolicy::class);
         Gate::policy(JobApplication::class, JobApplicationPolicy::class);
+        Gate::policy(JobApplicationHistory::class, JobApplicationHistoryPolicy::class);
         Gate::policy(RequestManPower::class, RequestManPowerPolicy::class);
 
         // Register snapshot metadata for database backup/restore
@@ -96,7 +120,10 @@ class RekrutmenServiceProvider extends PackageServiceProvider
             'tables'  => [
                 'rekrutmen_pipelines',
                 'rekrutmen_stages',
+                'rekrutmen_approvers',
+                'rekrutmen_divisions',
                 'rekrutmen_request_man_powers',
+                'rekrutmen_request_man_power_approvals',
                 'rekrutmen_job_postings',
                 'rekrutmen_job_applications',
                 'rekrutmen_job_application_histories',

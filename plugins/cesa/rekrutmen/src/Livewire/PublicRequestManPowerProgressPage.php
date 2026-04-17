@@ -16,6 +16,7 @@ class PublicRequestManPowerProgressPage extends SimplePage
     public function mount(string $response): void
     {
         $this->requestManPower = RequestManPower::query()
+            ->with('approvals')
             ->where('status_response_id', $response)
             ->firstOrFail();
     }

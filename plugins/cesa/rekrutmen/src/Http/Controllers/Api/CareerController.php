@@ -214,6 +214,7 @@ class CareerController extends Controller
             $application = JobApplication::query()->create([
                 'job_posting_id'             => $job->getKey(),
                 'current_stage_id'           => $firstStageId,
+                'source'                     => $request->input('source', 'oceanspace.co.id'),
                 'full_name'                  => $validated['full_name'] ?? null,
                 'email'                      => $validated['email'] ?? null,
                 'gender'                     => $validated['gender'] ?? null,

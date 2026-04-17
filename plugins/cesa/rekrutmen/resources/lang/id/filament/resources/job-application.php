@@ -45,10 +45,12 @@ return [
             'active_phone'    => 'No Telp Aktif',
             'current_stage'   => 'Tahap',
             'status'          => 'Status',
+            'histories_count' => 'Jumlah Riwayat',
         ],
         'filters' => [
-            'job_posting_id' => 'Lowongan Kerja',
-            'status'         => 'Status',
+            'job_posting_id'   => 'Lowongan Kerja',
+            'status'           => 'Status',
+            'current_stage_id' => 'Tahap Saat Ini',
         ],
         'actions' => [
             'change_stage'    => 'Pindah Tahap',
@@ -58,6 +60,7 @@ return [
             'notes'           => 'Catatan',
             'download_resume' => 'Unduh CV',
             'download_photo'  => 'Unduh Foto',
+            'more'            => 'Kelola',
         ],
     ],
     'notifications' => [
@@ -70,6 +73,20 @@ return [
         'heading_with_job'    => 'Pipeline Lamaran Kandidat - :job',
         'subheading'          => 'Pantau progres kandidat berdasarkan lowongan yang dipilih.',
         'subheading_with_job' => 'Pantau progres kandidat untuk lowongan :job.',
+        'navigation_label'    => 'Board Pipeline',
+        'select_job_posting'  => 'Pilih Lowongan Pekerjaan',
+        'back_to_list'        => 'Tampilan Tabel',
+        'no_job_selected'     => 'Pilih Lowongan Pekerjaan Dulu',
+        'no_pipeline'         => 'Belum Ada Pipeline',
+        'no_stages'           => 'Tidak Ada Stage pada Pipeline ini',
+        'card'                => [
+            'current_stage_fallback' => 'terakhir',
+            'status_context'         => [
+                'hired'     => 'Diterima pada tahap :stage.',
+                'rejected'  => 'Ditolak pada tahap :stage.',
+                'withdrawn' => 'Dibatalkan pada tahap :stage.',
+            ],
+        ],
     ],
     'workflow_notes' => [
         'stage_changed' => 'Tahap kandidat dipindahkan.',
@@ -79,9 +96,10 @@ return [
         'rejected'      => 'Kandidat ditandai ditolak.',
     ],
     'workflow_errors' => [
-        'invalid_stage'            => 'Tahap tujuan tidak sesuai dengan pipeline lowongan.',
-        'terminal_stage_locked'    => 'Kandidat yang sudah diputuskan tidak bisa dipindah tahap.',
-        'decision_note_required'   => 'Catatan keputusan kandidat wajib diisi.',
-        'job_posting_has_no_stage' => 'Lowongan yang dipilih belum memiliki tahap awal.',
+        'invalid_stage'                 => 'Tahap tujuan tidak sesuai dengan pipeline lowongan.',
+        'terminal_stage_locked'         => 'Kandidat yang sudah diputuskan tidak bisa dipindah tahap.',
+        'cross_stage_requires_activity' => 'Perpindahan lintas tahap harus melalui Catat Aktivitas Rekrutmen agar histori proses tetap konsisten.',
+        'decision_note_required'        => 'Catatan keputusan kandidat wajib diisi.',
+        'job_posting_has_no_stage'      => 'Lowongan yang dipilih belum memiliki tahap awal.',
     ],
 ];

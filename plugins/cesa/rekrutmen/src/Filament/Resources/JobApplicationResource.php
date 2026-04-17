@@ -8,8 +8,8 @@ use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Cesa\Rekrutmen\Filament\Resources\JobApplicationResource\Pages;
 use Cesa\Rekrutmen\Filament\Resources\JobApplicationResource\RelationManagers\HistoriesRelationManager;
 use Cesa\Rekrutmen\Models\JobApplication;
-use Cesa\Rekrutmen\Models\RekrutmenStage;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -135,6 +135,11 @@ class JobApplicationResource extends Resource
                                     ->label(__('rekrutmen::filament/resources/job-application.form.fields.current_stage_id'))
                                     ->disabled()
                                     ->dehydrated(),
+                                Forms\Components\TextInput::make('source')
+                                    ->label('Sumber Lamaran')
+                                    ->placeholder('Misal: Glints, Jobstreet, dll')
+                                    ->default('Manual Input')
+                                    ->maxLength(100),
                                 Forms\Components\Select::make('status')
                                     ->label(__('rekrutmen::filament/resources/job-application.form.fields.status'))
                                     ->required()
@@ -172,7 +177,8 @@ class JobApplicationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['jobPosting', 'currentStage']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['jobPosting', 'currentStage'])->withCount('histories'))
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('full_name')
                     ->label(__('rekrutmen::filament/resources/job-application.table.columns.full_name'))
@@ -182,6 +188,12 @@ class JobApplicationResource extends Resource
                     ->label(__('rekrutmen::filament/resources/job-application.table.columns.job_posting'))
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('source')
+                    ->label('Sumber Lamaran')
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->color('info'),
                 Tables\Columns\TextColumn::make('email')
                     ->label(__('rekrutmen::filament/resources/job-application.table.columns.email'))
                     ->searchable()
@@ -202,6 +214,11 @@ class JobApplicationResource extends Resource
                     ->label(__('rekrutmen::filament/resources/job-application.table.columns.status'))
                     ->badge()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('histories_count')
+                    ->label(__('rekrutmen::filament/resources/job-application.table.columns.histories_count'))
+                    ->numeric()
+                    ->badge()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -219,100 +236,71 @@ class JobApplicationResource extends Resource
                 Tables\Filters\SelectFilter::make('status')
                     ->label(__('rekrutmen::filament/resources/job-application.table.filters.status'))
                     ->options(JobApplicationStatus::class),
+                Tables\Filters\SelectFilter::make('current_stage_id')
+                    ->relationship('currentStage', 'name')
+                    ->label(__('rekrutmen::filament/resources/job-application.table.filters.current_stage_id'))
+                    ->searchable(),
             ])
             ->recordActions([
-                EditAction::make(),
-                Action::make('change_stage')
-                    ->label(__('rekrutmen::filament/resources/job-application.table.actions.change_stage'))
-                    ->icon('heroicon-o-chevron-double-right')
-                    ->color('warning')
-                    ->visible(fn (JobApplication $record): bool => ! $record->isTerminalStatus())
-                    ->form([
-                        Forms\Components\Select::make('to_stage_id')
-                            ->label(__('rekrutmen::filament/resources/job-application.table.actions.to_stage_id'))
-                            ->options(function (JobApplication $record) {
-                                if (! $record->jobPosting || ! $record->jobPosting->rekrutmen_pipeline_id) {
-                                    return [];
-                                }
+                ActionGroup::make([
+                    EditAction::make(),
+                    Action::make('mark_hired')
+                        ->label(__('rekrutmen::filament/resources/job-application.table.actions.mark_hired'))
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->visible(fn (JobApplication $record): bool => $record->status === JobApplicationStatus::IN_PROGRESS)
+                        ->form([
+                            Forms\Components\Textarea::make('notes')
+                                ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
+                                ->required()
+                                ->maxLength(65535),
+                        ])
+                        ->action(function (JobApplication $record, array $data): void {
+                            $record->markAsHired(
+                                $data['notes'] ?? null,
+                                auth()->id(),
+                            );
 
-                                return RekrutmenStage::where('rekrutmen_pipeline_id', $record->jobPosting->rekrutmen_pipeline_id)
-                                    ->orderBy('order_column')
-                                    ->pluck('name', 'id')
-                                    ->toArray();
-                            })
-                            ->required(),
-                        Forms\Components\Textarea::make('notes')
-                            ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
-                            ->maxLength(65535),
-                    ])
-                    ->action(function (JobApplication $record, array $data): void {
-                        $record->transitionToStage(
-                            (int) $data['to_stage_id'],
-                            $data['notes'] ?? null,
-                            auth()->id(),
-                        );
+                            Notification::make()
+                                ->title(__('rekrutmen::filament/resources/job-application.notifications.marked_hired'))
+                                ->success()
+                                ->send();
+                        }),
+                    Action::make('mark_rejected')
+                        ->label(__('rekrutmen::filament/resources/job-application.table.actions.mark_rejected'))
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->visible(fn (JobApplication $record): bool => $record->status === JobApplicationStatus::IN_PROGRESS)
+                        ->form([
+                            Forms\Components\Textarea::make('notes')
+                                ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
+                                ->required()
+                                ->maxLength(65535),
+                        ])
+                        ->action(function (JobApplication $record, array $data): void {
+                            $record->markAsRejected(
+                                $data['notes'] ?? null,
+                                auth()->id(),
+                            );
 
-                        Notification::make()
-                            ->title(__('rekrutmen::filament/resources/job-application.notifications.stage_changed'))
-                            ->success()
-                            ->send();
-                    }),
-                Action::make('mark_hired')
-                    ->label(__('rekrutmen::filament/resources/job-application.table.actions.mark_hired'))
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->visible(fn (JobApplication $record): bool => $record->status === JobApplicationStatus::IN_PROGRESS)
-                    ->form([
-                        Forms\Components\Textarea::make('notes')
-                            ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
-                            ->required()
-                            ->maxLength(65535),
-                    ])
-                    ->action(function (JobApplication $record, array $data): void {
-                        $record->markAsHired(
-                            $data['notes'] ?? null,
-                            auth()->id(),
-                        );
-
-                        Notification::make()
-                            ->title(__('rekrutmen::filament/resources/job-application.notifications.marked_hired'))
-                            ->success()
-                            ->send();
-                    }),
-                Action::make('mark_rejected')
-                    ->label(__('rekrutmen::filament/resources/job-application.table.actions.mark_rejected'))
-                    ->icon('heroicon-o-x-circle')
-                    ->color('danger')
-                    ->visible(fn (JobApplication $record): bool => $record->status === JobApplicationStatus::IN_PROGRESS)
-                    ->form([
-                        Forms\Components\Textarea::make('notes')
-                            ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
-                            ->required()
-                            ->maxLength(65535),
-                    ])
-                    ->action(function (JobApplication $record, array $data): void {
-                        $record->markAsRejected(
-                            $data['notes'] ?? null,
-                            auth()->id(),
-                        );
-
-                        Notification::make()
-                            ->title(__('rekrutmen::filament/resources/job-application.notifications.marked_rejected'))
-                            ->success()
-                            ->send();
-                    }),
-                Action::make('download_resume')
-                    ->label(__('rekrutmen::filament/resources/job-application.table.actions.download_resume'))
-                    ->icon('heroicon-o-document-arrow-down')
-                    ->url(fn (JobApplication $record) => self::resolveAttachmentDownloadUrl($record, 'resume'))
-                    ->openUrlInNewTab()
-                    ->visible(fn (JobApplication $record) => filled($record->resume_path)),
-                Action::make('download_photo')
-                    ->label(__('rekrutmen::filament/resources/job-application.table.actions.download_photo'))
-                    ->icon('heroicon-o-photo')
-                    ->url(fn (JobApplication $record) => self::resolveAttachmentDownloadUrl($record, 'photo'))
-                    ->openUrlInNewTab()
-                    ->visible(fn (JobApplication $record) => filled($record->photo_path)),
+                            Notification::make()
+                                ->title(__('rekrutmen::filament/resources/job-application.notifications.marked_rejected'))
+                                ->success()
+                                ->send();
+                        }),
+                    Action::make('download_resume')
+                        ->label(__('rekrutmen::filament/resources/job-application.table.actions.download_resume'))
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->url(fn (JobApplication $record) => self::resolveAttachmentDownloadUrl($record, 'resume'))
+                        ->openUrlInNewTab()
+                        ->visible(fn (JobApplication $record) => filled($record->resume_path)),
+                    Action::make('download_photo')
+                        ->label(__('rekrutmen::filament/resources/job-application.table.actions.download_photo'))
+                        ->icon('heroicon-o-photo')
+                        ->url(fn (JobApplication $record) => self::resolveAttachmentDownloadUrl($record, 'photo'))
+                        ->openUrlInNewTab()
+                        ->visible(fn (JobApplication $record) => filled($record->photo_path)),
+                ])->label(__('rekrutmen::filament/resources/job-application.table.actions.more')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

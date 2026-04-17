@@ -2,6 +2,7 @@
 
 namespace Cesa\Rekrutmen\Filament\Resources\JobApplicationResource\Pages;
 
+use Cesa\Rekrutmen\Enums\ActivityEntryResult;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Cesa\Rekrutmen\Filament\Resources\JobApplicationResource;
 use Cesa\Rekrutmen\Models\JobApplication;
@@ -10,14 +11,17 @@ use Cesa\Rekrutmen\Models\RekrutmenStage;
 use Filament\Actions\Action;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 use InvalidArgumentException;
-use Livewire\Attributes\Url;
 use Relaticle\Flowforge\Board;
 use Relaticle\Flowforge\Column;
 use Relaticle\Flowforge\Concerns\BaseBoard;
@@ -33,12 +37,9 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
 
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-view-columns';
 
-    protected static ?string $navigationLabel = 'Pipeline Board';
+    protected static ?string $navigationLabel = null;
 
     protected string $view = 'flowforge::filament.pages.board-page';
-
-    #[Url(as: 'filters')]
-    public ?array $tableFilters = null;
 
     public ?int $activeJobPostingId = null;
 
@@ -60,6 +61,11 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
         return 1;
     }
 
+    public static function getNavigationLabel(): string
+    {
+        return __('rekrutmen::filament/resources/job-application.board.navigation_label');
+    }
+
     public function getHeading(): string
     {
         $jobPosting = $this->resolveActiveJobPosting();
@@ -75,29 +81,33 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
 
     public function getSubheading(): ?string
     {
-        return null;
-    }
+        $jobPosting = $this->resolveActiveJobPosting();
 
-    // We can use native Filament Header Actions to provide a selector if needed,
-    // but the best way to handle dynamic filter is via table-like filters or form
-    // Since Flowforge integrates with Action/Forms, let's use a Form for the header filter.
+        if (! $jobPosting) {
+            return __('rekrutmen::filament/resources/job-application.board.subheading');
+        }
+
+        return __('rekrutmen::filament/resources/job-application.board.subheading_with_job', [
+            'job' => $jobPosting->title,
+        ]);
+    }
 
     protected function getHeaderActions(): array
     {
         return [
             Action::make('back_to_list')
-                ->label('Tampilan Tabel')
+                ->label(__('rekrutmen::filament/resources/job-application.board.back_to_list'))
                 ->icon('heroicon-o-table-cells')
                 ->color('gray')
                 ->url(JobApplicationResource::getUrl('index')),
             Action::make('select_job_posting')
-                ->label('Pilih Lowongan Pekerjaan')
+                ->label(__('rekrutmen::filament/resources/job-application.board.select_job_posting'))
                 ->icon('heroicon-o-funnel')
                 ->color('gray')
                 ->form([
                     Select::make('job_posting_id')
-                        ->label('Lowongan')
-                        ->options(JobPosting::pluck('title', 'id'))
+                        ->label(__('rekrutmen::filament/resources/job-application.form.fields.job_posting_id'))
+                        ->options(JobPosting::query()->orderBy('title')->pluck('title', 'id'))
                         ->required()
                         ->default($this->activeJobPostingId)
                         ->searchable(),
@@ -109,11 +119,9 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
         ];
     }
 
-    // Instead of redirecting maybe we can just read from URL query string
     protected function queryString(): array
     {
         return [
-            'tableSearch'        => ['as' => 'search', 'except' => ''],
             'activeJobPostingId' => ['as' => 'job_posting_id', 'except' => ''],
         ];
     }
@@ -123,12 +131,78 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
         return $board
             ->query(
                 JobApplication::query()
+                    ->with('currentStage')
                     ->when($this->activeJobPostingId, fn (Builder $query) => $query->where('job_posting_id', $this->activeJobPostingId))
             )
-            ->recordTitleAttribute('full_name') // Using full_name instead of title
+            ->recordTitleAttribute('full_name')
             ->columnIdentifier('current_stage_id')
             ->positionIdentifier('position')
+            ->cardSchema(fn (Schema $schema): Schema => $schema->components([
+                TextEntry::make('email')
+                    ->hiddenLabel()
+                    ->color('gray'),
+                TextEntry::make('status')
+                    ->hiddenLabel()
+                    ->badge()
+                    ->formatStateUsing(fn (JobApplicationStatus|string|null $state): string => $this->resolveBoardStatusLabel($state))
+                    ->color(fn (JobApplication $record): string|array|null => $record->status?->getColor())
+                    ->visible(fn (JobApplication $record): bool => $record->isTerminalStatus()),
+                TextEntry::make('board_status_context')
+                    ->hiddenLabel()
+                    ->state(fn (JobApplication $record): ?string => $this->resolveBoardStatusContext($record))
+                    ->visible(fn (JobApplication $record): bool => $record->isTerminalStatus()),
+            ]))
             ->recordActions([
+                Action::make('record_activity')
+                    ->label(__('rekrutmen::filament/resources/activity-log.navigation.label'))
+                    ->icon('heroicon-o-clipboard-document-list')
+                    ->color('gray')
+                    ->visible(fn (JobApplication $record): bool => $record->status === JobApplicationStatus::IN_PROGRESS
+                        && filled($record->currentStage?->name))
+                    ->form([
+                        DatePicker::make('activity_date')
+                            ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
+                            ->required()
+                            ->default(now()->toDateString()),
+                        Select::make('result')
+                            ->label(__('rekrutmen::filament/resources/activity-log.form.fields.result'))
+                            ->options(ActivityEntryResult::class)
+                            ->required()
+                            ->default(ActivityEntryResult::PENDING->value)
+                            ->live(),
+                        Textarea::make('notes')
+                            ->label(__('rekrutmen::filament/resources/activity-log.form.fields.notes'))
+                            ->maxLength(65535)
+                            ->required(fn (Get $get): bool => $get('result') === ActivityEntryResult::FAILED->value)
+                            ->helperText(__('rekrutmen::filament/resources/activity-log.form.helpers.failed_requires_notes')),
+                    ])
+                    ->action(function (JobApplication $record, array $data): void {
+                        try {
+                            JobApplication::recordBatchActivity(
+                                (int) $record->job_posting_id,
+                                (int) $record->current_stage_id,
+                                (string) $data['activity_date'],
+                                [[
+                                    'job_application_id' => $record->id,
+                                    'result'             => $data['result'] ?? ActivityEntryResult::PENDING->value,
+                                    'notes'              => $data['notes'] ?? null,
+                                ]],
+                                auth()->id(),
+                            );
+                        } catch (InvalidArgumentException $exception) {
+                            Notification::make()
+                                ->title($exception->getMessage())
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        Notification::make()
+                            ->title(__('rekrutmen::filament/resources/activity-log.notifications.activity_recorded'))
+                            ->success()
+                            ->send();
+                    }),
                 EditAction::make()
                     ->url(fn (JobApplication $record): string => JobApplicationResource::getUrl('edit', ['record' => $record])),
                 Action::make('mark_hired')
@@ -204,35 +278,29 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
         $fromStageId = $application->current_stage_id;
 
         if ($fromStageId === $targetStageId) {
-            return;
-        }
-
-        try {
-            $this->baseMoveCard($cardId, $targetColumnId, $afterCardId, $beforeCardId);
-        } catch (InvalidArgumentException $exception) {
-            Notification::make()
-                ->title($exception->getMessage())
-                ->danger()
-                ->send();
+            try {
+                $this->baseMoveCard($cardId, $targetColumnId, $afterCardId, $beforeCardId);
+            } catch (InvalidArgumentException $exception) {
+                Notification::make()
+                    ->title($exception->getMessage())
+                    ->danger()
+                    ->send();
+            }
 
             return;
         }
 
-        $application->refresh();
-        $application->histories()->create([
-            'from_stage_id' => $fromStageId,
-            'to_stage_id'   => $application->current_stage_id,
-            'status'        => $application->status,
-            'notes'         => __('rekrutmen::filament/resources/job-application.workflow_notes.stage_changed'),
-            'performed_by'  => auth()->id(),
-        ]);
+        Notification::make()
+            ->title(__('rekrutmen::filament/resources/job-application.workflow_errors.cross_stage_requires_activity'))
+            ->warning()
+            ->send();
     }
 
     protected function getDynamicColumns(): array
     {
         if (! $this->activeJobPostingId) {
             return [
-                Column::make('empty')->label('Pilih Lowongan Pekerjaan Dulu'),
+                Column::make('empty')->label(__('rekrutmen::filament/resources/job-application.board.no_job_selected')),
             ];
         }
 
@@ -240,7 +308,7 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
 
         if (! $jobPosting || ! $jobPosting->rekrutmen_pipeline_id) {
             return [
-                Column::make('empty')->label('Belum Ada Pipeline'),
+                Column::make('empty')->label(__('rekrutmen::filament/resources/job-application.board.no_pipeline')),
             ];
         }
 
@@ -250,7 +318,7 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
 
         if ($stages->isEmpty()) {
             return [
-                Column::make('empty')->label('Tidak Ada Stage pada Pipeline ini'),
+                Column::make('empty')->label(__('rekrutmen::filament/resources/job-application.board.no_stages')),
             ];
         }
 
@@ -269,9 +337,35 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
         return JobPosting::query()->find($this->activeJobPostingId);
     }
 
-    // We can also hook into the onCardDrop or similar if Flowforge fires events,
-    // but columnIdentifier updates it automatically!
-    // But we need to record history if they dragged it...
-    // The instructions say "BISA PAKE relaticle-flowforge" - FlowForge is very advanced and likely handles saving.
-    // However, Cesa has a JobApplication history tracking requirement. We can hook into the update event if Flowforge provides one.
+    protected function resolveBoardStatusLabel(JobApplicationStatus|string|null $status): string
+    {
+        if ($status instanceof JobApplicationStatus) {
+            return $status->getLabel() ?? $status->value;
+        }
+
+        if (is_string($status) && $status !== '') {
+            return JobApplicationStatus::tryFrom($status)?->getLabel() ?? $status;
+        }
+
+        return '';
+    }
+
+    protected function resolveBoardStatusContext(JobApplication $record): ?string
+    {
+        $stageName = $record->currentStage?->name
+            ?? __('rekrutmen::filament/resources/job-application.board.card.current_stage_fallback');
+
+        return match ($record->status) {
+            JobApplicationStatus::HIRED => __('rekrutmen::filament/resources/job-application.board.card.status_context.hired', [
+                'stage' => $stageName,
+            ]),
+            JobApplicationStatus::REJECTED => __('rekrutmen::filament/resources/job-application.board.card.status_context.rejected', [
+                'stage' => $stageName,
+            ]),
+            JobApplicationStatus::WITHDRAWN => __('rekrutmen::filament/resources/job-application.board.card.status_context.withdrawn', [
+                'stage' => $stageName,
+            ]),
+            default => null,
+        };
+    }
 }

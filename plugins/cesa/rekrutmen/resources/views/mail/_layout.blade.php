@@ -32,12 +32,16 @@
                   @endforeach
                 </table>
 
-                @if (filled($progressUrl ?? null) && filled($actionLabel ?? null))
+                @php
+                  $primaryActionUrl = $actionUrl ?? $progressUrl ?? null;
+                @endphp
+
+                @if (filled($primaryActionUrl) && filled($actionLabel ?? null))
                   <table style="width:100%; margin:16px 0;" cellpadding="0" cellspacing="0">
                     <tr>
                       <td style="text-align:left;">
                         <a
-                          href="{{ $progressUrl }}"
+                          href="{{ $primaryActionUrl }}"
                           target="_blank"
                           style="display:inline-block; padding:12px 20px; background:#1D4ED8; color:#fff; text-decoration:none;"
                         >
@@ -46,6 +50,14 @@
                       </td>
                     </tr>
                   </table>
+                @endif
+
+                @if (filled($progressUrl ?? null) && ($actionUrl ?? null) !== ($progressUrl ?? null))
+                  <p style="margin:12px 0 0; font-size:13px; color:#4b5563;">
+                    <a href="{{ $progressUrl }}" target="_blank" style="color:#1D4ED8; text-decoration:none;">
+                      {{ $progressLabel ?? __('rekrutmen::mail/request-man-power-submitted.view_progress') }}
+                    </a>
+                  </p>
                 @endif
 
                 @if (filled($footerNote ?? null))

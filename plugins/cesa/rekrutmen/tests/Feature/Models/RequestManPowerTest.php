@@ -2,26 +2,30 @@
 
 namespace Cesa\Rekrutmen\Tests\Feature\Models;
 
-use App\Models\User;
 use Cesa\Rekrutmen\Enums\JobApplicationGender;
 use Cesa\Rekrutmen\Enums\JobApplicationMaritalStatus;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Enums\StatusKebutuhan;
 use Cesa\Rekrutmen\Livewire\PublicRequestManPowerProgressPage;
+use Cesa\Rekrutmen\Models\Approver;
+use Cesa\Rekrutmen\Models\Division;
 use Cesa\Rekrutmen\Models\JobApplication;
 use Cesa\Rekrutmen\Models\JobApplicationHistory;
 use Cesa\Rekrutmen\Models\JobPosting;
 use Cesa\Rekrutmen\Models\RekrutmenPipeline;
 use Cesa\Rekrutmen\Models\RekrutmenStage;
 use Cesa\Rekrutmen\Models\RequestManPower;
+use Cesa\Rekrutmen\Models\RequestManPowerApprovalRequestedNotification;
 use Cesa\Rekrutmen\Models\RequestManPowerStatusChangedNotification;
 use Cesa\Rekrutmen\Models\RequestManPowerSubmittedNotification;
 use Cesa\Rekrutmen\Tests\RekrutmenTestCase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Webkul\Security\Models\User;
 use Webkul\Security\Models\User as SecurityUser;
+use Webkul\Support\Models\Company;
 
 class RequestManPowerTest extends RekrutmenTestCase
 {
@@ -52,6 +56,147 @@ class RequestManPowerTest extends RekrutmenTestCase
 
         $this->assertNotEmpty($request->status_response_id);
         $this->assertTrue(Str::isUuid($request->status_response_id));
+    }
+
+    public function test_company_selection_syncs_business_entity_snapshot_from_erp_core(): void
+    {
+        $company = Company::query()->create([
+            'name' => 'PT ERP Core',
+        ]);
+        $division = $this->createDivision($company, 'IT');
+
+        $request = RequestManPower::query()->create($this->basePayload([
+            'company_id'  => $company->id,
+            'division_id' => $division->id,
+            'divisi'      => 'Legacy Division',
+        ]));
+
+        $request->refresh();
+
+        $this->assertSame($company->id, $request->company_id);
+        $this->assertSame($division->id, $request->division_id);
+        $this->assertSame('IT', $request->divisi);
+        $this->assertSame('PT ERP Core', $request->business_entity_name);
+    }
+
+    public function test_request_man_power_resolves_matching_approvers_by_company_and_division(): void
+    {
+        $companyA = Company::query()->create(['name' => 'PT Cesa A']);
+        $companyB = Company::query()->create(['name' => 'PT Cesa B']);
+        $divisionA = $this->createDivision($companyA, 'IT');
+        $divisionB = $this->createDivision($companyA, 'Finance');
+        $divisionOtherCompany = $this->createDivision($companyB, 'IT');
+
+        Approver::query()->create([
+            'name'      => 'Global Approver',
+            'email'     => 'global.approver@example.com',
+            'title'     => 'General Manager',
+            'is_active' => true,
+        ]);
+
+        Approver::query()->create([
+            'name'       => 'Company Approver',
+            'email'      => 'company.approver@example.com',
+            'title'      => 'HR Manager',
+            'company_id' => $companyA->id,
+            'is_active'  => true,
+        ]);
+
+        Approver::query()->create([
+            'name'          => 'Division Approver',
+            'email'         => 'division.approver@example.com',
+            'title'         => 'IT Director',
+            'division_id'   => $divisionA->id,
+            'is_active'     => true,
+        ]);
+
+        Approver::query()->create([
+            'name'          => 'Other Division Approver',
+            'email'         => 'finance.approver@example.com',
+            'title'         => 'Finance Director',
+            'division_id'   => $divisionB->id,
+            'is_active'     => true,
+        ]);
+
+        Approver::query()->create([
+            'name'          => 'Other Company Approver',
+            'email'         => 'other-company.approver@example.com',
+            'title'         => 'Ops Director',
+            'division_id'   => $divisionOtherCompany->id,
+            'is_active'     => true,
+        ]);
+
+        Approver::query()->create([
+            'name'          => 'Inactive Approver',
+            'email'         => 'inactive.approver@example.com',
+            'title'         => 'Inactive Manager',
+            'division_id'   => $divisionA->id,
+            'is_active'     => false,
+        ]);
+
+        $request = RequestManPower::query()->create($this->basePayload([
+            'company_id'  => $companyA->id,
+            'division_id' => $divisionA->id,
+        ]));
+
+        $resolvedEmails = $request->approvalApprovers()
+            ->pluck('email')
+            ->all();
+
+        $this->assertSame([
+            'company.approver@example.com',
+            'division.approver@example.com',
+            'global.approver@example.com',
+        ], $resolvedEmails);
+    }
+
+    public function test_request_man_power_sends_approval_request_notifications_only_to_the_first_pending_step(): void
+    {
+        Notification::fake();
+
+        $company = Company::query()->create(['name' => 'PT Notification Match']);
+        $division = $this->createDivision($company, 'IT');
+
+        Approver::query()->create([
+            'name'           => 'Scoped Approver',
+            'email'          => 'scoped.approver@example.com',
+            'title'          => 'HRBP',
+            'approval_order' => 1,
+            'division_id'    => $division->id,
+            'is_active'      => true,
+        ]);
+
+        Approver::query()->create([
+            'name'           => 'Global Approver',
+            'email'          => 'global.notify@example.com',
+            'title'          => 'GM HR',
+            'approval_order' => 2,
+            'is_active'      => true,
+        ]);
+
+        $request = RequestManPower::query()->create($this->basePayload([
+            'company_id'    => $company->id,
+            'division_id'   => $division->id,
+            'email_address' => null,
+        ]));
+
+        $request->sendApprovalRequestNotifications();
+
+        $request->refresh();
+        $request->load('approvals');
+
+        Notification::assertSentOnDemandTimes(RequestManPowerApprovalRequestedNotification::class, 1);
+        Notification::assertSentOnDemand(RequestManPowerApprovalRequestedNotification::class, function (
+            RequestManPowerApprovalRequestedNotification $notification,
+            array $channels,
+            object $notifiable
+        ): bool {
+            return in_array('mail', $channels, true)
+                && ($notifiable->routes['mail'] ?? null) === 'scoped.approver@example.com';
+        });
+        $this->assertCount(2, $request->approvals);
+        $this->assertSame('scoped.approver@example.com', $request->approvals->firstWhere('step_order', 1)?->approver_email);
+        $this->assertSame('global.notify@example.com', $request->approvals->firstWhere('step_order', 2)?->approver_email);
     }
 
     public function test_approve_by_updates_status_and_creates_job_posting(): void
@@ -153,13 +298,28 @@ class RequestManPowerTest extends RekrutmenTestCase
 
     public function test_rejecting_and_marking_pending_unpublish_existing_job_posting(): void
     {
+        Notification::fake();
+
         RekrutmenPipeline::query()->create([
             'name' => 'Default Pipeline',
+        ]);
+
+        $company = Company::query()->create(['name' => 'PT Pending Notification']);
+        $division = $this->createDivision($company, 'IT');
+
+        Approver::query()->create([
+            'name'          => 'Pending Approver',
+            'email'         => 'pending.approver@example.com',
+            'title'         => 'Approver',
+            'division_id'   => $division->id,
+            'is_active'     => true,
         ]);
 
         $request = RequestManPower::query()->create($this->basePayload([
             'email_address' => 'lifecycle@example.com',
             'status'        => RequestManPowerStatus::PENDING,
+            'company_id'    => $company->id,
+            'division_id'   => $division->id,
         ]));
 
         $approver = User::factory()->create();
@@ -183,6 +343,15 @@ class RequestManPowerTest extends RekrutmenTestCase
         $this->assertSame(RequestManPowerStatus::PENDING, $request->fresh()->status);
         $this->assertNull($request->fresh()->approved_by);
         $this->assertFalse($jobPosting->is_published);
+
+        Notification::assertSentOnDemand(RequestManPowerApprovalRequestedNotification::class, function (
+            RequestManPowerApprovalRequestedNotification $notification,
+            array $channels,
+            object $notifiable
+        ): bool {
+            return in_array('mail', $channels, true)
+                && ($notifiable->routes['mail'] ?? null) === 'pending.approver@example.com';
+        });
     }
 
     public function test_approve_by_fails_without_changing_status_when_default_pipeline_cannot_be_resolved(): void
@@ -371,7 +540,17 @@ class RequestManPowerTest extends RekrutmenTestCase
      */
     private function basePayload(array $overrides = []): array
     {
+        $companyId = $overrides['company_id'] ?? Company::query()->create([
+            'name' => 'PT Cesa Indonesia',
+        ])->id;
+        $divisionId = $overrides['division_id'] ?? $this->createDivision(
+            Company::query()->findOrFail($companyId),
+            $overrides['divisi'] ?? 'IT',
+        )->id;
+
         return array_merge([
+            'company_id'                 => $companyId,
+            'division_id'                => $divisionId,
             'email_address'              => 'requester@example.com',
             'nama_pengaju'               => 'Andi Saputra',
             'posisi_pengaju'             => 'HR Manager',
@@ -381,12 +560,19 @@ class RequestManPowerTest extends RekrutmenTestCase
             'status_kebutuhan'           => StatusKebutuhan::NEW_HIRING,
             'divisi'                     => 'IT',
             'level_pekerjaan'            => 'Staff',
-            'badan_usaha'                => 'PT Cesa Indonesia',
             'jumlah_karyawan_dibutuhkan' => 1,
             'estimasi_tanggal_join'      => '2026-04-01',
             'requirements_kualifikasi'   => 'PHP, Laravel, SQL',
             'job_description'            => 'Develop internal systems',
             'status'                     => RequestManPowerStatus::PENDING,
         ], $overrides);
+    }
+
+    private function createDivision(Company $company, string $name): Division
+    {
+        return Division::query()->create([
+            'name'       => $name,
+            'company_id' => $company->id,
+        ]);
     }
 }

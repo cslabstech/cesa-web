@@ -28,6 +28,7 @@ return [
         'columns' => [
             'name'         => 'Name',
             'stages_count' => 'Total Stages',
+            'description'  => 'Description',
         ],
     ],
 ];

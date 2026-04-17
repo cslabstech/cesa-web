@@ -2,9 +2,9 @@
 
 namespace Cesa\Rekrutmen\Filament\Resources;
 
+use Cesa\Rekrutmen\Filament\Clusters\Configurations;
 use Cesa\Rekrutmen\Filament\Resources\RekrutmenPipelineResource\Pages;
 use Cesa\Rekrutmen\Models\RekrutmenPipeline;
-use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -13,24 +13,19 @@ use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Forms;
-use Filament\Resources\Resource;
-use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class RekrutmenPipelineResource extends Resource
+class RekrutmenPipelineResource extends RekrutmenConfigurationResource
 {
     protected static ?string $model = RekrutmenPipeline::class;
 
-    protected static \BackedEnum|string|null $navigationIcon = null;
+    protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-queue-list';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?string $cluster = Configurations::class;
 
-    public static function getNavigationGroup(): string
-    {
-        return __('admin.navigation.rekrutmen');
-    }
+    protected static ?int $navigationSort = 2;
 
     public static function getNavigationLabel(): string
     {
@@ -51,50 +46,49 @@ class RekrutmenPipelineResource extends Resource
     {
         return $schema
             ->schema([
-                Section::make(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.sections.pipeline_details'))
+                Forms\Components\TextInput::make('name')
+                    ->label(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.fields.name'))
+                    ->required()
+                    ->unique(RekrutmenPipeline::class, 'name', ignoreRecord: true)
+                    ->maxLength(255),
+                Forms\Components\Textarea::make('description')
+                    ->label(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.fields.description'))
+                    ->maxLength(65535)
+                    ->columnSpanFull(),
+                Forms\Components\Repeater::make('activeStages')
+                    ->relationship('activeStages')
                     ->schema([
                         Forms\Components\TextInput::make('name')
                             ->label(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.fields.name'))
                             ->required()
                             ->maxLength(255),
-                        Forms\Components\Textarea::make('description')
-                            ->label(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.fields.description'))
-                            ->maxLength(65535)
-                            ->columnSpanFull(),
-                    ]),
-
-                Section::make(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.sections.stages'))
-                    ->description(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.descriptions.stages'))
-                    ->schema([
-                        Forms\Components\Repeater::make('activeStages')
-                            ->relationship('activeStages')
-                            ->schema([
-                                Forms\Components\TextInput::make('name')
-                                    ->label(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.fields.name'))
-                                    ->required()
-                                    ->maxLength(255),
-                            ])
-                            ->orderColumn('order_column')
-                            ->defaultItems(1)
-                            ->minItems(1)
-                            ->addActionLabel(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.actions.add_stage'))
-                            ->reorderableWithButtons()
-                            ->columnSpanFull(),
-                    ]),
-            ]);
+                    ])
+                    ->orderColumn('order_column')
+                    ->defaultItems(1)
+                    ->minItems(1)
+                    ->addActionLabel(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.actions.add_stage'))
+                    ->reorderableWithButtons()
+                    ->columnSpanFull(),
+            ])->columns(1);
     }
 
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label(__('rekrutmen::filament/resources/rekrutmen-pipeline.table.columns.name'))
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('stages_count')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('active_stages_count')
                     ->counts('activeStages')
                     ->label(__('rekrutmen::filament/resources/rekrutmen-pipeline.table.columns.stages_count'))
                     ->badge(),
+                Tables\Columns\TextColumn::make('description')
+                    ->label(__('rekrutmen::filament/resources/rekrutmen-pipeline.table.columns.description'))
+                    ->limit(50)
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -105,20 +99,26 @@ class RekrutmenPipelineResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\TrashedFilter::make(),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
-                RestoreAction::make(),
-                ForceDeleteAction::make(),
+                EditAction::make()
+                    ->slideOver()
+                    ->modalWidth('md')
+                    ->visible(fn ($record): bool => ! method_exists($record, 'trashed') || ! $record->trashed()),
+                DeleteAction::make()
+                    ->visible(fn ($record): bool => ! method_exists($record, 'trashed') || ! $record->trashed()),
+                RestoreAction::make()
+                    ->visible(fn ($record): bool => method_exists($record, 'trashed') && $record->trashed()),
+                ForceDeleteAction::make()
+                    ->visible(fn ($record): bool => method_exists($record, 'trashed') && $record->trashed()),
             ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                    RestoreBulkAction::make(),
-                    ForceDeleteBulkAction::make(),
-                ]),
+            ->bulkActions([
+                DeleteBulkAction::make()
+                    ->visible(fn ($livewire = null): bool => ! static::isArchivedTab($livewire)),
+                RestoreBulkAction::make()
+                    ->visible(fn ($livewire = null): bool => static::isArchivedTab($livewire)),
+                ForceDeleteBulkAction::make()
+                    ->visible(fn ($livewire = null): bool => static::isArchivedTab($livewire)),
             ]);
     }
 
@@ -132,9 +132,7 @@ class RekrutmenPipelineResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListRekrutmenPipelines::route('/'),
-            'create' => Pages\CreateRekrutmenPipeline::route('/create'),
-            'edit'   => Pages\EditRekrutmenPipeline::route('/{record}/edit'),
+            'index' => Pages\ListRekrutmenPipelines::route('/'),
         ];
     }
 }

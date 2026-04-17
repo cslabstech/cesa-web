@@ -18,8 +18,8 @@
                 <p class="mt-2 text-sm text-gray-600">
                     {{ __('rekrutmen::livewire/public-request-man-power-progress-page.submitted_by') }}
                     <span class="font-medium text-gray-900">{{ $requestManPower->nama_pengaju }}</span>
-                    @if (filled($requestManPower->divisi))
-                        ({{ $requestManPower->divisi }})
+                    @if (filled($requestManPower->division_name))
+                        ({{ $requestManPower->division_name }})
                     @endif
                 </p>
             </div>
@@ -156,5 +156,42 @@
                 </div>
             </div>
         </div>
+
+        @if ($requestManPower->approvals->isNotEmpty())
+            <div class="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                <div class="border-b border-gray-200 px-6 py-4">
+                    <h2 class="text-lg font-medium text-gray-900">
+                        {{ __('rekrutmen::livewire/public-request-man-power-progress-page.approval_flow_heading') }}
+                    </h2>
+                </div>
+
+                <div class="space-y-3 px-6 py-5">
+                    @foreach ($requestManPower->approvals->sortBy('step_order') as $approval)
+                        <div class="rounded-lg border border-gray-200 px-4 py-3">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                    <p class="text-sm font-semibold text-gray-900">
+                                        {{ __('rekrutmen::livewire/public-request-man-power-progress-page.step_label', ['step' => $approval->step_order]) }}
+                                        - {{ $approval->approver_name }}
+                                    </p>
+                                    <p class="text-sm text-gray-600">{{ $approval->approver_title ?: '-' }}</p>
+                                </div>
+                                <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium {{ match ($approval->status?->value) {
+                                    'approved' => 'bg-emerald-100 text-emerald-700',
+                                    'rejected' => 'bg-red-100 text-red-700',
+                                    'pending' => 'bg-amber-100 text-amber-700',
+                                    default => 'bg-gray-100 text-gray-700',
+                                } }}">
+                                    {{ $approval->status?->getLabel() ?? '-' }}
+                                </span>
+                            </div>
+                            @if (filled($approval->notes))
+                                <p class="mt-3 whitespace-pre-line text-sm text-gray-600">{{ $approval->notes }}</p>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
     </div>
 </div>

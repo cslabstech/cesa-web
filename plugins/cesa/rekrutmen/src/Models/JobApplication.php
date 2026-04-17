@@ -2,6 +2,7 @@
 
 namespace Cesa\Rekrutmen\Models;
 
+use Cesa\Rekrutmen\Enums\ActivityEntryResult;
 use Cesa\Rekrutmen\Enums\JobApplicationGender;
 use Cesa\Rekrutmen\Enums\JobApplicationMaritalStatus;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
@@ -13,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
 use Illuminate\Support\Facades\Storage;
@@ -45,6 +48,7 @@ class JobApplication extends Model
     protected $fillable = [
         'job_posting_id',
         'current_stage_id',
+        'source',
         'position',
         'full_name',
         'gender',
@@ -58,6 +62,7 @@ class JobApplication extends Model
         'emergency_contact_relation',
         'emergency_contact_phone',
         'email',
+        'source',
         'photo_path',
         'resume_path',
         'status',
@@ -84,6 +89,7 @@ class JobApplication extends Model
             $application->snapshotOriginalActiveEmailOwnership();
             $application->syncActiveEmail();
             $application->assertActiveEmailIsUniqueForJobPosting();
+            $application->ensurePipelineStageIntegrity();
             $application->ensureBoardPosition();
             $application->snapshotOriginalAttachmentPaths();
             $application->prepareManagedAttachmentPathForPersistence('resume_path', self::RESUME_DIRECTORY, 'CV');
@@ -201,7 +207,7 @@ class JobApplication extends Model
 
     public function stageBelongsToCurrentPipeline(?int $stageId): bool
     {
-        $pipelineId = $this->jobPosting?->rekrutmen_pipeline_id;
+        $pipelineId = $this->resolvePipelineIdForCurrentJobPosting();
 
         if (! $pipelineId) {
             return $stageId === null;
@@ -279,6 +285,7 @@ class JobApplication extends Model
             JobApplicationStatus::HIRED,
             $notes,
             $performedBy,
+            $this->resolveTerminalStageIdForStatus(JobApplicationStatus::HIRED),
         );
     }
 
@@ -293,21 +300,38 @@ class JobApplication extends Model
         );
     }
 
-    public function changeStatus(JobApplicationStatus $status, ?string $notes = null, ?int $performedBy = null): void
-    {
-        if ($this->status === $status) {
+    public function changeStatus(
+        JobApplicationStatus $status,
+        ?string $notes = null,
+        ?int $performedBy = null,
+        ?int $toStageId = null,
+    ): void {
+        if ($toStageId !== null && ! $this->stageBelongsToCurrentPipeline($toStageId)) {
+            $toStageId = null;
+        }
+
+        $targetStageId = $toStageId ?? $this->current_stage_id;
+
+        if ($this->status === $status && $targetStageId === $this->current_stage_id) {
             return;
         }
 
         $currentStageId = $this->current_stage_id;
 
-        $this->update([
+        $attributes = [
             'status' => $status,
-        ]);
+        ];
+
+        if ($targetStageId !== $this->current_stage_id) {
+            $attributes['current_stage_id'] = $targetStageId;
+            $attributes['position'] = $this->nextPositionForStage($targetStageId);
+        }
+
+        $this->update($attributes);
 
         $this->recordHistory(
             $currentStageId,
-            $currentStageId,
+            $targetStageId,
             $status,
             $notes,
             $performedBy,
@@ -336,6 +360,140 @@ class JobApplication extends Model
         $disk = config('filament.default_filesystem_disk', config('filesystems.default', 'local'));
 
         return is_string($disk) && $disk !== '' ? $disk : 'local';
+    }
+
+    /**
+     * Record a batch activity (e.g., interview, screening) for multiple candidates.
+     *
+     * This is the single entry point for HR to record batch activities.
+     * It creates JobApplicationHistory entries AND moves candidates to the next stage
+     * or rejects them based on the result.
+     *
+     * @param  array{job_application_id: int, result: string, notes?: string}[]  $entries
+     * @return string The activity_group_id
+     */
+    public static function recordBatchActivity(
+        int $jobPostingId,
+        int $stageId,
+        string $activityDate,
+        array $entries,
+        ?int $performedBy,
+    ): string {
+        $activityGroupId = (string) Str::uuid();
+
+        $stage = RekrutmenStage::query()
+            ->whereKey($stageId)
+            ->whereHas('pipeline.jobPostings', fn (Builder $query) => $query->whereKey($jobPostingId))
+            ->first();
+
+        if (! $stage) {
+            throw new InvalidArgumentException(__('rekrutmen::filament/resources/activity-log.errors.invalid_stage'));
+        }
+
+        $applicationIds = collect($entries)
+            ->pluck('job_application_id')
+            ->filter(fn (mixed $id): bool => is_numeric($id))
+            ->map(fn (mixed $id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        $applications = static::query()
+            ->whereIn('id', $applicationIds)
+            ->where('job_posting_id', $jobPostingId)
+            ->with('jobPosting')
+            ->get()
+            ->keyBy('id');
+
+        if ($applications->count() !== $applicationIds->count()) {
+            throw new InvalidArgumentException(__('rekrutmen::filament/resources/activity-log.errors.invalid_candidates'));
+        }
+
+        $activityType = $stage->activityKey();
+        $activityTitle = self::generateBatchActivityTitle($stage->activityLabel(), $activityDate);
+
+        DB::transaction(function () use ($activityGroupId, $stageId, $activityType, $activityDate, $activityTitle, $entries, $performedBy, $applications): void {
+            foreach ($entries as $entry) {
+                $application = $applications->get((int) $entry['job_application_id']);
+
+                if (! $application) {
+                    continue;
+                }
+
+                if ($application->isTerminalStatus()) {
+                    continue;
+                }
+
+                if ($application->current_stage_id !== $stageId) {
+                    throw new InvalidArgumentException(__('rekrutmen::filament/resources/activity-log.errors.invalid_candidates'));
+                }
+
+                $fromStageId = $application->current_stage_id;
+                $resultValue = $entry['result'] ?? null;
+                $result = $resultValue instanceof ActivityEntryResult
+                    ? $resultValue
+                    : ActivityEntryResult::tryFrom($resultValue) ?? ActivityEntryResult::PENDING;
+                $entryNotes = $entry['notes'] ?? null;
+
+                $application->histories()->create([
+                    'from_stage_id'     => $fromStageId,
+                    'to_stage_id'       => $stageId,
+                    'activity_type'     => $activityType,
+                    'activity_date'     => $activityDate,
+                    'result'            => $result,
+                    'activity_title'    => $activityTitle,
+                    'activity_group_id' => $activityGroupId,
+                    'status'            => $application->status,
+                    'notes'             => $entryNotes,
+                    'performed_by'      => $performedBy,
+                ]);
+
+                match ($result) {
+                    ActivityEntryResult::PASSED  => $application->transitionToNextStage($stageId, $entryNotes, $performedBy),
+                    ActivityEntryResult::FAILED  => $application->markAsRejected($entryNotes, $performedBy),
+                    ActivityEntryResult::PENDING => null,
+                };
+            }
+        });
+
+        return $activityGroupId;
+    }
+
+    public static function generateBatchActivityTitle(
+        string $stageName,
+        string $activityDate,
+    ): string {
+        $formattedDate = Carbon::parse($activityDate)->translatedFormat('d M Y');
+
+        return sprintf('%s (%s)', $stageName, $formattedDate);
+    }
+
+    /**
+     * Move candidate to the next stage in the pipeline after the given stage.
+     * If the candidate is already at or past the given stage, no action is taken.
+     */
+    public function transitionToNextStage(int $completedStageId, ?string $notes = null, ?int $performedBy = null): void
+    {
+        if (! $this->jobPosting?->rekrutmen_pipeline_id) {
+            return;
+        }
+
+        $currentStageOrder = RekrutmenStage::query()
+            ->whereKey($completedStageId)
+            ->value('order_column');
+
+        if ($currentStageOrder === null) {
+            return;
+        }
+
+        $nextStage = RekrutmenStage::query()
+            ->where('rekrutmen_pipeline_id', $this->jobPosting->rekrutmen_pipeline_id)
+            ->where('order_column', '>', $currentStageOrder)
+            ->orderBy('order_column')
+            ->first();
+
+        if ($nextStage) {
+            $this->transitionToStage($nextStage->id, $notes ?? __('rekrutmen::filament/resources/job-application.workflow_notes.stage_changed'), $performedBy);
+        }
     }
 
     protected function normalizeTransactionalInput(): void
@@ -539,6 +697,57 @@ class JobApplication extends Model
         if (! $this->exists && blank($this->position)) {
             $this->position = $this->nextPositionForStage($this->current_stage_id);
         }
+    }
+
+    protected function ensurePipelineStageIntegrity(): void
+    {
+        $normalizedStageId = $this->resolveNormalizedStageId();
+
+        if ($normalizedStageId === $this->current_stage_id) {
+            return;
+        }
+
+        $this->current_stage_id = $normalizedStageId;
+    }
+
+    protected function resolveNormalizedStageId(): ?int
+    {
+        $pipelineId = $this->resolvePipelineIdForCurrentJobPosting();
+
+        if (! $pipelineId) {
+            return null;
+        }
+
+        $currentStageId = is_numeric($this->current_stage_id)
+            ? (int) $this->current_stage_id
+            : null;
+
+        if ($this->status === JobApplicationStatus::HIRED) {
+            $hiredStageId = $this->resolveTerminalStageIdForStatus(JobApplicationStatus::HIRED);
+
+            if ($hiredStageId !== null) {
+                return $hiredStageId;
+            }
+        }
+
+        if ($currentStageId !== null && $this->stageBelongsToCurrentPipeline($currentStageId)) {
+            return $currentStageId;
+        }
+
+        return self::resolveInitialStageIdForJobPostingId($this->job_posting_id);
+    }
+
+    protected function resolvePipelineIdForCurrentJobPosting(): ?int
+    {
+        if (! is_numeric($this->job_posting_id)) {
+            return null;
+        }
+
+        $pipelineId = JobPosting::query()
+            ->whereKey((int) $this->job_posting_id)
+            ->value('rekrutmen_pipeline_id');
+
+        return is_numeric($pipelineId) ? (int) $pipelineId : null;
     }
 
     protected function snapshotOriginalAttachmentPaths(): void
@@ -878,6 +1087,21 @@ class JobApplication extends Model
                 __('rekrutmen::filament/resources/job-application.workflow_errors.decision_note_required')
             );
         }
+    }
+
+    protected function resolveTerminalStageIdForStatus(JobApplicationStatus $status): ?int
+    {
+        $pipelineId = $this->resolvePipelineIdForCurrentJobPosting();
+
+        if ($status !== JobApplicationStatus::HIRED || ! $pipelineId) {
+            return null;
+        }
+
+        return RekrutmenStage::query()
+            ->where('rekrutmen_pipeline_id', $pipelineId)
+            ->whereRaw('LOWER(name) = ?', ['hired'])
+            ->orderByDesc('order_column')
+            ->value('id');
     }
 }
 

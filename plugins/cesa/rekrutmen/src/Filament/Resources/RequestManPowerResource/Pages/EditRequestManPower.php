@@ -4,7 +4,10 @@ namespace Cesa\Rekrutmen\Filament\Resources\RequestManPowerResource\Pages;
 
 use Cesa\Rekrutmen\Filament\Resources\RequestManPowerResource;
 use Filament\Actions;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Facades\Auth;
 
 class EditRequestManPower extends EditRecord
 {
@@ -13,6 +16,72 @@ class EditRequestManPower extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('view_progress')
+                ->label(__('rekrutmen::filament/resources/request-man-power.table.actions.view_progress'))
+                ->icon('heroicon-o-arrow-top-right-on-square')
+                ->color('gray')
+                ->url(fn (): string => $this->record->getPublicProgressUrl())
+                ->openUrlInNewTab(),
+            Action::make('approve')
+                ->label(__('rekrutmen::filament/resources/request-man-power.table.actions.approve'))
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->visible(fn (): bool => RequestManPowerResource::canManualApproveOrReject($this->record))
+                ->action(function (): void {
+                    $this->record->approveBy(Auth::id());
+
+                    Notification::make()
+                        ->title(__('rekrutmen::filament/resources/request-man-power.notifications.approved'))
+                        ->success()
+                        ->send();
+
+                    $this->redirect(static::getResource()::getUrl('edit', ['record' => $this->record]));
+                }),
+            Action::make('reject')
+                ->label(__('rekrutmen::filament/resources/request-man-power.table.actions.reject'))
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->visible(fn (): bool => RequestManPowerResource::canManualApproveOrReject($this->record))
+                ->requiresConfirmation()
+                ->action(function (): void {
+                    $this->record->rejectBy(Auth::id());
+
+                    Notification::make()
+                        ->title(__('rekrutmen::filament/resources/request-man-power.notifications.rejected'))
+                        ->success()
+                        ->send();
+
+                    $this->redirect(static::getResource()::getUrl('edit', ['record' => $this->record]));
+                }),
+            Action::make('resend_pending_approval')
+                ->label(__('rekrutmen::filament/resources/request-man-power.table.actions.resend_pending_approval'))
+                ->icon('heroicon-o-paper-airplane')
+                ->color('info')
+                ->visible(fn (): bool => RequestManPowerResource::canResendPendingApproval($this->record))
+                ->action(function (): void {
+                    $this->record->notifyCurrentPendingApproval(true);
+
+                    Notification::make()
+                        ->title(__('rekrutmen::filament/resources/request-man-power.notifications.pending_approval_resent'))
+                        ->success()
+                        ->send();
+                }),
+            Action::make('set_pending')
+                ->label(__('rekrutmen::filament/resources/request-man-power.table.actions.set_pending'))
+                ->icon('heroicon-o-arrow-path')
+                ->color('warning')
+                ->visible(fn (): bool => RequestManPowerResource::canSetPending($this->record))
+                ->requiresConfirmation()
+                ->action(function (): void {
+                    $this->record->markPending();
+
+                    Notification::make()
+                        ->title(__('rekrutmen::filament/resources/request-man-power.notifications.set_pending'))
+                        ->success()
+                        ->send();
+
+                    $this->redirect(static::getResource()::getUrl('edit', ['record' => $this->record]));
+                }),
             Actions\DeleteAction::make(),
         ];
     }

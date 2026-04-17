@@ -5,9 +5,17 @@ namespace Cesa\Rekrutmen\Tests\Feature;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Enums\StatusKebutuhan;
+use Cesa\Rekrutmen\Filament\Clusters\Configurations;
+use Cesa\Rekrutmen\Filament\Resources\ActivityLogResource;
+use Cesa\Rekrutmen\Filament\Resources\ApproverResource;
+use Cesa\Rekrutmen\Filament\Resources\DivisionResource;
+use Cesa\Rekrutmen\Filament\Resources\JobPostingResource;
+use Cesa\Rekrutmen\Filament\Resources\RekrutmenPipelineResource;
 use Cesa\Rekrutmen\Filament\Resources\RequestManPowerResource;
 use Cesa\Rekrutmen\Http\Controllers\Api\CareerController;
 use Cesa\Rekrutmen\Models\JobPosting;
+use Cesa\Rekrutmen\Models\RekrutmenPipeline;
+use Cesa\Rekrutmen\Models\RekrutmenStage;
 use Cesa\Rekrutmen\Models\RequestManPower;
 use Cesa\Rekrutmen\Tests\RekrutmenTestCase;
 
@@ -20,6 +28,12 @@ class I18nTest extends RekrutmenTestCase
 
             $this->assertSame(__('admin.navigation.rekrutmen'), RequestManPowerResource::getNavigationGroup());
             $this->assertSame($expected['navigation_label'], RequestManPowerResource::getNavigationLabel());
+            $this->assertSame($expected['configurations_label'], Configurations::getNavigationLabel());
+            $this->assertSame($expected['division_navigation_label'], DivisionResource::getNavigationLabel());
+            $this->assertSame($expected['pipeline_navigation_label'], RekrutmenPipelineResource::getNavigationLabel());
+            $this->assertSame($expected['approver_navigation_label'], ApproverResource::getNavigationLabel());
+            $this->assertSame($expected['job_posting_navigation_label'], JobPostingResource::getNavigationLabel());
+            $this->assertSame($expected['activity_log_navigation_label'], ActivityLogResource::getNavigationLabel());
             $this->assertSame($expected['status_kebutuhan'], StatusKebutuhan::NEW_HIRING->getLabel());
             $this->assertSame($expected['request_status'], RequestManPowerStatus::PENDING->getLabel());
             $this->assertSame($expected['application_status'], JobApplicationStatus::IN_PROGRESS->getLabel());
@@ -35,9 +49,19 @@ class I18nTest extends RekrutmenTestCase
 
     public function test_job_detail_api_returns_localized_messages_and_application_form_labels(): void
     {
+        $pipeline = RekrutmenPipeline::query()->create([
+            'name' => 'Localized Job Detail Pipeline',
+        ]);
+
+        RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => 'CV Screening',
+            'order_column'          => 1,
+        ]);
+
         $jobPosting = JobPosting::query()->create([
             'request_man_power_id'   => null,
-            'rekrutmen_pipeline_id'  => null,
+            'rekrutmen_pipeline_id'  => $pipeline->id,
             'title'                  => 'Backend Developer',
             'slug'                   => 'backend-developer',
             'description'            => 'Build APIs and internal tools.',
@@ -61,6 +85,11 @@ class I18nTest extends RekrutmenTestCase
         }
     }
 
+    public function test_rekrutmen_configuration_cluster_uses_expected_slug(): void
+    {
+        $this->assertSame('rekrutmen/configurations', Configurations::getSlug());
+    }
+
     /**
      * @return array<string, array<string, string>>
      */
@@ -69,6 +98,12 @@ class I18nTest extends RekrutmenTestCase
         return [
             'en' => [
                 'navigation_label'             => 'Manpower Requests',
+                'configurations_label'         => 'Configurations',
+                'division_navigation_label'    => 'Recruitment Divisions',
+                'pipeline_navigation_label'    => 'Recruitment Pipelines',
+                'approver_navigation_label'    => 'Recruitment Approvers',
+                'job_posting_navigation_label' => 'Job Postings',
+                'activity_log_navigation_label'=> 'Record Recruitment Activity',
                 'status_kebutuhan'             => 'New Hiring',
                 'request_status'               => 'Pending',
                 'application_status'           => 'In Progress',
@@ -83,6 +118,12 @@ class I18nTest extends RekrutmenTestCase
             ],
             'id' => [
                 'navigation_label'             => 'Permintaan Tenaga Kerja',
+                'configurations_label'         => 'Konfigurasi',
+                'division_navigation_label'    => 'Divisi',
+                'pipeline_navigation_label'    => 'Pipeline',
+                'approver_navigation_label'    => 'Approver',
+                'job_posting_navigation_label' => 'Lowongan Kerja',
+                'activity_log_navigation_label'=> 'Catat Aktivitas',
                 'status_kebutuhan'             => 'Karyawan Baru',
                 'request_status'               => 'Pending',
                 'application_status'           => 'Dalam Proses',

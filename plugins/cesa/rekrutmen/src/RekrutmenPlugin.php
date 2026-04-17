@@ -28,6 +28,7 @@ class RekrutmenPlugin implements Plugin
         $panel
             ->when($panel->getId() === 'admin', function (Panel $panel) {
                 $panel
+                    ->discoverClusters(in: $this->getPluginBasePath('/Filament/Clusters'), for: 'Cesa\\Rekrutmen\\Filament\\Clusters')
                     ->discoverResources(in: $this->getPluginBasePath('/Filament/Resources'), for: 'Cesa\\Rekrutmen\\Filament\\Resources')
                     ->discoverPages(in: $this->getPluginBasePath('/Filament/Pages'), for: 'Cesa\\Rekrutmen\\Filament\\Pages')
                     ->discoverWidgets(in: $this->getPluginBasePath('/Filament/Widgets'), for: 'Cesa\\Rekrutmen\\Filament\\Widgets');

@@ -2,11 +2,11 @@
 
 return [
     'navigation' => [
-        'label' => 'Pipeline Rekrutmen',
+        'label' => 'Pipeline',
     ],
     'model' => [
-        'singular' => 'Pipeline Rekrutmen',
-        'plural'   => 'Pipeline Rekrutmen',
+        'singular' => 'Pipeline',
+        'plural'   => 'Pipeline',
     ],
     'form' => [
         'sections' => [
@@ -28,6 +28,7 @@ return [
         'columns' => [
             'name'         => 'Nama',
             'stages_count' => 'Total Tahap',
+            'description'  => 'Deskripsi',
         ],
     ],
 ];

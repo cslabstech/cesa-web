@@ -3,6 +3,7 @@
 namespace Cesa\Rekrutmen\Livewire;
 
 use Cesa\Rekrutmen\Enums\StatusKebutuhan;
+use Cesa\Rekrutmen\Models\Division;
 use Cesa\Rekrutmen\Models\RequestManPower;
 use Cesa\Rekrutmen\Services\RecaptchaVerificationService;
 use Filament\Actions\Action;
@@ -16,12 +17,15 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Concerns\InteractsWithFormActions;
 use Filament\Pages\SimplePage;
 use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Throwable;
+use Webkul\Support\Models\Company;
 
 class PublicRequestManPowerForm extends SimplePage
 {
@@ -55,8 +59,8 @@ class PublicRequestManPowerForm extends SimplePage
             'data.posisi_pengaju'             => __('rekrutmen::livewire/public-request-man-power-form.fields.posisi_pengaju'),
             'data.email_address'              => __('rekrutmen::livewire/public-request-man-power-form.fields.email_address'),
             'data.tanggal_pengajuan'          => __('rekrutmen::livewire/public-request-man-power-form.fields.tanggal_pengajuan'),
-            'data.divisi'                     => __('rekrutmen::livewire/public-request-man-power-form.fields.divisi'),
-            'data.badan_usaha'                => __('rekrutmen::livewire/public-request-man-power-form.fields.badan_usaha'),
+            'data.company_id'                 => __('rekrutmen::livewire/public-request-man-power-form.fields.company_id'),
+            'data.division_id'                => __('rekrutmen::livewire/public-request-man-power-form.fields.division_id'),
             'data.posisi_dibutuhkan'          => __('rekrutmen::livewire/public-request-man-power-form.fields.posisi_dibutuhkan'),
             'data.lokasi_penempatan'          => __('rekrutmen::livewire/public-request-man-power-form.fields.lokasi_penempatan'),
             'data.level_pekerjaan'            => __('rekrutmen::livewire/public-request-man-power-form.fields.level_pekerjaan'),
@@ -120,16 +124,53 @@ class PublicRequestManPowerForm extends SimplePage
                             ->required()
                             ->maxLength(255)
                             ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.posisi_pengaju')),
-                        TextInput::make('divisi')
-                            ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.divisi'))
+                        Select::make('company_id')
+                            ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.company_id'))
                             ->required()
-                            ->maxLength(255)
-                            ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.divisi')),
-                        TextInput::make('badan_usaha')
-                            ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.badan_usaha'))
+                            ->options(fn (): array => Company::query()
+                                ->where('is_active', true)
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->all())
+                            ->searchable()
+                            ->preload()
+                            ->live()
+                            ->afterStateUpdated(function (Set $set): void {
+                                $set('division_id', null);
+                            }),
+                        Select::make('division_id')
+                            ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.division_id'))
                             ->required()
-                            ->maxLength(255)
-                            ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.badan_usaha')),
+                            ->options(function (Get $get): array {
+                                $companyId = $get('company_id');
+
+                                if (! $companyId) {
+                                    return [];
+                                }
+
+                                return Division::query()
+                                    ->where('company_id', $companyId)
+                                    ->where('is_active', true)
+                                    ->orderBy('name')
+                                    ->pluck('name', 'id')
+                                    ->all();
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->live()
+                            ->afterStateUpdated(function (Set $set, ?int $state): void {
+                                if (! $state) {
+                                    return;
+                                }
+
+                                $division = Division::query()->find($state);
+
+                                if (! $division) {
+                                    return;
+                                }
+
+                                $set('company_id', $division->company_id);
+                            }),
                         Select::make('status_kebutuhan')
                             ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.status_kebutuhan'))
                             ->required()
@@ -256,6 +297,7 @@ class PublicRequestManPowerForm extends SimplePage
             $rmp = RequestManPower::create($dataToSave);
 
             $rmp->sendSubmittedNotification();
+            $rmp->sendApprovalRequestNotifications();
 
             $this->recentSubmission = [
                 'id'                 => $rmp->getKey(),

@@ -120,6 +120,11 @@ return [
     ],
 
     'security' => [
+        'approval_link_expiration_minutes' => (int) env('REKRUTMEN_APPROVAL_LINK_EXPIRATION_MINUTES', 10080),
+        'approval_rate_limit'              => [
+            'max_attempts'  => (int) env('REKRUTMEN_APPROVAL_RATE_LIMIT_MAX_ATTEMPTS', 5),
+            'decay_seconds' => (int) env('REKRUTMEN_APPROVAL_RATE_LIMIT_DECAY_SECONDS', 60),
+        ],
         'recaptcha' => [
             'enabled'         => env('REKRUTMEN_RECAPTCHA_ENABLED', false),
             'site_key'        => env('REKRUTMEN_RECAPTCHA_SITE_KEY'),

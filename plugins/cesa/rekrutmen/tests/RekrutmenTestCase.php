@@ -5,7 +5,6 @@ namespace Cesa\Rekrutmen\Tests;
 use Cesa\Rekrutmen\RekrutmenServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 use Tests\UsesSqliteInMemoryDatabase;
 use Webkul\PluginManager\Package;
@@ -43,13 +42,12 @@ abstract class RekrutmenTestCase extends TestCase
 
         $this->app->register(RekrutmenServiceProvider::class);
 
-        if (! Route::has('rekrutmen.public.request-man-power.progress')) {
-            require base_path('plugins/cesa/rekrutmen/routes/web.php');
-        }
+        require base_path('plugins/cesa/rekrutmen/routes/web.php');
+        require base_path('plugins/cesa/rekrutmen/routes/api.php');
 
-        if (! Route::has('api.rekrutmen.job-postings.index')) {
-            require base_path('plugins/cesa/rekrutmen/routes/api.php');
-        }
+        $routes = app('router')->getRoutes();
+        $routes->refreshNameLookups();
+        $routes->refreshActionLookups();
 
         $this->artisan('migrate', [
             '--path'     => 'plugins/cesa/rekrutmen/database/migrations',
