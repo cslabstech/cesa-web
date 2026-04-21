@@ -14,6 +14,7 @@ return [
             'requirement_details'   => 'Requirement Details',
             'qualifications'        => 'Qualifications & Job Description',
             'approval_status'       => 'Approval Status',
+            'approval_flow'         => 'Approval Flow',
         ],
         'fields' => [
             'nama_pengaju'               => 'Requester Name',
@@ -36,6 +37,9 @@ return [
             'keterangan'                 => 'Additional Notes',
             'status'                     => 'Approval Status',
             'approved_by'                => 'Approved By',
+            'approver_name'              => 'Approver Name',
+            'approver_status'            => 'Approver Status',
+            'approval_link'              => 'Approval Link',
         ],
         'helper_texts' => [
             'nama_karyawan_replacement' => 'For replacement requests, enter the name of the employee being replaced.',
@@ -73,6 +77,7 @@ return [
         ],
         'actions' => [
             'view_progress'           => 'Open Progress Page',
+            'open_approval_page'      => 'Open Approval Page',
             'approve'                 => 'Approve',
             'reject'                  => 'Reject',
             'resend_pending_approval' => 'Send Approval Email Again',

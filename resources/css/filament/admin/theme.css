@@ -419,6 +419,70 @@ html.dark .fi-sidebar::-webkit-scrollbar-thumb:hover {
     @apply rounded-xl;
 }
 
+/* Recruitment Pipeline Board */
+.flowforge-column {
+    @apply rounded-xl border bg-white shadow-sm;
+    width: 20.5rem;
+    min-width: 20.5rem;
+    border-color: rgb(229 231 235 / 1);
+}
+
+.flowforge-column-header {
+    @apply border-b bg-gray-50 px-4 py-3;
+    border-color: rgb(229 231 235 / 1);
+}
+
+.flowforge-column-header h3 {
+    @apply text-sm font-semibold text-gray-800;
+}
+
+.flowforge-column-content {
+    @apply bg-gray-50/50 p-3;
+}
+
+.flowforge-card {
+    @apply rounded-xl border border-gray-200 bg-white shadow-sm;
+    transition: none;
+    transform: none;
+}
+
+.flowforge-card:hover {
+    @apply border-gray-200 shadow-sm;
+    transform: none;
+}
+
+.rekrutmen-board-card-body {
+    @apply flex flex-col gap-2.5;
+}
+
+.rekrutmen-board-card-profile {
+    @apply flex items-start;
+}
+
+.rekrutmen-board-card-avatar {
+    @apply h-12 w-12 rounded-full border border-gray-200 object-cover shadow-sm;
+}
+
+.rekrutmen-board-card-avatar-fallback {
+    @apply flex items-center justify-center bg-gray-900 text-sm font-semibold text-white;
+}
+
+.rekrutmen-board-card-meta {
+    @apply flex flex-wrap items-center gap-1.5;
+}
+
+.rekrutmen-board-card-status {
+    @apply flex flex-wrap items-start gap-2;
+}
+
+.rekrutmen-board-card-updated {
+    @apply text-xs leading-5 text-gray-500;
+}
+
+.rekrutmen-board-card-context {
+    @apply text-sm leading-6 text-gray-600;
+}
+
 .cesa-auth-media {
     @apply relative hidden overflow-hidden lg:block;
     background:

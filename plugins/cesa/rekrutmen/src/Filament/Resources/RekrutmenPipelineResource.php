@@ -5,6 +5,8 @@ namespace Cesa\Rekrutmen\Filament\Resources;
 use Cesa\Rekrutmen\Filament\Clusters\Configurations;
 use Cesa\Rekrutmen\Filament\Resources\RekrutmenPipelineResource\Pages;
 use Cesa\Rekrutmen\Models\RekrutmenPipeline;
+use Cesa\Rekrutmen\Models\RekrutmenStage;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -61,13 +63,29 @@ class RekrutmenPipelineResource extends RekrutmenConfigurationResource
                         Forms\Components\TextInput::make('name')
                             ->label(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.fields.name'))
                             ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->disabled(fn (?RekrutmenStage $record): bool => $record?->isLockedFinalStage() ?? false)
+                            ->helperText(fn (?RekrutmenStage $record): ?string => $record?->isLockedFinalStage()
+                                ? __('rekrutmen::filament/resources/rekrutmen-pipeline.form.helpers.final_hired_stage_locked')
+                                : null),
                     ])
                     ->orderColumn('order_column')
                     ->defaultItems(1)
                     ->minItems(1)
                     ->addActionLabel(__('rekrutmen::filament/resources/rekrutmen-pipeline.form.actions.add_stage'))
                     ->reorderableWithButtons()
+                    ->deleteAction(fn (Action $action) => $action->visible(
+                        fn (array $arguments, Forms\Components\Repeater $component): bool => ! static::isFinalHiredRepeaterItem($component, $arguments['item'] ?? null)
+                    ))
+                    ->moveUpAction(fn (Action $action) => $action->visible(
+                        fn (array $arguments, Forms\Components\Repeater $component): bool => ! static::isFinalHiredRepeaterItem($component, $arguments['item'] ?? null)
+                    ))
+                    ->moveDownAction(fn (Action $action) => $action->visible(
+                        fn (array $arguments, Forms\Components\Repeater $component): bool => ! static::isFinalHiredRepeaterItem($component, $arguments['item'] ?? null)
+                    ))
+                    ->reorderAction(fn (Action $action) => $action->visible(
+                        fn (array $arguments, Forms\Components\Repeater $component): bool => ! static::isFinalHiredRepeaterItem($component, $arguments['item'] ?? null)
+                    ))
                     ->columnSpanFull(),
             ])->columns(1);
     }
@@ -134,5 +152,21 @@ class RekrutmenPipelineResource extends RekrutmenConfigurationResource
         return [
             'index' => Pages\ListRekrutmenPipelines::route('/'),
         ];
+    }
+
+    protected static function isFinalHiredRepeaterItem(Forms\Components\Repeater $component, mixed $itemKey): bool
+    {
+        if (! is_string($itemKey) && ! is_int($itemKey)) {
+            return false;
+        }
+
+        $items = $component->getRawState();
+        $item = $items[$itemKey] ?? null;
+
+        if (! is_array($item)) {
+            return false;
+        }
+
+        return RekrutmenStage::isFinalHiredStageName($item['name'] ?? null);
     }
 }

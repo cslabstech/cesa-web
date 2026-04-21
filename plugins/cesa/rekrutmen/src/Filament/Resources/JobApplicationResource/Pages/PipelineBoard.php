@@ -3,6 +3,7 @@
 namespace Cesa\Rekrutmen\Filament\Resources\JobApplicationResource\Pages;
 
 use Cesa\Rekrutmen\Enums\ActivityEntryResult;
+use Cesa\Rekrutmen\Enums\JobApplicationGender;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Cesa\Rekrutmen\Filament\Resources\JobApplicationResource;
 use Cesa\Rekrutmen\Models\JobApplication;
@@ -12,15 +13,19 @@ use Filament\Actions\Action;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Relaticle\Flowforge\Board;
 use Relaticle\Flowforge\Column;
@@ -81,15 +86,7 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
 
     public function getSubheading(): ?string
     {
-        $jobPosting = $this->resolveActiveJobPosting();
-
-        if (! $jobPosting) {
-            return __('rekrutmen::filament/resources/job-application.board.subheading');
-        }
-
-        return __('rekrutmen::filament/resources/job-application.board.subheading_with_job', [
-            'job' => $jobPosting->title,
-        ]);
+        return null;
     }
 
     protected function getHeaderActions(): array
@@ -138,19 +135,21 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
             ->columnIdentifier('current_stage_id')
             ->positionIdentifier('position')
             ->cardSchema(fn (Schema $schema): Schema => $schema->components([
-                TextEntry::make('email')
+                ViewEntry::make('board_summary')
                     ->hiddenLabel()
-                    ->color('gray'),
-                TextEntry::make('status')
-                    ->hiddenLabel()
-                    ->badge()
-                    ->formatStateUsing(fn (JobApplicationStatus|string|null $state): string => $this->resolveBoardStatusLabel($state))
-                    ->color(fn (JobApplication $record): string|array|null => $record->status?->getColor())
-                    ->visible(fn (JobApplication $record): bool => $record->isTerminalStatus()),
-                TextEntry::make('board_status_context')
-                    ->hiddenLabel()
-                    ->state(fn (JobApplication $record): ?string => $this->resolveBoardStatusContext($record))
-                    ->visible(fn (JobApplication $record): bool => $record->isTerminalStatus()),
+                    ->view('rekrutmen::filament.infolists.job-application-board-summary')
+                    ->state(fn (JobApplication $record): array => [
+                        'avatar_url'      => $this->resolveBoardPhotoUrl($record),
+                        'avatar_initials' => $this->resolveBoardInitials($record->full_name),
+                        'age'             => $this->resolveBoardAge($record),
+                        'gender'          => $this->resolveBoardGenderLabel($record->gender),
+                        'last_updated'    => $this->resolveBoardUpdatedAtLabel($record),
+                        'source'          => $this->resolveBoardSourceLabel($record->source),
+                        'status'          => $this->resolveBoardStatusLabel($record->status),
+                        'status_color'    => $record->status?->getColor(),
+                        'status_context'  => $record->isTerminalStatus() ? $this->resolveBoardStatusContext($record) : null,
+                        'status_icon'     => $this->resolveBoardStatusIcon($record->status),
+                    ]),
             ]))
             ->recordActions([
                 Action::make('record_activity')
@@ -160,6 +159,12 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
                     ->visible(fn (JobApplication $record): bool => $record->status === JobApplicationStatus::IN_PROGRESS
                         && filled($record->currentStage?->name))
                     ->form([
+                        Placeholder::make('candidate_name')
+                            ->label('Nama Kandidat')
+                            ->content(fn (JobApplication $record): string => $record->full_name),
+                        Placeholder::make('current_stage')
+                            ->label('Tahapan Proses')
+                            ->content(fn (JobApplication $record): string => $record->currentStage?->name ?? '-'),
                         DatePicker::make('activity_date')
                             ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
                             ->required()
@@ -276,6 +281,7 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
         }
 
         $fromStageId = $application->current_stage_id;
+        $targetStageName = $this->resolveStageName($targetStageId);
 
         if ($fromStageId === $targetStageId) {
             try {
@@ -290,10 +296,86 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
             return;
         }
 
-        Notification::make()
-            ->title(__('rekrutmen::filament/resources/job-application.workflow_errors.cross_stage_requires_activity'))
-            ->warning()
-            ->send();
+        if (! $this->canAdvanceToNextStage($application, $targetStageId)) {
+            Notification::make()
+                ->title(__('rekrutmen::filament/resources/job-application.workflow_errors.drag_only_next_stage'))
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        try {
+            JobApplication::recordBatchActivity(
+                (int) $application->job_posting_id,
+                (int) $fromStageId,
+                Carbon::now()->toDateString(),
+                [[
+                    'job_application_id' => $application->id,
+                    'result'             => 'passed',
+                    'notes'              => __('rekrutmen::filament/resources/job-application.workflow_notes.drag_passed', [
+                        'stage' => $targetStageName,
+                    ]),
+                ]],
+                auth()->id(),
+            );
+        } catch (InvalidArgumentException $exception) {
+            Notification::make()
+                ->title($exception->getMessage())
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $notification = Notification::make()
+            ->success();
+
+        if ($this->isHiredStageName($targetStageName)) {
+            $notification
+                ->title(__('rekrutmen::filament/resources/job-application.notifications.hired_stage_reached'))
+                ->body(__('rekrutmen::filament/resources/job-application.notifications.hired_stage_reached_help'));
+        } else {
+            $notification
+                ->title(__('rekrutmen::filament/resources/job-application.notifications.drag_passed', [
+                    'stage' => $targetStageName,
+                ]));
+        }
+
+        $notification->send();
+    }
+
+    protected function canAdvanceToNextStage(JobApplication $application, int $targetStageId): bool
+    {
+        $currentStage = RekrutmenStage::query()
+            ->whereKey($application->current_stage_id)
+            ->where('rekrutmen_pipeline_id', $application->jobPosting?->rekrutmen_pipeline_id)
+            ->first();
+
+        if (! $currentStage) {
+            return false;
+        }
+
+        $nextStageId = RekrutmenStage::query()
+            ->where('rekrutmen_pipeline_id', $currentStage->rekrutmen_pipeline_id)
+            ->where('order_column', '>', $currentStage->order_column)
+            ->orderBy('order_column')
+            ->value('id');
+
+        return $nextStageId === $targetStageId;
+    }
+
+    protected function resolveStageName(int $stageId): string
+    {
+        return RekrutmenStage::query()
+            ->whereKey($stageId)
+            ->value('name')
+            ?? __('rekrutmen::filament/resources/job-application.board.card.current_stage_fallback');
+    }
+
+    protected function isHiredStageName(string $stageName): bool
+    {
+        return Str::lower(trim($stageName)) === 'hired';
     }
 
     protected function getDynamicColumns(): array
@@ -366,6 +448,106 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
                 'stage' => $stageName,
             ]),
             default => null,
+        };
+    }
+
+    protected function resolveBoardAge(JobApplication $record): ?string
+    {
+        if (! $record->birth_date) {
+            return null;
+        }
+
+        return $record->birth_date->age.' Thn';
+    }
+
+    protected function resolveBoardSourceLabel(?string $source): ?string
+    {
+        if (blank($source)) {
+            return null;
+        }
+
+        return match (Str::lower($source)) {
+            'jobstreet' => 'JobStreet',
+            'linkedin'  => 'LinkedIn',
+            'github'    => 'GitHub',
+            'walk-in'   => 'Walk-In',
+            default     => Str::of($source)
+                ->replace(['-', '_'], ' ')
+                ->headline()
+                ->toString(),
+        };
+    }
+
+    protected function resolveBoardGenderLabel(JobApplicationGender|string|null $gender): ?string
+    {
+        if ($gender instanceof JobApplicationGender) {
+            return $gender->getLabel();
+        }
+
+        if (is_string($gender) && $gender !== '') {
+            return JobApplicationGender::tryFrom($gender)?->getLabel() ?? Str::headline($gender);
+        }
+
+        return null;
+    }
+
+    protected function resolveBoardPhotoUrl(JobApplication $record): ?string
+    {
+        if (blank($record->resolveAttachmentPath('photo'))) {
+            return null;
+        }
+
+        if (! auth()->user()) {
+            return null;
+        }
+
+        return URL::signedRoute('rekrutmen.job-applications.attachments.download', [
+            'jobApplication' => $record,
+            'attachment'     => 'photo',
+        ]);
+    }
+
+    protected function resolveBoardUpdatedAtLabel(JobApplication $record): ?string
+    {
+        if (! $record->updated_at) {
+            return null;
+        }
+
+        return __('rekrutmen::filament/resources/job-application.board.card.updated_at', [
+            'time' => $record->updated_at
+                ->locale(app()->getLocale())
+                ->translatedFormat('d M Y, H:i'),
+        ]);
+    }
+
+    protected function resolveBoardInitials(?string $fullName): string
+    {
+        $segments = Str::of((string) $fullName)
+            ->trim()
+            ->explode(' ')
+            ->filter()
+            ->take(2);
+
+        if ($segments->isEmpty()) {
+            return 'NA';
+        }
+
+        return $segments
+            ->map(fn (string $segment): string => Str::upper(Str::substr($segment, 0, 1)))
+            ->implode('');
+    }
+
+    protected function resolveBoardStatusIcon(JobApplicationStatus|string|null $status): string
+    {
+        $resolvedStatus = $status instanceof JobApplicationStatus
+            ? $status
+            : JobApplicationStatus::tryFrom((string) $status);
+
+        return match ($resolvedStatus) {
+            JobApplicationStatus::HIRED     => 'heroicon-m-check-badge',
+            JobApplicationStatus::REJECTED  => 'heroicon-m-x-circle',
+            JobApplicationStatus::WITHDRAWN => 'heroicon-m-arrow-uturn-left',
+            default                         => 'heroicon-m-clock',
         };
     }
 }

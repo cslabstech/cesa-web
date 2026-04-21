@@ -2,11 +2,10 @@
 
 namespace Cesa\Rekrutmen\Models;
 
+use Carbon\CarbonInterface;
 use Cesa\Rekrutmen\Enums\RequestManPowerApprovalStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\CarbonInterface;
-use Illuminate\Support\Facades\URL;
 use Webkul\Security\Models\User;
 
 class RequestManPowerApproval extends Model
@@ -59,20 +58,9 @@ class RequestManPowerApproval extends Model
 
     public function buildApprovalUrl(): string
     {
-        $expiresAt = $this->action_expires_at;
-
-        if (! $expiresAt instanceof CarbonInterface) {
-            $expiresAt = now()->addMinutes((int) config('rekrutmen.security.approval_link_expiration_minutes', 10080));
-        }
-
-        return URL::temporarySignedRoute(
-            'rekrutmen.public.request-man-power.approval',
-            $expiresAt,
-            [
-                'approval' => $this->getKey(),
-                'token'    => $this->action_token,
-            ],
-        );
+        return route('rekrutmen.public.request-man-power.approval', [
+            'token' => $this->action_token,
+        ]);
     }
 
     public function hasExpiredActionLink(): bool

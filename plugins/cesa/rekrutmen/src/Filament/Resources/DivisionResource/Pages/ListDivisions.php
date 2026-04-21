@@ -23,7 +23,8 @@ class ListDivisions extends ListRecords
     {
         return [
             'all' => Tab::make('All')
-                ->badge(static::getResource()::getModel()::query()->count()),
+                ->badge(static::getResource()::getModel()::query()->withoutTrashed()->count())
+                ->modifyQueryUsing(fn (Builder $query): Builder => $query->withoutTrashed()),
             'archived' => Tab::make('Archived')
                 ->badge(static::getResource()::getModel()::query()->onlyTrashed()->count())
                 ->modifyQueryUsing(fn (Builder $query): Builder => $query->onlyTrashed()),

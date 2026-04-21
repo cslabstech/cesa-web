@@ -127,6 +127,11 @@ class PipelineBoardStatusTest extends RekrutmenTestCase
             'name'                  => 'Interview User',
             'order_column'          => 2,
         ]);
+        $thirdStage = RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => 'Offering',
+            'order_column'          => 3,
+        ]);
 
         $jobPosting = $this->createJobPosting($pipeline, 'Data Analyst', 'data-analyst-pipeline-drag');
         $candidate = $this->createJobApplication(
@@ -137,12 +142,83 @@ class PipelineBoardStatusTest extends RekrutmenTestCase
         );
 
         Livewire::test(PipelineBoard::class, ['activeJobPostingId' => $jobPosting->id])
-            ->call('moveCard', (string) $candidate->id, (string) $secondStage->id, null, null);
+            ->call('moveCard', (string) $candidate->id, (string) $thirdStage->id, null, null);
 
         $candidate->refresh();
 
         $this->assertSame($firstStage->id, $candidate->current_stage_id);
         $this->assertSame(1, JobApplicationHistory::query()->where('job_application_id', $candidate->id)->count());
+    }
+
+    public function test_pipeline_board_drag_to_next_stage_records_passed_activity(): void
+    {
+        $pipeline = $this->createPipeline('Pipeline Board Step Drag');
+        $firstStage = RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => 'Screening CV',
+            'order_column'          => 1,
+        ]);
+        $secondStage = RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => 'Interview User',
+            'order_column'          => 2,
+        ]);
+
+        $jobPosting = $this->createJobPosting($pipeline, 'QA Engineer', 'qa-engineer-pipeline-drag');
+        $candidate = $this->createJobApplication(
+            $jobPosting,
+            $firstStage,
+            'board-next-stage@example.com',
+            'Candidate Board Next Stage',
+        );
+
+        Livewire::test(PipelineBoard::class, ['activeJobPostingId' => $jobPosting->id])
+            ->call('moveCard', (string) $candidate->id, (string) $secondStage->id, null, null);
+
+        $candidate->refresh();
+
+        $this->assertSame($secondStage->id, $candidate->current_stage_id);
+
+        $batchHistory = JobApplicationHistory::query()
+            ->where('job_application_id', $candidate->id)
+            ->whereNotNull('activity_group_id')
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($batchHistory);
+        $this->assertSame($firstStage->activityKey(), $batchHistory->activity_type);
+        $this->assertSame('passed', $batchHistory->result?->value);
+    }
+
+    public function test_pipeline_board_dragging_to_hired_stage_does_not_auto_accept_candidate(): void
+    {
+        $pipeline = $this->createPipeline('Pipeline Board Hired Stage Drag');
+        $firstStage = RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => 'Interview User',
+            'order_column'          => 1,
+        ]);
+        $hiredStage = RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => 'Hired',
+            'order_column'          => 2,
+        ]);
+
+        $jobPosting = $this->createJobPosting($pipeline, 'Product Manager', 'product-manager-hired-stage-drag');
+        $candidate = $this->createJobApplication(
+            $jobPosting,
+            $firstStage,
+            'board-hired-stage@example.com',
+            'Candidate Hired Stage',
+        );
+
+        Livewire::test(PipelineBoard::class, ['activeJobPostingId' => $jobPosting->id])
+            ->call('moveCard', (string) $candidate->id, (string) $hiredStage->id, null, null);
+
+        $candidate->refresh();
+
+        $this->assertSame($hiredStage->id, $candidate->current_stage_id);
+        $this->assertSame(JobApplicationStatus::IN_PROGRESS, $candidate->status);
     }
 
     public function test_stage_activity_key_is_derived_from_stage_name(): void
@@ -184,6 +260,8 @@ class PipelineBoardStatusTest extends RekrutmenTestCase
         string $email,
         string $fullName,
     ): JobApplication {
+        $defaultWhatsappNumber = '08'.str_pad((string) (abs(crc32($email)) % 1000000000), 9, '0', STR_PAD_LEFT);
+
         return JobApplication::query()->create([
             'job_posting_id'             => $jobPosting->id,
             'current_stage_id'           => $stage->id,
@@ -194,11 +272,12 @@ class PipelineBoardStatusTest extends RekrutmenTestCase
             'marital_status'             => JobApplicationMaritalStatus::Single,
             'address_ktp'                => 'Alamat KTP',
             'address_domicile'           => 'Alamat Domisili',
-            'whatsapp_number'            => '081234567890',
+            'whatsapp_number'            => $defaultWhatsappNumber,
             'active_phone'               => '081234567891',
             'emergency_contact_name'     => 'Bunga',
             'emergency_contact_relation' => 'Saudara',
             'emergency_contact_phone'    => '081234567892',
+            'source'                     => 'jobstreet',
             'status'                     => JobApplicationStatus::IN_PROGRESS,
         ]);
     }

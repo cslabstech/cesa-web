@@ -6,8 +6,8 @@ return [
     'page_title'            => 'PROGRESS REQUEST MAN POWER',
     'submitted_by'          => 'Diajukan oleh',
     'current_status'        => 'Status saat ini',
-    'submission_summary'    => 'Ringkasan Pengajuan',
-    'approval_flow_heading' => 'Tahapan Persetujuan',
+    'submission_summary'    => 'RINGKASAN PENGAJUAN',
+    'approval_flow_heading' => 'ALUR PERSETUJUAN',
     'step_label'            => 'Tahap :step',
     'fields'                => [
         'status_response_id'         => 'ID Tracking',

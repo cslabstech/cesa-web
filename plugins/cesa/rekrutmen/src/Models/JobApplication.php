@@ -43,6 +43,11 @@ class JobApplication extends Model
      */
     protected ?array $originalActiveEmailOwnership = null;
 
+    /**
+     * @var array{job_posting_id: int, active_whatsapp: string}|null
+     */
+    protected ?array $originalActiveWhatsappOwnership = null;
+
     protected $table = 'rekrutmen_job_applications';
 
     protected $fillable = [
@@ -57,6 +62,7 @@ class JobApplication extends Model
         'address_ktp',
         'address_domicile',
         'whatsapp_number',
+        'active_whatsapp',
         'active_phone',
         'emergency_contact_name',
         'emergency_contact_relation',
@@ -87,8 +93,11 @@ class JobApplication extends Model
         static::saving(function (JobApplication $application): void {
             $application->normalizeTransactionalInput();
             $application->snapshotOriginalActiveEmailOwnership();
+            $application->snapshotOriginalActiveWhatsappOwnership();
             $application->syncActiveEmail();
+            $application->syncActiveWhatsapp();
             $application->assertActiveEmailIsUniqueForJobPosting();
+            $application->assertActiveWhatsappIsUniqueForJobPosting();
             $application->ensurePipelineStageIntegrity();
             $application->ensureBoardPosition();
             $application->snapshotOriginalAttachmentPaths();
@@ -105,6 +114,7 @@ class JobApplication extends Model
             $application->deleteRemovedAttachmentFile('resume_path');
             $application->deleteRemovedAttachmentFile('photo_path');
             $application->reassignOriginalActiveEmailIfNeeded();
+            $application->reassignOriginalActiveWhatsappIfNeeded();
         });
 
         static::created(function (JobApplication $application): void {
@@ -113,26 +123,36 @@ class JobApplication extends Model
 
         static::deleted(function (JobApplication $application): void {
             $normalizedEmail = $application->normalizeEmail($application->getRawOriginal('email') ?? $application->email);
+            $normalizedWhatsapp = $application->normalizePhoneNumber($application->getRawOriginal('whatsapp_number') ?? $application->whatsapp_number);
 
             if (! $application->isForceDeleting()) {
                 static::query()
                     ->withoutGlobalScopes()
                     ->whereKey($application->getKey())
-                    ->update(['active_email' => null]);
+                    ->update([
+                        'active_email'    => null,
+                        'active_whatsapp' => null,
+                    ]);
 
                 $application->active_email = null;
+                $application->active_whatsapp = null;
             }
 
             $application->reassignActiveEmailToCanonicalPeer($normalizedEmail);
+            $application->reassignActiveWhatsappToCanonicalPeer($normalizedWhatsapp);
         });
 
         static::restored(function (JobApplication $application): void {
             $application->syncActiveEmail();
+            $application->syncActiveWhatsapp();
 
             static::query()
                 ->withoutGlobalScopes()
                 ->whereKey($application->getKey())
-                ->update(['active_email' => $application->active_email]);
+                ->update([
+                    'active_email'    => $application->active_email,
+                    'active_whatsapp' => $application->active_whatsapp,
+                ]);
         });
 
         static::forceDeleted(function (JobApplication $application): void {
@@ -534,6 +554,31 @@ class JobApplication extends Model
         $this->active_email = $this->email;
     }
 
+    protected function syncActiveWhatsapp(): void
+    {
+        if ($this->deleted_at) {
+            $this->active_whatsapp = null;
+
+            return;
+        }
+
+        if (! is_string($this->whatsapp_number) || $this->whatsapp_number === '') {
+            $this->active_whatsapp = null;
+
+            return;
+        }
+
+        if ($this->shouldTreatAsLegacyDuplicateWhatsappRecord()) {
+            $this->active_whatsapp = $this->shouldClaimActiveWhatsappForLegacyRecord()
+                ? $this->whatsapp_number
+                : null;
+
+            return;
+        }
+
+        $this->active_whatsapp = $this->whatsapp_number;
+    }
+
     protected function snapshotOriginalActiveEmailOwnership(): void
     {
         if (! $this->exists) {
@@ -554,6 +599,29 @@ class JobApplication extends Model
         $this->originalActiveEmailOwnership = [
             'job_posting_id' => (int) $originalJobPostingId,
             'active_email'   => $originalActiveEmail,
+        ];
+    }
+
+    protected function snapshotOriginalActiveWhatsappOwnership(): void
+    {
+        if (! $this->exists) {
+            $this->originalActiveWhatsappOwnership = null;
+
+            return;
+        }
+
+        $originalActiveWhatsapp = $this->normalizePhoneNumber($this->getRawOriginal('active_whatsapp'));
+        $originalJobPostingId = $this->getRawOriginal('job_posting_id');
+
+        if (! is_string($originalActiveWhatsapp) || $originalActiveWhatsapp === '' || ! is_numeric($originalJobPostingId)) {
+            $this->originalActiveWhatsappOwnership = null;
+
+            return;
+        }
+
+        $this->originalActiveWhatsappOwnership = [
+            'job_posting_id'  => (int) $originalJobPostingId,
+            'active_whatsapp' => $originalActiveWhatsapp,
         ];
     }
 
@@ -591,6 +659,40 @@ class JobApplication extends Model
             && (int) $canonicalPeerId === (int) $this->getKey();
     }
 
+    protected function shouldTreatAsLegacyDuplicateWhatsappRecord(): bool
+    {
+        return $this->exists
+            && $this->getRawOriginal('active_whatsapp') === null
+            && $this->normalizePhoneNumber($this->getRawOriginal('whatsapp_number')) === $this->whatsapp_number
+            && ! (
+                $this->getRawOriginal('deleted_at') !== null
+                && $this->deleted_at === null
+            );
+    }
+
+    protected function shouldClaimActiveWhatsappForLegacyRecord(): bool
+    {
+        if (! $this->exists || ! is_numeric($this->getKey())) {
+            return false;
+        }
+
+        $peerQuery = $this->matchingActiveWhatsappPeerQuery();
+
+        if ((clone $peerQuery)
+            ->where('active_whatsapp', $this->whatsapp_number)
+            ->whereKeyNot($this->getKey())
+            ->exists()) {
+            return false;
+        }
+
+        $canonicalPeerId = (clone $peerQuery)
+            ->orderBy('id')
+            ->value('id');
+
+        return is_numeric($canonicalPeerId)
+            && (int) $canonicalPeerId === (int) $this->getKey();
+    }
+
     protected function matchingActiveEmailPeerQuery(?string $normalizedEmail = null, mixed $jobPostingId = null): Builder
     {
         $normalizedEmail ??= $this->email;
@@ -607,6 +709,24 @@ class JobApplication extends Model
         return $query
             ->where('job_posting_id', (int) $jobPostingId)
             ->whereRaw('LOWER(TRIM(email)) = ?', [$normalizedEmail]);
+    }
+
+    protected function matchingActiveWhatsappPeerQuery(?string $normalizedWhatsapp = null, mixed $jobPostingId = null): Builder
+    {
+        $normalizedWhatsapp ??= $this->whatsapp_number;
+        $jobPostingId ??= $this->job_posting_id;
+
+        $query = static::query()
+            ->withoutGlobalScopes()
+            ->whereNull('deleted_at');
+
+        if (! is_numeric($jobPostingId) || ! is_string($normalizedWhatsapp) || $normalizedWhatsapp === '') {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query
+            ->where('job_posting_id', (int) $jobPostingId)
+            ->where('whatsapp_number', $normalizedWhatsapp);
     }
 
     protected function reassignOriginalActiveEmailIfNeeded(): void
@@ -628,6 +748,28 @@ class JobApplication extends Model
         $this->reassignActiveEmailToCanonicalPeer(
             $originalActiveEmailOwnership['active_email'],
             $originalActiveEmailOwnership['job_posting_id'],
+        );
+    }
+
+    protected function reassignOriginalActiveWhatsappIfNeeded(): void
+    {
+        if ($this->originalActiveWhatsappOwnership === null) {
+            return;
+        }
+
+        $originalActiveWhatsappOwnership = $this->originalActiveWhatsappOwnership;
+        $this->originalActiveWhatsappOwnership = null;
+
+        if (
+            $originalActiveWhatsappOwnership['job_posting_id'] === (int) $this->job_posting_id
+            && $originalActiveWhatsappOwnership['active_whatsapp'] === $this->active_whatsapp
+        ) {
+            return;
+        }
+
+        $this->reassignActiveWhatsappToCanonicalPeer(
+            $originalActiveWhatsappOwnership['active_whatsapp'],
+            $originalActiveWhatsappOwnership['job_posting_id'],
         );
     }
 
@@ -660,6 +802,35 @@ class JobApplication extends Model
             ->update(['active_email' => $normalizedEmail]);
     }
 
+    protected function reassignActiveWhatsappToCanonicalPeer(?string $normalizedWhatsapp = null, mixed $jobPostingId = null): void
+    {
+        $normalizedWhatsapp ??= $this->whatsapp_number;
+        $jobPostingId ??= $this->job_posting_id;
+
+        if (! is_string($normalizedWhatsapp) || $normalizedWhatsapp === '') {
+            return;
+        }
+
+        $peerQuery = $this->matchingActiveWhatsappPeerQuery($normalizedWhatsapp, $jobPostingId);
+
+        if ((clone $peerQuery)->where('active_whatsapp', $normalizedWhatsapp)->exists()) {
+            return;
+        }
+
+        $canonicalPeerId = (clone $peerQuery)
+            ->orderBy('id')
+            ->value('id');
+
+        if (! is_numeric($canonicalPeerId)) {
+            return;
+        }
+
+        static::query()
+            ->withoutGlobalScopes()
+            ->whereKey((int) $canonicalPeerId)
+            ->update(['active_whatsapp' => $normalizedWhatsapp]);
+    }
+
     protected function assertActiveEmailIsUniqueForJobPosting(): void
     {
         if (! is_numeric($this->job_posting_id) || ! is_string($this->active_email) || $this->active_email === '') {
@@ -676,6 +847,26 @@ class JobApplication extends Model
         if ($duplicateExists) {
             throw ValidationException::withMessages([
                 'email' => __('rekrutmen::api/career.validation.messages.email.unique'),
+            ]);
+        }
+    }
+
+    protected function assertActiveWhatsappIsUniqueForJobPosting(): void
+    {
+        if (! is_numeric($this->job_posting_id) || ! is_string($this->active_whatsapp) || $this->active_whatsapp === '') {
+            return;
+        }
+
+        $duplicateExists = static::query()
+            ->withoutGlobalScopes()
+            ->where('job_posting_id', (int) $this->job_posting_id)
+            ->where('active_whatsapp', $this->active_whatsapp)
+            ->whereKeyNot($this->getKey())
+            ->exists();
+
+        if ($duplicateExists) {
+            throw ValidationException::withMessages([
+                'whatsapp_number' => __('rekrutmen::api/career.validation.messages.whatsapp_number.unique'),
             ]);
         }
     }

@@ -13,6 +13,13 @@ class HistoriesRelationManager extends RelationManager
 {
     protected static string $relationship = 'histories';
 
+    protected static bool $isReadOnly = true;
+
+    public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
+    {
+        return true;
+    }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('rekrutmen::filament/resources/job-application/relation-managers/histories.title');

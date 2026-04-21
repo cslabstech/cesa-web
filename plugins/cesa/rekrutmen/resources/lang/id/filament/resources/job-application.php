@@ -64,9 +64,12 @@ return [
         ],
     ],
     'notifications' => [
-        'stage_changed'   => 'Tahap kandidat berhasil diperbarui.',
-        'marked_hired'    => 'Kandidat berhasil ditandai diterima.',
-        'marked_rejected' => 'Kandidat berhasil ditandai ditolak.',
+        'stage_changed'            => 'Tahap kandidat berhasil diperbarui.',
+        'drag_passed'              => 'Kandidat lolos ke tahap :stage.',
+        'hired_stage_reached'      => 'Kandidat masuk ke tahap Hired.',
+        'hired_stage_reached_help' => 'Klik Terima Kandidat untuk finalisasi penerimaan.',
+        'marked_hired'             => 'Kandidat berhasil ditandai diterima.',
+        'marked_rejected'          => 'Kandidat berhasil ditandai ditolak.',
     ],
     'board' => [
         'heading'             => 'Pipeline Lamaran Kandidat',
@@ -81,6 +84,7 @@ return [
         'no_stages'           => 'Tidak Ada Stage pada Pipeline ini',
         'card'                => [
             'current_stage_fallback' => 'terakhir',
+            'updated_at'             => 'Update :time',
             'status_context'         => [
                 'hired'     => 'Diterima pada tahap :stage.',
                 'rejected'  => 'Ditolak pada tahap :stage.',
@@ -94,11 +98,13 @@ return [
         'submitted'     => 'Kandidat masuk ke tahap awal.',
         'hired'         => 'Kandidat ditandai diterima.',
         'rejected'      => 'Kandidat ditandai ditolak.',
+        'drag_passed'   => 'Lolos ke tahap :stage lewat board.',
     ],
     'workflow_errors' => [
         'invalid_stage'                 => 'Tahap tujuan tidak sesuai dengan pipeline lowongan.',
         'terminal_stage_locked'         => 'Kandidat yang sudah diputuskan tidak bisa dipindah tahap.',
         'cross_stage_requires_activity' => 'Perpindahan lintas tahap harus melalui Catat Aktivitas Rekrutmen agar histori proses tetap konsisten.',
+        'drag_only_next_stage'          => 'Drag & drop hanya bisa ke tahap berikutnya.',
         'decision_note_required'        => 'Catatan keputusan kandidat wajib diisi.',
         'job_posting_has_no_stage'      => 'Lowongan yang dipilih belum memiliki tahap awal.',
     ],

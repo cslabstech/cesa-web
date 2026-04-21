@@ -173,7 +173,6 @@ class ApproverResource extends RekrutmenConfigurationResource
                     ->preload(),
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label(__('rekrutmen::filament/resources/approver.table.filters.is_active')),
-                Tables\Filters\TrashedFilter::make(),
             ])
             ->recordActions([
                 EditAction::make()

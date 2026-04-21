@@ -15,6 +15,7 @@ return [
             'email.required'                      => 'The email field is required.',
             'email.email'                         => 'The email format is invalid.',
             'email.unique'                        => 'You have already applied for this job posting.',
+            'whatsapp_number.unique'              => 'This WhatsApp number has already been used to apply for this job posting.',
             'gender.required'                     => 'The gender field is required.',
             'birth_date.required'                 => 'The birth date field is required.',
             'birth_date.date'                     => 'The birth date format is invalid.',

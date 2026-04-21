@@ -24,7 +24,7 @@ Route::middleware('web')->group(function () {
     Route::get('man-power/progress/{response}', PublicRequestManPowerProgressPage::class)
         ->name('rekrutmen.public.request-man-power.progress');
 
-    Route::get('man-power/approval/{approval}/{token}', PublicRequestManPowerApprovalPage::class)
+    Route::get('man-power/approval/{token}', PublicRequestManPowerApprovalPage::class)
         ->middleware([
             SetCacheHeaders::using([
                 'no_store'        => true,
@@ -33,7 +33,6 @@ Route::middleware('web')->group(function () {
                 'max_age'         => 0,
                 'private'         => true,
             ]),
-            'signed',
         ])
         ->name('rekrutmen.public.request-man-power.approval');
 });

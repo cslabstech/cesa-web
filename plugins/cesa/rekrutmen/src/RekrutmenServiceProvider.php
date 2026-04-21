@@ -53,6 +53,7 @@ class RekrutmenServiceProvider extends PackageServiceProvider
                 '2026_03_31_230839_rekrutmen_add_thumbnail_path_to_job_postings_table',
                 '2026_03_31_234155_rekrutmen_add_position_to_job_applications_table',
                 '2026_04_07_094912_rekrutmen_add_active_email_to_job_applications_table',
+                '2026_04_18_120000_rekrutmen_add_active_whatsapp_to_job_applications_table',
                 '2026_04_08_200000_rekrutmen_add_activity_fields_to_job_application_histories_table',
                 '2026_04_08_210000_rekrutmen_add_performance_indexes',
                 '2026_04_08_220000_rekrutmen_add_reporting_indexes',

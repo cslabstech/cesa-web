@@ -253,6 +253,21 @@ class JobApplicationWorkflowTest extends RekrutmenTestCase
         $this->makeJobApplication($jobPosting, $firstStage, ' DUPLICATE@example.com ');
     }
 
+    public function test_duplicate_whatsapp_cannot_be_created_for_the_same_job_posting(): void
+    {
+        [$jobPosting, $firstStage] = $this->createPipelineFixture('Duplicate Whatsapp Create');
+
+        $this->makeJobApplication($jobPosting, $firstStage, 'duplicate-whatsapp-1@example.com', [
+            'whatsapp_number' => '081234567890',
+        ]);
+
+        $this->expectException(ValidationException::class);
+
+        $this->makeJobApplication($jobPosting, $firstStage, 'duplicate-whatsapp-2@example.com', [
+            'whatsapp_number' => '+62 81234567890',
+        ]);
+    }
+
     public function test_application_email_cannot_be_updated_to_duplicate_for_the_same_job_posting(): void
     {
         [$jobPosting, $firstStage] = $this->createPipelineFixture('Duplicate Update');
@@ -267,6 +282,24 @@ class JobApplicationWorkflowTest extends RekrutmenTestCase
         ]);
     }
 
+    public function test_application_whatsapp_cannot_be_updated_to_duplicate_for_the_same_job_posting(): void
+    {
+        [$jobPosting, $firstStage] = $this->createPipelineFixture('Duplicate Whatsapp Update');
+
+        $firstApplication = $this->makeJobApplication($jobPosting, $firstStage, 'first-whatsapp@example.com', [
+            'whatsapp_number' => '081234567890',
+        ]);
+        $secondApplication = $this->makeJobApplication($jobPosting, $firstStage, 'second-whatsapp@example.com', [
+            'whatsapp_number' => '081234567899',
+        ]);
+
+        $this->expectException(ValidationException::class);
+
+        $secondApplication->update([
+            'whatsapp_number' => '081234567890',
+        ]);
+    }
+
     public function test_restoring_duplicate_email_application_is_blocked(): void
     {
         [$jobPosting, $firstStage] = $this->createPipelineFixture('Duplicate Restore');
@@ -275,6 +308,26 @@ class JobApplicationWorkflowTest extends RekrutmenTestCase
         $trashedApplication->delete();
 
         $replacementApplication = $this->makeJobApplication($jobPosting, $firstStage, 'restore@example.com');
+
+        $this->expectException(ValidationException::class);
+
+        $trashedApplication->restore();
+
+        $replacementApplication->refresh();
+    }
+
+    public function test_restoring_duplicate_whatsapp_application_is_blocked(): void
+    {
+        [$jobPosting, $firstStage] = $this->createPipelineFixture('Duplicate Whatsapp Restore');
+
+        $trashedApplication = $this->makeJobApplication($jobPosting, $firstStage, 'restore-whatsapp-1@example.com', [
+            'whatsapp_number' => '081234567890',
+        ]);
+        $trashedApplication->delete();
+
+        $replacementApplication = $this->makeJobApplication($jobPosting, $firstStage, 'restore-whatsapp-2@example.com', [
+            'whatsapp_number' => '+62 81234567890',
+        ]);
 
         $this->expectException(ValidationException::class);
 
@@ -520,8 +573,10 @@ class JobApplicationWorkflowTest extends RekrutmenTestCase
         return [$jobPosting, $firstStage, $secondStage];
     }
 
-    private function makeJobApplication(JobPosting $jobPosting, RekrutmenStage $stage, string $email = 'candidate@example.com'): JobApplication
+    private function makeJobApplication(JobPosting $jobPosting, RekrutmenStage $stage, string $email = 'candidate@example.com', array $overrides = []): JobApplication
     {
+        $defaultWhatsappNumber = '08'.str_pad((string) (abs(crc32($email)) % 1000000000), 9, '0', STR_PAD_LEFT);
+
         return JobApplication::query()->create([
             'job_posting_id'             => $jobPosting->id,
             'current_stage_id'           => $stage->id,
@@ -532,12 +587,13 @@ class JobApplicationWorkflowTest extends RekrutmenTestCase
             'marital_status'             => JobApplicationMaritalStatus::Single,
             'address_ktp'                => 'Alamat KTP',
             'address_domicile'           => 'Alamat Domisili',
-            'whatsapp_number'            => '081234567890',
+            'whatsapp_number'            => $defaultWhatsappNumber,
             'active_phone'               => '081234567891',
             'emergency_contact_name'     => 'Bunga',
             'emergency_contact_relation' => 'Saudara',
             'emergency_contact_phone'    => '081234567892',
             'status'                     => JobApplicationStatus::IN_PROGRESS,
+            ...$overrides,
         ]);
     }
 }

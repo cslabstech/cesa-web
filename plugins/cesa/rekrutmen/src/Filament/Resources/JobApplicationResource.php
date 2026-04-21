@@ -13,7 +13,10 @@ use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms;
+use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
@@ -174,6 +177,77 @@ class JobApplicationResource extends Resource
             ]);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Grid::make(3)->schema([
+                    Group::make([
+                        Section::make(__('rekrutmen::filament/resources/job-application.form.sections.candidate_information'))
+                            ->schema([
+                                TextEntry::make('full_name')
+                                    ->label(__('rekrutmen::filament/resources/job-application.form.fields.full_name')),
+                                TextEntry::make('email')
+                                    ->label(__('rekrutmen::filament/resources/job-application.form.fields.email')),
+                                TextEntry::make('gender')
+                                    ->label(__('rekrutmen::filament/resources/job-application.form.fields.gender'))
+                                    ->formatStateUsing(fn ($state) => $state instanceof JobApplicationGender ? $state->name : $state),
+                                TextEntry::make('birth_date')
+                                    ->label(__('rekrutmen::filament/resources/job-application.form.fields.birth_date'))
+                                    ->date('d F Y'),
+                                TextEntry::make('marital_status')
+                                    ->label(__('rekrutmen::filament/resources/job-application.form.fields.marital_status'))
+                                    ->formatStateUsing(fn ($state) => $state instanceof JobApplicationMaritalStatus ? $state->name : $state),
+                                TextEntry::make('whatsapp_number')
+                                    ->label(__('rekrutmen::filament/resources/job-application.form.fields.whatsapp_number')),
+                                TextEntry::make('active_phone')
+                                    ->label(__('rekrutmen::filament/resources/job-application.form.fields.active_phone')),
+                                TextEntry::make('emergency_contact_name')
+                                    ->label(__('rekrutmen::filament/resources/job-application.form.fields.emergency_contact_name')),
+                                TextEntry::make('emergency_contact_relation')
+                                    ->label(__('rekrutmen::filament/resources/job-application.form.fields.emergency_contact_relation')),
+                                TextEntry::make('emergency_contact_phone')
+                                    ->label(__('rekrutmen::filament/resources/job-application.form.fields.emergency_contact_phone')),
+                                TextEntry::make('address_ktp')
+                                    ->label(__('rekrutmen::filament/resources/job-application.form.fields.address_ktp'))
+                                    ->columnSpanFull(),
+                                TextEntry::make('address_domicile')
+                                    ->label(__('rekrutmen::filament/resources/job-application.form.fields.address_domicile'))
+                                    ->columnSpanFull(),
+                            ])->columns(2),
+                    ])->columnSpan(2),
+
+                    Group::make([
+                        Section::make(__('rekrutmen::filament/resources/job-application.form.sections.application_details'))
+                            ->schema([
+                                TextEntry::make('jobPosting.title')
+                                    ->label(__('rekrutmen::filament/resources/job-application.form.fields.job_posting_id')),
+                                TextEntry::make('currentStage.name')
+                                    ->label(__('rekrutmen::filament/resources/job-application.form.fields.current_stage_id'))
+                                    ->badge(),
+                                TextEntry::make('source')
+                                    ->label('Sumber Lamaran'),
+                                TextEntry::make('status')
+                                    ->label(__('rekrutmen::filament/resources/job-application.form.fields.status'))
+                                    ->badge(),
+                                ImageEntry::make('photo_path')
+                                    ->label(__('rekrutmen::filament/resources/job-application.form.fields.photo_path'))
+                                    ->disk(JobApplication::resumeDisk())
+                                    ->height(100)
+                                    ->visible(fn ($record) => filled($record->photo_path)),
+                                TextEntry::make('resume_path')
+                                    ->label(__('rekrutmen::filament/resources/job-application.form.fields.resume_path'))
+                                    ->formatStateUsing(fn () => 'Download Resume')
+                                    ->color('primary')
+                                    ->url(fn (JobApplication $record) => self::resolveAttachmentDownloadUrl($record, 'resume'))
+                                    ->openUrlInNewTab()
+                                    ->visible(fn ($record) => filled($record->resume_path)),
+                            ])->columns(1),
+                    ])->columnSpan(1),
+                ])->columnSpanFull(),
+            ]);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -243,6 +317,7 @@ class JobApplicationResource extends Resource
             ])
             ->recordActions([
                 ActionGroup::make([
+                    ViewAction::make(),
                     EditAction::make(),
                     Action::make('mark_hired')
                         ->label(__('rekrutmen::filament/resources/job-application.table.actions.mark_hired'))
@@ -321,12 +396,13 @@ class JobApplicationResource extends Resource
         return [
             'index'  => Pages\ListJobApplications::route('/'),
             'create' => Pages\CreateJobApplication::route('/create'),
-            'edit'   => Pages\EditJobApplication::route('/{record}/edit'),
             'board'  => Pages\PipelineBoard::route('/board'),
+            'view'   => Pages\ViewJobApplication::route('/{record}'),
+            'edit'   => Pages\EditJobApplication::route('/{record}/edit'),
         ];
     }
 
-    private static function resolveAttachmentDownloadUrl(JobApplication $record, string $attachment): ?string
+    public static function resolveAttachmentDownloadUrl(JobApplication $record, string $attachment): ?string
     {
         if (! auth()->user() || blank($record->resolveAttachmentPath($attachment))) {
             return null;

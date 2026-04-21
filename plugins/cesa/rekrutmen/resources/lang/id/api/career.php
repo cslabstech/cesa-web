@@ -15,6 +15,7 @@ return [
             'email.required'                      => 'Email wajib diisi.',
             'email.email'                         => 'Format email tidak valid.',
             'email.unique'                        => 'Anda sudah pernah melamar pada lowongan ini.',
+            'whatsapp_number.unique'              => 'No Whatsapp ini sudah pernah dipakai melamar pada lowongan ini.',
             'gender.required'                     => 'Jenis kelamin wajib diisi.',
             'birth_date.required'                 => 'Tanggal lahir wajib diisi.',
             'birth_date.date'                     => 'Format tanggal lahir tidak valid.',

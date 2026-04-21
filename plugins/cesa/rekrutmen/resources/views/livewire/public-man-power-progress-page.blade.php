@@ -29,8 +29,6 @@
                     <span class="{{ $statusClasses }} inline-flex items-center rounded-full px-3 py-1 text-xs font-medium">
                         {{ $statusLabel }}
                     </span>
-                    <span class="text-gray-300">|</span>
-                    <span class="font-mono text-gray-400">{{ $requestManPower->status_response_id }}</span>
                 </div>
             </div>
         </div>
@@ -41,116 +39,85 @@
             </div>
 
             <div class="border-t border-blue-100 px-6 py-5">
-                <div class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-                    <div class="space-y-1">
-                        <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                            {{ __('rekrutmen::livewire/public-request-man-power-progress-page.fields.status_response_id') }}
-                        </p>
-                        <div class="text-base font-medium text-gray-900 break-words">
-                            {{ $requestManPower->status_response_id }}
-                        </div>
-                    </div>
-
+                <div class="grid grid-cols-1 gap-y-6">
                     <div class="space-y-1">
                         <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
                             {{ __('rekrutmen::livewire/public-request-man-power-progress-page.fields.tanggal_pengajuan') }}
                         </p>
-                        <div class="text-base font-medium text-gray-900 break-words">
-                            {{ $requestManPower->tanggal_pengajuan?->translatedFormat('d F Y') ?? '-' }}
-                        </div>
+                        <div class="text-base font-medium text-gray-900 break-words">{{ $requestManPower->tanggal_pengajuan?->translatedFormat('d F Y') ?? '-' }}</div>
                     </div>
 
                     <div class="space-y-1">
                         <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
                             {{ __('rekrutmen::livewire/public-request-man-power-progress-page.fields.posisi_dibutuhkan') }}
                         </p>
-                        <div class="text-base font-medium text-gray-900 break-words">
-                            {{ $requestManPower->posisi_dibutuhkan ?? '-' }}
-                        </div>
+                        <div class="text-base font-medium text-gray-900 break-words">{{ $requestManPower->posisi_dibutuhkan ?? '-' }}</div>
                     </div>
 
                     <div class="space-y-1">
                         <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
                             {{ __('rekrutmen::livewire/public-request-man-power-progress-page.fields.status_kebutuhan') }}
                         </p>
-                        <div class="text-base font-medium text-gray-900 break-words">
-                            {{ $requestManPower->status_kebutuhan?->getLabel() ?? '-' }}
-                        </div>
+                        <div class="text-base font-medium text-gray-900 break-words">{{ $requestManPower->status_kebutuhan?->getLabel() ?? '-' }}</div>
                     </div>
 
                     <div class="space-y-1">
                         <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
                             {{ __('rekrutmen::livewire/public-request-man-power-progress-page.fields.level_pekerjaan') }}
                         </p>
-                        <div class="text-base font-medium text-gray-900 break-words">
-                            {{ $requestManPower->level_pekerjaan ?? '-' }}
-                        </div>
+                        <div class="text-base font-medium text-gray-900 break-words">{{ $requestManPower->level_pekerjaan ?? '-' }}</div>
                     </div>
 
                     <div class="space-y-1">
                         <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
                             {{ __('rekrutmen::livewire/public-request-man-power-progress-page.fields.jumlah_karyawan_dibutuhkan') }}
                         </p>
-                        <div class="text-base font-medium text-gray-900 break-words">
-                            {{ $requestManPower->jumlah_karyawan_dibutuhkan ?? '-' }}
-                        </div>
+                        <div class="text-base font-medium text-gray-900 break-words">{{ $requestManPower->jumlah_karyawan_dibutuhkan ?? '-' }}</div>
                     </div>
 
                     <div class="space-y-1">
                         <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
                             {{ __('rekrutmen::livewire/public-request-man-power-progress-page.fields.lokasi_penempatan') }}
                         </p>
-                        <div class="text-base font-medium text-gray-900 break-words">
-                            {{ $requestManPower->lokasi_penempatan ?? '-' }}
-                        </div>
+                        <div class="text-base font-medium text-gray-900 break-words">{{ $requestManPower->lokasi_penempatan ?? '-' }}</div>
                     </div>
 
                     <div class="space-y-1">
                         <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
                             {{ __('rekrutmen::livewire/public-request-man-power-progress-page.fields.estimasi_tanggal_join') }}
                         </p>
-                        <div class="text-base font-medium text-gray-900 break-words">
-                            {{ $requestManPower->estimasi_tanggal_join?->translatedFormat('d F Y') ?? '-' }}
-                        </div>
+                        <div class="text-base font-medium text-gray-900 break-words">{{ $requestManPower->estimasi_tanggal_join?->translatedFormat('d F Y') ?? '-' }}</div>
                     </div>
 
                     @if (filled($requestManPower->nama_karyawan_replacement))
-                        <div class="space-y-1 sm:col-span-2">
+                        <div class="space-y-1">
                             <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
                                 {{ __('rekrutmen::livewire/public-request-man-power-progress-page.fields.nama_karyawan_replacement') }}
                             </p>
-                            <div class="text-base font-medium text-gray-900 break-words">
-                                {{ $requestManPower->nama_karyawan_replacement }}
-                            </div>
+                            <div class="text-base font-medium text-gray-900 break-words">{{ $requestManPower->nama_karyawan_replacement }}</div>
                         </div>
                     @endif
 
-                    <div class="space-y-1 sm:col-span-2">
+                    <div class="space-y-1">
                         <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
                             {{ __('rekrutmen::livewire/public-request-man-power-progress-page.fields.requirements_kualifikasi') }}
                         </p>
-                        <div class="text-base font-medium text-gray-900 break-words whitespace-pre-line">
-                            {{ $requestManPower->requirements_kualifikasi ?? '-' }}
-                        </div>
+                        <div class="text-base font-medium text-gray-900 break-words prose prose-sm max-w-none">{!! $requestManPower->requirements_kualifikasi ?? '-' !!}</div>
                     </div>
 
-                    <div class="space-y-1 sm:col-span-2">
+                    <div class="space-y-1">
                         <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
                             {{ __('rekrutmen::livewire/public-request-man-power-progress-page.fields.job_description') }}
                         </p>
-                        <div class="text-base font-medium text-gray-900 break-words whitespace-pre-line">
-                            {{ $requestManPower->job_description ?? '-' }}
-                        </div>
+                        <div class="text-base font-medium text-gray-900 break-words prose prose-sm max-w-none">{!! $requestManPower->job_description ?? '-' !!}</div>
                     </div>
 
                     @if (filled($requestManPower->keterangan))
-                        <div class="space-y-1 sm:col-span-2">
+                        <div class="space-y-1">
                             <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
                                 {{ __('rekrutmen::livewire/public-request-man-power-progress-page.fields.keterangan') }}
                             </p>
-                            <div class="text-base font-medium text-gray-900 break-words whitespace-pre-line">
-                                {{ $requestManPower->keterangan }}
-                            </div>
+                            <div class="text-base font-medium text-gray-900 break-words whitespace-pre-line">{{ $requestManPower->keterangan }}</div>
                         </div>
                     @endif
                 </div>

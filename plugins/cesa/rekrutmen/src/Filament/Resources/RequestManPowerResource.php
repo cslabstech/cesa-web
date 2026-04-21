@@ -2,20 +2,25 @@
 
 namespace Cesa\Rekrutmen\Filament\Resources;
 
+use Cesa\Rekrutmen\Enums\RequestManPowerApprovalStatus;
 use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Enums\StatusKebutuhan;
 use Cesa\Rekrutmen\Filament\Resources\RequestManPowerResource\Pages;
 use Cesa\Rekrutmen\Models\Division;
 use Cesa\Rekrutmen\Models\RequestManPower;
+use Cesa\Rekrutmen\Models\RequestManPowerApproval;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
@@ -213,6 +218,123 @@ class RequestManPowerResource extends Resource
             ]);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Grid::make(3)->schema([
+                    Group::make([
+                        Section::make(__('rekrutmen::filament/resources/request-man-power.form.sections.applicant_information'))
+                            ->schema([
+                                TextEntry::make('nama_pengaju')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.nama_pengaju')),
+                                TextEntry::make('posisi_pengaju')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.posisi_pengaju')),
+                                TextEntry::make('email_address')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.email_address')),
+                                TextEntry::make('tanggal_pengajuan')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.tanggal_pengajuan'))
+                                    ->date('d F Y'),
+                                TextEntry::make('company.name')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.company_id')),
+                                TextEntry::make('division.name')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.division_id')),
+                            ])->columns(2),
+
+                        Section::make(__('rekrutmen::filament/resources/request-man-power.form.sections.requirement_details'))
+                            ->schema([
+                                TextEntry::make('posisi_dibutuhkan')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.posisi_dibutuhkan')),
+                                TextEntry::make('lokasi_penempatan')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.lokasi_penempatan')),
+                                TextEntry::make('status_kebutuhan')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.status_kebutuhan'))
+                                    ->badge(),
+                                TextEntry::make('level_pekerjaan')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.level_pekerjaan'))
+                                    ->formatStateUsing(fn ($state) => RequestManPower::getTranslatedLevelPekerjaanOptions()[$state->value ?? $state] ?? ($state->value ?? $state)),
+                                TextEntry::make('jumlah_karyawan_dibutuhkan')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.jumlah_karyawan_dibutuhkan')),
+                                TextEntry::make('estimasi_tanggal_join')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.estimasi_tanggal_join'))
+                                    ->date('d F Y'),
+                                TextEntry::make('nama_karyawan_replacement')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.nama_karyawan_replacement'))
+                                    ->visible(fn ($record) => self::isReplacementStatus($record->status_kebutuhan)),
+                            ])->columns(2),
+
+                        Section::make(__('rekrutmen::filament/resources/request-man-power.form.sections.qualifications'))
+                            ->schema([
+                                TextEntry::make('requirements_kualifikasi')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.requirements_kualifikasi'))
+                                    ->columnSpanFull(),
+                                TextEntry::make('job_description')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.job_description'))
+                                    ->columnSpanFull(),
+                                TextEntry::make('keterangan')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.keterangan'))
+                                    ->columnSpanFull(),
+                            ]),
+                    ])->columnSpan(2),
+
+                    Group::make([
+                        Section::make(__('rekrutmen::filament/resources/request-man-power.form.sections.approval_status'))
+                            ->schema([
+                                TextEntry::make('status')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.status'))
+                                    ->badge(),
+                                TextEntry::make('approver.name')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.approved_by'))
+                                    ->visible(fn ($record) => $record && $record->approved_by),
+                            ])->columns(1),
+                        Section::make(__('rekrutmen::filament/resources/request-man-power.form.sections.approval_flow'))
+                            ->schema([
+                                RepeatableEntry::make('approvals')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.sections.approval_flow'))
+                                    ->visible(fn (RequestManPower $record): bool => $record->approvals()->exists())
+                                    ->schema([
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextEntry::make('approver_name')
+                                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.approver_name'))
+                                                    ->icon('heroicon-o-user')
+                                                    ->placeholder('—'),
+                                                TextEntry::make('status')
+                                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.approver_status'))
+                                                    ->icon('heroicon-o-check-circle')
+                                                    ->formatStateUsing(fn (RequestManPowerApprovalStatus|string|null $state): string => $state instanceof RequestManPowerApprovalStatus ? $state->getLabel() : (string) $state)
+                                                    ->badge()
+                                                    ->color(fn (RequestManPowerApproval $record): string|array|null => $record->status?->getColor()),
+                                                TextEntry::make('action_token')
+                                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.approval_link'))
+                                                    ->icon('heroicon-o-arrow-top-right-on-square')
+                                                    ->formatStateUsing(fn (): string => __('rekrutmen::filament/resources/request-man-power.table.actions.open_approval_page'))
+                                                    ->badge()
+                                                    ->color('primary')
+                                                    ->url(
+                                                        fn (RequestManPowerApproval $record): ?string => $record->status === RequestManPowerApprovalStatus::PENDING
+                                                            && filled($record->action_token)
+                                                            && ! $record->hasExpiredActionLink()
+                                                            ? $record->buildApprovalUrl()
+                                                            : null,
+                                                        true,
+                                                    )
+                                                    ->visible(
+                                                        fn (RequestManPowerApproval $record): bool => $record->status === RequestManPowerApprovalStatus::PENDING
+                                                            && filled($record->action_token)
+                                                            && ! $record->hasExpiredActionLink(),
+                                                    )
+                                                    ->columnSpanFull(),
+                                            ]),
+                                    ])
+                                    ->columns(1),
+                            ])
+                            ->collapsible(),
+                    ])->columnSpan(1),
+                ])->columnSpanFull(),
+            ]);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -310,6 +432,7 @@ class RequestManPowerResource extends Resource
                         ->color('gray')
                         ->url(fn (RequestManPower $record): string => $record->getPublicProgressUrl())
                         ->openUrlInNewTab(),
+                    ViewAction::make(),
                     EditAction::make(),
                     Action::make('approve')
                         ->label(__('rekrutmen::filament/resources/request-man-power.table.actions.approve'))
@@ -396,6 +519,7 @@ class RequestManPowerResource extends Resource
         return [
             'index'  => Pages\ListRequestManPowers::route('/'),
             'create' => Pages\CreateRequestManPower::route('/create'),
+            'view'   => Pages\ViewRequestManPower::route('/{record}'),
             'edit'   => Pages\EditRequestManPower::route('/{record}/edit'),
         ];
     }

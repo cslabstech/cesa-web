@@ -45,10 +45,10 @@
                     <div>
                         {{-- Date Header --}}
                         <div class="flex items-center gap-3 mb-4">
-                            <div class="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold">
+                            <div class="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-semibold">
                                 {{ $timelineItem['date_label'] }}
                             </div>
-                            <div class="flex-1 h-px bg-gray-200"></div>
+                            <div class="flex-1 h-px bg-gray-200 dark:bg-gray-800"></div>
                             <div class="text-xs text-gray-400">
                                 {{ __('rekrutmen::livewire/recruitment-progress-report.labels.activities_count', ['count' => $timelineItem['count']]) }}
                             </div>
@@ -56,7 +56,7 @@
 
                         {{-- Activity Cards --}}
                         @foreach($timelineItem['activities'] as $act)
-                            <div class="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow mb-4">
+                            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow mb-4">
                                 <div class="p-5">
                                     {{-- Activity Header --}}
                                     <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 mb-3">
@@ -70,7 +70,7 @@
                                                 </svg>
                                             </div>
                                             <div>
-                                                <h3 class="text-sm font-semibold text-gray-900">{{ $act['activity_title'] }}</h3>
+                                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $act['activity_title'] }}</h3>
                                                 <div class="flex flex-wrap items-center gap-2 mt-1">
                                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
                                                           style="background-color: {{ $logColor[1] }}; color: {{ $logColor[0] }}">
@@ -115,21 +115,21 @@
 
                                     {{-- Summary Line --}}
                                     <div class="text-sm text-gray-600 lg:pl-[52px]">
-                                        <span class="font-semibold text-gray-900">{{ $act['job_posting']?->title }}</span>
-                                        <span class="mx-1.5 text-gray-300">|</span>
+                                        <span class="font-semibold text-gray-900 dark:text-white">{{ $act['job_posting']?->title }}</span>
+                                        <span class="mx-1.5 text-gray-300 dark:text-gray-600">|</span>
                                         <span>{{ $act['summary'] }}</span>
                                     </div>
 
                                     {{-- Expandable Candidate Detail --}}
                                     @if($act['entries']->count() > 0)
                                         <details class="lg:pl-[52px] mt-3">
-                                            <summary class="text-xs font-medium text-blue-600 cursor-pointer hover:text-blue-700 select-none">
+                                            <summary class="text-xs font-medium text-blue-600 dark:text-blue-400 cursor-pointer hover:text-blue-700 dark:hover:text-blue-300 select-none">
                                                 {{ __('rekrutmen::livewire/recruitment-progress-report.labels.view_candidates', ['count' => $act['entries']->count()]) }}
                                             </summary>
-                                            <div class="mt-3 border border-gray-200 rounded-lg overflow-hidden">
+                                            <div class="mt-3 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
                                                 <table class="w-full text-sm">
                                                     <thead>
-                                                        <tr class="bg-gray-50">
+                                                        <tr class="bg-gray-50 dark:bg-gray-800/50">
                                                             <th class="text-left px-4 py-2 text-xs font-medium text-gray-500">
                                                                 {{ __('rekrutmen::livewire/recruitment-progress-report.table.candidate') }}
                                                             </th>
@@ -141,16 +141,16 @@
                                                             </th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody class="divide-y divide-gray-200">
+                                                    <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
                                                         @foreach($act['entries'] as $entry)
                                                             <tr @class([
-                                                                'bg-red-50/50' => $entry->result?->value === 'failed',
-                                                                'bg-amber-50/50' => $entry->result?->value === 'pending',
+                                                                'bg-red-50/50 dark:bg-red-900/20' => $entry->result?->value === 'failed',
+                                                                'bg-amber-50/50 dark:bg-amber-900/20' => $entry->result?->value === 'pending',
                                                             ])>
                                                                 <td class="px-4 py-2.5">
                                                                     <span @class([
-                                                                        'font-medium text-gray-400 line-through' => $entry->result?->value === 'failed',
-                                                                        'font-medium text-gray-900' => $entry->result?->value !== 'failed',
+                                                                        'font-medium text-gray-400 dark:text-gray-500 line-through' => $entry->result?->value === 'failed',
+                                                                        'font-medium text-gray-900 dark:text-white' => $entry->result?->value !== 'failed',
                                                                     ])>
                                                                         {{ $entry->jobApplication?->full_name ?? '-' }}
                                                                     </span>
@@ -177,7 +177,7 @@
                         @endforeach
                     </div>
                 @empty
-                    <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+                    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-12 text-center">
                         <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -196,13 +196,13 @@
         @if($activeTab === 'per-position')
             <div class="space-y-6">
                 @forelse($perPositionData as $positionData)
-                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
                         {{-- Position Header --}}
-                        <div class="p-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white">
+                        <div class="p-5 border-b border-gray-200 dark:border-gray-800 bg-gradient-to-r from-blue-50 dark:from-blue-900/20 to-white dark:to-gray-900">
                             <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
                                 <div>
                                     <div class="flex items-center gap-2 mb-1">
-                                        <h2 class="text-base font-bold text-gray-900">{{ $positionData['posting']->title }}</h2>
+                                        <h2 class="text-base font-bold text-gray-900 dark:text-white">{{ $positionData['posting']->title }}</h2>
                                         @if($positionData['posting']->is_published)
                                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700">
                                                 {{ __('rekrutmen::livewire/recruitment-progress-report.labels.open') }}
@@ -234,18 +234,18 @@
                                 {{-- Stats Mini --}}
                                 <div class="flex items-center gap-3">
                                     <div class="text-center px-3">
-                                        <div class="text-lg font-bold text-gray-900">{{ $positionData['statistics']['total_applicants'] }}</div>
+                                        <div class="text-lg font-bold text-gray-900 dark:text-white">{{ $positionData['statistics']['total_applicants'] }}</div>
                                         <div class="text-xs text-gray-400">Pelamar</div>
                                     </div>
-                                    <div class="text-center px-3 border-l border-gray-200">
+                                    <div class="text-center px-3 border-l border-gray-200 dark:border-gray-800">
                                         <div class="text-lg font-bold text-blue-600">{{ $positionData['statistics']['in_progress'] }}</div>
                                         <div class="text-xs text-gray-400">Proses</div>
                                     </div>
-                                    <div class="text-center px-3 border-l border-gray-200">
+                                    <div class="text-center px-3 border-l border-gray-200 dark:border-gray-800">
                                         <div class="text-lg font-bold text-emerald-600">{{ $positionData['statistics']['hired'] }}</div>
                                         <div class="text-xs text-gray-400">Diterima</div>
                                     </div>
-                                    <div class="text-center px-3 border-l border-gray-200">
+                                    <div class="text-center px-3 border-l border-gray-200 dark:border-gray-800">
                                         <div class="text-lg font-bold text-red-500">{{ $positionData['statistics']['rejected'] }}</div>
                                         <div class="text-xs text-gray-400">Ditolak</div>
                                     </div>
@@ -255,7 +255,7 @@
 
                         {{-- Pipeline Funnel --}}
                         @if(!empty($positionData['pipeline_stages']))
-                            <div class="p-5 border-b border-gray-100">
+                            <div class="p-5 border-b border-gray-100 dark:border-gray-800">
                                 <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
                                     {{ __('rekrutmen::livewire/recruitment-progress-report.labels.pipeline_funnel') }}
                                 </h3>
@@ -268,12 +268,12 @@
                                         @endif
                                         <div class="flex-1 min-w-[120px]">
                                             <div class="flex items-center justify-between mb-1">
-                                                <span class="text-xs font-medium text-gray-600">{{ $stageInfo['name'] }}</span>
+                                                <span class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ $stageInfo['name'] }}</span>
                                                 <span class="text-xs text-gray-400">
                                                     {{ $stageInfo['current_count'] }} aktif / {{ $stageInfo['total_passed'] }} lolos
                                                 </span>
                                             </div>
-                                            <div class="h-3 bg-gray-100 rounded-full overflow-hidden">
+                                            <div class="h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                                                 @php
                                                     $maxApplicants = max($positionData['statistics']['total_applicants'], 1);
                                                     $barWidth = min(100, round(($stageInfo['total_passed'] / $maxApplicants) * 100));
@@ -296,17 +296,17 @@
                                 </h3>
                                 <div class="relative pl-8 space-y-3">
                                     {{-- Timeline line --}}
-                                    <div class="absolute left-[11px] top-3 bottom-3 w-0.5 bg-gray-200"></div>
+                                    <div class="absolute left-[11px] top-3 bottom-3 w-0.5 bg-gray-200 dark:bg-gray-800"></div>
 
                                     @foreach($positionData['activities'] as $aIdx => $activity)
                                         <div class="relative">
                                             {{-- Timeline dot --}}
                                             @php $actColor = $colorMap[$activity['activity_color'] ?? 'gray'] ?? $colorMap['gray']; @endphp
-                                            <div class="absolute -left-[21px] top-1.5 w-3 h-3 rounded-full border-2"
-                                                 style="border-color: {{ $actColor[0] }}; background: white;"></div>
-                                            <div class="bg-gray-50 rounded-lg p-3">
+                                            <div class="absolute -left-[21px] top-1.5 w-3 h-3 rounded-full border-2 bg-white dark:bg-gray-900"
+                                                 style="border-color: {{ $actColor[0] }};"></div>
+                                            <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
                                                 <div class="flex items-center justify-between mb-1">
-                                                    <span class="text-xs font-semibold text-gray-900">{{ $activity['activity_title'] }}</span>
+                                                    <span class="text-xs font-semibold text-gray-900 dark:text-white">{{ $activity['activity_title'] }}</span>
                                                     <span class="text-xs text-gray-400">{{ $activity['activity_date']?->format('d M Y') }}</span>
                                                 </div>
                                                 <div class="flex flex-wrap items-center gap-2 mb-2">
@@ -344,7 +344,7 @@
                         @endif
                     </div>
                 @empty
-                    <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+                    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-12 text-center">
                         <p class="text-sm text-gray-500">
                             {{ __('rekrutmen::livewire/recruitment-progress-report.empty.no_positions') }}
                         </p>
@@ -357,11 +357,11 @@
         {{-- TAB: OVERVIEW                --}}
         {{-- ============================= --}}
         @if($activeTab === 'overview')
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead>
-                            <tr class="bg-gray-50 border-b border-gray-200">
+                            <tr class="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
                                 <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                     {{ __('rekrutmen::livewire/recruitment-progress-report.table.position') }}
                                 </th>
@@ -391,17 +391,17 @@
                                 </th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
                             @foreach($overviewData as $item)
-                                <tr class="hover:bg-gray-50">
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                                     <td class="px-5 py-4">
-                                        <div class="font-semibold text-gray-900">{{ $item['position'] }}</div>
+                                        <div class="font-semibold text-gray-900 dark:text-white">{{ $item['position'] }}</div>
                                         <div class="text-xs text-gray-400">{{ $item['location'] }}</div>
                                     </td>
-                                    <td class="px-4 py-4 text-gray-600">
+                                    <td class="px-4 py-4 text-gray-600 dark:text-gray-400">
                                         {{ $item['company'] ?? '-' }}
                                     </td>
-                                    <td class="px-4 py-4 text-center font-semibold text-gray-900">
+                                    <td class="px-4 py-4 text-center font-semibold text-gray-900 dark:text-white">
                                         {{ $item['needed'] }}
                                     </td>
                                     <td class="px-4 py-4 text-center text-gray-600">
@@ -413,18 +413,18 @@
                                         </span>
                                     </td>
                                     <td class="px-4 py-4 text-center">
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $item['hired'] > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500' }}">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $item['hired'] > 0 ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500' }}">
                                             {{ $item['hired'] }}
                                         </span>
                                     </td>
                                     <td class="px-4 py-4 text-center">
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400">
                                             {{ $item['rejected'] }}
                                         </span>
                                     </td>
                                     <td class="px-4 py-4">
                                         @if($item['latest_activity'])
-                                            <div class="text-xs font-medium text-gray-900">{{ $item['latest_activity']['activity_label'] ?? '-' }}</div>
+                                            <div class="text-xs font-medium text-gray-900 dark:text-white">{{ $item['latest_activity']['activity_label'] ?? '-' }}</div>
                                             <div class="text-xs text-gray-400">
                                                 {{ $item['latest_activity']['activity_date']?->format('d M Y') ?? '-' }} - {{ $item['latest_activity']['summary'] }}
                                             </div>
@@ -434,11 +434,11 @@
                                     </td>
                                     <td class="px-4 py-4 text-center">
                                         <div class="inline-flex items-center gap-1">
-                                            <div class="w-16 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                            <div class="w-16 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                                                 <div class="h-full rounded-full {{ $item['fulfillment_percentage'] >= 100 ? 'bg-emerald-500' : 'bg-amber-500' }}"
                                                      style="width: {{ $item['fulfillment_percentage'] }}%"></div>
                                             </div>
-                                            <span class="text-xs font-semibold {{ $item['fulfillment_percentage'] >= 100 ? 'text-emerald-600' : 'text-amber-600' }}">
+                                            <span class="text-xs font-semibold {{ $item['fulfillment_percentage'] >= 100 ? 'text-emerald-600 dark:text-emerald-500' : 'text-amber-600 dark:text-amber-500' }}">
                                                 {{ $item['fulfillment_percentage'] }}%
                                             </span>
                                         </div>
@@ -447,12 +447,12 @@
                             @endforeach
                         </tbody>
                         <tfoot>
-                            <tr class="bg-gray-50 font-semibold">
-                                <td class="px-5 py-3 text-gray-900" colspan="2">{{ __('rekrutmen::livewire/recruitment-progress-report.table.total') }}</td>
-                                <td class="px-4 py-3 text-center text-gray-900">
+                            <tr class="bg-gray-50 dark:bg-gray-800/50 font-semibold">
+                                <td class="px-5 py-3 text-gray-900 dark:text-white" colspan="2">{{ __('rekrutmen::livewire/recruitment-progress-report.table.total') }}</td>
+                                <td class="px-4 py-3 text-center text-gray-900 dark:text-white">
                                     {{ $overviewData->sum('needed') }}
                                 </td>
-                                <td class="px-4 py-3 text-center text-gray-900">
+                                <td class="px-4 py-3 text-center text-gray-900 dark:text-white">
                                     {{ $overviewData->sum('total_applicants') }}
                                 </td>
                                 <td class="px-4 py-3 text-center text-blue-600">

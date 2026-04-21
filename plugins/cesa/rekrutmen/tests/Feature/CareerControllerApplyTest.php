@@ -253,6 +253,66 @@ class CareerControllerApplyTest extends RekrutmenTestCase
             ->count());
     }
 
+    public function test_public_apply_rejects_duplicate_whatsapp_for_the_same_job_posting(): void
+    {
+        Storage::fake('local');
+
+        config()->set('filesystems.default', 'local');
+        config()->set('filament.default_filesystem_disk', 'local');
+
+        $pipeline = RekrutmenPipeline::query()->create([
+            'name' => 'Duplicate Whatsapp Pipeline',
+        ]);
+
+        RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => 'Screening CV',
+            'order_column'          => 1,
+        ]);
+
+        $jobPosting = JobPosting::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'title'                 => 'Backend Developer Duplicate Whatsapp',
+            'slug'                  => 'backend-developer-duplicate-whatsapp',
+            'description'           => 'Build APIs',
+            'requirements'          => 'Laravel',
+            'location'              => 'Jakarta',
+            'is_published'          => true,
+        ]);
+
+        $payload = [
+            'full_name'                  => 'Budi Santoso',
+            'email'                      => 'budi@example.com',
+            'gender'                     => 'male',
+            'birth_date'                 => '1995-01-10',
+            'marital_status'             => 'single',
+            'address_ktp'                => 'Jl. KTP No. 1, Jakarta',
+            'address_domicile'           => 'Jl. Domisili No. 2, Bekasi',
+            'whatsapp_number'            => '081200000001',
+            'active_phone'               => '081200000002',
+            'emergency_contact_name'     => 'Bunga',
+            'emergency_contact_relation' => 'Adik Kandung',
+            'emergency_contact_phone'    => '081200000003',
+            'photo'                      => UploadedFile::fake()->image('photo.jpg'),
+            'resume'                     => UploadedFile::fake()->create('resume.pdf', 120, 'application/pdf'),
+        ];
+
+        $this->post("/api/jobs/{$jobPosting->slug}/apply", $payload)->assertCreated();
+
+        $duplicateResponse = $this->postJson("/api/jobs/{$jobPosting->slug}/apply", [
+            ...collect($payload)->except(['photo', 'resume'])->all(),
+            'email'           => 'budi2@example.com',
+            'whatsapp_number' => '+62 812 0000 0001',
+            'photo'           => UploadedFile::fake()->image('photo.jpg'),
+            'resume'          => UploadedFile::fake()->create('resume.pdf', 120, 'application/pdf'),
+        ]);
+
+        $duplicateResponse->assertStatus(422)
+            ->assertJsonValidationErrors([
+                'whatsapp_number',
+            ]);
+    }
+
     public function test_public_apply_allows_reapply_after_a_soft_deleted_application(): void
     {
         Storage::fake('local');

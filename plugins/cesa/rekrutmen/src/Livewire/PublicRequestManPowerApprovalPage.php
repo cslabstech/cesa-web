@@ -32,17 +32,15 @@ class PublicRequestManPowerApprovalPage extends SimplePage
 
     public ?array $data = [];
 
-    public function mount(int|string $approval, string $token): void
+    public function mount(string $token): void
     {
-        $this->approvalId = $approval;
         $this->approvalToken = $token;
         $this->approvalRecord = RequestManPowerApproval::query()
             ->with(['requestManPower.approvals'])
-            ->findOrFail($approval);
+            ->where('action_token', $token)
+            ->firstOrFail();
 
-        if (! hash_equals((string) $this->approvalRecord->action_token, $token)) {
-            abort(404);
-        }
+        $this->approvalId = $this->approvalRecord->getKey();
     }
 
     public function form(Schema $schema): Schema

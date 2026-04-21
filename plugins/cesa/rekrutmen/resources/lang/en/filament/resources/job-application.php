@@ -64,9 +64,12 @@ return [
         ],
     ],
     'notifications' => [
-        'stage_changed'   => 'Candidate stage updated successfully.',
-        'marked_hired'    => 'Candidate marked as accepted successfully.',
-        'marked_rejected' => 'Candidate marked as rejected successfully.',
+        'stage_changed'            => 'Candidate stage updated successfully.',
+        'drag_passed'              => 'Candidate passed to stage :stage.',
+        'hired_stage_reached'      => 'Candidate reached the Hired stage.',
+        'hired_stage_reached_help' => 'Click Accept Candidate to finalize the hiring decision.',
+        'marked_hired'             => 'Candidate marked as accepted successfully.',
+        'marked_rejected'          => 'Candidate marked as rejected successfully.',
     ],
     'board' => [
         'heading'             => 'Job Application Pipeline',
@@ -81,6 +84,7 @@ return [
         'no_stages'           => 'No Stages in This Pipeline',
         'card'                => [
             'current_stage_fallback' => 'last recorded',
+            'updated_at'             => 'Updated :time',
             'status_context'         => [
                 'hired'     => 'Accepted at stage :stage.',
                 'rejected'  => 'Rejected at stage :stage.',
@@ -94,11 +98,13 @@ return [
         'submitted'     => 'Candidate entered the initial stage.',
         'hired'         => 'Candidate was marked as accepted.',
         'rejected'      => 'Candidate was marked as rejected.',
+        'drag_passed'   => 'Passed to stage :stage via board.',
     ],
     'workflow_errors' => [
         'invalid_stage'                 => 'The target stage does not belong to the selected job posting pipeline.',
         'terminal_stage_locked'         => 'A decided candidate cannot be moved to another stage.',
         'cross_stage_requires_activity' => 'Cross-stage movement must go through Record Recruitment Activity so the process history stays consistent.',
+        'drag_only_next_stage'          => 'Drag & drop can only move a candidate to the next stage.',
         'decision_note_required'        => 'Decision notes are required.',
         'job_posting_has_no_stage'      => 'The selected job posting does not have an initial stage yet.',
     ],

@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'pending'  => 'Pending',
+    'pending'  => 'Menunggu',
     'approved' => 'Disetujui',
     'rejected' => 'Ditolak',
 ];

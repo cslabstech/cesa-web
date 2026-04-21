@@ -17,7 +17,7 @@ use Webkul\Support\Models\Company;
 
 class PublicRequestManPowerApprovalPageTest extends RekrutmenTestCase
 {
-    public function test_public_approval_route_requires_a_valid_signature(): void
+    public function test_public_approval_route_is_accessible(): void
     {
         $request = $this->createRequestWithApprovers();
         $request->sendApprovalRequestNotifications();
@@ -27,11 +27,6 @@ class PublicRequestManPowerApprovalPageTest extends RekrutmenTestCase
         $this->get($approval->buildApprovalUrl())
             ->assertOk()
             ->assertSee(__('rekrutmen::livewire/public-request-man-power-approval-page.page_title'));
-
-        $this->get(route('rekrutmen.public.request-man-power.approval', [
-            'approval' => $approval->getKey(),
-            'token'    => $approval->action_token,
-        ]))->assertForbidden();
     }
 
     public function test_public_approval_page_processes_approvals_sequentially_until_final_approval(): void

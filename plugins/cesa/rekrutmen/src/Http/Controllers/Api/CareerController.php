@@ -240,7 +240,9 @@ class CareerController extends Controller
 
             if ($this->isDuplicateApplicationConstraintViolation($exception)) {
                 throw ValidationException::withMessages([
-                    'email' => __('rekrutmen::api/career.validation.messages.email.unique'),
+                    $this->resolveDuplicateApplicationField($exception) => __(
+                        'rekrutmen::api/career.validation.messages.'.$this->resolveDuplicateApplicationField($exception).'.unique'
+                    ),
                 ]);
             }
 
@@ -313,10 +315,26 @@ class CareerController extends Controller
 
         if (in_array($sqlState, ['23000', '23505'], true) || in_array($driverCode, [19, 1062, 2067], true)) {
             return str_contains($message, 'active_email')
-                || str_contains($message, 'rekrutmen_job_applications_active_email_unique');
+                || str_contains($message, 'rekrutmen_job_applications_active_email_unique')
+                || str_contains($message, 'active_whatsapp')
+                || str_contains($message, 'rekrutmen_job_applications_active_whatsapp_unique');
         }
 
         return false;
+    }
+
+    private function resolveDuplicateApplicationField(QueryException $exception): string
+    {
+        $message = Str::lower($exception->getMessage());
+
+        if (
+            str_contains($message, 'active_whatsapp')
+            || str_contains($message, 'rekrutmen_job_applications_active_whatsapp_unique')
+        ) {
+            return 'whatsapp_number';
+        }
+
+        return 'email';
     }
 
     /**
@@ -389,6 +407,11 @@ class CareerController extends Controller
 
         if (array_key_exists('email', $rules)) {
             $rules['email'][] = Rule::unique(JobApplication::class, 'active_email')
+                ->where(fn ($query) => $query->where('job_posting_id', $job->getKey()));
+        }
+
+        if (array_key_exists('whatsapp_number', $rules)) {
+            $rules['whatsapp_number'][] = Rule::unique(JobApplication::class, 'active_whatsapp')
                 ->where(fn ($query) => $query->where('job_posting_id', $job->getKey()));
         }
 

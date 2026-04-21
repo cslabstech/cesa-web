@@ -1,8 +1,8 @@
 <?php
 
 return [
-    'waiting'  => 'Menunggu',
-    'pending'  => 'Menunggu Persetujuan',
+    'waiting'  => 'Menunggu Giliran',
+    'pending'  => 'Menunggu',
     'approved' => 'Disetujui',
     'rejected' => 'Ditolak',
 ];

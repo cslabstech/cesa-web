@@ -7,10 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 class RekrutmenStage extends Model
 {
     use HasFactory, SoftDeletes;
+
+    public const FINAL_HIRED_STAGE_NAME = 'Hired';
 
     protected $table = 'rekrutmen_stages';
 
@@ -20,9 +23,35 @@ class RekrutmenStage extends Model
         'order_column',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (RekrutmenStage $stage): void {
+            $stage->normalizeLockedFinalStage();
+        });
+
+        static::saved(function (RekrutmenStage $stage): void {
+            $stage->syncLockedFinalStageToPipelineEnd();
+        });
+
+        static::deleting(function (RekrutmenStage $stage): void {
+            $stage->guardLockedFinalStageDeletion();
+        });
+    }
+
     public function pipeline(): BelongsTo
     {
         return $this->belongsTo(RekrutmenPipeline::class, 'rekrutmen_pipeline_id')->withTrashed();
+    }
+
+    public function isLockedFinalStage(): bool
+    {
+        return static::isFinalHiredStageName($this->name)
+            || static::isFinalHiredStageName($this->getRawOriginal('name'));
+    }
+
+    public static function isFinalHiredStageName(?string $name): bool
+    {
+        return Str::lower(trim((string) $name)) === Str::lower(static::FINAL_HIRED_STAGE_NAME);
     }
 
     public function activityKey(): string
@@ -94,5 +123,81 @@ class RekrutmenStage extends Model
         }
 
         return 'gray';
+    }
+
+    protected function normalizeLockedFinalStage(): void
+    {
+        if (! $this->isLockedFinalStage()) {
+            return;
+        }
+
+        $this->name = static::FINAL_HIRED_STAGE_NAME;
+
+        if (! is_numeric($this->rekrutmen_pipeline_id)) {
+            return;
+        }
+
+        $duplicateExists = static::query()
+            ->where('rekrutmen_pipeline_id', (int) $this->rekrutmen_pipeline_id)
+            ->whereRaw('LOWER(name) = ?', [Str::lower(static::FINAL_HIRED_STAGE_NAME)])
+            ->when($this->exists, fn ($query) => $query->whereKeyNot($this->getKey()))
+            ->exists();
+
+        if ($duplicateExists) {
+            throw new InvalidArgumentException(
+                __('rekrutmen::filament/resources/rekrutmen-pipeline.errors.duplicate_final_hired_stage')
+            );
+        }
+    }
+
+    protected function syncLockedFinalStageToPipelineEnd(): void
+    {
+        if (! is_numeric($this->rekrutmen_pipeline_id)) {
+            return;
+        }
+
+        $finalHiredStage = static::query()
+            ->where('rekrutmen_pipeline_id', (int) $this->rekrutmen_pipeline_id)
+            ->whereRaw('LOWER(name) = ?', [Str::lower(static::FINAL_HIRED_STAGE_NAME)])
+            ->orderByDesc('order_column')
+            ->first();
+
+        if (! $finalHiredStage) {
+            return;
+        }
+
+        $highestNonFinalOrder = static::query()
+            ->where('rekrutmen_pipeline_id', (int) $this->rekrutmen_pipeline_id)
+            ->whereKeyNot($finalHiredStage->getKey())
+            ->max('order_column');
+
+        $targetOrder = ((int) $highestNonFinalOrder) + 1;
+
+        if (
+            $finalHiredStage->name === static::FINAL_HIRED_STAGE_NAME
+            && (int) $finalHiredStage->order_column === $targetOrder
+        ) {
+            return;
+        }
+
+        static::withoutEvents(function () use ($finalHiredStage, $targetOrder): void {
+            static::query()
+                ->whereKey($finalHiredStage->getKey())
+                ->update([
+                    'name'         => static::FINAL_HIRED_STAGE_NAME,
+                    'order_column' => $targetOrder,
+                ]);
+        });
+    }
+
+    protected function guardLockedFinalStageDeletion(): void
+    {
+        if (! $this->isLockedFinalStage()) {
+            return;
+        }
+
+        throw new InvalidArgumentException(
+            __('rekrutmen::filament/resources/rekrutmen-pipeline.errors.final_hired_stage_locked')
+        );
     }
 }

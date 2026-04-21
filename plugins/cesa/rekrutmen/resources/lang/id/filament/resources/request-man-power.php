@@ -14,6 +14,7 @@ return [
             'requirement_details'   => 'Detail Kebutuhan',
             'qualifications'        => 'Kualifikasi & Deskripsi Pekerjaan',
             'approval_status'       => 'Status Persetujuan',
+            'approval_flow'         => 'Alur Persetujuan',
         ],
         'fields' => [
             'nama_pengaju'               => 'Nama Pengaju',
@@ -36,6 +37,9 @@ return [
             'keterangan'                 => 'Keterangan Tambahan',
             'status'                     => 'Status Persetujuan',
             'approved_by'                => 'Disetujui Oleh',
+            'approver_name'              => 'Nama Pengesah',
+            'approver_status'            => 'Status Pengesah',
+            'approval_link'              => 'Link Approval',
         ],
         'helper_texts' => [
             'nama_karyawan_replacement' => 'Untuk kebutuhan replacement, isi nama karyawan yang akan digantikan.',
@@ -73,6 +77,7 @@ return [
         ],
         'actions' => [
             'view_progress'           => 'Buka Halaman Progres',
+            'open_approval_page'      => 'Buka Halaman Approval',
             'approve'                 => 'Setujui',
             'reject'                  => 'Tolak',
             'resend_pending_approval' => 'Kirim Ulang Email Persetujuan',
