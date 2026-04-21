@@ -74,7 +74,7 @@
                     @click="expanded = !expanded"
                     class="cesa-primary-bg flex cursor-pointer items-center justify-between px-6 py-4 text-white cesa-primary-bg-hover transition-colors"
                 >
-                    <h2 class="text-lg font-medium">Ringkasan Pengajuan</h2>
+                    <h2 class="text-lg font-medium">RINGKASAN PENGAJUAN</h2>
                     <button type="button" class="text-white hover:text-gray-200 focus:outline-none">
                         <svg class="h-5 w-5 transform transition-transform duration-200" :class="{'rotate-180': expanded}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -114,7 +114,7 @@
                     @click="expanded = !expanded"
                     class="cesa-primary-bg flex cursor-pointer items-center justify-between px-6 py-4 text-white cesa-primary-bg-hover transition-colors"
                 >
-                    <h2 class="text-lg font-medium">Alur Approval</h2>
+                    <h2 class="text-lg font-medium">ALUR PERSETUJUAN</h2>
                     <button type="button" class="text-white hover:text-gray-200 focus:outline-none">
                         <svg class="h-5 w-5 transform transition-transform duration-200" :class="{'rotate-180': expanded}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />

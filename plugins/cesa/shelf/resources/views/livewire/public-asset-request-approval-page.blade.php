@@ -76,7 +76,7 @@
         <div class="space-y-4">
             <div class="rounded-lg bg-white p-6 shadow-sm border border-gray-200">
                 <div class="-mx-6 -mt-6 mb-6 rounded-t-lg cesa-primary-bg px-6 py-3 text-white">
-                    <h2 class="text-lg font-medium">Ringkasan Pengajuan</h2>
+                    <h2 class="text-lg font-medium">RINGKASAN PENGAJUAN</h2>
                 </div>
 
                 <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
@@ -106,7 +106,7 @@
 
             <div class="rounded-lg bg-white p-6 shadow-sm border border-gray-200">
                 <div class="-mx-6 -mt-6 mb-6 rounded-t-lg cesa-primary-bg px-6 py-3 text-white">
-                    <h2 class="text-lg font-medium">Alur Approval</h2>
+                    <h2 class="text-lg font-medium">ALUR PERSETUJUAN</h2>
                 </div>
 
                 <ol class="space-y-4">
@@ -147,19 +147,21 @@
             @if ($canRespond)
                 <div class="rounded-lg bg-white p-6 shadow-sm border border-gray-200">
                     <div class="-mx-6 -mt-6 mb-6 rounded-t-lg cesa-primary-bg px-6 py-3 text-white">
-                        <h2 class="text-lg font-medium">Tindakan Approval</h2>
+                        <h2 class="text-lg font-medium">TINDAKAN</h2>
                     </div>
 
                     <form wire:submit="approve" class="space-y-6">
                         {{ $this->form }}
 
-                        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
+                        <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
                             <x-filament::button
                                 type="button"
                                 color="danger"
                                 wire:click="reject"
                                 wire:loading.attr="disabled"
                                 wire:target="reject"
+                                icon="heroicon-m-x-circle"
+                                class="w-full sm:w-auto"
                             >
                                 Tolak
                             </x-filament::button>
@@ -169,6 +171,8 @@
                                 color="success"
                                 wire:loading.attr="disabled"
                                 wire:target="approve"
+                                icon="heroicon-m-check-circle"
+                                class="w-full sm:w-auto"
                             >
                                 Setujui
                             </x-filament::button>
