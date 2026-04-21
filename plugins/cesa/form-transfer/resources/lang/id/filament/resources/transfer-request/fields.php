@@ -24,6 +24,7 @@ return [
     'approver_title'        => 'Jabatan Pengesah',
     'approver_email'        => 'Email Pengesah',
     'approver_status'       => 'Status Pengesah',
+    'approval_link'         => 'Link Approval',
     'approver_noted_at'     => 'Tercatat Pada',
     'approver_notes'        => 'Catatan Pengesah',
     'approver_is_mandatory' => 'Tahap Wajib',

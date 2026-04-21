@@ -24,6 +24,7 @@ return [
     'approver_title'        => 'Approver Title',
     'approver_email'        => 'Approver Email',
     'approver_status'       => 'Approver Status',
+    'approval_link'         => 'Approval Link',
     'approver_noted_at'     => 'Noted At',
     'approver_notes'        => 'Approver Notes',
     'approver_is_mandatory' => 'Mandatory Step',

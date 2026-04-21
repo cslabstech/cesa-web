@@ -480,6 +480,16 @@ class TransferRequestResource extends FormTransferResource
                                                         ->formatStateUsing(fn ($state) => static::formatApproverStatusLabel($state))
                                                         ->badge()
                                                         ->color(fn ($state) => static::resolveApproverStatusColor($state)),
+                                                    TextEntry::make('task_id')
+                                                        ->label(__('form-transfer::filament/resources/transfer-request/fields.approval_link'))
+                                                        ->icon('heroicon-o-arrow-top-right-on-square')
+                                                        ->placeholder('—')
+                                                        ->formatStateUsing(fn (): string => __('form-transfer::filament/resources/transfer-request/actions.open_approval_page'))
+                                                        ->badge()
+                                                        ->color('primary')
+                                                        ->url(fn ($state, Get $get): ?string => static::getPendingPublicApprovalUrlFor($state, $get('status')), true)
+                                                        ->visible(fn ($state, Get $get): bool => filled(static::getPendingPublicApprovalUrlFor($state, $get('status'))))
+                                                        ->columnSpanFull(),
                                                 ]),
                                         ])
                                         ->columns(1),
@@ -526,7 +536,9 @@ class TransferRequestResource extends FormTransferResource
                                             TextEntry::make('status_response_id')
                                                 ->label(__('form-transfer::filament/resources/transfer-request/fields.status_response_id'))
                                                 ->icon('heroicon-o-identification')
+                                                ->color(fn ($state): string => filled(static::getPublicProgressUrlFor($state)) ? 'primary' : 'gray')
                                                 ->copyable()
+                                                ->url(fn ($state): ?string => static::getPublicProgressUrlFor($state), true)
                                                 ->placeholder('—'),
                                             TextEntry::make('created_at')
                                                 ->label(__('form-transfer::filament/resources/transfer-request/table.requested_at'))
@@ -1254,5 +1266,42 @@ class TransferRequestResource extends FormTransferResource
         } catch (\Throwable $exception) {
             return null;
         }
+    }
+
+    public static function getPublicApprovalUrlFor(mixed $taskId): ?string
+    {
+        $taskId = trim((string) $taskId);
+
+        if ($taskId === '') {
+            return null;
+        }
+
+        $baseUrl = rtrim((string) config('app.url'), '/');
+        $path = '/transfer-requests/approval/'.rawurlencode($taskId);
+
+        return $baseUrl !== '' ? $baseUrl.$path : $path;
+    }
+
+    public static function getPendingPublicApprovalUrlFor(mixed $taskId, mixed $status): ?string
+    {
+        if ((string) $status !== ApprovalStatus::PENDING->value) {
+            return null;
+        }
+
+        return static::getPublicApprovalUrlFor($taskId);
+    }
+
+    public static function getPublicProgressUrlFor(mixed $statusResponseId): ?string
+    {
+        $statusResponseId = trim((string) $statusResponseId);
+
+        if ($statusResponseId === '') {
+            return null;
+        }
+
+        $baseUrl = rtrim((string) config('app.url'), '/');
+        $path = '/transfer-requests/progress/'.rawurlencode($statusResponseId);
+
+        return $baseUrl !== '' ? $baseUrl.$path : $path;
     }
 }

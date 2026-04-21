@@ -30,6 +30,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use League\Flysystem\UnableToRetrieveMetadata;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Throwable;
 use Webkul\PluginManager\Package;
 
@@ -155,8 +156,13 @@ class PublicTransferRequestForm extends SimplePage
                     (int) ($get('form_transfer_id') ?? 0)
                 ))
                 ->searchable()
+                ->required(fn (Get $get): bool => ! empty($this->transferRequestService->getDivisionOptions(
+                    (int) ($get('form_transfer_id') ?? 0)
+                )))
                 ->disabled(fn (Get $get): bool => ! $get('form_transfer_id'))
-                ->required()
+                ->visible(fn (Get $get): bool => ! empty($this->transferRequestService->getDivisionOptions(
+                    (int) ($get('form_transfer_id') ?? 0)
+                )))
                 ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.division')),
             Select::make('bank_id')
                 ->label(__('form-transfer::filament/resources/transfer-request/fields.bank_name'))
@@ -206,12 +212,6 @@ class PublicTransferRequestForm extends SimplePage
                 ->rows(3)
                 ->placeholder(__('form-transfer::public.form.placeholders.purpose'))
                 ->required(),
-            Select::make('submission_status')
-                ->label(__('form-transfer::filament/resources/transfer-request/fields.submission_status'))
-                ->options(TransferRequestSubmissionStatus::getOptions())
-                ->required()
-                ->default(TransferRequestSubmissionStatus::BARU->value)
-                ->placeholder(__('form-transfer::filament/resources/transfer-request/placeholders.submission_status')),
             Select::make('reference_note')
                 ->label(__('form-transfer::filament/resources/transfer-request/fields.reference_note'))
                 ->options(fn (Get $get): array => $this->transferRequestService->getReferenceNoteOptions(
@@ -234,6 +234,9 @@ class PublicTransferRequestForm extends SimplePage
                 ->required(),
             Hidden::make('form_transfer_id')
                 ->default(fn (): ?int => $this->formTransferModel?->getKey())
+                ->dehydrated(),
+            Hidden::make('submission_status')
+                ->default(TransferRequestSubmissionStatus::BARU->value)
                 ->dehydrated(),
         ];
 
@@ -278,6 +281,10 @@ class PublicTransferRequestForm extends SimplePage
             Log::warning('Temporary upload metadata is unavailable during transfer form submission.', [
                 'error' => $exception->getMessage(),
             ]);
+
+            // Clean up invalid temporary files from state so the user isn't stuck
+            $this->purgeInvalidTemporaryFiles('invoice_path');
+            $this->purgeInvalidTemporaryFiles('account_attachment_path');
 
             $this->addError('data.invoice_path', __('form-transfer::filament/resources/transfer-request/validation.upload_temporary_invalid'));
             $this->addError('data.account_attachment_path', __('form-transfer::filament/resources/transfer-request/validation.upload_temporary_invalid'));
@@ -377,7 +384,7 @@ class PublicTransferRequestForm extends SimplePage
                 'account_attachment_path' => Arr::get($state, 'account_attachment_path'),
                 'approval_workflow_id'    => $workflow?->getKey(),
                 'approvals'               => $approvals,
-                'submission_status'       => Arr::get($state, 'submission_status'),
+                'submission_status'       => TransferRequestSubmissionStatus::BARU->value,
             ];
 
             $transferRequest = TransferRequest::create($payload);
@@ -908,5 +915,33 @@ class PublicTransferRequestForm extends SimplePage
         }
 
         return str_contains($exception->getMessage(), 'livewire-tmp/');
+    }
+
+    protected function purgeInvalidTemporaryFiles(string $field): void
+    {
+        if (! isset($this->data[$field]) || ! is_array($this->data[$field])) {
+            return;
+        }
+
+        $validFiles = [];
+        foreach ($this->data[$field] as $key => $file) {
+            if (blank($file)) {
+                continue;
+            }
+
+            try {
+                $tmpFile = $file instanceof TemporaryUploadedFile
+                    ? $file
+                    : TemporaryUploadedFile::createFromLivewire($file);
+
+                if ($tmpFile->exists()) {
+                    $validFiles[$key] = $file;
+                }
+            } catch (Throwable $exception) {
+                // Skip invalid or missing temporary file
+            }
+        }
+
+        $this->data[$field] = $validFiles;
     }
 }

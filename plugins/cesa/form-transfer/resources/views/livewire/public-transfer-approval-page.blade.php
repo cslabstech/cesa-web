@@ -195,13 +195,15 @@
                         >
                             {{ $this->form }}
 
-                            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
+                            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
                                 <x-filament::button
                                     color="danger"
                                     type="button"
                                     wire:click="reject"
                                     wire:loading.attr="disabled"
                                     wire:target="reject"
+                                    icon="heroicon-m-x-circle"
+                                    class="w-full sm:w-auto"
                                 >
                                     {{ __('form-transfer::public.approval.reject') }}
                                 </x-filament::button>
@@ -211,6 +213,8 @@
                                     color="success"
                                     wire:loading.attr="disabled"
                                     wire:target="approve"
+                                    icon="heroicon-m-check-circle"
+                                    class="w-full sm:w-auto"
                                 >
                                     {{ __('form-transfer::public.approval.approve') }}
                                 </x-filament::button>

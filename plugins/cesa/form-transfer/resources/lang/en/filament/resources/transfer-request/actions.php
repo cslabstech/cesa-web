@@ -6,5 +6,6 @@ return [
     'download_selected_pdfs'   => 'Download selected PDFs',
     'edit_realization'         => 'Edit Realization',
     'export_transfer_requests' => 'Export Transfer Requests',
+    'open_approval_page'       => 'Open approval page',
     'realize_transfer'         => 'Realize Transfer',
 ];

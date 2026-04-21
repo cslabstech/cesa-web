@@ -3,6 +3,7 @@
 namespace Cesa\FormTransfer\Support;
 
 use Filament\Forms\Components\FileUpload;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class TransferRequestAttachmentField
 {
@@ -24,6 +25,11 @@ class TransferRequestAttachmentField
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             ])
             ->maxSize(5120)
+            ->getUploadedFileNameForStorageUsing(
+                fn (TemporaryUploadedFile $file): string => (string) str($file->getClientOriginalName())
+                    ->limit(50, '')
+                    ->append('-'.time().'.'.$file->getClientOriginalExtension())
+            )
             ->helperText(__('form-transfer::filament/resources/transfer-request/helpers.invoice_upload'));
     }
 
@@ -43,6 +49,11 @@ class TransferRequestAttachmentField
                 'image/png',
             ])
             ->maxSize(5120)
+            ->getUploadedFileNameForStorageUsing(
+                fn (TemporaryUploadedFile $file): string => (string) str($file->getClientOriginalName())
+                    ->limit(50, '')
+                    ->append('-'.time().'.'.$file->getClientOriginalExtension())
+            )
             ->helperText(__('form-transfer::filament/resources/transfer-request/helpers.account_attachment_upload'));
     }
 
@@ -61,6 +72,11 @@ class TransferRequestAttachmentField
                 'image/png',
             ])
             ->maxSize(5120)
+            ->getUploadedFileNameForStorageUsing(
+                fn (TemporaryUploadedFile $file): string => (string) str($file->getClientOriginalName())
+                    ->limit(50, '')
+                    ->append('-'.time().'.'.$file->getClientOriginalExtension())
+            )
             ->helperText(__('form-transfer::filament/resources/transfer-request/helpers.realization_proof_upload'));
     }
 }
