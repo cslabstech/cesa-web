@@ -5,7 +5,10 @@ namespace Cesa\ExitClearance\Filament\Resources;
 use Cesa\ExitClearance\Enums\ApprovalStatus;
 use Cesa\ExitClearance\Models\Department;
 use Cesa\ExitClearance\Models\Request;
+use Cesa\ExitClearance\Services\ExitClearanceRequestPdfService;
 use Cesa\ExitClearance\Services\ExitClearanceRequestService;
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -27,6 +30,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\URL;
@@ -587,11 +591,23 @@ class RequestResource extends ExitClearanceResource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
+                Action::make('download-pdf')
+                    ->label(__('exit-clearance::filament/resources/request.actions.download_pdf'))
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('gray')
+                    ->action(fn (Request $record) => app(ExitClearanceRequestPdfService::class)->download($record)),
                 ViewAction::make()->slideOver(),
                 EditAction::make()->slideOver(),
                 DeleteAction::make(),
             ])
             ->bulkActions([
+                BulkAction::make('download-pdf-bulk')
+                    ->label(__('exit-clearance::filament/resources/request.actions.download_selected_pdfs'))
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('gray')
+                    ->authorizeIndividualRecords('view')
+                    ->deselectRecordsAfterCompletion()
+                    ->action(fn (Collection $records) => app(ExitClearanceRequestPdfService::class)->downloadBulkArchive($records)),
                 DeleteBulkAction::make()
                     ->authorizeIndividualRecords(),
             ])

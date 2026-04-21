@@ -1,7 +1,12 @@
 <?php
 
 return [
-    'label' => 'Exit Clearance Request|Exit Clearance Requests',
+    'label'   => 'Exit Clearance Request|Exit Clearance Requests',
+    'actions' => [
+        'download_pdf'                 => 'Download PDF',
+        'download_selected_pdfs'       => 'Download selected PDFs',
+        'download_pdf_filename_prefix' => 'exit-clearance',
+    ],
     'steps' => [
         'resignation_letter' => 'Resignation Letter',
         'personal_data'      => 'Personal Data',

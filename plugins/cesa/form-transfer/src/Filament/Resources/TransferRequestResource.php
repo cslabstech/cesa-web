@@ -14,9 +14,11 @@ use Cesa\FormTransfer\Models\FormTransfer;
 use Cesa\FormTransfer\Models\TransferApprovalWorkflow;
 use Cesa\FormTransfer\Models\TransferRequest;
 use Cesa\FormTransfer\Services\TransferApprovalNotificationService;
+use Cesa\FormTransfer\Services\TransferRequestPdfService;
 use Cesa\FormTransfer\Services\TransferRequestService;
 use Cesa\FormTransfer\Support\TransferRequestAttachmentField;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -47,6 +49,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema as SchemaFacade;
@@ -750,6 +753,13 @@ class TransferRequestResource extends FormTransferResource
                 DeleteAction::make(),
             ])
             ->bulkActions([
+                BulkAction::make('download-pdf-bulk')
+                    ->label(__('form-transfer::filament/resources/transfer-request/actions.download_selected_pdfs'))
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('gray')
+                    ->authorizeIndividualRecords('view')
+                    ->deselectRecordsAfterCompletion()
+                    ->action(fn (Collection $records) => app(TransferRequestPdfService::class)->downloadBulkArchive($records)),
                 DeleteBulkAction::make(),
                 RestoreBulkAction::make(),
                 ForceDeleteBulkAction::make(),

@@ -2,7 +2,6 @@
 
 namespace Cesa\FormTransfer\Filament\Resources\TransferRequestResource\Pages;
 
-use Barryvdh\DomPDF\Facade\Pdf;
 use Cesa\FormTransfer\Enums\ApprovalStatus;
 use Cesa\FormTransfer\Enums\TransferRequestApprovalStatus;
 use Cesa\FormTransfer\Enums\TransferRequestRealizationStatus;
@@ -10,6 +9,7 @@ use Cesa\FormTransfer\Filament\Resources\TransferRequestResource;
 use Cesa\FormTransfer\Models\TransferRequest;
 use Cesa\FormTransfer\Services\ApprovalWorkflowService;
 use Cesa\FormTransfer\Services\TransferApprovalNotificationService;
+use Cesa\FormTransfer\Services\TransferRequestPdfService;
 use Cesa\FormTransfer\Support\TransferRequestAttachmentField;
 use Filament\Actions;
 use Filament\Actions\Action;
@@ -36,20 +36,7 @@ class ViewTransferRequest extends ViewRecord
                 ->label(__('form-transfer::filament/resources/transfer-request/view.transfer_request.actions.download_pdf'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('gray')
-                ->action(function (TransferRequest $record) {
-                    $record->loadMissing(['bank', 'division', 'company', 'approvalWorkflow', 'formTransfer']);
-
-                    $pdf = Pdf::loadView('form-transfer::pdf.transfer-request', [
-                        'record' => $record,
-                    ])->setPaper('a4', 'portrait');
-
-                    $fileName = __('form-transfer::filament/resources/transfer-request/view.transfer_request.actions.download_pdf_filename_prefix')
-                        .'-'.($record->uid ?: $record->id).'.pdf';
-
-                    return response()->streamDownload(function () use ($pdf): void {
-                        echo $pdf->output();
-                    }, $fileName);
-                }),
+                ->action(fn (TransferRequest $record) => app(TransferRequestPdfService::class)->download($record)),
             Action::make('resend-pending-approver')
                 ->label(__('form-transfer::filament/resources/transfer-request/view.transfer_request.actions.resend_pending_approver'))
                 ->icon('heroicon-o-paper-airplane')

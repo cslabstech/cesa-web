@@ -5,6 +5,7 @@ namespace Cesa\ExitClearance\Filament\Resources\RequestResource\Pages;
 use Cesa\ExitClearance\Filament\Resources\RequestResource;
 use Cesa\ExitClearance\Models\Request;
 use Cesa\ExitClearance\Services\ExitClearanceNotificationService;
+use Cesa\ExitClearance\Services\ExitClearanceRequestPdfService;
 use Cesa\ExitClearance\Services\ExitClearanceRequestService;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -21,6 +22,11 @@ class ViewRequest extends ViewRecord
         return [
             EditAction::make()
                 ->visible(fn (Request $record): bool => $this->canModify($record)),
+            Action::make('download-pdf')
+                ->label(__('exit-clearance::filament/resources/request.actions.download_pdf'))
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->action(fn (Request $record) => app(ExitClearanceRequestPdfService::class)->download($record)),
             Action::make('resend-pending-approvers')
                 ->label(__('exit-clearance::filament/resources/request/pages/view-request.actions.resend_pending_approvers.label'))
                 ->icon('heroicon-o-paper-airplane')

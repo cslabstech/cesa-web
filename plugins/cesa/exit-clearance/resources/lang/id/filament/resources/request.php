@@ -1,7 +1,12 @@
 <?php
 
 return [
-    'label' => 'Pengajuan Exit Clearance|Pengajuan Exit Clearance',
+    'label'   => 'Pengajuan Exit Clearance|Pengajuan Exit Clearance',
+    'actions' => [
+        'download_pdf'                 => 'Unduh PDF',
+        'download_selected_pdfs'       => 'Unduh PDF terpilih',
+        'download_pdf_filename_prefix' => 'exit-clearance',
+    ],
     'steps' => [
         'resignation_letter' => 'Surat Pengunduran Diri',
         'personal_data'      => 'Data Diri',
