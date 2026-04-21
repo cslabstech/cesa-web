@@ -19,7 +19,9 @@ class TransferRequestAttachmentField
             ->fetchFileInformation(false)
             ->acceptedFileTypes([
                 'application/pdf',
+                'application/x-pdf',
                 'image/jpeg',
+                'image/jpg',
                 'image/png',
                 'application/vnd.ms-excel',
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -45,7 +47,9 @@ class TransferRequestAttachmentField
             ->fetchFileInformation(false)
             ->acceptedFileTypes([
                 'application/pdf',
+                'application/x-pdf',
                 'image/jpeg',
+                'image/jpg',
                 'image/png',
             ])
             ->maxSize(5120)

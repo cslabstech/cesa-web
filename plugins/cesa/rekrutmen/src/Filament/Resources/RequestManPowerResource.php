@@ -6,6 +6,7 @@ use Cesa\Rekrutmen\Enums\RequestManPowerApprovalStatus;
 use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Enums\StatusKebutuhan;
 use Cesa\Rekrutmen\Filament\Resources\RequestManPowerResource\Pages;
+use Cesa\Rekrutmen\Filament\Resources\RequestManPowerResource\RelationManagers\ApprovalsRelationManager;
 use Cesa\Rekrutmen\Models\Division;
 use Cesa\Rekrutmen\Models\RequestManPower;
 use Cesa\Rekrutmen\Models\RequestManPowerApproval;
@@ -511,7 +512,9 @@ class RequestManPowerResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            ApprovalsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

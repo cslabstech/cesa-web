@@ -3,6 +3,7 @@
 namespace Cesa\Rekrutmen\Tests\Feature;
 
 use Cesa\Rekrutmen\Filament\Resources\RequestManPowerResource;
+use Cesa\Rekrutmen\Filament\Resources\RequestManPowerResource\RelationManagers\ApprovalsRelationManager;
 use Cesa\Rekrutmen\Tests\RekrutmenTestCase;
 use Filament\Facades\Filament;
 use Spatie\Permission\Models\Permission;
@@ -31,9 +32,11 @@ class RequestManPowerViewPageTest extends RekrutmenTestCase
         $this->actingAs($user);
     }
 
-    public function test_request_man_power_resource_does_not_register_relation_managers(): void
+    public function test_request_man_power_resource_registers_the_approvals_relation_manager(): void
     {
-        $this->assertSame([], RequestManPowerResource::getRelations());
+        $this->assertSame([
+            ApprovalsRelationManager::class,
+        ], RequestManPowerResource::getRelations());
     }
 
     public function test_request_man_power_infolist_uses_repeatable_entry_for_approval_flow(): void
