@@ -2,25 +2,20 @@
     <div class="mx-auto max-w-2xl">
         @php
             $formStatusValue = strtolower($statusLabel);
-            $formStatusClasses = match ($formStatusValue) {
-                'approved' => 'bg-emerald-100 text-emerald-700',
-                'rejected' => 'bg-red-100 text-red-700',
-                default => 'bg-gray-100 text-gray-700',
+            $formStatusColor = match ($formStatusValue) {
+                'approved' => 'success',
+                'rejected' => 'danger',
+                default => 'gray',
             };
             $currentStatusValue = strtolower($currentApproval['status'] ?? 'pending');
             $currentStatusEnum = \Cesa\ExitClearance\Enums\ApprovalStatus::tryFrom($currentStatusValue);
             $currentStatusLabel = $currentStatusEnum ? $currentStatusEnum->getLabel() : ucfirst($currentStatusValue);
             $currentStatusColor = $currentStatusEnum?->getColor() ?? 'gray';
-            $currentStatusClasses = match ($currentStatusColor) {
-                'success' => 'bg-emerald-100 text-emerald-700',
-                'danger' => 'bg-red-100 text-red-700',
-                default => 'bg-gray-100 text-gray-700',
-            };
         @endphp
 
-	        <div class="mb-4 rounded-lg border-t-[10px] cesa-primary-border bg-white shadow-sm">
+        <div class="mb-4 rounded-lg border-t-[10px] cesa-primary-border bg-white shadow-sm">
             <div class="px-6 pt-5 pb-6">
-                <h1 class="text-[32px] font-normal text-gray-900 leading-tight">{{ __('exit-clearance::livewire/public-exit-clearance-approval-page.page_title') }}</h1>
+                <h1 class="text-[32px] font-normal leading-tight text-gray-900">{{ __('exit-clearance::livewire/public-exit-clearance-approval-page.page_title') }}</h1>
                 <p class="mt-2 text-sm text-gray-600">
                     {{ __('exit-clearance::livewire/public-exit-clearance-approval-page.please_review') }} <span class="font-medium text-gray-900">{{ $requestRecord->name ?? 'User' }}</span>.
                 </p>
@@ -28,14 +23,14 @@
             <div class="border-t border-gray-200 px-6 py-3">
                 <div class="flex flex-wrap items-center gap-2 text-xs text-gray-600">
                     <span>{{ __('exit-clearance::livewire/public-exit-clearance-approval-page.submission_status') }}</span>
-                    <span class="{{ $formStatusClasses }} inline-flex items-center rounded-full px-3 py-1 text-xs font-medium">
+                    <x-filament::badge :color="$formStatusColor" class="rounded-full px-3 py-1 text-xs font-medium">
                         {{ $statusLabel }}
-                    </span>
+                    </x-filament::badge>
                     <span class="text-gray-300">|</span>
                     <span>{{ __('exit-clearance::livewire/public-exit-clearance-approval-page.your_approval_status') }}</span>
-                    <span class="{{ $currentStatusClasses }} inline-flex items-center rounded-full px-3 py-1 text-xs font-medium">
+                    <x-filament::badge :color="$currentStatusColor" class="rounded-full px-3 py-1 text-xs font-medium">
                         {{ $currentStatusLabel }}
-                    </span>
+                    </x-filament::badge>
                     @if(!empty($requestRecord->form_uid))
                         <span class="text-gray-300">|</span>
                         <span class="font-mono text-gray-400">{{ $requestRecord->form_uid }}</span>
@@ -185,11 +180,6 @@
                                 $statusEnum = \Cesa\ExitClearance\Enums\ApprovalStatus::tryFrom($approvalStatusValue);
                                 $approvalStatusLabel = $statusEnum ? $statusEnum->getLabel() : ucfirst($approvalStatusValue);
                                 $approvalStatusColor = $statusEnum?->getColor() ?? 'gray';
-                                $approvalStatusClasses = match ($approvalStatusColor) {
-                                    'success' => 'bg-emerald-100 text-emerald-700',
-                                    'danger' => 'bg-red-100 text-red-700',
-                                    default => 'bg-gray-100 text-gray-700',
-                                };
                             @endphp
                             <li class="rounded-lg border border-gray-200 p-4">
                                 <div class="flex items-start justify-between gap-4">
@@ -201,9 +191,9 @@
                                             @if (!empty($approval['title'])) {{ $approval['title'] }} @endif
                                         </p>
                                     </div>
-                                    <span class="{{ $approvalStatusClasses }} rounded-full px-3 py-1 text-xs font-medium">
+                                    <x-filament::badge :color="$approvalStatusColor" class="rounded-full px-3 py-1 text-xs font-medium">
                                         {{ $approvalStatusLabel }}
-                                    </span>
+                                    </x-filament::badge>
                                 </div>
 
                                 @if (!empty($approval['notes']))
@@ -240,13 +230,15 @@
                     >
                         {{ $this->form }}
 
-                        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
+                        <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
                             <x-filament::button
                                 type="button"
                                 color="danger"
                                 wire:click="reject"
                                 wire:loading.attr="disabled"
                                 wire:target="reject"
+                                icon="heroicon-m-x-circle"
+                                class="w-full sm:w-auto"
                             >
                                 {{ __('exit-clearance::livewire/public-exit-clearance-approval-page.reject') }}
                             </x-filament::button>
@@ -256,6 +248,8 @@
                                 color="success"
                                 wire:loading.attr="disabled"
                                 wire:target="approve"
+                                icon="heroicon-m-check-circle"
+                                class="w-full sm:w-auto"
                             >
                                 {{ __('exit-clearance::livewire/public-exit-clearance-approval-page.approve') }}
                             </x-filament::button>

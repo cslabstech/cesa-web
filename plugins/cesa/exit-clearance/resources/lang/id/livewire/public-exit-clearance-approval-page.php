@@ -12,7 +12,7 @@ return [
     'personal_data'        => 'Data Diri',
     'questionnaire'        => 'Kuesioner',
     'clearance'            => 'Kliring',
-    'approval_flow'        => 'ALUR PENYETUJUAN',
+    'approval_flow'        => 'ALUR PERSETUJUAN',
     'view_attachment'      => 'Lihat lampiran',
     'notes'                => 'Catatan',
     'process_time'         => 'Waktu proses:',

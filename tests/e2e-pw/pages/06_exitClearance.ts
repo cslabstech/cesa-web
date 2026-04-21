@@ -37,7 +37,7 @@ export class ExitClearancePage {
             .first();
         this.progressPageTitle = page.getByRole("heading", { name: "PROGRES EXIT CLEARANCE" });
         this.currentStatusLabel = page.getByText("Status saat ini");
-        this.approvalFlowHeading = page.getByRole("heading", { name: "ALUR PENYETUJUAN" });
+        this.approvalFlowHeading = page.getByRole("heading", { name: "ALUR PERSETUJUAN" });
         this.publicUrlCandidates = [
             process.env.EXIT_CLEARANCE_PUBLIC_URL ?? "http://web-cesa.test/exit-clearance",
             "/exit-clearance",
