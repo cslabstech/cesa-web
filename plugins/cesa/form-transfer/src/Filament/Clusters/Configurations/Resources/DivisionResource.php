@@ -54,7 +54,7 @@ class DivisionResource extends Resource
                     ->relationship(
                         name: 'formTransfer',
                         titleAttribute: 'name',
-                        modifyQueryUsing: fn (Builder $query) => $query->whereNull($query->qualifyColumn('deleted_at')),
+                        modifyQueryUsing: fn (Builder $query): Builder => $query->internalEntry(),
                     )
                     ->required()
                     ->searchable()
@@ -99,7 +99,7 @@ class DivisionResource extends Resource
                     ->relationship(
                         'formTransfer',
                         'name',
-                        fn (Builder $query) => $query->whereNull($query->qualifyColumn('deleted_at')),
+                        fn (Builder $query): Builder => $query->internalEntry(),
                     )
                     ->searchable(),
                 Tables\Filters\TernaryFilter::make('is_active')

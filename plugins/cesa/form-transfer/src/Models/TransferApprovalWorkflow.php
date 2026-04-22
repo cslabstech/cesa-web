@@ -38,6 +38,16 @@ class TransferApprovalWorkflow extends Model
     protected static function booted(): void
     {
         static::saving(function (self $workflow): void {
+            if (! FormTransfer::query()->internalEntry()->whereKey($workflow->form_transfer_id)->exists()) {
+                throw ValidationException::withMessages([
+                    'form_transfer_id' => __('validation.exists', [
+                        'attribute' => Str::lower(
+                            __('form-transfer::filament/clusters/configurations/resources/approval-workflow.fields.form_transfer')
+                        ),
+                    ]),
+                ]);
+            }
+
             $steps = collect($workflow->steps ?? [])
                 ->map(function (mixed $step): mixed {
                     if (! is_array($step)) {

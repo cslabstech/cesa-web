@@ -51,6 +51,29 @@ class FormTransferModelTest extends FormTransferTestCase
         $this->assertSame(2, $second->public_sort_order);
     }
 
+    public function test_internal_entry_scope_only_returns_non_deleted_internal_form_transfers(): void
+    {
+        $internal = FormTransfer::factory()->create([
+            'public_entry_type' => FormTransfer::PUBLIC_ENTRY_TYPE_INTERNAL,
+        ]);
+        FormTransfer::factory()->create([
+            'public_entry_type' => FormTransfer::PUBLIC_ENTRY_TYPE_EXTERNAL,
+        ]);
+        $deletedInternal = FormTransfer::factory()->create([
+            'public_entry_type' => FormTransfer::PUBLIC_ENTRY_TYPE_INTERNAL,
+        ]);
+
+        $deletedInternal->delete();
+
+        $formTransferIds = FormTransfer::query()
+            ->withTrashed()
+            ->internalEntry()
+            ->pluck('id')
+            ->all();
+
+        $this->assertSame([$internal->id], $formTransferIds);
+    }
+
     public function test_has_custom_notification_templates_detects_any_filled_template(): void
     {
         $withoutTemplate = FormTransfer::factory()->make([
@@ -162,6 +185,61 @@ class FormTransferModelTest extends FormTransferTestCase
                     'label'         => 'Manager Approval',
                     'default_name'  => 'Manager',
                     'default_email' => '   ',
+                    'default_title' => 'Manager',
+                    'is_mandatory'  => true,
+                ],
+            ],
+            'is_active'        => true,
+        ]);
+    }
+
+    public function test_transfer_division_rejects_external_form_transfer(): void
+    {
+        $formTransfer = FormTransfer::factory()->create([
+            'public_entry_type' => FormTransfer::PUBLIC_ENTRY_TYPE_EXTERNAL,
+        ]);
+
+        $this->expectException(ValidationException::class);
+
+        TransferDivision::query()->create([
+            'form_transfer_id' => $formTransfer->id,
+            'name'             => 'Division External',
+            'is_active'        => true,
+        ]);
+    }
+
+    public function test_transfer_reference_note_rejects_external_form_transfer(): void
+    {
+        $formTransfer = FormTransfer::factory()->create([
+            'public_entry_type' => FormTransfer::PUBLIC_ENTRY_TYPE_EXTERNAL,
+        ]);
+
+        $this->expectException(ValidationException::class);
+
+        TransferReferenceNote::query()->create([
+            'form_transfer_id' => $formTransfer->id,
+            'label'            => 'Catatan External',
+            'is_active'        => true,
+        ]);
+    }
+
+    public function test_transfer_approval_workflow_rejects_external_form_transfer(): void
+    {
+        $formTransfer = FormTransfer::factory()->create([
+            'public_entry_type' => FormTransfer::PUBLIC_ENTRY_TYPE_EXTERNAL,
+        ]);
+
+        $this->expectException(ValidationException::class);
+
+        TransferApprovalWorkflow::query()->create([
+            'form_transfer_id' => $formTransfer->id,
+            'name'             => 'Workflow External',
+            'code'             => 'WF-EXT',
+            'steps'            => [
+                [
+                    'label'         => 'Approver',
+                    'default_name'  => 'Manager',
+                    'default_email' => 'manager@example.com',
                     'default_title' => 'Manager',
                     'is_mandatory'  => true,
                 ],

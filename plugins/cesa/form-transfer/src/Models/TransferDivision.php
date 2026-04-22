@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class TransferDivision extends Model
 {
@@ -27,6 +29,21 @@ class TransferDivision extends Model
         return [
             'is_active' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $division): void {
+            if (! FormTransfer::query()->internalEntry()->whereKey($division->form_transfer_id)->exists()) {
+                throw ValidationException::withMessages([
+                    'form_transfer_id' => __('validation.exists', [
+                        'attribute' => Str::lower(
+                            __('form-transfer::filament/clusters/configurations/resources/division.fields.form_transfer')
+                        ),
+                    ]),
+                ]);
+            }
+        });
     }
 
     public function formTransfer(): BelongsTo

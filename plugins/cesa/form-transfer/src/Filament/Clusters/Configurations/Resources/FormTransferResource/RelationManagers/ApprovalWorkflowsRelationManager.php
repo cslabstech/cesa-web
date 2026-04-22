@@ -2,6 +2,7 @@
 
 namespace Cesa\FormTransfer\Filament\Clusters\Configurations\Resources\FormTransferResource\RelationManagers;
 
+use Cesa\FormTransfer\Models\FormTransfer;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -33,6 +34,12 @@ class ApprovalWorkflowsRelationManager extends RelationManager
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('form-transfer::filament/resources/transfer-request/relation-managers.approval_workflows');
+    }
+
+    public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
+    {
+        return $ownerRecord instanceof FormTransfer
+            && $ownerRecord->public_entry_type === FormTransfer::PUBLIC_ENTRY_TYPE_INTERNAL;
     }
 
     public function form(Schema $schema): Schema

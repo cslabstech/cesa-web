@@ -3,6 +3,11 @@
 namespace Cesa\FormTransfer\Tests\Unit\Filament;
 
 use Cesa\FormTransfer\Filament\Clusters\Configurations\Resources\FormTransferResource;
+use Cesa\FormTransfer\Filament\Clusters\Configurations\Resources\FormTransferResource\Pages\EditFormTransfer;
+use Cesa\FormTransfer\Filament\Clusters\Configurations\Resources\FormTransferResource\Pages\ViewFormTransfer;
+use Cesa\FormTransfer\Filament\Clusters\Configurations\Resources\FormTransferResource\RelationManagers\ApprovalWorkflowsRelationManager;
+use Cesa\FormTransfer\Filament\Clusters\Configurations\Resources\FormTransferResource\RelationManagers\DivisionsRelationManager;
+use Cesa\FormTransfer\Filament\Clusters\Configurations\Resources\FormTransferResource\RelationManagers\ReferenceNotesRelationManager;
 use Cesa\FormTransfer\Models\FormTransfer;
 use Cesa\FormTransfer\Tests\FormTransferTestCase;
 
@@ -60,5 +65,51 @@ class FormTransferResourceConfigurationTest extends FormTransferTestCase
             $source
         );
         $this->assertStringNotContainsString("Toggle::make('public_open_in_new_tab')", $source);
+    }
+
+    public function test_configuration_resources_only_use_internal_form_transfers_for_relationship_options(): void
+    {
+        $resourcePaths = [
+            'plugins/cesa/form-transfer/src/Filament/Clusters/Configurations/Resources/DivisionResource.php',
+            'plugins/cesa/form-transfer/src/Filament/Clusters/Configurations/Resources/ReferenceNoteResource.php',
+            'plugins/cesa/form-transfer/src/Filament/Clusters/Configurations/Resources/ApprovalWorkflowResource.php',
+        ];
+
+        foreach ($resourcePaths as $resourcePath) {
+            $source = file_get_contents(base_path($resourcePath));
+
+            $this->assertIsString($source);
+            $this->assertStringContainsString("Select::make('form_transfer_id')", $source);
+            $this->assertStringContainsString("SelectFilter::make('form_transfer_id')", $source);
+            $this->assertGreaterThanOrEqual(2, substr_count($source, '->internalEntry()'));
+        }
+    }
+
+    public function test_relation_managers_are_hidden_for_external_form_transfers(): void
+    {
+        $internal = FormTransfer::factory()->create([
+            'public_entry_type' => FormTransfer::PUBLIC_ENTRY_TYPE_INTERNAL,
+        ]);
+        $external = FormTransfer::factory()->create([
+            'public_entry_type' => FormTransfer::PUBLIC_ENTRY_TYPE_EXTERNAL,
+        ]);
+
+        $relationManagers = [
+            DivisionsRelationManager::class,
+            ReferenceNotesRelationManager::class,
+            ApprovalWorkflowsRelationManager::class,
+        ];
+
+        $pages = [
+            EditFormTransfer::class,
+            ViewFormTransfer::class,
+        ];
+
+        foreach ($relationManagers as $relationManager) {
+            foreach ($pages as $pageClass) {
+                $this->assertTrue($relationManager::canViewForRecord($internal, $pageClass));
+                $this->assertFalse($relationManager::canViewForRecord($external, $pageClass));
+            }
+        }
     }
 }

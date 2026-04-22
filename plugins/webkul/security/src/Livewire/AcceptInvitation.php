@@ -4,13 +4,13 @@ namespace Webkul\Security\Livewire;
 
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Pages\Concerns\InteractsWithFormActions;
 use Filament\Pages\SimplePage;
 use Filament\Schemas\Schema;
 use Illuminate\Validation\Rules\Password;
-use Webkul\Project\Filament\Pages\Dashboard;
 use Webkul\Security\Models\Invitation;
 use Webkul\Security\Models\User;
 use Webkul\Security\Settings\UserSettings;
@@ -80,7 +80,7 @@ class AcceptInvitation extends SimplePage
 
         $this->invitationModel->delete();
 
-        $this->redirect(Dashboard::getUrl());
+        $this->redirect(Filament::getPanel('admin')->getUrl());
     }
 
     /**

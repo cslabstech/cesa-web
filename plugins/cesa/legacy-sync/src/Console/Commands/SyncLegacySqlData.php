@@ -109,6 +109,10 @@ class SyncLegacySqlData extends Command
 
     protected bool $sharedLegacyCompaniesSynchronized = false;
 
+    protected bool $sharedLegacyUsersSynchronized = false;
+
+    protected bool $sharedLegacyCoreDataSynchronized = false;
+
     /**
      * @var array<string, int>
      */
@@ -331,7 +335,7 @@ class SyncLegacySqlData extends Command
             ]);
         }
 
-        $this->syncSharedLegacyCompanies();
+        $this->syncSharedLegacyCoreData();
         $this->syncTransferBanks();
         $this->syncFormTransfers();
         $this->syncTransferDivisions();
@@ -352,7 +356,7 @@ class SyncLegacySqlData extends Command
             $this->truncateTables(['documents']);
         }
 
-        $this->syncSharedLegacyCompanies();
+        $this->syncSharedLegacyCoreData();
         $this->syncDocuments();
     }
 
@@ -384,7 +388,7 @@ class SyncLegacySqlData extends Command
 
         $this->syncedExitRequestIds = [];
 
-        $this->syncSharedLegacyCompanies();
+        $this->syncSharedLegacyCoreData();
         $this->syncExitClearanceDepartments();
         $this->syncExitClearanceApprovers();
         $this->syncExitClearanceDepartmentApprovers();
@@ -573,12 +577,790 @@ class SyncLegacySqlData extends Command
         }
 
         $query = DB::connection($this->legacyConnection)->table('companies');
+        $rows = [];
 
-        $this->syncRows('Shared legacy companies', $query, function (object $row): void {
-            $this->resolveCompanyId($this->nullableInt($row->id));
+        $this->syncRows('Shared legacy companies', $query, function (object $row) use (&$rows): void {
+            $rows[] = $row;
+
+            $targetId = $this->resolveCompanyId($this->nullableInt($row->id));
+
+            if ($targetId === null) {
+                return;
+            }
+
+            $currencyId = $this->nullableInt($row->currency_id ?? null) !== null
+                ? $this->mappedTargetId('currencies', $row->currency_id, 'currencies')
+                : null;
+            $creatorId = $this->resolveUserId($this->nullableInt($row->creator_id ?? null));
+            $stateId = $this->nullableInt($row->state_id ?? null) !== null
+                ? $this->mappedTargetId('states', $row->state_id, 'states')
+                : null;
+            $countryId = $this->nullableInt($row->country_id ?? null) !== null
+                ? $this->mappedTargetId('countries', $row->country_id, 'countries')
+                : null;
+
+            $company = Company::query()->withTrashed()->find($targetId);
+
+            if (! $company) {
+                return;
+            }
+
+            $company->fill([
+                'currency_id'         => $currencyId,
+                'creator_id'          => $creatorId,
+                'sort'                => $this->nullableInt($row->sort ?? null),
+                'name'                => $this->nullableString($row->name) ?? 'Legacy Company '.$row->id,
+                'company_id'          => $this->nullableString($row->company_id) ?? $company->company_id,
+                'tax_id'              => $this->nullableString($row->tax_id ?? null),
+                'registration_number' => $this->nullableString($row->registration_number ?? null),
+                'email'               => $this->nullableString($row->email ?? null),
+                'phone'               => $this->nullableString($row->phone ?? null),
+                'mobile'              => $this->nullableString($row->mobile ?? null),
+                'website'             => $this->nullableString($row->website ?? null),
+                'color'               => $this->nullableString($row->color ?? null),
+                'is_active'           => $this->normalizeBoolean($row->is_active ?? null, true),
+                'founded_date'        => $row->founded_date ?? null,
+                'street1'             => $this->nullableString($row->street1 ?? null),
+                'street2'             => $this->nullableString($row->street2 ?? null),
+                'city'                => $this->nullableString($row->city ?? null),
+                'zip'                 => $this->nullableString($row->zip ?? null),
+                'state_id'            => $stateId,
+                'country_id'          => $countryId,
+            ]);
+            $company->deleted_at = $row->deleted_at ?? null;
+            $company->created_at = $row->created_at ?? $company->created_at ?? now();
+            $company->updated_at = $row->updated_at ?? now();
+            $company->save();
+
+            if ($company->partner_id) {
+                DB::table('partners_partners')
+                    ->where('id', $company->partner_id)
+                    ->update([
+                        'deleted_at' => $row->deleted_at ?? null,
+                        'updated_at' => $row->updated_at ?? now(),
+                    ]);
+            }
         });
 
+        foreach ($rows as $row) {
+            $targetId = $this->mappedTargetId('companies', $row->id, 'companies');
+            $parentId = $this->nullableInt($row->parent_id ?? null) !== null
+                ? $this->mappedTargetId('companies', $row->parent_id, 'companies')
+                : null;
+
+            if ($targetId === null) {
+                continue;
+            }
+
+            DB::table('companies')
+                ->where('id', $targetId)
+                ->update(['parent_id' => $parentId]);
+        }
+
         $this->refreshCompanyLookupCache();
+    }
+
+    protected function syncSharedLegacyCoreData(): void
+    {
+        if ($this->sharedLegacyCoreDataSynchronized) {
+            return;
+        }
+
+        $this->sharedLegacyCoreDataSynchronized = true;
+
+        if ($this->shouldTruncate()) {
+            $this->truncateTables([
+                'utm_campaigns',
+                'utm_sources',
+                'utm_mediums',
+                'utm_stages',
+                'activity_types',
+                'activity_plans',
+                'unit_of_measures',
+                'unit_of_measure_categories',
+                'companies',
+                'partners_partners',
+                'states',
+                'countries',
+                'currencies',
+            ]);
+        }
+
+        $this->syncLegacyCurrencies();
+        $this->syncLegacyCountries();
+        $this->syncLegacyStates();
+        $this->syncSharedLegacyUsers();
+        $this->syncSharedLegacyCompanies();
+        $this->syncLegacyActivityPlans();
+        $this->syncLegacyActivityTypes();
+        $this->syncLegacyUnitOfMeasureCategories();
+        $this->syncLegacyUnitOfMeasures();
+        $this->syncLegacyUtmStages();
+        $this->syncLegacyUtmMediums();
+        $this->syncLegacyUtmSources();
+        $this->syncLegacyUtmCampaigns();
+    }
+
+    protected function syncLegacyCurrencies(): void
+    {
+        if (! Schema::connection($this->legacyConnection)->hasTable('currencies')) {
+            return;
+        }
+
+        $query = DB::connection($this->legacyConnection)->table('currencies');
+        $configuredCurrencyCode = Str::upper((string) config('app.currency', ''));
+
+        $this->syncRows('Shared legacy currencies', $query, function (object $row) use ($configuredCurrencyCode): void {
+            $targetId = $this->resolveTargetId(
+                'currencies',
+                $row->id,
+                'currencies',
+                fn (): ?int => $this->nullableInt(
+                    DB::table('currencies')
+                        ->where('name', $this->nullableString($row->name) ?? '')
+                        ->value('id')
+                ),
+            );
+
+            if ($targetId === null) {
+                return;
+            }
+
+            DB::table('currencies')->updateOrInsert(
+                ['id' => $targetId],
+                [
+                    'name'           => $this->nullableString($row->name) ?? '',
+                    'symbol'         => $this->nullableString($row->symbol ?? null),
+                    'iso_numeric'    => $this->nullableInt($row->iso_numeric ?? null),
+                    'decimal_places' => $this->nullableInt($row->decimal_places ?? null),
+                    'full_name'      => $this->nullableString($row->full_name ?? null),
+                    'rounding'       => (float) ($row->rounding ?? 0),
+                    'active'         => Str::upper((string) ($row->name ?? '')) === $configuredCurrencyCode
+                        ? true
+                        : $this->normalizeBoolean($row->active ?? null, true),
+                    'created_at'     => $row->created_at ?? now(),
+                    'updated_at'     => $row->updated_at ?? now(),
+                ],
+            );
+
+            $this->rememberMapping('currencies', $row->id, 'currencies', $targetId);
+        });
+    }
+
+    protected function syncLegacyCountries(): void
+    {
+        if (! Schema::connection($this->legacyConnection)->hasTable('countries')) {
+            return;
+        }
+
+        $query = DB::connection($this->legacyConnection)->table('countries');
+
+        $this->syncRows('Shared legacy countries', $query, function (object $row): void {
+            $currencyId = $this->nullableInt($row->currency_id ?? null) !== null
+                ? $this->mappedTargetId('currencies', $row->currency_id, 'currencies')
+                : null;
+
+            $targetId = $this->resolveTargetId(
+                'countries',
+                $row->id,
+                'countries',
+                function () use ($row): ?int {
+                    $code = $this->nullableString($row->code ?? null);
+
+                    if ($code !== null) {
+                        $candidate = DB::table('countries')->where('code', $code)->value('id');
+
+                        if ($candidate !== null) {
+                            return (int) $candidate;
+                        }
+                    }
+
+                    return $this->nullableInt(
+                        DB::table('countries')
+                            ->where('name', $this->nullableString($row->name) ?? '')
+                            ->value('id')
+                    );
+                },
+            );
+
+            if ($targetId === null) {
+                return;
+            }
+
+            DB::table('countries')->updateOrInsert(
+                ['id' => $targetId],
+                [
+                    'currency_id'    => $currencyId,
+                    'phone_code'     => $this->nullableString($row->phone_code ?? null),
+                    'code'           => $this->nullableString($row->code ?? null),
+                    'name'           => $this->nullableString($row->name) ?? '',
+                    'state_required' => $this->normalizeBoolean($row->state_required ?? null, false),
+                    'zip_required'   => $this->normalizeBoolean($row->zip_required ?? null, false),
+                    'created_at'     => $row->created_at ?? now(),
+                    'updated_at'     => $row->updated_at ?? now(),
+                ],
+            );
+
+            $this->rememberMapping('countries', $row->id, 'countries', $targetId);
+        });
+    }
+
+    protected function syncLegacyStates(): void
+    {
+        if (! Schema::connection($this->legacyConnection)->hasTable('states')) {
+            return;
+        }
+
+        $query = DB::connection($this->legacyConnection)->table('states');
+
+        $this->syncRows('Shared legacy states', $query, function (object $row): void {
+            $countryId = $this->mappedTargetId('countries', $row->country_id, 'countries');
+
+            if ($countryId === null) {
+                $this->warnMissingRelation('states', $row->id, 'country_id', $row->country_id);
+
+                return;
+            }
+
+            $targetId = $this->resolveTargetId(
+                'states',
+                $row->id,
+                'states',
+                function () use ($row, $countryId): ?int {
+                    $code = $this->nullableString($row->code ?? null);
+                    $query = DB::table('states')->where('country_id', $countryId);
+
+                    if ($code !== null) {
+                        $candidate = (clone $query)->where('code', $code)->value('id');
+
+                        if ($candidate !== null) {
+                            return (int) $candidate;
+                        }
+                    }
+
+                    return $this->nullableInt(
+                        $query->where('name', $this->nullableString($row->name) ?? '')
+                            ->value('id')
+                    );
+                },
+            );
+
+            if ($targetId === null) {
+                return;
+            }
+
+            DB::table('states')->updateOrInsert(
+                ['id' => $targetId],
+                [
+                    'country_id' => $countryId,
+                    'name'       => $this->nullableString($row->name) ?? '',
+                    'code'       => $this->nullableString($row->code) ?? '',
+                    'created_at' => $row->created_at ?? now(),
+                    'updated_at' => $row->updated_at ?? now(),
+                ],
+            );
+
+            $this->rememberMapping('states', $row->id, 'states', $targetId);
+        });
+    }
+
+    protected function syncLegacyActivityPlans(): void
+    {
+        if (! Schema::connection($this->legacyConnection)->hasTable('activity_plans')) {
+            return;
+        }
+
+        $query = DB::connection($this->legacyConnection)->table('activity_plans');
+
+        $this->syncRows('Shared legacy activity plans', $query, function (object $row): void {
+            $companyId = $this->nullableInt($row->company_id ?? null) !== null
+                ? $this->mappedTargetId('companies', $row->company_id, 'companies')
+                : null;
+            $creatorId = $this->resolveUserId($this->nullableInt($row->creator_id ?? null), $companyId);
+
+            $targetId = $this->resolveTargetId(
+                'activity_plans',
+                $row->id,
+                'activity_plans',
+                fn (): ?int => $this->nullableInt(
+                    DB::table('activity_plans')
+                        ->where('plugin', $this->nullableString($row->plugin ?? null))
+                        ->where('name', $this->nullableString($row->name) ?? '')
+                        ->value('id')
+                ),
+            );
+
+            if ($targetId === null) {
+                return;
+            }
+
+            $payload = [
+                'plugin'     => $this->nullableString($row->plugin ?? null),
+                'name'       => $this->nullableString($row->name) ?? '',
+                'is_active'  => $this->normalizeBoolean($row->is_active ?? null, true),
+                'creator_id' => $creatorId,
+                'company_id' => $companyId,
+                'deleted_at' => $row->deleted_at ?? null,
+                'created_at' => $row->created_at ?? now(),
+                'updated_at' => $row->updated_at ?? now(),
+            ];
+
+            if (Schema::hasColumn('activity_plans', 'department_id')) {
+                $payload['department_id'] = null;
+            }
+
+            DB::table('activity_plans')->updateOrInsert(['id' => $targetId], $payload);
+
+            $this->rememberMapping('activity_plans', $row->id, 'activity_plans', $targetId);
+        });
+    }
+
+    protected function syncLegacyActivityTypes(): void
+    {
+        if (! Schema::connection($this->legacyConnection)->hasTable('activity_types')) {
+            return;
+        }
+
+        $query = DB::connection($this->legacyConnection)->table('activity_types');
+        $rows = [];
+
+        $this->syncRows('Shared legacy activity types', $query, function (object $row) use (&$rows): void {
+            $rows[] = $row;
+
+            $creatorId = $this->nullableInt($row->creator_id ?? null) !== null
+                ? $this->resolveUserId($this->nullableInt($row->creator_id))
+                : null;
+            $defaultUserId = $this->nullableInt($row->default_user_id ?? null) !== null
+                ? $this->resolveUserId($this->nullableInt($row->default_user_id))
+                : null;
+            $activityPlanId = $this->nullableInt($row->activity_plan_id ?? null) !== null
+                ? $this->mappedTargetId('activity_plans', $row->activity_plan_id, 'activity_plans')
+                : null;
+
+            $targetId = $this->resolveTargetId(
+                'activity_types',
+                $row->id,
+                'activity_types',
+                fn (): ?int => $this->nullableInt(
+                    DB::table('activity_types')
+                        ->where('plugin', $this->nullableString($row->plugin ?? null))
+                        ->where('name', $this->nullableString($row->name) ?? '')
+                        ->value('id')
+                ),
+            );
+
+            if ($targetId === null) {
+                return;
+            }
+
+            DB::table('activity_types')->updateOrInsert(
+                ['id' => $targetId],
+                [
+                    'sort'                   => $this->nullableInt($row->sort ?? null),
+                    'delay_count'            => $this->nullableInt($row->delay_count ?? null),
+                    'delay_unit'             => $this->nullableString($row->delay_unit ?? null) ?? 'days',
+                    'delay_from'             => $this->nullableString($row->delay_from ?? null) ?? 'current_date',
+                    'icon'                   => $this->nullableString($row->icon ?? null),
+                    'decoration_type'        => $this->nullableString($row->decoration_type ?? null),
+                    'chaining_type'          => $this->nullableString($row->chaining_type ?? null),
+                    'plugin'                 => $this->nullableString($row->plugin ?? null),
+                    'category'               => $this->nullableString($row->category ?? null),
+                    'name'                   => $this->nullableString($row->name) ?? '',
+                    'summary'                => $this->nullableString($row->summary ?? null),
+                    'default_note'           => $this->nullableString($row->default_note ?? null),
+                    'is_active'              => $this->normalizeBoolean($row->is_active ?? null, true),
+                    'keep_done'              => $this->normalizeBoolean($row->keep_done ?? null, false),
+                    'creator_id'             => $creatorId,
+                    'default_user_id'        => $defaultUserId,
+                    'activity_plan_id'       => $activityPlanId,
+                    'triggered_next_type_id' => null,
+                    'deleted_at'             => $row->deleted_at ?? null,
+                    'created_at'             => $row->created_at ?? now(),
+                    'updated_at'             => $row->updated_at ?? now(),
+                ],
+            );
+
+            $this->rememberMapping('activity_types', $row->id, 'activity_types', $targetId);
+        });
+
+        foreach ($rows as $row) {
+            $targetId = $this->mappedTargetId('activity_types', $row->id, 'activity_types');
+            $triggeredNextTypeId = $this->nullableInt($row->triggered_next_type_id ?? null) !== null
+                ? $this->mappedTargetId('activity_types', $row->triggered_next_type_id, 'activity_types')
+                : null;
+
+            if ($targetId === null) {
+                continue;
+            }
+
+            DB::table('activity_types')
+                ->where('id', $targetId)
+                ->update(['triggered_next_type_id' => $triggeredNextTypeId]);
+        }
+    }
+
+    protected function syncLegacyUnitOfMeasureCategories(): void
+    {
+        if (! Schema::connection($this->legacyConnection)->hasTable('unit_of_measure_categories')) {
+            return;
+        }
+
+        $query = DB::connection($this->legacyConnection)->table('unit_of_measure_categories');
+
+        $this->syncRows('Shared legacy unit of measure categories', $query, function (object $row): void {
+            $creatorId = $this->nullableInt($row->creator_id ?? null) !== null
+                ? $this->resolveUserId($this->nullableInt($row->creator_id))
+                : null;
+
+            $targetId = $this->resolveTargetId(
+                'unit_of_measure_categories',
+                $row->id,
+                'unit_of_measure_categories',
+                fn (): ?int => $this->nullableInt(
+                    DB::table('unit_of_measure_categories')
+                        ->where('name', $this->nullableString($row->name) ?? '')
+                        ->value('id')
+                ),
+            );
+
+            if ($targetId === null) {
+                return;
+            }
+
+            DB::table('unit_of_measure_categories')->updateOrInsert(
+                ['id' => $targetId],
+                [
+                    'name'       => $this->nullableString($row->name) ?? '',
+                    'creator_id' => $creatorId,
+                    'created_at' => $row->created_at ?? now(),
+                    'updated_at' => $row->updated_at ?? now(),
+                ],
+            );
+
+            $this->rememberMapping('unit_of_measure_categories', $row->id, 'unit_of_measure_categories', $targetId);
+        });
+    }
+
+    protected function syncLegacyUnitOfMeasures(): void
+    {
+        if (! Schema::connection($this->legacyConnection)->hasTable('unit_of_measures')) {
+            return;
+        }
+
+        $query = DB::connection($this->legacyConnection)->table('unit_of_measures');
+
+        $this->syncRows('Shared legacy unit of measures', $query, function (object $row): void {
+            $categoryId = $this->mappedTargetId('unit_of_measure_categories', $row->category_id, 'unit_of_measure_categories');
+            $creatorId = $this->nullableInt($row->creator_id ?? null) !== null
+                ? $this->resolveUserId($this->nullableInt($row->creator_id))
+                : null;
+
+            if ($categoryId === null) {
+                $this->warnMissingRelation('unit_of_measures', $row->id, 'category_id', $row->category_id);
+
+                return;
+            }
+
+            $targetId = $this->resolveTargetId(
+                'unit_of_measures',
+                $row->id,
+                'unit_of_measures',
+                fn (): ?int => $this->nullableInt(
+                    DB::table('unit_of_measures')
+                        ->where('category_id', $categoryId)
+                        ->where('name', $this->nullableString($row->name) ?? '')
+                        ->value('id')
+                ),
+            );
+
+            if ($targetId === null) {
+                return;
+            }
+
+            DB::table('unit_of_measures')->updateOrInsert(
+                ['id' => $targetId],
+                [
+                    'type'       => $this->nullableString($row->type) ?? 'reference',
+                    'name'       => $this->nullableString($row->name) ?? '',
+                    'factor'     => (float) ($row->factor ?? 1),
+                    'rounding'   => $row->rounding ?? 0.01,
+                    'category_id'=> $categoryId,
+                    'creator_id' => $creatorId,
+                    'deleted_at' => $row->deleted_at ?? null,
+                    'created_at' => $row->created_at ?? now(),
+                    'updated_at' => $row->updated_at ?? now(),
+                ],
+            );
+
+            $this->rememberMapping('unit_of_measures', $row->id, 'unit_of_measures', $targetId);
+        });
+    }
+
+    protected function syncLegacyUtmStages(): void
+    {
+        if (! Schema::connection($this->legacyConnection)->hasTable('utm_stages')) {
+            return;
+        }
+
+        $query = DB::connection($this->legacyConnection)->table('utm_stages');
+        $creatorColumn = $this->firstExistingLegacyColumn('utm_stages', ['creator_id', 'created_by']);
+
+        $this->syncRows('Shared legacy utm stages', $query, function (object $row) use ($creatorColumn): void {
+            $creatorId = $creatorColumn !== null && $this->nullableInt($row->{$creatorColumn} ?? null) !== null
+                ? $this->resolveUserId($this->nullableInt($row->{$creatorColumn}))
+                : null;
+
+            $targetId = $this->resolveTargetId(
+                'utm_stages',
+                $row->id,
+                'utm_stages',
+                fn (): ?int => $this->nullableInt(
+                    DB::table('utm_stages')
+                        ->where('name', $this->nullableString($row->name) ?? '')
+                        ->value('id')
+                ),
+            );
+
+            if ($targetId === null) {
+                return;
+            }
+
+            DB::table('utm_stages')->updateOrInsert(
+                ['id' => $targetId],
+                [
+                    'sort'       => $this->nullableInt($row->sort ?? null),
+                    'name'       => $this->nullableString($row->name) ?? '',
+                    'creator_id' => $creatorId,
+                    'created_at' => $row->created_at ?? now(),
+                    'updated_at' => $row->updated_at ?? now(),
+                ],
+            );
+
+            $this->rememberMapping('utm_stages', $row->id, 'utm_stages', $targetId);
+        });
+    }
+
+    protected function syncLegacyUtmMediums(): void
+    {
+        if (! Schema::connection($this->legacyConnection)->hasTable('utm_mediums')) {
+            return;
+        }
+
+        $query = DB::connection($this->legacyConnection)->table('utm_mediums');
+
+        $this->syncRows('Shared legacy utm mediums', $query, function (object $row): void {
+            $creatorId = $this->nullableInt($row->creator_id ?? null) !== null
+                ? $this->resolveUserId($this->nullableInt($row->creator_id))
+                : null;
+
+            $targetId = $this->resolveTargetId(
+                'utm_mediums',
+                $row->id,
+                'utm_mediums',
+                fn (): ?int => $this->nullableInt(
+                    DB::table('utm_mediums')
+                        ->where('name', $this->nullableString($row->name) ?? '')
+                        ->value('id')
+                ),
+            );
+
+            if ($targetId === null) {
+                return;
+            }
+
+            DB::table('utm_mediums')->updateOrInsert(
+                ['id' => $targetId],
+                [
+                    'creator_id' => $creatorId,
+                    'name'       => $this->nullableString($row->name) ?? '',
+                    'created_at' => $row->created_at ?? now(),
+                    'updated_at' => $row->updated_at ?? now(),
+                ],
+            );
+
+            $this->rememberMapping('utm_mediums', $row->id, 'utm_mediums', $targetId);
+        });
+    }
+
+    protected function syncLegacyUtmSources(): void
+    {
+        if (! Schema::connection($this->legacyConnection)->hasTable('utm_sources')) {
+            return;
+        }
+
+        $query = DB::connection($this->legacyConnection)->table('utm_sources');
+
+        $this->syncRows('Shared legacy utm sources', $query, function (object $row): void {
+            $creatorId = $this->nullableInt($row->creator_id ?? null) !== null
+                ? $this->resolveUserId($this->nullableInt($row->creator_id))
+                : null;
+
+            $targetId = $this->resolveTargetId(
+                'utm_sources',
+                $row->id,
+                'utm_sources',
+                fn (): ?int => $this->nullableInt(
+                    DB::table('utm_sources')
+                        ->where('name', $this->nullableString($row->name) ?? '')
+                        ->value('id')
+                ),
+            );
+
+            if ($targetId === null) {
+                return;
+            }
+
+            DB::table('utm_sources')->updateOrInsert(
+                ['id' => $targetId],
+                [
+                    'creator_id' => $creatorId,
+                    'name'       => $this->nullableString($row->name) ?? '',
+                    'created_at' => $row->created_at ?? now(),
+                    'updated_at' => $row->updated_at ?? now(),
+                ],
+            );
+
+            $this->rememberMapping('utm_sources', $row->id, 'utm_sources', $targetId);
+        });
+    }
+
+    protected function syncLegacyUtmCampaigns(): void
+    {
+        if (! Schema::connection($this->legacyConnection)->hasTable('utm_campaigns')) {
+            return;
+        }
+
+        $query = DB::connection($this->legacyConnection)->table('utm_campaigns');
+        $creatorColumn = $this->firstExistingLegacyColumn('utm_campaigns', ['creator_id', 'created_by']);
+
+        $this->syncRows('Shared legacy utm campaigns', $query, function (object $row) use ($creatorColumn): void {
+            $userId = $this->nullableInt($row->user_id ?? null) !== null
+                ? $this->resolveUserId($this->nullableInt($row->user_id))
+                : null;
+            $stageId = $this->mappedTargetId('utm_stages', $row->stage_id, 'utm_stages');
+            $companyId = $this->nullableInt($row->company_id ?? null) !== null
+                ? $this->mappedTargetId('companies', $row->company_id, 'companies')
+                : null;
+            $creatorId = $creatorColumn !== null && $this->nullableInt($row->{$creatorColumn} ?? null) !== null
+                ? $this->resolveUserId($this->nullableInt($row->{$creatorColumn}), $companyId)
+                : null;
+
+            if ($stageId === null) {
+                $this->warnMissingRelation('utm_campaigns', $row->id, 'stage_id', $row->stage_id);
+
+                return;
+            }
+
+            $targetId = $this->resolveTargetId(
+                'utm_campaigns',
+                $row->id,
+                'utm_campaigns',
+                fn (): ?int => $this->nullableInt(
+                    DB::table('utm_campaigns')
+                        ->where('name', $this->nullableString($row->name) ?? '')
+                        ->value('id')
+                ),
+            );
+
+            if ($targetId === null) {
+                return;
+            }
+
+            DB::table('utm_campaigns')->updateOrInsert(
+                ['id' => $targetId],
+                [
+                    'user_id'          => $userId,
+                    'stage_id'         => $stageId,
+                    'color'            => $this->nullableString($row->color ?? null),
+                    'creator_id'       => $creatorId,
+                    'name'             => $this->nullableString($row->name) ?? '',
+                    'title'            => $this->nullableString($row->title) ?? '',
+                    'is_active'        => $this->normalizeBoolean($row->is_active ?? null, false),
+                    'is_auto_campaign' => $this->normalizeBoolean($row->is_auto_campaign ?? null, false),
+                    'company_id'       => $companyId,
+                    'created_at'       => $row->created_at ?? now(),
+                    'updated_at'       => $row->updated_at ?? now(),
+                ],
+            );
+
+            $this->rememberMapping('utm_campaigns', $row->id, 'utm_campaigns', $targetId);
+        });
+    }
+
+    protected function syncSharedLegacyUsers(): void
+    {
+        if ($this->sharedLegacyUsersSynchronized) {
+            return;
+        }
+
+        $this->sharedLegacyUsersSynchronized = true;
+
+        if (! Schema::connection($this->legacyConnection)->hasTable('users')) {
+            return;
+        }
+
+        $legacyUserIds = $this->resolveSharedLegacyUserIds();
+
+        if ($legacyUserIds === []) {
+            return;
+        }
+
+        $query = DB::connection($this->legacyConnection)
+            ->table('users')
+            ->whereIn('id', $legacyUserIds);
+
+        $this->syncRows('Shared legacy users', $query, function (object $row): void {
+            $this->resolveUserId($this->nullableInt($row->id));
+        });
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    protected function resolveSharedLegacyUserIds(): array
+    {
+        $legacySchema = Schema::connection($this->legacyConnection);
+        $modelHasRolesTable = (string) config('permission.table_names.model_has_roles', 'model_has_roles');
+
+        if (! $legacySchema->hasTable($modelHasRolesTable)) {
+            return [];
+        }
+
+        $userKeyColumn = match (true) {
+            $legacySchema->hasColumn($modelHasRolesTable, 'model_id') => 'model_id',
+            $legacySchema->hasColumn($modelHasRolesTable, 'user_id')  => 'user_id',
+            default                                                   => null,
+        };
+
+        if ($userKeyColumn === null) {
+            return [];
+        }
+
+        $baseQuery = DB::connection($this->legacyConnection)
+            ->table($modelHasRolesTable);
+
+        if ($legacySchema->hasColumn($modelHasRolesTable, 'model_type')) {
+            $userScopedIds = (clone $baseQuery)
+                ->whereRaw('lower(model_type) like ?', ['%user'])
+                ->pluck($userKeyColumn)
+                ->filter(static fn (mixed $id): bool => is_numeric($id))
+                ->map(static fn (mixed $id): int => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+
+            if ($userScopedIds !== []) {
+                return $userScopedIds;
+            }
+        }
+
+        return $baseQuery
+            ->pluck($userKeyColumn)
+            ->filter(static fn (mixed $id): bool => is_numeric($id))
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     protected function refreshCompanyLookupCache(): void
@@ -4079,7 +4861,7 @@ class SyncLegacySqlData extends Command
         ]);
         $user->save();
 
-        $this->targetUsersByEmail[$this->normalizeEmail($email) ?? strtolower($email)] = (int) $user->id;
+        $this->rememberTargetUserLookup($user);
         $this->attachUserToMatchingEmployee($legacyUserId, (int) $user->id);
         $this->rememberMapping('users', $legacyUserId, 'users', (int) $user->id);
 
@@ -4116,9 +4898,7 @@ class SyncLegacySqlData extends Command
         ]);
         $user->save();
 
-        if ($normalizedEmail !== null) {
-            $this->targetUsersByEmail[$normalizedEmail] = (int) $user->id;
-        }
+        $this->rememberTargetUserLookup($user);
 
         $this->rememberMapping('users', $legacyUserId, 'users', (int) $user->id);
 
@@ -4129,6 +4909,29 @@ class SyncLegacySqlData extends Command
         ));
 
         return (int) $user->id;
+    }
+
+    protected function rememberTargetUserLookup(SecurityUser $user): void
+    {
+        $userId = (int) $user->id;
+        $normalizedEmail = $this->normalizeEmail($this->nullableString($user->email));
+        $normalizedName = $this->normalizeLookupName($this->nullableString($user->name));
+
+        if ($normalizedEmail !== null) {
+            $this->targetUsersByEmail[$normalizedEmail] = $userId;
+            $this->targetUserEmailsById[$userId] = $normalizedEmail;
+        }
+
+        if ($normalizedName !== null) {
+            $this->targetUserNamesById[$userId] = $normalizedName;
+            $this->targetUserIdsByName[$normalizedName] ??= [];
+
+            if (! in_array($userId, $this->targetUserIdsByName[$normalizedName], true)) {
+                $this->targetUserIdsByName[$normalizedName][] = $userId;
+            }
+        }
+
+        $this->targetUserDefaultCompaniesById[$userId] = $this->nullableInt($user->default_company_id ?? null);
     }
 
     protected function shouldCreateMissingUsers(): bool

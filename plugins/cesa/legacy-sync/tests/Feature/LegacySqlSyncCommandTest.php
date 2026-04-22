@@ -106,6 +106,179 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
         ]);
     }
 
+    public function test_it_syncs_shared_erp_reference_tables_from_legacy_for_cesa_modules(): void
+    {
+        $this->seedLegacyRecords();
+
+        $this->artisan('legacy:sync', [
+            '--connection' => 'legacy_sync',
+            '--module'     => ['document'],
+        ])->assertExitCode(0);
+
+        $companyId = (int) DB::table('companies')->where('company_id', 'CSN')->value('id');
+        $activityPlanId = (int) DB::table('activity_plans')->where('name', 'Legacy Core Plan')->value('id');
+        $activityTypeId = (int) DB::table('activity_types')->where('name', 'Legacy Core Meeting')->value('id');
+        $uomCategoryId = (int) DB::table('unit_of_measure_categories')->where('name', 'Legacy Unit')->value('id');
+        $utmStageId = (int) DB::table('utm_stages')->where('name', 'Legacy New')->value('id');
+
+        $this->assertDatabaseHas('currencies', [
+            'id'        => 1,
+            'name'      => 'IDR',
+            'full_name' => 'Indonesian Rupiah',
+        ]);
+
+        $this->assertDatabaseHas('countries', [
+            'id'          => 100,
+            'code'        => 'ID',
+            'name'        => 'Indonesia',
+            'currency_id' => 1,
+        ]);
+
+        $this->assertDatabaseHas('states', [
+            'id'         => 200,
+            'country_id' => 100,
+            'code'       => 'JKT',
+            'name'       => 'DKI Jakarta',
+        ]);
+
+        $this->assertDatabaseHas('companies', [
+            'id'         => $companyId,
+            'name'       => 'Complete Solusi Nusantara',
+            'company_id' => 'CSN',
+            'street1'    => 'Jl. Legacy No. 1',
+            'country_id' => 100,
+            'state_id'   => 200,
+        ]);
+
+        $this->assertDatabaseHas('partners_partners', [
+            'company_id' => $companyId,
+            'name'       => 'Complete Solusi Nusantara',
+            'street1'    => 'Jl. Legacy No. 1',
+        ]);
+
+        $this->assertDatabaseHas('activity_plans', [
+            'id'         => $activityPlanId,
+            'name'       => 'Legacy Core Plan',
+            'plugin'     => 'support',
+            'company_id' => $companyId,
+        ]);
+
+        $this->assertDatabaseHas('activity_types', [
+            'id'                     => $activityTypeId,
+            'name'                   => 'Legacy Core Meeting',
+            'plugin'                 => 'support',
+            'activity_plan_id'       => $activityPlanId,
+            'triggered_next_type_id' => $activityTypeId,
+        ]);
+
+        $this->assertDatabaseHas('unit_of_measure_categories', [
+            'id'   => $uomCategoryId,
+            'name' => 'Legacy Unit',
+        ]);
+
+        $this->assertDatabaseHas('unit_of_measures', [
+            'id'          => 301,
+            'name'        => 'Legacy Pieces',
+            'category_id' => $uomCategoryId,
+        ]);
+
+        $this->assertDatabaseHas('utm_stages', [
+            'id'   => $utmStageId,
+            'name' => 'Legacy New',
+        ]);
+
+        $this->assertDatabaseHas('utm_campaigns', [
+            'id'         => 401,
+            'name'       => 'Legacy Campaign',
+            'stage_id'   => $utmStageId,
+            'company_id' => $companyId,
+        ]);
+
+        $this->assertDatabaseHas('utm_mediums', [
+            'id'   => 501,
+            'name' => 'Legacy Medium',
+        ]);
+
+        $this->assertDatabaseHas('utm_sources', [
+            'id'   => 601,
+            'name' => 'Legacy Source',
+        ]);
+    }
+
+    public function test_it_keeps_configured_app_currency_active_when_syncing_legacy_currencies(): void
+    {
+        config()->set('app.currency', 'IDR');
+
+        $this->seedLegacyRecords();
+
+        DB::connection('legacy_sync')
+            ->table('currencies')
+            ->where('id', 1)
+            ->update(['active' => 0]);
+
+        $this->artisan('legacy:sync', [
+            '--connection' => 'legacy_sync',
+            '--module'     => ['document'],
+        ])->assertExitCode(0);
+
+        $this->assertDatabaseHas('currencies', [
+            'id'     => 1,
+            'name'   => 'IDR',
+            'active' => 1,
+        ]);
+    }
+
+    public function test_it_syncs_role_assigned_legacy_users_for_cesa_modules_even_when_not_directly_referenced(): void
+    {
+        $this->createTargetUsersAndCompanies();
+        $this->seedLegacyRecords();
+        $this->createLegacyRoleTables();
+
+        DB::connection('legacy_sync')->table('users')->insert([
+            ['id' => 12, 'email' => 'department.creator@example.com', 'image' => null],
+            ['id' => 13, 'email' => 'role.user.one@example.com', 'image' => null],
+            ['id' => 14, 'email' => 'role.user.two@example.com', 'image' => null],
+            ['id' => 15, 'email' => 'no.role.user@example.com', 'image' => null],
+        ]);
+
+        DB::connection('legacy_sync')->table('roles')->insert([
+            ['id' => 1, 'name' => 'Admin', 'guard_name' => 'web'],
+            ['id' => 2, 'name' => 'Finance', 'guard_name' => 'web'],
+        ]);
+
+        DB::connection('legacy_sync')->table('model_has_roles')->insert([
+            ['role_id' => 1, 'model_type' => 'App\\Models\\User', 'model_id' => 10],
+            ['role_id' => 1, 'model_type' => 'App\\Models\\User', 'model_id' => 11],
+            ['role_id' => 2, 'model_type' => 'App\\Models\\User', 'model_id' => 12],
+            ['role_id' => 2, 'model_type' => 'App\\Models\\User', 'model_id' => 13],
+            ['role_id' => 2, 'model_type' => 'App\\Models\\User', 'model_id' => 14],
+        ]);
+
+        DB::connection('legacy_sync')
+            ->table('ec_departments')
+            ->where('id', 200)
+            ->update(['created_by' => 12]);
+
+        $this->artisan('legacy:sync', [
+            '--connection' => 'legacy_sync',
+            '--module'     => ['document', 'form-transfer', 'exit-clearance'],
+        ])->assertExitCode(0);
+
+        $this->assertSame(
+            5,
+            DB::table('legacy_sync_mappings')
+                ->where('connection_name', 'legacy_sync')
+                ->where('legacy_table', 'users')
+                ->where('target_table', 'users')
+                ->count()
+        );
+
+        $this->assertDatabaseHas('users', ['email' => 'department.creator@example.com']);
+        $this->assertDatabaseHas('users', ['email' => 'role.user.one@example.com']);
+        $this->assertDatabaseHas('users', ['email' => 'role.user.two@example.com']);
+        $this->assertDatabaseMissing('users', ['email' => 'no.role.user@example.com']);
+    }
+
     public function test_it_resolves_form_transfer_companies_after_an_earlier_module_warms_company_cache(): void
     {
         $targetData = $this->createTargetUsersAndCompanies();
@@ -1626,11 +1799,42 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
         });
     }
 
+    protected function createLegacyRoleTables(): void
+    {
+        if (! Schema::connection('legacy_sync')->hasTable('roles')) {
+            Schema::connection('legacy_sync')->create('roles', function (Blueprint $table): void {
+                $table->id();
+                $table->string('name');
+                $table->string('guard_name')->default('web');
+            });
+        }
+
+        if (! Schema::connection('legacy_sync')->hasTable('model_has_roles')) {
+            Schema::connection('legacy_sync')->create('model_has_roles', function (Blueprint $table): void {
+                $table->unsignedBigInteger('role_id');
+                $table->string('model_type');
+                $table->unsignedBigInteger('model_id');
+            });
+        }
+    }
+
     protected function createLegacySchema(): void
     {
         $schemaStatements = [
             'CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT, image TEXT)',
-            'CREATE TABLE companies (id INTEGER PRIMARY KEY, company_id TEXT, name TEXT)',
+            'CREATE TABLE currencies (id INTEGER PRIMARY KEY, name TEXT, symbol TEXT, iso_numeric INTEGER, decimal_places INTEGER, full_name TEXT, rounding NUMERIC, active INTEGER, created_at TEXT, updated_at TEXT)',
+            'CREATE TABLE countries (id INTEGER PRIMARY KEY, currency_id INTEGER, phone_code TEXT, code TEXT, name TEXT, state_required INTEGER, zip_required INTEGER, created_at TEXT, updated_at TEXT)',
+            'CREATE TABLE states (id INTEGER PRIMARY KEY, country_id INTEGER, name TEXT, code TEXT, created_at TEXT, updated_at TEXT)',
+            'CREATE TABLE companies (id INTEGER PRIMARY KEY, parent_id INTEGER, currency_id INTEGER, creator_id INTEGER, sort INTEGER, name TEXT, company_id TEXT, tax_id TEXT, registration_number TEXT, email TEXT, phone TEXT, mobile TEXT, website TEXT, color TEXT, is_active INTEGER, founded_date TEXT, deleted_at TEXT, created_at TEXT, updated_at TEXT, partner_id INTEGER, street1 TEXT, street2 TEXT, city TEXT, zip TEXT, state_id INTEGER, country_id INTEGER)',
+            'CREATE TABLE partners_partners (id INTEGER PRIMARY KEY, account_type TEXT, sub_type TEXT, name TEXT, avatar TEXT, email TEXT, job_title TEXT, website TEXT, tax_id TEXT, phone TEXT, mobile TEXT, color TEXT, company_registry TEXT, reference TEXT, parent_id INTEGER, creator_id INTEGER, user_id INTEGER, title_id INTEGER, company_id INTEGER, industry_id INTEGER, deleted_at TEXT, created_at TEXT, updated_at TEXT, street1 TEXT, street2 TEXT, city TEXT, zip TEXT, state_id INTEGER, country_id INTEGER)',
+            'CREATE TABLE activity_plans (id INTEGER PRIMARY KEY, plugin TEXT, name TEXT, is_active INTEGER, creator_id INTEGER, company_id INTEGER, deleted_at TEXT, created_at TEXT, updated_at TEXT)',
+            'CREATE TABLE activity_types (id INTEGER PRIMARY KEY, sort INTEGER, delay_count INTEGER, delay_unit TEXT, delay_from TEXT, icon TEXT, decoration_type TEXT, chaining_type TEXT, plugin TEXT, category TEXT, name TEXT, summary TEXT, default_note TEXT, is_active INTEGER, keep_done INTEGER, creator_id INTEGER, default_user_id INTEGER, activity_plan_id INTEGER, triggered_next_type_id INTEGER, deleted_at TEXT, created_at TEXT, updated_at TEXT)',
+            'CREATE TABLE unit_of_measure_categories (id INTEGER PRIMARY KEY, name TEXT, creator_id INTEGER, created_at TEXT, updated_at TEXT)',
+            'CREATE TABLE unit_of_measures (id INTEGER PRIMARY KEY, type TEXT, name TEXT, factor NUMERIC, rounding NUMERIC, category_id INTEGER, creator_id INTEGER, deleted_at TEXT, created_at TEXT, updated_at TEXT)',
+            'CREATE TABLE utm_stages (id INTEGER PRIMARY KEY, sort INTEGER, name TEXT, created_by INTEGER, created_at TEXT, updated_at TEXT)',
+            'CREATE TABLE utm_campaigns (id INTEGER PRIMARY KEY, user_id INTEGER, stage_id INTEGER, color TEXT, created_by INTEGER, name TEXT, title TEXT, is_active INTEGER, is_auto_campaign INTEGER, company_id INTEGER, created_at TEXT, updated_at TEXT)',
+            'CREATE TABLE utm_mediums (id INTEGER PRIMARY KEY, creator_id INTEGER, name TEXT, created_at TEXT, updated_at TEXT)',
+            'CREATE TABLE utm_sources (id INTEGER PRIMARY KEY, creator_id INTEGER, name TEXT, created_at TEXT, updated_at TEXT)',
             'CREATE TABLE documents (id INTEGER PRIMARY KEY, title TEXT, content TEXT, source_type TEXT, docx_path TEXT, created_at TEXT, updated_at TEXT)',
             'CREATE TABLE leads (id INTEGER PRIMARY KEY, name TEXT, phone TEXT, address TEXT, sales_person TEXT, store_team_position TEXT, store_branch TEXT, phone_transaction_range TEXT, public_response_id TEXT, created_by INTEGER, created_at TEXT, updated_at TEXT, deleted_at TEXT)',
             'CREATE TABLE form_transfer_banks (id INTEGER PRIMARY KEY, code TEXT, name TEXT, short_name TEXT, is_active INTEGER, sort_order INTEGER, created_at TEXT, updated_at TEXT, deleted_at TEXT)',
@@ -1687,8 +1891,113 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
             ['id' => 11, 'email' => 'requester@example.com', 'image' => 'legacy/requester.png'],
         ]);
 
+        DB::connection('legacy_sync')->table('currencies')->insert([
+            ['id' => 1, 'name' => 'IDR', 'symbol' => 'Rp', 'iso_numeric' => 360, 'decimal_places' => 2, 'full_name' => 'Indonesian Rupiah', 'rounding' => 0.01, 'active' => 1, 'created_at' => '2026-03-10 07:50:00', 'updated_at' => '2026-03-10 07:50:00'],
+        ]);
+
+        DB::connection('legacy_sync')->table('countries')->insert([
+            ['id' => 100, 'currency_id' => 1, 'phone_code' => '62', 'code' => 'ID', 'name' => 'Indonesia', 'state_required' => 1, 'zip_required' => 1, 'created_at' => '2026-03-10 07:50:00', 'updated_at' => '2026-03-10 07:50:00'],
+        ]);
+
+        DB::connection('legacy_sync')->table('states')->insert([
+            ['id' => 200, 'country_id' => 100, 'name' => 'DKI Jakarta', 'code' => 'JKT', 'created_at' => '2026-03-10 07:50:00', 'updated_at' => '2026-03-10 07:50:00'],
+        ]);
+
         DB::connection('legacy_sync')->table('companies')->insert([
-            ['id' => 50, 'company_id' => 'CSN', 'name' => 'Complete Solusi Nusantara'],
+            [
+                'id'                  => 50,
+                'parent_id'           => null,
+                'currency_id'         => 1,
+                'creator_id'          => 10,
+                'sort'                => 1,
+                'company_id'          => 'CSN',
+                'name'                => 'Complete Solusi Nusantara',
+                'tax_id'              => 'LEGACY-CSN',
+                'registration_number' => 'REG-CSN',
+                'email'               => 'legacy-csn@example.com',
+                'phone'               => '021000000',
+                'mobile'              => '0812000000',
+                'website'             => 'https://legacy-csn.example.com',
+                'color'               => '#123456',
+                'is_active'           => 1,
+                'founded_date'        => '2010-01-01',
+                'deleted_at'          => null,
+                'created_at'          => '2026-03-10 07:52:00',
+                'updated_at'          => '2026-03-10 07:52:00',
+                'partner_id'          => 500,
+                'street1'             => 'Jl. Legacy No. 1',
+                'street2'             => 'Lantai 2',
+                'city'                => 'Jakarta',
+                'zip'                 => '10110',
+                'state_id'            => 200,
+                'country_id'          => 100,
+            ],
+        ]);
+
+        DB::connection('legacy_sync')->table('partners_partners')->insert([
+            [
+                'id'               => 500,
+                'account_type'     => 'individual',
+                'sub_type'         => 'company',
+                'name'             => 'Complete Solusi Nusantara',
+                'avatar'           => null,
+                'email'            => 'legacy-csn@example.com',
+                'job_title'        => null,
+                'website'          => 'https://legacy-csn.example.com',
+                'tax_id'           => 'LEGACY-CSN',
+                'phone'            => '021000000',
+                'mobile'           => '0812000000',
+                'color'            => '#123456',
+                'company_registry' => 'REG-CSN',
+                'reference'        => null,
+                'parent_id'        => null,
+                'creator_id'       => 10,
+                'user_id'          => null,
+                'title_id'         => null,
+                'company_id'       => 50,
+                'industry_id'      => null,
+                'deleted_at'       => null,
+                'created_at'       => '2026-03-10 07:52:00',
+                'updated_at'       => '2026-03-10 07:52:00',
+                'street1'          => 'Jl. Legacy No. 1',
+                'street2'          => 'Lantai 2',
+                'city'             => 'Jakarta',
+                'zip'              => '10110',
+                'state_id'         => 200,
+                'country_id'       => 100,
+            ],
+        ]);
+
+        DB::connection('legacy_sync')->table('activity_plans')->insert([
+            ['id' => 210, 'plugin' => 'support', 'name' => 'Legacy Core Plan', 'is_active' => 1, 'creator_id' => 10, 'company_id' => 50, 'deleted_at' => null, 'created_at' => '2026-03-10 07:53:00', 'updated_at' => '2026-03-10 07:53:00'],
+        ]);
+
+        DB::connection('legacy_sync')->table('activity_types')->insert([
+            ['id' => 220, 'sort' => 1, 'delay_count' => 1, 'delay_unit' => 'days', 'delay_from' => 'current_date', 'icon' => 'heroicon-c-arrow-up', 'decoration_type' => 'alert', 'chaining_type' => 'suggest', 'plugin' => 'support', 'category' => 'meeting', 'name' => 'Legacy Core Meeting', 'summary' => 'Legacy Meeting', 'default_note' => 'Legacy note', 'is_active' => 1, 'keep_done' => 1, 'creator_id' => 10, 'default_user_id' => 10, 'activity_plan_id' => 210, 'triggered_next_type_id' => 220, 'deleted_at' => null, 'created_at' => '2026-03-10 07:54:00', 'updated_at' => '2026-03-10 07:54:00'],
+        ]);
+
+        DB::connection('legacy_sync')->table('unit_of_measure_categories')->insert([
+            ['id' => 300, 'name' => 'Legacy Unit', 'creator_id' => 10, 'created_at' => '2026-03-10 07:55:00', 'updated_at' => '2026-03-10 07:55:00'],
+        ]);
+
+        DB::connection('legacy_sync')->table('unit_of_measures')->insert([
+            ['id' => 301, 'type' => 'reference', 'name' => 'Legacy Pieces', 'factor' => 1, 'rounding' => 0.01, 'category_id' => 300, 'creator_id' => 10, 'deleted_at' => null, 'created_at' => '2026-03-10 07:55:00', 'updated_at' => '2026-03-10 07:55:00'],
+        ]);
+
+        DB::connection('legacy_sync')->table('utm_stages')->insert([
+            ['id' => 400, 'sort' => 1, 'name' => 'Legacy New', 'created_by' => 10, 'created_at' => '2026-03-10 07:56:00', 'updated_at' => '2026-03-10 07:56:00'],
+        ]);
+
+        DB::connection('legacy_sync')->table('utm_mediums')->insert([
+            ['id' => 501, 'creator_id' => 10, 'name' => 'Legacy Medium', 'created_at' => '2026-03-10 07:56:00', 'updated_at' => '2026-03-10 07:56:00'],
+        ]);
+
+        DB::connection('legacy_sync')->table('utm_sources')->insert([
+            ['id' => 601, 'creator_id' => 10, 'name' => 'Legacy Source', 'created_at' => '2026-03-10 07:56:00', 'updated_at' => '2026-03-10 07:56:00'],
+        ]);
+
+        DB::connection('legacy_sync')->table('utm_campaigns')->insert([
+            ['id' => 401, 'user_id' => 10, 'stage_id' => 400, 'color' => '#FFAA00', 'created_by' => 10, 'name' => 'Legacy Campaign', 'title' => 'Legacy Campaign Title', 'is_active' => 1, 'is_auto_campaign' => 1, 'company_id' => 50, 'created_at' => '2026-03-10 07:56:00', 'updated_at' => '2026-03-10 07:56:00'],
         ]);
 
         DB::connection('legacy_sync')->table('documents')->insert([

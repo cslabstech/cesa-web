@@ -3,6 +3,7 @@
 namespace Cesa\FormTransfer\Models;
 
 use Cesa\FormTransfer\Database\Factories\FormTransferFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -76,6 +77,13 @@ class FormTransfer extends Model
             'show_on_affiliate_index'        => 'boolean',
             'is_active'                      => 'boolean',
         ];
+    }
+
+    public function scopeInternalEntry(Builder $query): Builder
+    {
+        return $query
+            ->where('public_entry_type', self::PUBLIC_ENTRY_TYPE_INTERNAL)
+            ->whereNull($query->qualifyColumn('deleted_at'));
     }
 
     public function usesExternalPublicEntry(): bool
