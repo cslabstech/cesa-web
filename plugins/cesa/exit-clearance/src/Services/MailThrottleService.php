@@ -36,7 +36,7 @@ class MailThrottleService
 
         $key = (string) Arr::get($config, 'key', 'global');
 
-        $stateKey = sprintf('exit-clearance:mail:throttle:%s:next_at', $key);
+        $stateKey = sprintf('notifications:mail:throttle:%s:next_at', $key);
         $lockKey = $stateKey.':lock';
 
         try {

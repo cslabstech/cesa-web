@@ -111,6 +111,7 @@ class ApprovalWorkflowResource extends Resource
                     TextInput::make('default_email')
                         ->label(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.fields.step_default_email'))
                         ->email()
+                        ->required()
                         ->maxLength(191),
                     TextInput::make('default_title')
                         ->label(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.fields.step_default_title'))

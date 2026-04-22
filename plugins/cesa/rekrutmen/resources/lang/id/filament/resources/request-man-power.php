@@ -80,7 +80,7 @@ return [
             'open_approval_page'      => 'Buka Halaman Approval',
             'approve'                 => 'Setujui',
             'reject'                  => 'Tolak',
-            'resend_pending_approval' => 'Kirim Ulang Email Persetujuan',
+            'resend_pending_approval' => 'Kirim Ulang Notifikasi Persetujuan',
             'set_pending'             => 'Set Pending',
             'more'                    => 'Kelola',
         ],
@@ -88,7 +88,7 @@ return [
     'notifications' => [
         'approved'                => 'Permintaan tenaga kerja berhasil disetujui.',
         'rejected'                => 'Permintaan tenaga kerja berhasil ditolak.',
-        'pending_approval_resent' => 'Email persetujuan ke approver aktif berhasil dikirim ulang.',
+        'pending_approval_resent' => 'Notifikasi persetujuan untuk approver aktif berhasil dijadwalkan ulang.',
         'set_pending'             => 'Permintaan tenaga kerja berhasil dikembalikan ke status pending.',
     ],
     'errors' => [

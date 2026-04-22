@@ -1,9 +1,18 @@
 <?php
 
 return [
+    'affiliates' => [
+        'heading'             => 'DAFTAR FORM TRANSFER - AFILIASI',
+        'description'         => 'Pilih afiliasi untuk melanjutkan pengisian formulir permintaan transfer.',
+        'default_description' => 'Buka formulir permintaan transfer afiliasi.',
+        'empty_state'         => 'Belum ada formulir transfer afiliasi yang tersedia saat ini.',
+    ],
+
     'index' => [
-        'heading'     => 'DAFTAR FORM TRANSFER',
-        'description' => 'Ajukan dan pantau permintaan transfer melalui form yang tersedia.',
+        'heading'             => 'DAFTAR FORM TRANSFER',
+        'description'         => 'Ajukan dan pantau permintaan transfer melalui form yang tersedia.',
+        'default_description' => 'Buka formulir permintaan transfer yang dipilih.',
+        'empty_state'         => 'Belum ada form transfer yang tersedia saat ini.',
     ],
 
     'form' => [

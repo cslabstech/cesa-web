@@ -173,16 +173,14 @@ class ExitClearanceNotificationService
 
         $statusLabel = $this->requestService->formatFormStatus($request->form_status);
         $lines = [
-            'Exit clearance approval diperlukan.',
+            '*📣 EXIT CLEARANCE - '.($request->form_uid ?? '-').'*',
             '',
-            'UID: '.($request->form_uid ?? '-'),
-            'Nama: '.($request->name ?? '-'),
-            'Divisi: '.($request->department?->name ?? '-'),
-            'Status: '.$statusLabel,
-            'Approver: '.($approver->name ?? '-'),
+            '*Nama Pengaju:* '.($request->name ?? '-'),
+            '*Divisi:* '.($request->department?->name ?? '-'),
+            '*Status:* '.$statusLabel,
             '',
-            'Action: '.$actionUrl,
-            'Progress: '.$progressUrl,
+            '*Tautan persetujuan:*',
+            $actionUrl,
         ];
 
         return implode("\n", $lines);
@@ -193,12 +191,11 @@ class ExitClearanceNotificationService
         $request->loadMissing('department');
 
         $lines = [
-            'Status exit clearance Anda: '.$statusLabel,
+            '*📣 STATUS EXIT CLEARANCE - '.($request->form_uid ?? '-').'*',
             '',
-            'UID: '.($request->form_uid ?? '-'),
-            'Nama: '.($request->name ?? '-'),
-            'Divisi: '.($request->department?->name ?? '-'),
-            'Progress: '.$progressUrl,
+            '*Nama Pengaju:* '.($request->name ?? '-'),
+            '*Divisi:* '.($request->department?->name ?? '-'),
+            '*Status:* '.$statusLabel,
         ];
 
         return implode("\n", $lines);

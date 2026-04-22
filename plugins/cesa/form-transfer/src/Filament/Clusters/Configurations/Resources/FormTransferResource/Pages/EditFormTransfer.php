@@ -10,6 +10,11 @@ class EditFormTransfer extends EditRecord
 {
     protected static string $resource = FormTransferResource::class;
 
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        return FormTransferResource::prepareDataForPersistence($data, $this->record);
+    }
+
     protected function getHeaderActions(): array
     {
         return [

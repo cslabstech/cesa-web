@@ -211,7 +211,7 @@
             <td>{{ $record->clearance_employee_debt ?: '-' }}</td>
         </tr>
         <tr>
-            <td class="label">Pengembalian Seragam</td>
+            <td class="label">Pengembalian Seragam dan Nametag</td>
             <td>{{ $record->clearance_uniform_return ?: '-' }}</td>
         </tr>
         <tr>

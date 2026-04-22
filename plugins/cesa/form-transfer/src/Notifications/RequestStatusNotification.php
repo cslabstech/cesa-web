@@ -20,7 +20,7 @@ class RequestStatusNotification extends Notification implements ShouldQueue
         protected array $summary,
         protected array $mailContent,
     ) {
-        $this->onQueue(config('form-transfer.notifications.queue', 'default'));
+        $this->onQueue(config('form-transfer.notifications.queue', 'notifications'));
     }
 
     public function via(object $notifiable): array

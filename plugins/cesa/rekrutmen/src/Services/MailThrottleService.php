@@ -1,6 +1,6 @@
 <?php
 
-namespace Cesa\FormTransfer\Services;
+namespace Cesa\Rekrutmen\Services;
 
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Arr;
@@ -10,7 +10,7 @@ class MailThrottleService
 {
     public function getDispatchDelaySeconds(): int
     {
-        $config = config('form-transfer.notifications.mail.throttle', []);
+        $config = config('rekrutmen.notifications.mail.throttle', []);
 
         if (! Arr::get($config, 'enabled', false)) {
             return 0;

@@ -5,6 +5,40 @@ return [
 
     'default_pipeline_name' => env('REKRUTMEN_DEFAULT_PIPELINE_NAME', 'Default Recruitment Pipeline'),
 
+    'notifications' => [
+        'queue'    => env('REKRUTMEN_NOTIFICATION_QUEUE', 'notifications'),
+        'mail'     => [
+            'throttle' => [
+                'enabled'              => env('NOTIFICATION_MAIL_THROTTLE_ENABLED', env('REKRUTMEN_MAIL_THROTTLE_ENABLED', true)),
+                'min_interval_seconds' => (int) env('NOTIFICATION_MAIL_THROTTLE_MIN_INTERVAL', env('REKRUTMEN_MAIL_THROTTLE_MIN_INTERVAL', 2)),
+                'max_interval_seconds' => (int) env('NOTIFICATION_MAIL_THROTTLE_MAX_INTERVAL', env('REKRUTMEN_MAIL_THROTTLE_MAX_INTERVAL', 5)),
+                'key'                  => env('NOTIFICATION_MAIL_THROTTLE_KEY', env('REKRUTMEN_MAIL_THROTTLE_KEY', 'global')),
+            ],
+        ],
+        'whatsapp' => [
+            'enabled'      => env('WHATSAPP_ENABLED', false),
+            'provider'     => env('WHATSAPP_PROVIDER', 'fonnte'),
+            'endpoint'     => env('WHATSAPP_API_ENDPOINT', 'https://api.fonnte.com/send'),
+            'api_key'      => env('WHATSAPP_API_KEY'),
+            'sender'       => env('WHATSAPP_SENDER_NUMBER'),
+            'country_code' => env('WHATSAPP_COUNTRY_CODE', '62'),
+            'throttle'     => [
+                'enabled'              => env('WHATSAPP_THROTTLE_ENABLED', true),
+                'min_interval_seconds' => (int) env('WHATSAPP_THROTTLE_MIN_INTERVAL', 5),
+                'max_interval_seconds' => (int) env('WHATSAPP_THROTTLE_MAX_INTERVAL', 10),
+                'key'                  => env('WHATSAPP_THROTTLE_KEY', 'global'),
+            ],
+            'queue'      => env('WHATSAPP_QUEUE', 'whatsapp'),
+            'connection' => env('WHATSAPP_CONNECTION'),
+            'timeout'    => (int) env('WHATSAPP_TIMEOUT', 10),
+            'tries'      => (int) env('WHATSAPP_TRIES', 3),
+            'backoff'    => array_values(array_filter(
+                array_map('intval', explode(',', env('WHATSAPP_BACKOFF', '10,30,60'))),
+                static fn (int $interval): bool => $interval >= 0
+            )),
+        ],
+    ],
+
     'application_form' => [
         'default_fields' => [
             [

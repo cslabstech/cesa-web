@@ -15,12 +15,6 @@ class CreateFormTransfer extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        foreach (FormTransferResource::getDefaultNotificationData() as $field => $value) {
-            if (blank($data[$field] ?? null)) {
-                $data[$field] = $value;
-            }
-        }
-
-        return $data;
+        return FormTransferResource::prepareDataForPersistence($data);
     }
 }

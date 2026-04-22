@@ -2,12 +2,20 @@
 
 namespace Cesa\ExitClearance\Tests\Feature;
 
+use Cesa\ExitClearance\Jobs\SendWhatsAppNotification;
 use Cesa\ExitClearance\Models\Approver;
 use Cesa\ExitClearance\Models\Department;
 use Cesa\ExitClearance\Models\Request;
+use Cesa\ExitClearance\Notifications\ApprovalRequestNotification;
+use Cesa\ExitClearance\Notifications\RequestStatusNotification;
+use Cesa\ExitClearance\Services\ExitClearanceNotificationService;
 use Cesa\ExitClearance\Services\ExitClearanceRequestService;
 use Cesa\ExitClearance\Tests\ExitClearanceTestCase;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use RuntimeException;
 
 class ExitClearanceSubmissionTest extends ExitClearanceTestCase
 {
@@ -115,5 +123,138 @@ class ExitClearanceSubmissionTest extends ExitClearanceTestCase
 
         $approvedStatus = $service->syncOverallStatus($request->fresh('approvers'));
         $this->assertSame(ExitClearanceRequestService::FORM_STATUS_APPROVED, $approvedStatus);
+    }
+
+    public function test_exit_clearance_notifications_and_whatsapp_jobs_use_standard_queues(): void
+    {
+        $request = new Request;
+        $approver = new Approver;
+
+        $approvalNotification = new ApprovalRequestNotification(
+            $request,
+            $approver,
+            [],
+            [],
+            'https://example.com/approve',
+            'https://example.com/progress'
+        );
+        $statusNotification = new RequestStatusNotification(
+            $request,
+            'Approved',
+            [],
+            [],
+            'https://example.com/progress'
+        );
+        $whatsAppJob = new SendWhatsAppNotification(
+            '628123456789',
+            'Test message',
+            'https://example.com/whatsapp',
+            'test-api-key',
+            '628111111111'
+        );
+
+        $this->assertSame('notifications', config('exit-clearance.notifications.queue'));
+        $this->assertSame('whatsapp', config('exit-clearance.notifications.whatsapp.queue'));
+        $this->assertInstanceOf(ShouldQueue::class, $approvalNotification);
+        $this->assertInstanceOf(ShouldQueue::class, $statusNotification);
+        $this->assertInstanceOf(ShouldQueue::class, $whatsAppJob);
+        $this->assertSame('notifications', $approvalNotification->queue);
+        $this->assertSame('notifications', $statusNotification->queue);
+        $this->assertSame('whatsapp', $whatsAppJob->queue);
+    }
+
+    public function test_exit_clearance_fonnte_job_uses_authorization_header_and_local_target(): void
+    {
+        config()->set('exit-clearance.notifications.whatsapp.provider', 'fonnte');
+        config()->set('exit-clearance.notifications.whatsapp.country_code', '62');
+
+        Http::fake([
+            'https://api.fonnte.com/send' => Http::response(['status' => true], 200),
+        ]);
+
+        $job = new SendWhatsAppNotification(
+            '628123456789',
+            'Test message',
+            'https://api.fonnte.com/send',
+            'test-token',
+            '',
+        );
+
+        $job->handle();
+
+        Http::assertSent(function (HttpRequest $request): bool {
+            $body = $request->body();
+
+            return $request->url() === 'https://api.fonnte.com/send'
+                && $request->hasHeader('Authorization', 'test-token')
+                && str_contains($body, 'name="target"')
+                && str_contains($body, '08123456789')
+                && str_contains($body, 'name="countryCode"')
+                && str_contains($body, '62');
+        });
+    }
+
+    public function test_exit_clearance_fonnte_job_detects_uppercase_status_failures(): void
+    {
+        config()->set('exit-clearance.notifications.whatsapp.provider', 'fonnte');
+
+        Http::fake([
+            'https://api.fonnte.com/send' => Http::response([
+                'Status' => false,
+                'reason' => 'token invalid',
+            ], 200),
+        ]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('token invalid');
+
+        $job = new SendWhatsAppNotification(
+            '628123456789',
+            'Test message',
+            'https://api.fonnte.com/send',
+            'test-token',
+            '',
+        );
+
+        $job->handle();
+    }
+
+    public function test_exit_clearance_whatsapp_messages_remove_progress_and_use_consistent_copy(): void
+    {
+        $service = app(ExitClearanceNotificationService::class);
+        $department = new Department(['name' => 'Human Resource']);
+        $request = new Request([
+            'form_uid'    => 'EXC-00001',
+            'name'        => 'Budi Santoso',
+            'form_status' => ExitClearanceRequestService::FORM_STATUS_PENDING,
+        ]);
+        $request->setRelation('department', $department);
+        $approver = new Approver(['name' => 'Manager HR']);
+
+        $approverMethod = new \ReflectionMethod($service, 'buildApproverWhatsAppMessage');
+        $approverMethod->setAccessible(true);
+        $approverMessage = $approverMethod->invoke(
+            $service,
+            $request,
+            $approver,
+            'https://example.com/approval',
+            'https://example.com/progress'
+        );
+
+        $requesterMethod = new \ReflectionMethod($service, 'buildRequesterWhatsAppMessage');
+        $requesterMethod->setAccessible(true);
+        $requesterMessage = $requesterMethod->invoke(
+            $service,
+            $request,
+            'Pending',
+            'https://example.com/progress'
+        );
+
+        $this->assertStringContainsString('📣 EXIT CLEARANCE - EXC-00001', $approverMessage);
+        $this->assertStringContainsString('*Tautan persetujuan:*', $approverMessage);
+        $this->assertStringNotContainsString('Progress', $approverMessage);
+        $this->assertStringContainsString('📣 STATUS EXIT CLEARANCE - EXC-00001', $requesterMessage);
+        $this->assertStringContainsString('*Nama Pengaju:* Budi Santoso', $requesterMessage);
+        $this->assertStringNotContainsString('Progress', $requesterMessage);
     }
 }

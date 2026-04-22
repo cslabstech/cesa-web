@@ -8,6 +8,9 @@ use Cesa\FormTransfer\Livewire\PublicTransferRequestIndex;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web'])->group(function (): void {
+    Route::get('afiliasi', PublicTransferRequestIndex::class)
+        ->name('form-transfer.public.affiliates');
+
     Route::get('transfer-requests', PublicTransferRequestIndex::class)
         ->name('form-transfer.public.index');
 

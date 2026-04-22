@@ -72,6 +72,74 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
         ]);
     }
 
+    public function test_it_syncs_legacy_company_master_when_syncing_cesa_modules(): void
+    {
+        User::factory()->create(['email' => 'creator@example.com']);
+        User::factory()->create(['email' => 'requester@example.com']);
+
+        $this->seedLegacyRecords();
+
+        $this->artisan('legacy:sync', [
+            '--connection' => 'legacy_sync',
+            '--module'     => ['document', 'form-transfer', 'exit-clearance'],
+        ])->assertExitCode(0);
+
+        $companyId = (int) DB::table('companies')
+            ->where('company_id', 'CSN')
+            ->value('id');
+
+        $this->assertNotSame(0, $companyId);
+
+        $this->assertDatabaseHas('companies', [
+            'id'         => $companyId,
+            'name'       => 'Complete Solusi Nusantara',
+            'company_id' => 'CSN',
+            'is_active'  => 1,
+        ]);
+
+        $this->assertDatabaseHas('legacy_sync_mappings', [
+            'connection_name' => 'legacy_sync',
+            'legacy_table'    => 'companies',
+            'legacy_id'       => '50',
+            'target_table'    => 'companies',
+            'target_id'       => (string) $companyId,
+        ]);
+    }
+
+    public function test_it_resolves_form_transfer_companies_after_an_earlier_module_warms_company_cache(): void
+    {
+        $targetData = $this->createTargetUsersAndCompanies();
+        $creator = $targetData['creator'];
+        $requester = $targetData['requester'];
+        $targetCompanyId = $targetData['company_id'];
+
+        $this->seedLegacyRecords();
+
+        $this->artisan('legacy:sync', [
+            '--connection' => 'legacy_sync',
+            '--module'     => ['shelf', 'form-transfer'],
+        ])->assertExitCode(0);
+
+        $formTransferId = DB::table('form_transfers')
+            ->where('uid_prefix', 'CSN')
+            ->value('id');
+
+        $this->assertDatabaseHas('form_transfers', [
+            'id'         => $formTransferId,
+            'company_id' => $targetCompanyId,
+            'creator_id' => $creator->id,
+            'uid_prefix' => 'CSN',
+        ]);
+
+        $this->assertDatabaseHas('form_transfer_requests', [
+            'uid'              => 'CSN-00001',
+            'form_transfer_id' => $formTransferId,
+            'user_id'          => $requester->id,
+            'creator_id'       => $creator->id,
+            'company_id'       => $targetCompanyId,
+        ]);
+    }
+
     public function test_it_syncs_legacy_lead_data(): void
     {
         $targetData = $this->createTargetUsersAndCompanies();

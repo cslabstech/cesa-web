@@ -12,21 +12,32 @@ class PublicTransferRequestIndex extends SimplePage
 
     protected string $view = 'form-transfer::livewire.public-transfer-request-index';
 
+    public bool $affiliateMode = false;
+
     public function mount(): void
     {
         if (! Package::isPluginInstalled('form-transfer')) {
             abort(404);
         }
+
+        $route = request()->route();
+
+        $this->affiliateMode = (bool) ($route?->named('form-transfer.public.affiliates') ?? false)
+            || request()->is('afiliasi');
     }
 
     public function getHeading(): string
     {
-        return __('form-transfer::public.index.heading');
+        return $this->affiliateMode
+            ? __('form-transfer::public.affiliates.heading')
+            : __('form-transfer::public.index.heading');
     }
 
     public function getSubheading(): string
     {
-        return __('form-transfer::public.index.description');
+        return $this->affiliateMode
+            ? __('form-transfer::public.affiliates.description')
+            : __('form-transfer::public.index.description');
     }
 
     public function hasLogo(): bool
@@ -38,6 +49,7 @@ class PublicTransferRequestIndex extends SimplePage
     {
         return [
             'formTransfers' => $this->getActiveFormTransfers(),
+            'affiliateMode' => $this->affiliateMode,
         ];
     }
 
@@ -45,6 +57,13 @@ class PublicTransferRequestIndex extends SimplePage
     {
         return FormTransfer::query()
             ->where('is_active', true)
+            ->where(
+                $this->affiliateMode
+                    ? 'show_on_affiliate_index'
+                    : 'show_on_transfer_request_index',
+                true
+            )
+            ->orderBy('public_sort_order')
             ->orderBy('name')
             ->get();
     }

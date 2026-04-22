@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class TransferApprovalWorkflow extends Model
 {
@@ -31,6 +33,37 @@ class TransferApprovalWorkflow extends Model
             'steps'     => 'array',
             'is_active' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $workflow): void {
+            $steps = collect($workflow->steps ?? [])
+                ->map(function (mixed $step): mixed {
+                    if (! is_array($step)) {
+                        return $step;
+                    }
+
+                    if (is_string($step['default_email'] ?? null)) {
+                        $step['default_email'] = trim($step['default_email']);
+                    }
+
+                    return $step;
+                })
+                ->all();
+
+            foreach ($steps as $index => $step) {
+                if (! is_array($step) || blank($step['default_email'] ?? null)) {
+                    throw ValidationException::withMessages([
+                        "steps.{$index}.default_email" => __('validation.required', [
+                            'attribute' => Str::lower(__('form-transfer::filament/clusters/configurations/resources/approval-workflow.fields.step_default_email')),
+                        ]),
+                    ]);
+                }
+            }
+
+            $workflow->steps = $steps;
+        });
     }
 
     public function getStepCountAttribute(): int

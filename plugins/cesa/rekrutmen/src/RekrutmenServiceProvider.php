@@ -21,6 +21,9 @@ use Cesa\Rekrutmen\Policies\JobApplicationPolicy;
 use Cesa\Rekrutmen\Policies\JobPostingPolicy;
 use Cesa\Rekrutmen\Policies\RekrutmenPipelinePolicy;
 use Cesa\Rekrutmen\Policies\RequestManPowerPolicy;
+use Cesa\Rekrutmen\Services\MailThrottleService;
+use Cesa\Rekrutmen\Services\RequestManPowerApprovalWhatsAppNotifier;
+use Cesa\Rekrutmen\Services\WhatsAppThrottleService;
 use Filament\Panel;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
@@ -85,6 +88,10 @@ class RekrutmenServiceProvider extends PackageServiceProvider
         Panel::configureUsing(function (Panel $panel): void {
             $panel->plugin(RekrutmenPlugin::make());
         });
+
+        $this->app->singleton(MailThrottleService::class);
+        $this->app->singleton(WhatsAppThrottleService::class);
+        $this->app->singleton(RequestManPowerApprovalWhatsAppNotifier::class);
     }
 
     public function packageBooted(): void

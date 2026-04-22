@@ -113,7 +113,7 @@ class ExitClearanceRequestService
             ['label' => '8. Masukan untuk perusahaan', 'value' => $request->company_feedback],
             ['label' => '1. Kartu Halo dan tagihan', 'value' => $request->clearance_kartu_halo],
             ['label' => '2. Hutang karyawan', 'value' => $request->clearance_employee_debt],
-            ['label' => '3. Pengembalian seragam', 'value' => $request->clearance_uniform_return],
+            ['label' => '3. Pengembalian seragam dan nametag', 'value' => $request->clearance_uniform_return],
             ['label' => '4. Pengembalian kendaraan', 'value' => $request->clearance_vehicle_return],
             ['label' => '5. Pengembalian inventaris', 'value' => $request->clearance_inventory_return],
             ['label' => '6. Penonaktifan akun', 'value' => $request->clearance_account_deactivation],
@@ -166,7 +166,7 @@ class ExitClearanceRequestService
             'clearance' => [
                 ['label' => '1. Kartu Halo dan tagihan', 'value' => $request->clearance_kartu_halo],
                 ['label' => '2. Hutang karyawan', 'value' => $request->clearance_employee_debt],
-                ['label' => '3. Pengembalian seragam', 'value' => $request->clearance_uniform_return],
+                ['label' => '3. Pengembalian seragam dan nametag', 'value' => $request->clearance_uniform_return],
                 ['label' => '4. Pengembalian kendaraan', 'value' => $request->clearance_vehicle_return],
                 ['label' => '5. Pengembalian inventaris', 'value' => $request->clearance_inventory_return],
                 ['label' => '6. Penonaktifan akun', 'value' => $request->clearance_account_deactivation],

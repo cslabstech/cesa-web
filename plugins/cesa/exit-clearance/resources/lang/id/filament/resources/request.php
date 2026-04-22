@@ -45,7 +45,7 @@ return [
         'section_title' => 'Exit Clearance',
         'item_1'        => '1. Kartu Halo dan tagihan',
         'item_2'        => '2. Hutang karyawan',
-        'item_3'        => '3. Pengembalian seragam',
+        'item_3'        => '3. Pengembalian seragam dan nametag',
         'item_4'        => '4. Pengembalian kendaraan',
         'item_5'        => '5. Pengembalian inventaris',
         'item_6'        => '6. Penonaktifan akun',

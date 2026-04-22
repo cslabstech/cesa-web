@@ -107,6 +107,8 @@ class SyncLegacySqlData extends Command
 
     protected bool $legacyCompaniesLoaded = false;
 
+    protected bool $sharedLegacyCompaniesSynchronized = false;
+
     /**
      * @var array<string, int>
      */
@@ -329,6 +331,7 @@ class SyncLegacySqlData extends Command
             ]);
         }
 
+        $this->syncSharedLegacyCompanies();
         $this->syncTransferBanks();
         $this->syncFormTransfers();
         $this->syncTransferDivisions();
@@ -349,6 +352,7 @@ class SyncLegacySqlData extends Command
             $this->truncateTables(['documents']);
         }
 
+        $this->syncSharedLegacyCompanies();
         $this->syncDocuments();
     }
 
@@ -380,6 +384,7 @@ class SyncLegacySqlData extends Command
 
         $this->syncedExitRequestIds = [];
 
+        $this->syncSharedLegacyCompanies();
         $this->syncExitClearanceDepartments();
         $this->syncExitClearanceApprovers();
         $this->syncExitClearanceDepartmentApprovers();
@@ -553,6 +558,35 @@ class SyncLegacySqlData extends Command
         $this->syncShelfAssetRequests();
         $this->syncShelfRequestApprovals();
         $this->backfillShelfCreatorIds();
+    }
+
+    protected function syncSharedLegacyCompanies(): void
+    {
+        if ($this->sharedLegacyCompaniesSynchronized) {
+            return;
+        }
+
+        $this->sharedLegacyCompaniesSynchronized = true;
+
+        if (! Schema::connection($this->legacyConnection)->hasTable('companies')) {
+            return;
+        }
+
+        $query = DB::connection($this->legacyConnection)->table('companies');
+
+        $this->syncRows('Shared legacy companies', $query, function (object $row): void {
+            $this->resolveCompanyId($this->nullableInt($row->id));
+        });
+
+        $this->refreshCompanyLookupCache();
+    }
+
+    protected function refreshCompanyLookupCache(): void
+    {
+        $this->legacyCompaniesLoaded = false;
+        $this->legacyCompaniesById = [];
+        $this->targetCompaniesByCompanyCode = [];
+        $this->targetCompaniesByName = [];
     }
 
     protected function syncShelfCategories(): void

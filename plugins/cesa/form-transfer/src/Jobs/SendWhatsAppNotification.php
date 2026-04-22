@@ -39,7 +39,7 @@ class SendWhatsAppNotification implements ShouldQueue
     ) {
         $queue = config('form-transfer.notifications.whatsapp.queue')
             ?? config('form-transfer.notifications.queue')
-            ?? 'default';
+            ?? 'whatsapp';
 
         $this->onQueue($queue);
 
@@ -62,6 +62,7 @@ class SendWhatsAppNotification implements ShouldQueue
         try {
             if ($provider === 'fonnte') {
                 $countryCode = (string) config('form-transfer.notifications.whatsapp.country_code', '62');
+                $target = $this->buildFonnteTarget($this->phone, $countryCode);
 
                 $response = Http::timeout($this->timeout)
                     ->acceptJson()
@@ -70,7 +71,7 @@ class SendWhatsAppNotification implements ShouldQueue
                     ])
                     ->asMultipart()
                     ->post($this->endpoint, [
-                        'target'      => ltrim($this->phone, '+'),
+                        'target'      => $target,
                         'message'     => $this->message,
                         'countryCode' => $countryCode,
                     ]);
@@ -79,8 +80,8 @@ class SendWhatsAppNotification implements ShouldQueue
 
                 $payload = $response->json();
 
-                if (is_array($payload) && array_key_exists('status', $payload) && $payload['status'] === false) {
-                    $reason = $payload['reason'] ?? $payload['detail'] ?? 'Fonnte rejected the request.';
+                if (($status = $this->resolveFonnteStatus($payload)) === false) {
+                    $reason = $this->resolveFonnteReason($payload);
                     throw new \RuntimeException((string) $reason);
                 }
 
@@ -145,5 +146,66 @@ class SendWhatsAppNotification implements ShouldQueue
         }
 
         return [10, 30, 60];
+    }
+
+    protected function buildFonnteTarget(string $phone, string $countryCode): string
+    {
+        $target = preg_replace('/[^\d]/', '', $phone);
+
+        if (! is_string($target) || $target === '') {
+            return '';
+        }
+
+        $normalizedCountryCode = preg_replace('/[^\d]/', '', $countryCode);
+
+        if (! is_string($normalizedCountryCode) || $normalizedCountryCode === '' || $normalizedCountryCode === '0') {
+            return $target;
+        }
+
+        if (str_starts_with($target, $normalizedCountryCode)) {
+            return '0'.substr($target, strlen($normalizedCountryCode));
+        }
+
+        if (str_starts_with($target, '0')) {
+            return $target;
+        }
+
+        if (str_starts_with($target, '8')) {
+            return '0'.$target;
+        }
+
+        return $target;
+    }
+
+    protected function resolveFonnteStatus(mixed $payload): ?bool
+    {
+        if (! is_array($payload)) {
+            return null;
+        }
+
+        $normalizedPayload = array_change_key_case($payload, CASE_LOWER);
+
+        if (! array_key_exists('status', $normalizedPayload)) {
+            return null;
+        }
+
+        return filter_var($normalizedPayload['status'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+    }
+
+    protected function resolveFonnteReason(mixed $payload): string
+    {
+        if (! is_array($payload)) {
+            return 'Fonnte rejected the request.';
+        }
+
+        $normalizedPayload = array_change_key_case($payload, CASE_LOWER);
+
+        foreach (['reason', 'detail', 'message'] as $key) {
+            if (filled($normalizedPayload[$key] ?? null)) {
+                return (string) $normalizedPayload[$key];
+            }
+        }
+
+        return 'Fonnte rejected the request.';
     }
 }

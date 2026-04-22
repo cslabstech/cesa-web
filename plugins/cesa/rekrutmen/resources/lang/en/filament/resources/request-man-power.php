@@ -80,7 +80,7 @@ return [
             'open_approval_page'      => 'Open Approval Page',
             'approve'                 => 'Approve',
             'reject'                  => 'Reject',
-            'resend_pending_approval' => 'Send Approval Email Again',
+            'resend_pending_approval' => 'Resend Approval Notification',
             'set_pending'             => 'Set Pending',
             'more'                    => 'Manage',
         ],
@@ -88,7 +88,7 @@ return [
     'notifications' => [
         'approved'                => 'Manpower request approved successfully.',
         'rejected'                => 'Manpower request rejected successfully.',
-        'pending_approval_resent' => 'The approval email has been sent again to the current approver.',
+        'pending_approval_resent' => 'The approval notification has been queued again for the current approver.',
         'set_pending'             => 'Manpower request moved back to pending.',
     ],
     'errors' => [

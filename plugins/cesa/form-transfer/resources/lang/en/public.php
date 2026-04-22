@@ -1,9 +1,18 @@
 <?php
 
 return [
+    'affiliates' => [
+        'heading'             => 'Affiliate Transfer Requests',
+        'description'         => 'Choose an affiliate to continue to the transfer request form.',
+        'default_description' => 'Open the affiliate transfer request form.',
+        'empty_state'         => 'No affiliate transfer forms are available right now.',
+    ],
+
     'index' => [
-        'heading'     => 'Transfer Request Forms',
-        'description' => 'Submit and track transfer requests using the available forms.',
+        'heading'             => 'Transfer Request Forms',
+        'description'         => 'Submit and track transfer requests using the available forms.',
+        'default_description' => 'Open the selected transfer request form.',
+        'empty_state'         => 'No transfer request forms are available right now.',
     ],
 
     'form' => [

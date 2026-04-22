@@ -6,6 +6,9 @@ use Cesa\Rekrutmen\Enums\ActivityEntryResult;
 use Cesa\Rekrutmen\Enums\JobApplicationGender;
 use Cesa\Rekrutmen\Enums\JobApplicationMaritalStatus;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
+use Cesa\Rekrutmen\Services\MailThrottleService;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -187,8 +190,15 @@ class JobApplication extends Model
         }
 
         try {
+            $notification = new JobApplicationSubmittedNotification($this->fresh(['jobPosting', 'currentStage']) ?? $this);
+            $delaySeconds = app(MailThrottleService::class)->getDispatchDelaySeconds();
+
+            if ($delaySeconds > 0) {
+                $notification->delay(now()->addSeconds($delaySeconds));
+            }
+
             NotificationFacade::route('mail', $this->email)
-                ->notify(new JobApplicationSubmittedNotification($this->fresh(['jobPosting', 'currentStage']) ?? $this));
+                ->notify($notification);
         } catch (Throwable $exception) {
             Log::error('Failed to send job application submitted notification.', [
                 'job_application_id' => $this->getKey(),
@@ -1296,9 +1306,14 @@ class JobApplication extends Model
     }
 }
 
-class JobApplicationSubmittedNotification extends Notification
+class JobApplicationSubmittedNotification extends Notification implements ShouldQueue
 {
-    public function __construct(private readonly JobApplication $jobApplication) {}
+    use Queueable;
+
+    public function __construct(private readonly JobApplication $jobApplication)
+    {
+        $this->onQueue(config('rekrutmen.notifications.queue', 'notifications'));
+    }
 
     public function via(object $notifiable): array
     {

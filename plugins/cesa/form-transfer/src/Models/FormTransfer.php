@@ -20,6 +20,10 @@ class FormTransfer extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public const PUBLIC_ENTRY_TYPE_INTERNAL = 'internal';
+
+    public const PUBLIC_ENTRY_TYPE_EXTERNAL = 'external';
+
     protected $fillable = [
         'company_id',
         'name',
@@ -28,6 +32,12 @@ class FormTransfer extends Model
         'uid_padding',
         'uid_sequence',
         'description',
+        'public_entry_type',
+        'public_external_url',
+        'public_badge_label',
+        'public_sort_order',
+        'show_on_transfer_request_index',
+        'show_on_affiliate_index',
         'is_active',
         'creator_id',
         'approver_mail_subject',
@@ -59,10 +69,27 @@ class FormTransfer extends Model
     protected function casts(): array
     {
         return [
-            'uid_padding'  => 'integer',
-            'uid_sequence' => 'integer',
-            'is_active'    => 'boolean',
+            'uid_padding'                    => 'integer',
+            'uid_sequence'                   => 'integer',
+            'public_sort_order'              => 'integer',
+            'show_on_transfer_request_index' => 'boolean',
+            'show_on_affiliate_index'        => 'boolean',
+            'is_active'                      => 'boolean',
         ];
+    }
+
+    public function usesExternalPublicEntry(): bool
+    {
+        return $this->public_entry_type === self::PUBLIC_ENTRY_TYPE_EXTERNAL && filled($this->public_external_url);
+    }
+
+    public function getPublicDestinationUrlAttribute(): string
+    {
+        if ($this->usesExternalPublicEntry()) {
+            return (string) $this->public_external_url;
+        }
+
+        return route('form-transfer.public.form', $this->code ?: $this->getKey());
     }
 
     protected static function booted(): void
@@ -70,6 +97,16 @@ class FormTransfer extends Model
         static::creating(function (FormTransfer $formTransfer): void {
             if (! $formTransfer->creator_id && Auth::check()) {
                 $formTransfer->creator_id = Auth::id();
+            }
+
+            if ($formTransfer->public_sort_order === null) {
+                $maxSortOrder = self::query()
+                    ->withTrashed()
+                    ->max('public_sort_order');
+
+                $formTransfer->public_sort_order = is_numeric($maxSortOrder)
+                    ? ((int) $maxSortOrder + 1)
+                    : 1;
             }
         });
     }

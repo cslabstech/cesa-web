@@ -73,12 +73,11 @@ class WhatsAppNotifier implements NotificationChannel
      */
     public function validateRecipient(string $recipient): bool
     {
-        if (empty($recipient)) {
+        if ($recipient === '') {
             return false;
         }
 
-        // Basic validation: must contain only digits, +, -, (), and spaces
-        return preg_match('/^[\d\s\-\+\(\)]+$/', $recipient) === 1;
+        return preg_match('/^\d+$/', $recipient) === 1;
     }
 
     /**
@@ -127,14 +126,25 @@ class WhatsAppNotifier implements NotificationChannel
     public function formatPhone(string $phone): string
     {
         $trimmed = trim($phone);
-
-        // Keep leading + if present
-        $hasPlus = str_starts_with($trimmed, '+');
-
-        // Remove all non-digit characters
         $digitsOnly = preg_replace('/[^\d]/', '', $trimmed);
 
-        return $hasPlus ? '+'.$digitsOnly : $digitsOnly;
+        if (! is_string($digitsOnly) || $digitsOnly === '') {
+            return '';
+        }
+
+        if (str_starts_with($digitsOnly, '62')) {
+            return $digitsOnly;
+        }
+
+        if (str_starts_with($digitsOnly, '0')) {
+            return '62'.substr($digitsOnly, 1);
+        }
+
+        if (str_starts_with($digitsOnly, '8')) {
+            return '62'.$digitsOnly;
+        }
+
+        return $digitsOnly;
     }
 
     /**

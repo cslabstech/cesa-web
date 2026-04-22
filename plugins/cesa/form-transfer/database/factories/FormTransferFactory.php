@@ -25,24 +25,30 @@ class FormTransferFactory extends Factory
         }
 
         return [
-            'company_id'                 => null, // Set to null by default for tests, can be overridden
-            'creator_id'                 => User::factory(),
-            'name'                       => $name,
-            'code'                       => Str::upper(Str::slug($name, '_')),
-            'uid_prefix'                 => $prefix,
-            'uid_padding'                => 5,
-            'uid_sequence'               => 0,
-            'description'                => $this->faker->optional()->sentence(),
-            'is_active'                  => $this->faker->boolean(90),
-            'approver_mail_subject'      => $this->faker->optional()->sentence(),
-            'approver_mail_greeting'     => $this->faker->optional()->sentence(),
-            'approver_mail_action_text'  => $this->faker->optional()->words(3, true),
-            'approver_mail_template'     => $this->faker->optional()->paragraph(),
-            'requester_mail_subject'     => $this->faker->optional()->sentence(),
-            'requester_mail_greeting'    => $this->faker->optional()->sentence(),
-            'requester_mail_action_text' => $this->faker->optional()->words(3, true),
-            'requester_mail_template'    => $this->faker->optional()->paragraph(),
-            'approver_whatsapp_template' => $this->faker->optional()->paragraph(),
+            'company_id'                     => null, // Set to null by default for tests, can be overridden
+            'creator_id'                     => User::factory(),
+            'name'                           => $name,
+            'code'                           => Str::upper(Str::slug($name, '_')),
+            'uid_prefix'                     => $prefix,
+            'uid_padding'                    => 5,
+            'uid_sequence'                   => 0,
+            'description'                    => $this->faker->optional()->sentence(),
+            'public_entry_type'              => FormTransfer::PUBLIC_ENTRY_TYPE_INTERNAL,
+            'public_external_url'            => null,
+            'public_badge_label'             => null,
+            'public_sort_order'              => $this->faker->numberBetween(0, 100),
+            'show_on_transfer_request_index' => true,
+            'show_on_affiliate_index'        => false,
+            'is_active'                      => $this->faker->boolean(90),
+            'approver_mail_subject'          => $this->faker->optional()->sentence(),
+            'approver_mail_greeting'         => $this->faker->optional()->sentence(),
+            'approver_mail_action_text'      => $this->faker->optional()->words(3, true),
+            'approver_mail_template'         => $this->faker->optional()->paragraph(),
+            'requester_mail_subject'         => $this->faker->optional()->sentence(),
+            'requester_mail_greeting'        => $this->faker->optional()->sentence(),
+            'requester_mail_action_text'     => $this->faker->optional()->words(3, true),
+            'requester_mail_template'        => $this->faker->optional()->paragraph(),
+            'approver_whatsapp_template'     => $this->faker->optional()->paragraph(),
         ];
     }
 

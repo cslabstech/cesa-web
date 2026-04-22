@@ -37,7 +37,7 @@ class WhatsAppThrottleService
         $provider = strtolower(trim((string) config('form-transfer.notifications.whatsapp.provider', 'generic')));
         $key = (string) Arr::get($config, 'key', 'global');
 
-        $stateKey = sprintf('form-transfer:whatsapp:throttle:%s:%s:next_at', $provider, $key);
+        $stateKey = sprintf('notifications:whatsapp:throttle:%s:%s:next_at', $provider, $key);
         $lockKey = $stateKey.':lock';
 
         try {

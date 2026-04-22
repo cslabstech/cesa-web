@@ -13,7 +13,7 @@ class PublicTransferPageLayoutTest extends FormTransferTestCase
 
         $this->assertIsString($indexView);
         $this->assertIsString($formView);
-        $this->assertStringContainsString('mx-auto max-w-2xl', $indexView);
+        $this->assertStringContainsString('mx-auto max-w-4xl', $indexView);
         $this->assertStringContainsString('mx-auto max-w-2xl', $formView);
     }
 }

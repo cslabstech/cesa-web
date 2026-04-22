@@ -83,7 +83,7 @@ class RequestManPowerResource extends Resource
                                 TextInput::make('email_address')
                                     ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.email_address'))
                                     ->email()
-                                    ->nullable()
+                                    ->required()
                                     ->maxLength(255),
                                 DatePicker::make('tanggal_pengajuan')
                                     ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.tanggal_pengajuan'))

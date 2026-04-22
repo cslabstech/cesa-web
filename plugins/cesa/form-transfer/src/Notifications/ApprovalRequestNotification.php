@@ -19,7 +19,7 @@ class ApprovalRequestNotification extends Notification implements ShouldQueue
         protected string $actionUrl,
         protected array $mailContent,
     ) {
-        $this->onQueue(config('form-transfer.notifications.queue', 'default'));
+        $this->onQueue(config('form-transfer.notifications.queue', 'notifications'));
     }
 
     public function via(object $notifiable): array

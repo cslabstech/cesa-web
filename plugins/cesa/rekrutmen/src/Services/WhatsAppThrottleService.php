@@ -1,18 +1,18 @@
 <?php
 
-namespace Cesa\FormTransfer\Services;
+namespace Cesa\Rekrutmen\Services;
 
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 
-class MailThrottleService
+class WhatsAppThrottleService
 {
     public function getDispatchDelaySeconds(): int
     {
-        $config = config('form-transfer.notifications.mail.throttle', []);
+        $config = config('rekrutmen.notifications.whatsapp.throttle', []);
 
-        if (! Arr::get($config, 'enabled', false)) {
+        if (! Arr::get($config, 'enabled', true)) {
             return 0;
         }
 
@@ -34,9 +34,10 @@ class MailThrottleService
             $maxIntervalSeconds = $minIntervalSeconds;
         }
 
+        $provider = strtolower(trim((string) config('rekrutmen.notifications.whatsapp.provider', 'generic')));
         $key = (string) Arr::get($config, 'key', 'global');
 
-        $stateKey = sprintf('notifications:mail:throttle:%s:next_at', $key);
+        $stateKey = sprintf('notifications:whatsapp:throttle:%s:%s:next_at', $provider, $key);
         $lockKey = $stateKey.':lock';
 
         try {

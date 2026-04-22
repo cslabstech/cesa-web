@@ -152,7 +152,9 @@ class RequestSeeder extends Seeder
                 'company_feedback'               => $record['8. Berikan pendapat Anda mengenai perusahaan ini sebagai bahan masukan bagi kami'] ?? null,
                 'clearance_kartu_halo'           => $record['1. Kartu Halo & Tagihan yang belum dibayar'] ?? null,
                 'clearance_employee_debt'        => $record['2. Hutang karyawan terhadap Perusahaan'] ?? null,
-                'clearance_uniform_return'       => $record['3. Pengembalian seragam kantor, nametag dsb'] ?? null,
+                'clearance_uniform_return'       => $record['3. Pengembalian seragam dan nametag']
+                    ?? $record['3. Pengembalian seragam kantor, nametag dsb']
+                    ?? null,
                 'clearance_vehicle_return'       => $record['4. Menyerahkan kendaraan perusahaan'] ?? null,
                 'clearance_inventory_return'     => $record['5. Pengecekan dan pengembalian Inventaris kantor'] ?? null,
                 'clearance_account_deactivation' => $record['6. Penonaktifan Account/User'] ?? null,

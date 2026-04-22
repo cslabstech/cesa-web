@@ -16,6 +16,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Webkul\Chatter\Traits\HasChatter;
 use Webkul\Security\Models\Scopes\UserPermissionScope;
@@ -129,6 +130,18 @@ class TransferRequest extends Model
         });
 
         static::saving(function (TransferRequest $request): void {
+            if (is_string($request->email)) {
+                $request->email = trim($request->email);
+            }
+
+            if (blank($request->email)) {
+                throw ValidationException::withMessages([
+                    'email' => __('validation.required', [
+                        'attribute' => Str::lower(__('form-transfer::filament/resources/transfer-request/fields.email')),
+                    ]),
+                ]);
+            }
+
             $request->snapshotOriginalAttachments();
 
             $approvalStatus = $request->approval_status instanceof TransferRequestApprovalStatus

@@ -38,6 +38,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class FormTransferResource extends Resource
@@ -86,8 +87,40 @@ class FormTransferResource extends Resource
                                                         ->rows(3)
                                                         ->columnSpanFull(),
                                                 ]),
+                                            Section::make(__('form-transfer::filament/clusters/configurations/resources/form-transfer.sections.public_publishing'))
+                                                ->description(__('form-transfer::filament/clusters/configurations/resources/form-transfer.sections.public_publishing_description'))
+                                                ->schema([
+                                                    Select::make('public_entry_type')
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.public_entry_type'))
+                                                        ->options([
+                                                            FormTransfer::PUBLIC_ENTRY_TYPE_INTERNAL => __('form-transfer::filament/clusters/configurations/resources/form-transfer.options.public_entry_type.internal'),
+                                                            FormTransfer::PUBLIC_ENTRY_TYPE_EXTERNAL => __('form-transfer::filament/clusters/configurations/resources/form-transfer.options.public_entry_type.external'),
+                                                        ])
+                                                        ->default(FormTransfer::PUBLIC_ENTRY_TYPE_INTERNAL)
+                                                        ->required()
+                                                        ->live(),
+                                                    TextInput::make('public_external_url')
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.public_external_url'))
+                                                        ->url()
+                                                        ->required(fn (Get $get): bool => $get('public_entry_type') === FormTransfer::PUBLIC_ENTRY_TYPE_EXTERNAL)
+                                                        ->visible(fn (Get $get): bool => $get('public_entry_type') === FormTransfer::PUBLIC_ENTRY_TYPE_EXTERNAL)
+                                                        ->columnSpanFull(),
+                                                    TextInput::make('public_badge_label')
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.public_badge_label'))
+                                                        ->maxLength(100)
+                                                        ->helperText(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.public_badge_label_helper'))
+                                                        ->columnSpanFull(),
+                                                    Toggle::make('show_on_transfer_request_index')
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.show_on_transfer_request_index'))
+                                                        ->default(true),
+                                                    Toggle::make('show_on_affiliate_index')
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.show_on_affiliate_index'))
+                                                        ->default(false),
+                                                ])
+                                                ->columns(2),
                                             Section::make(__('form-transfer::filament/clusters/configurations/resources/form-transfer.sections.access_control'))
                                                 ->description(__('form-transfer::filament/clusters/configurations/resources/form-transfer.sections.access_control_description'))
+                                                ->visible(fn (Get $get): bool => static::isInternalEntry($get))
                                                 ->schema([
                                                     Select::make('allowed_users')
                                                         ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.allowed_users'))
@@ -108,6 +141,7 @@ class FormTransferResource extends Resource
                                                         ->default(true),
                                                 ]),
                                             Section::make('Identification')
+                                                ->visible(fn (Get $get): bool => static::isInternalEntry($get))
                                                 ->schema([
                                                     TextInput::make('code')
                                                         ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.code'))
@@ -116,7 +150,7 @@ class FormTransferResource extends Resource
                                                     TextInput::make('uid_prefix')
                                                         ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.uid_prefix'))
                                                         ->maxLength(20)
-                                                        ->required()
+                                                        ->required(fn (Get $get): bool => static::isInternalEntry($get))
                                                         ->live()
                                                         ->afterStateUpdated(function (Set $set, ?string $state): void {
                                                             $set('uid_prefix', strtoupper((string) $state));
@@ -141,6 +175,7 @@ class FormTransferResource extends Resource
                         ]),
                     Tab::make('Notifications')
                         ->icon('heroicon-o-bell')
+                        ->visible(fn (Get $get): bool => static::isInternalEntry($get))
                         ->schema([
                             Section::make('Approver Notifications')
                                 ->schema([
@@ -267,6 +302,75 @@ class FormTransferResource extends Resource
             ->implode(', ');
     }
 
+    public static function prepareDataForPersistence(array $data, ?FormTransfer $record = null): array
+    {
+        $entryType = (string) ($data['public_entry_type'] ?? FormTransfer::PUBLIC_ENTRY_TYPE_INTERNAL);
+
+        if (static::isExternalEntryType($entryType)) {
+            $data['uid_padding'] = (int) ($data['uid_padding'] ?? 5);
+            $data['uid_sequence'] = (int) ($record?->uid_sequence ?? ($data['uid_sequence'] ?? 0));
+            $data['uid_prefix'] = static::resolveExternalUidPrefix($data, $record);
+
+            foreach (array_keys(static::getDefaultNotificationData()) as $field) {
+                $data[$field] = null;
+            }
+
+            return $data;
+        }
+
+        $data['public_external_url'] = null;
+
+        foreach (static::getDefaultNotificationData() as $field => $value) {
+            if (blank($data[$field] ?? null)) {
+                $data[$field] = $value;
+            }
+        }
+
+        return $data;
+    }
+
+    protected static function isInternalEntry(Get $get): bool
+    {
+        return ! static::isExternalEntryType((string) ($get('public_entry_type') ?? FormTransfer::PUBLIC_ENTRY_TYPE_INTERNAL));
+    }
+
+    protected static function isExternalEntryType(?string $entryType): bool
+    {
+        return $entryType === FormTransfer::PUBLIC_ENTRY_TYPE_EXTERNAL;
+    }
+
+    protected static function resolveExternalUidPrefix(array $data, ?FormTransfer $record = null): string
+    {
+        $configuredPrefix = strtoupper(trim((string) ($data['uid_prefix'] ?? '')));
+
+        if ($configuredPrefix !== '') {
+            return $configuredPrefix;
+        }
+
+        $name = (string) ($data['name'] ?? 'FORM EXTERNAL');
+        $prefix = Str::upper(Str::slug($name));
+        $prefix = Str::of($prefix)->replace('-', '')->upper()->take(4)->toString();
+
+        if (strlen($prefix) < 3) {
+            $prefix = Str::upper(Str::random(4));
+        }
+
+        $candidate = $prefix;
+        $suffix = 1;
+
+        while (
+            FormTransfer::query()
+                ->when($record, fn ($query) => $query->whereKeyNot($record->getKey()))
+                ->where('uid_prefix', $candidate)
+                ->exists()
+        ) {
+            $candidate = Str::of($prefix)->take(3)->append((string) $suffix)->upper()->toString();
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -279,6 +383,12 @@ class FormTransferResource extends Resource
                     ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.code'))
                     ->toggleable()
                     ->searchable(),
+                TextColumn::make('public_entry_type')
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.public_entry_type'))
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => __(
+                        'form-transfer::filament/clusters/configurations/resources/form-transfer.options.public_entry_type.'.$state
+                    )),
                 TextColumn::make('uid_prefix')
                     ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.uid_prefix'))
                     ->searchable()
@@ -303,6 +413,12 @@ class FormTransferResource extends Resource
                     ->boolean()
                     ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.is_active'))
                     ->sortable(),
+                IconColumn::make('show_on_transfer_request_index')
+                    ->boolean()
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.show_on_transfer_request_index')),
+                IconColumn::make('show_on_affiliate_index')
+                    ->boolean()
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.show_on_affiliate_index')),
             ])
             ->filters([
                 TernaryFilter::make('is_active')
@@ -347,6 +463,7 @@ class FormTransferResource extends Resource
                                                         ->extraAttributes(['class' => 'whitespace-pre-wrap']),
                                                 ]),
                                             Section::make(__('form-transfer::filament/clusters/configurations/resources/form-transfer.sections.access_control'))
+                                                ->visible(fn (FormTransfer $record): bool => ! $record->usesExternalPublicEntry())
                                                 ->schema([
                                                     TextEntry::make('allowedUsers.name')
                                                         ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.allowed_users'))
@@ -366,6 +483,7 @@ class FormTransferResource extends Resource
                                                         ->formatStateUsing(fn (string $state): string => $state === '1' ? __('form-transfer::filament/resources/transfer-request/general.yes') : __('form-transfer::filament/resources/transfer-request/general.no')),
                                                 ]),
                                             Section::make('Identification')
+                                                ->visible(fn (FormTransfer $record): bool => ! $record->usesExternalPublicEntry())
                                                 ->schema([
                                                     TextEntry::make('code')
                                                         ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.code'))
@@ -387,6 +505,7 @@ class FormTransferResource extends Resource
                         ]),
                     Tab::make('Notifications')
                         ->icon('heroicon-o-bell')
+                        ->visible(fn (FormTransfer $record): bool => ! $record->usesExternalPublicEntry())
                         ->schema([
                             Section::make('Approver Notifications')
                                 ->schema([

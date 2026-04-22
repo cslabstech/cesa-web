@@ -5,6 +5,10 @@ namespace Cesa\Rekrutmen\Models;
 use Cesa\Rekrutmen\Enums\RequestManPowerApprovalStatus;
 use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Enums\StatusKebutuhan;
+use Cesa\Rekrutmen\Services\MailThrottleService;
+use Cesa\Rekrutmen\Services\RequestManPowerApprovalWhatsAppNotifier;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,6 +25,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Throwable;
 use Webkul\Security\Models\User;
@@ -85,6 +90,18 @@ class RequestManPower extends Model
         });
 
         static::saving(function (self $request): void {
+            if (is_string($request->email_address)) {
+                $request->email_address = trim($request->email_address);
+            }
+
+            if (blank($request->email_address)) {
+                throw ValidationException::withMessages([
+                    'email_address' => __('validation.required', [
+                        'attribute' => Str::lower(__('rekrutmen::livewire/public-request-man-power-form.fields.email_address')),
+                    ]),
+                ]);
+            }
+
             $request->syncBusinessEntitySnapshot();
             $request->syncDivisionSnapshot();
         });
@@ -304,8 +321,15 @@ class RequestManPower extends Model
         }
 
         try {
+            $notification = new RequestManPowerSubmittedNotification($this);
+            $delaySeconds = app(MailThrottleService::class)->getDispatchDelaySeconds();
+
+            if ($delaySeconds > 0) {
+                $notification->delay(now()->addSeconds($delaySeconds));
+            }
+
             NotificationFacade::route('mail', $this->email_address)
-                ->notify(new RequestManPowerSubmittedNotification($this));
+                ->notify($notification);
         } catch (Throwable $e) {
             Log::error('Failed to send request man power submitted notification.', [
                 'request_man_power_id' => $this->getKey(),
@@ -333,8 +357,15 @@ class RequestManPower extends Model
         }
 
         try {
+            $notification = new RequestManPowerStatusChangedNotification($this, $from, $to);
+            $delaySeconds = app(MailThrottleService::class)->getDispatchDelaySeconds();
+
+            if ($delaySeconds > 0) {
+                $notification->delay(now()->addSeconds($delaySeconds));
+            }
+
             NotificationFacade::route('mail', $this->email_address)
-                ->notify(new RequestManPowerStatusChangedNotification($this, $from, $to));
+                ->notify($notification);
         } catch (Throwable $e) {
             Log::error('Failed to send request man power status changed notification.', [
                 'request_man_power_id' => $this->getKey(),
@@ -367,7 +398,7 @@ class RequestManPower extends Model
         $approval->forceFill([
             'action_token'      => $rotateToken || blank($approval->action_token)
                 ? (string) Str::uuid()
-                : $approval->action_token,
+            : $approval->action_token,
             'action_expires_at' => now()->addMinutes(
                 (int) config('rekrutmen.security.approval_link_expiration_minutes', 10080)
             ),
@@ -375,14 +406,32 @@ class RequestManPower extends Model
         ])->save();
 
         try {
+            $notification = new RequestManPowerApprovalRequestedNotification($this, $approval);
+            $delaySeconds = app(MailThrottleService::class)->getDispatchDelaySeconds();
+
+            if ($delaySeconds > 0) {
+                $notification->delay(now()->addSeconds($delaySeconds));
+            }
+
             NotificationFacade::route('mail', $approval->approver_email)
-                ->notify(new RequestManPowerApprovalRequestedNotification($this, $approval));
+                ->notify($notification);
         } catch (Throwable $exception) {
             Log::error('Failed to send request man power approval request notification.', [
                 'request_man_power_id' => $this->getKey(),
                 'approval_id'          => $approval->getKey(),
                 'approver_id'          => $approval->approver_id,
                 'email'                => $approval->approver_email,
+                'exception'            => $exception,
+            ]);
+        }
+
+        try {
+            app(RequestManPowerApprovalWhatsAppNotifier::class)->send($this, $approval);
+        } catch (Throwable $exception) {
+            Log::error('Failed to queue request man power approval WhatsApp notification.', [
+                'request_man_power_id' => $this->getKey(),
+                'approval_id'          => $approval->getKey(),
+                'approver_id'          => $approval->approver_id,
                 'exception'            => $exception,
             ]);
         }
@@ -764,9 +813,14 @@ class RequestManPower extends Model
     }
 }
 
-class RequestManPowerSubmittedNotification extends Notification
+class RequestManPowerSubmittedNotification extends Notification implements ShouldQueue
 {
-    public function __construct(private readonly RequestManPower $requestManPower) {}
+    use Queueable;
+
+    public function __construct(private readonly RequestManPower $requestManPower)
+    {
+        $this->onQueue(config('rekrutmen.notifications.queue', 'notifications'));
+    }
 
     public function via(object $notifiable): array
     {
@@ -830,13 +884,17 @@ class RequestManPowerSubmittedNotification extends Notification
     }
 }
 
-class RequestManPowerStatusChangedNotification extends Notification
+class RequestManPowerStatusChangedNotification extends Notification implements ShouldQueue
 {
+    use Queueable;
+
     public function __construct(
         private readonly RequestManPower $requestManPower,
         private readonly ?RequestManPowerStatus $fromStatus,
         private readonly RequestManPowerStatus $toStatus,
-    ) {}
+    ) {
+        $this->onQueue(config('rekrutmen.notifications.queue', 'notifications'));
+    }
 
     public function via(object $notifiable): array
     {
@@ -903,12 +961,16 @@ class RequestManPowerStatusChangedNotification extends Notification
     }
 }
 
-class RequestManPowerApprovalRequestedNotification extends Notification
+class RequestManPowerApprovalRequestedNotification extends Notification implements ShouldQueue
 {
+    use Queueable;
+
     public function __construct(
         private readonly RequestManPower $requestManPower,
         private readonly RequestManPowerApproval $approval,
-    ) {}
+    ) {
+        $this->onQueue(config('rekrutmen.notifications.queue', 'notifications'));
+    }
 
     public function via(object $notifiable): array
     {

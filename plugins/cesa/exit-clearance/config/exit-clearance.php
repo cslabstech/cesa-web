@@ -2,15 +2,15 @@
 
 return [
     'notifications' => [
-        'queue' => env('EXIT_CLEARANCE_NOTIFICATION_QUEUE', 'default'),
+        'queue' => env('EXIT_CLEARANCE_NOTIFICATION_QUEUE', 'notifications'),
         'mail'  => [
             'enabled'        => env('EXIT_CLEARANCE_MAIL_ENABLED', true),
             'subject_prefix' => env('EXIT_CLEARANCE_MAIL_SUBJECT_PREFIX', '[Exit Clearance]'),
             'throttle'       => [
-                'enabled'              => env('EXIT_CLEARANCE_MAIL_THROTTLE_ENABLED', false),
-                'min_interval_seconds' => (int) env('EXIT_CLEARANCE_MAIL_THROTTLE_MIN_INTERVAL', 0),
-                'max_interval_seconds' => (int) env('EXIT_CLEARANCE_MAIL_THROTTLE_MAX_INTERVAL', 0),
-                'key'                  => env('EXIT_CLEARANCE_MAIL_THROTTLE_KEY', 'global'),
+                'enabled'              => env('NOTIFICATION_MAIL_THROTTLE_ENABLED', env('EXIT_CLEARANCE_MAIL_THROTTLE_ENABLED', true)),
+                'min_interval_seconds' => (int) env('NOTIFICATION_MAIL_THROTTLE_MIN_INTERVAL', env('EXIT_CLEARANCE_MAIL_THROTTLE_MIN_INTERVAL', 2)),
+                'max_interval_seconds' => (int) env('NOTIFICATION_MAIL_THROTTLE_MAX_INTERVAL', env('EXIT_CLEARANCE_MAIL_THROTTLE_MAX_INTERVAL', 5)),
+                'key'                  => env('NOTIFICATION_MAIL_THROTTLE_KEY', env('EXIT_CLEARANCE_MAIL_THROTTLE_KEY', 'global')),
             ],
         ],
         'whatsapp' => [
@@ -22,11 +22,11 @@ return [
             'country_code' => env('WHATSAPP_COUNTRY_CODE', '62'),
             'throttle'     => [
                 'enabled'              => env('WHATSAPP_THROTTLE_ENABLED', true),
-                'min_interval_seconds' => (int) env('WHATSAPP_THROTTLE_MIN_INTERVAL', 2),
-                'max_interval_seconds' => (int) env('WHATSAPP_THROTTLE_MAX_INTERVAL', 0),
+                'min_interval_seconds' => (int) env('WHATSAPP_THROTTLE_MIN_INTERVAL', 5),
+                'max_interval_seconds' => (int) env('WHATSAPP_THROTTLE_MAX_INTERVAL', 10),
                 'key'                  => env('WHATSAPP_THROTTLE_KEY', 'global'),
             ],
-            'queue'      => env('WHATSAPP_QUEUE', 'default'),
+            'queue'      => env('WHATSAPP_QUEUE', 'whatsapp'),
             'connection' => env('WHATSAPP_CONNECTION'),
             'timeout'    => (int) env('WHATSAPP_TIMEOUT', 10),
             'tries'      => (int) env('WHATSAPP_TRIES', 3),

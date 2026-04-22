@@ -9,6 +9,7 @@ use Cesa\Rekrutmen\Models\JobPosting;
 use Cesa\Rekrutmen\Models\RekrutmenPipeline;
 use Cesa\Rekrutmen\Models\RekrutmenStage;
 use Cesa\Rekrutmen\Tests\RekrutmenTestCase;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -17,6 +18,15 @@ use Illuminate\Support\Facades\Storage;
 
 class CareerControllerApplyTest extends RekrutmenTestCase
 {
+    public function test_job_application_submission_notification_uses_standard_notifications_queue(): void
+    {
+        $notification = new JobApplicationSubmittedNotification(new JobApplication);
+
+        $this->assertSame('notifications', config('rekrutmen.notifications.queue'));
+        $this->assertInstanceOf(ShouldQueue::class, $notification);
+        $this->assertSame('notifications', $notification->queue);
+    }
+
     public function test_public_apply_stores_the_new_candidate_profile_fields(): void
     {
         Notification::fake();

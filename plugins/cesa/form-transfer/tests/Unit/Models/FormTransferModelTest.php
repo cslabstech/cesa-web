@@ -14,6 +14,7 @@ use Cesa\FormTransfer\Models\TransferReferenceNote;
 use Cesa\FormTransfer\Models\TransferRequest;
 use Cesa\FormTransfer\Tests\FormTransferTestCase;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Webkul\Security\Models\User as SecurityUser;
 
 class FormTransferModelTest extends FormTransferTestCase
@@ -32,6 +33,22 @@ class FormTransferModelTest extends FormTransferTestCase
         $this->assertSame('TRX-0001', $firstUid);
         $this->assertSame('TRX-0002', $secondUid);
         $this->assertSame(2, $formTransfer->fresh()->uid_sequence);
+    }
+
+    public function test_form_transfer_assigns_public_sort_order_automatically(): void
+    {
+        $first = FormTransfer::query()->create([
+            'name'       => 'Form Transfer Alpha',
+            'uid_prefix' => 'ALPH',
+        ]);
+
+        $second = FormTransfer::query()->create([
+            'name'       => 'Form Transfer Beta',
+            'uid_prefix' => 'BETA',
+        ]);
+
+        $this->assertSame(1, $first->public_sort_order);
+        $this->assertSame(2, $second->public_sort_order);
     }
 
     public function test_has_custom_notification_templates_detects_any_filled_template(): void
@@ -104,6 +121,53 @@ class FormTransferModelTest extends FormTransferTestCase
         $this->assertSame(TransferRequestSubmissionStatus::BARU, $request->submission_status);
         $this->assertSame(TransferRequestApprovalStatus::PENDING, $request->approval_status);
         $this->assertSame(TransferRequestRealizationStatus::PENDING, $request->realization_status);
+    }
+
+    public function test_transfer_request_requires_requester_email(): void
+    {
+        $user = User::factory()->create();
+        $bank = TransferBank::factory()->create();
+        $formTransfer = FormTransfer::factory()->create([
+            'creator_id' => $user->id,
+        ]);
+
+        $this->expectException(ValidationException::class);
+
+        TransferRequest::query()->create([
+            'form_transfer_id' => $formTransfer->id,
+            'user_id'          => $user->id,
+            'creator_id'       => $user->id,
+            'requester_name'   => 'Budi',
+            'email'            => '   ',
+            'account_number'   => '123456789',
+            'account_name'     => 'Budi Santoso',
+            'bank_id'          => $bank->id,
+            'transfer_amount'  => 1250000,
+            'purpose'          => 'Operational transfer',
+        ]);
+    }
+
+    public function test_transfer_approval_workflow_requires_default_email_for_each_step(): void
+    {
+        $formTransfer = FormTransfer::factory()->create();
+
+        $this->expectException(ValidationException::class);
+
+        TransferApprovalWorkflow::query()->create([
+            'form_transfer_id' => $formTransfer->id,
+            'name'             => 'Default Workflow',
+            'code'             => 'WF-EMAIL',
+            'steps'            => [
+                [
+                    'label'         => 'Manager Approval',
+                    'default_name'  => 'Manager',
+                    'default_email' => '   ',
+                    'default_title' => 'Manager',
+                    'is_mandatory'  => true,
+                ],
+            ],
+            'is_active'        => true,
+        ]);
     }
 
     public function test_transfer_request_creation_renames_uploaded_attachments_using_uid(): void

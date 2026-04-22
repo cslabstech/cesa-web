@@ -16,12 +16,15 @@ use Cesa\Rekrutmen\Models\JobPosting;
 use Cesa\Rekrutmen\Models\RekrutmenPipeline;
 use Cesa\Rekrutmen\Models\RekrutmenStage;
 use Cesa\Rekrutmen\Models\RequestManPower;
+use Cesa\Rekrutmen\Models\RequestManPowerApproval;
 use Cesa\Rekrutmen\Models\RequestManPowerApprovalRequestedNotification;
 use Cesa\Rekrutmen\Models\RequestManPowerStatusChangedNotification;
 use Cesa\Rekrutmen\Models\RequestManPowerSubmittedNotification;
 use Cesa\Rekrutmen\Tests\RekrutmenTestCase;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Webkul\Security\Models\User;
 use Webkul\Security\Models\User as SecurityUser;
@@ -177,7 +180,7 @@ class RequestManPowerTest extends RekrutmenTestCase
         $request = RequestManPower::query()->create($this->basePayload([
             'company_id'    => $company->id,
             'division_id'   => $division->id,
-            'email_address' => null,
+            'email_address' => 'requester@example.com',
         ]));
 
         $request->sendApprovalRequestNotifications();
@@ -197,6 +200,37 @@ class RequestManPowerTest extends RekrutmenTestCase
         $this->assertCount(2, $request->approvals);
         $this->assertSame('scoped.approver@example.com', $request->approvals->firstWhere('step_order', 1)?->approver_email);
         $this->assertSame('global.notify@example.com', $request->approvals->firstWhere('step_order', 2)?->approver_email);
+    }
+
+    public function test_request_man_power_requires_requester_email(): void
+    {
+        $this->expectException(ValidationException::class);
+
+        RequestManPower::query()->create($this->basePayload([
+            'email_address' => '   ',
+        ]));
+    }
+
+    public function test_request_man_power_notifications_are_queued_on_standard_notifications_queue(): void
+    {
+        $request = new RequestManPower;
+        $approval = new RequestManPowerApproval;
+
+        $submittedNotification = new RequestManPowerSubmittedNotification($request);
+        $statusChangedNotification = new RequestManPowerStatusChangedNotification(
+            $request,
+            RequestManPowerStatus::PENDING,
+            RequestManPowerStatus::APPROVED
+        );
+        $approvalRequestedNotification = new RequestManPowerApprovalRequestedNotification($request, $approval);
+
+        $this->assertSame('notifications', config('rekrutmen.notifications.queue'));
+        $this->assertInstanceOf(ShouldQueue::class, $submittedNotification);
+        $this->assertInstanceOf(ShouldQueue::class, $statusChangedNotification);
+        $this->assertInstanceOf(ShouldQueue::class, $approvalRequestedNotification);
+        $this->assertSame('notifications', $submittedNotification->queue);
+        $this->assertSame('notifications', $statusChangedNotification->queue);
+        $this->assertSame('notifications', $approvalRequestedNotification->queue);
     }
 
     public function test_approve_by_updates_status_and_creates_job_posting(): void

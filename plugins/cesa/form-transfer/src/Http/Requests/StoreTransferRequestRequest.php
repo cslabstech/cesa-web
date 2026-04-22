@@ -34,7 +34,7 @@ class StoreTransferRequestRequest extends FormRequest
             'requester_name'           => ['required', 'string', 'max:191'],
             'division_id'              => ['nullable', 'exists:form_transfer_divisions,id'],
             'division_name'            => ['nullable', 'string', 'max:191'],
-            'email'                    => ['nullable', 'email', 'max:191'],
+            'email'                    => ['required', 'email', 'max:191'],
             'bank_id'                  => ['required', 'exists:form_transfer_banks,id'],
             'account_number'           => ['required', 'string', 'max:191'],
             'account_name'             => ['required', 'string', 'max:191'],
@@ -58,7 +58,7 @@ class StoreTransferRequestRequest extends FormRequest
             'approvals'                => ['nullable', 'array'],
             'approvals.*.label'        => ['required_with:approvals', 'string', 'max:191'],
             'approvals.*.name'         => ['nullable', 'string', 'max:191'],
-            'approvals.*.email'        => ['nullable', 'email', 'max:191'],
+            'approvals.*.email'        => ['required_with:approvals', 'email', 'max:191'],
             'approvals.*.status'       => [
                 'required_with:approvals',
                 Rule::in(array_map(fn (ApprovalStatus $status): string => $status->value, ApprovalStatus::cases())),
@@ -76,6 +76,7 @@ class StoreTransferRequestRequest extends FormRequest
             'form_transfer_id.required'        => __('form-transfer::filament/resources/transfer-request/validation.form_transfer_required'),
             'form_transfer_id.exists'          => __('form-transfer::filament/resources/transfer-request/validation.form_transfer_invalid'),
             'requester_name.required'          => __('form-transfer::filament/resources/transfer-request/validation.requester_name_required'),
+            'email.required'                   => __('form-transfer::filament/resources/transfer-request/validation.requester_email_required'),
             'account_number.required'          => __('form-transfer::filament/resources/transfer-request/validation.account_number_required'),
             'account_name.required'            => __('form-transfer::filament/resources/transfer-request/validation.account_name_required'),
             'transfer_amount.required'         => __('form-transfer::filament/resources/transfer-request/validation.transfer_amount_required'),
@@ -102,6 +103,7 @@ class StoreTransferRequestRequest extends FormRequest
             'approvals.*.label.required_with'  => __('form-transfer::filament/resources/transfer-request/validation.approval_label_required'),
             'approvals.*.status.required_with' => __('form-transfer::filament/resources/transfer-request/validation.approval_status_required'),
             'approvals.*.status.in'            => __('form-transfer::filament/resources/transfer-request/validation.approval_status_invalid'),
+            'approvals.*.email.required_with'  => __('form-transfer::filament/resources/transfer-request/validation.approver_email_required'),
             'approvals.*.email.email'          => __('form-transfer::filament/resources/transfer-request/validation.approver_email_invalid'),
         ];
     }

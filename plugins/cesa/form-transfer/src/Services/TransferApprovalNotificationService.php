@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 use Throwable;
 
 class TransferApprovalNotificationService
@@ -361,26 +362,20 @@ HTML;
         }
 
         $lines = [
-            '*📣 NOTIFIKASI APPROVAL - '.$summary['title'].'*',
+            '*📣 '.Str::upper($summary['title']).' - '.$summary['uid'].'*',
             '',
-            '*UID:* '.$summary['uid'],
-            '*Email:* '.$summary['email'],
-            '*Nama:* '.$summary['requester_name'],
+            '*Nama Pengaju:* '.$summary['requester_name'],
             '*Divisi:* '.$summary['division'],
-            '',
+            '*Bank Tujuan:* '.$summary['bank'],
             '*Nomor Rekening:* '.$summary['account_number'],
             '*Nama Pemilik Rekening:* '.$summary['account_name'],
-            '*Bank:* '.$summary['bank'],
             '*Jumlah Transfer:* Rp '.$summary['transfer_amount'],
             '*Keperluan:* '.$summary['purpose'],
-            '*Reffnote:* '.$summary['reference_note'],
-            '*Lampiran Invoice:* '.($summary['invoice'] ?? __('form-transfer::filament/resources/transfer-request/notifications.invoice_missing')),
-            '*Status Transfer:* '.$summary['status'],
+            '*Referensi:* '.$summary['reference_note'],
+            '*Status:* '.$summary['status'],
             '',
-            '*Klik link berikut untuk Approve atau Reject:*',
+            '*Tautan persetujuan:*',
             $actionUrl,
-            '',
-            '— *Bot by IT*',
         ];
 
         return implode("\n", $lines);

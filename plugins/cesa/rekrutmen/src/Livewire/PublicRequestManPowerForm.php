@@ -116,7 +116,7 @@ class PublicRequestManPowerForm extends SimplePage
                         TextInput::make('email_address')
                             ->label(__('rekrutmen::livewire/public-request-man-power-form.fields.email_address'))
                             ->email()
-                            ->nullable()
+                            ->required()
                             ->maxLength(255)
                             ->placeholder(__('rekrutmen::livewire/public-request-man-power-form.placeholders.email_address')),
                         TextInput::make('posisi_pengaju')
