@@ -34,7 +34,7 @@ class PublicAttachmentDownloadController extends Controller
         $path = match ($attachment) {
             'invoice'            => $transferRequest->invoice_path,
             'account-attachment' => $transferRequest->account_attachment_path,
-            'realization-proof'  => $transferRequest->realization_proof_path,
+            'realization-proof'  => $this->resolveRealizationProofPath($transferRequest, $request->query('realization')),
         };
 
         $paths = TransferRequest::normalizeAttachmentPaths($path);
@@ -115,5 +115,20 @@ class PublicAttachmentDownloadController extends Controller
         $index = (int) $index;
 
         return $paths[$index] ?? null;
+    }
+
+    protected function resolveRealizationProofPath(TransferRequest $transferRequest, mixed $realizationId): mixed
+    {
+        if ($realizationId === null || $realizationId === '') {
+            return $transferRequest->realization_proof_path;
+        }
+
+        if (! is_numeric($realizationId)) {
+            return null;
+        }
+
+        return $transferRequest->realizations()
+            ->whereKey((int) $realizationId)
+            ->value('proof_path');
     }
 }

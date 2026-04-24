@@ -70,7 +70,7 @@ class TransferRequestPdfService
 
     protected function renderPdf(TransferRequest $record): string
     {
-        $record->loadMissing(['bank', 'division', 'company', 'approvalWorkflow', 'formTransfer']);
+        $record->loadMissing(['bank', 'division', 'company', 'approvalWorkflow', 'formTransfer', 'realizations']);
 
         return Pdf::loadView('form-transfer::pdf.transfer-request', [
             'record' => $record,

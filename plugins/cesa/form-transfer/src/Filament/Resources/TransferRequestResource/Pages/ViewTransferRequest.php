@@ -16,6 +16,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\Utilities\Get;
@@ -102,28 +103,28 @@ class ViewTransferRequest extends ViewRecord
                         ->send();
                 }),
             Action::make('realize-transfer')
-                ->label(fn (TransferRequest $record): string => $record->realization_status === TransferRequestRealizationStatus::DONE
-                    ? __('form-transfer::filament/resources/transfer-request/actions.edit_realization')
-                    : __('form-transfer::filament/resources/transfer-request/actions.realize_transfer'))
+                ->label(__('form-transfer::filament/resources/transfer-request/actions.realize_transfer'))
                 ->icon('heroicon-m-banknotes')
                 ->color('success')
                 ->slideOver()
                 ->modalWidth('md')
-                ->visible(fn (TransferRequest $record): bool => Gate::allows('update', $record) && in_array($record->realization_status, [
-                    TransferRequestRealizationStatus::PENDING,
-                    TransferRequestRealizationStatus::DONE,
-                    TransferRequestRealizationStatus::CANCELLED,
-                ], true))
+                ->visible(fn (TransferRequest $record): bool => Gate::allows('update', $record) && $record->canRecordAdditionalRealization())
                 ->form([
                     Select::make('realization_status')
                         ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_status'))
                         ->options([
-                            TransferRequestRealizationStatus::DONE->value      => TransferRequestRealizationStatus::DONE->getLabel(),
+                            TransferRequestRealizationStatus::DONE->value      => __('form-transfer::filament/resources/transfer-request/actions.add_realization'),
                             TransferRequestRealizationStatus::CANCELLED->value => TransferRequestRealizationStatus::CANCELLED->getLabel(),
                         ])
                         ->default(TransferRequestRealizationStatus::DONE->value)
                         ->required()
                         ->live(),
+                    TextInput::make('amount')
+                        ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_amount'))
+                        ->numeric()
+                        ->prefix('Rp')
+                        ->required(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::DONE->value)
+                        ->visible(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::DONE->value),
                     DatePicker::make('realized_at')
                         ->label(__('form-transfer::filament/resources/transfer-request/fields.realized_at'))
                         ->native(false)
@@ -137,12 +138,10 @@ class ViewTransferRequest extends ViewRecord
                         ->visible(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::DONE->value),
                 ])
                 ->fillForm(fn (TransferRequest $record): array => [
-                    'realization_status'      => $record->realization_status === TransferRequestRealizationStatus::CANCELLED
-                        ? TransferRequestRealizationStatus::CANCELLED->value
-                        : TransferRequestRealizationStatus::DONE->value,
-                    'realized_at'             => $record->realized_at,
-                    'realization_proof_path'  => $record->realization_proof_path,
-                    'realization_notes'       => $record->realization_notes,
+                    'amount'             => $record->remaining_realization_amount,
+                    'realization_status' => TransferRequestRealizationStatus::DONE->value,
+                    'realized_at'        => now()->toDateString(),
+                    'realization_notes'  => null,
                 ])
                 ->action(function (TransferRequest $record, array $data): void {
                     Gate::authorize('update', $record);
@@ -150,34 +149,20 @@ class ViewTransferRequest extends ViewRecord
                     $targetStatus = TransferRequestRealizationStatus::tryFrom((string) ($data['realization_status'] ?? ''));
 
                     if ($targetStatus === TransferRequestRealizationStatus::CANCELLED) {
-                        $record->fill([
-                            'realization_notes'  => $data['realization_notes'] ?? $record->realization_notes,
-                            'realization_status' => TransferRequestRealizationStatus::CANCELLED,
-                        ]);
-
-                        $record->save();
+                        $record->cancelRealization($data['realization_notes'] ?? null);
 
                         return;
                     }
 
-                    $wasDone = $record->realization_status === TransferRequestRealizationStatus::DONE;
-
-                    $record->fill([
-                        'realized_at'            => $data['realized_at'],
-                        'realization_proof_path' => $data['realization_proof_path'] ?? $record->realization_proof_path,
-                        'realization_notes'      => $data['realization_notes'] ?? $record->realization_notes,
-                        'realization_status'     => TransferRequestRealizationStatus::DONE,
+                    $record->recordRealization([
+                        'amount'      => $data['amount'] ?? null,
+                        'realized_at' => $data['realized_at'] ?? null,
+                        'proof_path'  => $data['realization_proof_path'] ?? null,
+                        'notes'       => $data['realization_notes'] ?? null,
+                        'user_id'     => Auth::id(),
                     ]);
-
-                    if (! $wasDone && Auth::id()) {
-                        $record->user_id = Auth::id();
-                    }
-
-                    $record->save();
                 })
-                ->modalHeading(fn (TransferRequest $record): string => $record->realization_status === TransferRequestRealizationStatus::DONE
-                    ? __('form-transfer::filament/resources/transfer-request/actions.edit_realization')
-                    : __('form-transfer::filament/resources/transfer-request/actions.realize_transfer')),
+                ->modalHeading(__('form-transfer::filament/resources/transfer-request/actions.realize_transfer')),
         ];
     }
 

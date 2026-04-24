@@ -5,6 +5,7 @@ namespace Cesa\FormTransfer\Enums;
 enum TransferRequestRealizationStatus: string
 {
     case PENDING = 'pending';
+    case PARTIAL = 'partial';
     case DONE = 'done';
     case CANCELLED = 'cancelled';
 
@@ -12,6 +13,7 @@ enum TransferRequestRealizationStatus: string
     {
         return match ($this) {
             self::PENDING   => __('form-transfer::enums/transfer-request-realization-status.pending'),
+            self::PARTIAL   => __('form-transfer::enums/transfer-request-realization-status.partial'),
             self::DONE      => __('form-transfer::enums/transfer-request-realization-status.done'),
             self::CANCELLED => __('form-transfer::enums/transfer-request-realization-status.cancelled'),
         };
@@ -21,6 +23,7 @@ enum TransferRequestRealizationStatus: string
     {
         return match ($this) {
             self::PENDING   => 'warning',
+            self::PARTIAL   => 'info',
             self::DONE      => 'success',
             self::CANCELLED => 'danger',
         };

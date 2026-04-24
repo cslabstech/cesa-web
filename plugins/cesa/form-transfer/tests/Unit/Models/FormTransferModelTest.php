@@ -12,6 +12,7 @@ use Cesa\FormTransfer\Models\TransferBank;
 use Cesa\FormTransfer\Models\TransferDivision;
 use Cesa\FormTransfer\Models\TransferReferenceNote;
 use Cesa\FormTransfer\Models\TransferRequest;
+use Cesa\FormTransfer\Models\TransferRequestRealization;
 use Cesa\FormTransfer\Tests\FormTransferTestCase;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -144,6 +145,101 @@ class FormTransferModelTest extends FormTransferTestCase
         $this->assertSame(TransferRequestSubmissionStatus::BARU, $request->submission_status);
         $this->assertSame(TransferRequestApprovalStatus::PENDING, $request->approval_status);
         $this->assertSame(TransferRequestRealizationStatus::PENDING, $request->realization_status);
+        $this->assertSame('0.00', $request->realized_amount);
+        $this->assertSame('1250000.00', $request->remaining_realization_amount);
+    }
+
+    public function test_transfer_request_supports_realization_installments(): void
+    {
+        $user = User::factory()->create();
+        $bank = TransferBank::factory()->create();
+        $formTransfer = FormTransfer::factory()->create([
+            'creator_id' => $user->id,
+        ]);
+
+        $request = TransferRequest::query()->create([
+            'form_transfer_id' => $formTransfer->id,
+            'user_id'          => $user->id,
+            'creator_id'       => $user->id,
+            'requester_name'   => 'Budi',
+            'email'            => 'budi@example.com',
+            'account_number'   => '123456789',
+            'account_name'     => 'Budi Santoso',
+            'bank_id'          => $bank->id,
+            'transfer_amount'  => 1000000,
+            'purpose'          => 'Operational transfer',
+        ]);
+
+        $request->recordRealization([
+            'amount'      => 400000,
+            'realized_at' => '2026-04-20',
+            'notes'       => 'Cicilan pertama',
+            'user_id'     => $user->id,
+        ]);
+
+        $request->refresh();
+
+        $this->assertSame(TransferRequestRealizationStatus::PARTIAL, $request->realization_status);
+        $this->assertSame('400000.00', $request->realized_amount);
+        $this->assertSame('600000.00', $request->remaining_realization_amount);
+        $this->assertTrue($request->canRecordAdditionalRealization());
+        $this->assertSame(1, $request->realizations()->count());
+
+        $request->recordRealization([
+            'amount'      => 600000,
+            'realized_at' => '2026-04-21',
+            'notes'       => 'Pelunasan',
+            'user_id'     => $user->id,
+        ]);
+
+        $request->refresh();
+
+        $this->assertSame(TransferRequestRealizationStatus::DONE, $request->realization_status);
+        $this->assertSame('1000000.00', $request->realized_amount);
+        $this->assertSame('0.00', $request->remaining_realization_amount);
+        $this->assertFalse($request->canRecordAdditionalRealization());
+        $this->assertSame(2, $request->realizations()->count());
+        $this->assertSame('Pelunasan', $request->realization_notes);
+    }
+
+    public function test_transfer_request_rejects_realization_amount_above_remaining_balance(): void
+    {
+        $user = User::factory()->create();
+        $bank = TransferBank::factory()->create();
+        $formTransfer = FormTransfer::factory()->create([
+            'creator_id' => $user->id,
+        ]);
+
+        $request = TransferRequest::query()->create([
+            'form_transfer_id' => $formTransfer->id,
+            'user_id'          => $user->id,
+            'creator_id'       => $user->id,
+            'requester_name'   => 'Budi',
+            'email'            => 'budi@example.com',
+            'account_number'   => '123456789',
+            'account_name'     => 'Budi Santoso',
+            'bank_id'          => $bank->id,
+            'transfer_amount'  => 1000000,
+            'purpose'          => 'Operational transfer',
+        ]);
+
+        try {
+            $request->recordRealization([
+                'amount'      => 1000000.01,
+                'realized_at' => '2026-04-20',
+                'user_id'     => $user->id,
+            ]);
+
+            $this->fail('Expected over-realization to be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('amount', $exception->errors());
+        }
+
+        $request->refresh();
+
+        $this->assertSame(TransferRequestRealizationStatus::PENDING, $request->realization_status);
+        $this->assertSame('0.00', $request->realized_amount);
+        $this->assertSame(0, $request->realizations()->count());
     }
 
     public function test_transfer_request_requires_requester_email(): void
@@ -354,6 +450,62 @@ class FormTransferModelTest extends FormTransferTestCase
 
         Storage::disk('local')->assertMissing('form-transfer/realizations/tmp-realization.png');
         Storage::disk('local')->assertExists((string) $request->realization_proof_path);
+    }
+
+    public function test_transfer_request_realization_renames_proof_using_request_uid(): void
+    {
+        Storage::fake('local');
+        config()->set('filesystems.default', 'local');
+        config()->set('filament.default_filesystem_disk', 'local');
+
+        Storage::disk('local')->put('form-transfer/realizations/tmp-installment.png', 'proof');
+
+        $user = User::factory()->create();
+        $bank = TransferBank::factory()->create();
+        $formTransfer = FormTransfer::factory()->create([
+            'uid_prefix'   => 'CSN',
+            'uid_padding'  => 5,
+            'uid_sequence' => 112,
+            'creator_id'   => $user->id,
+        ]);
+
+        $request = TransferRequest::query()->create([
+            'form_transfer_id' => $formTransfer->id,
+            'user_id'          => $user->id,
+            'creator_id'       => $user->id,
+            'requester_name'   => 'Budi',
+            'email'            => 'budi@example.com',
+            'account_number'   => '123456789',
+            'account_name'     => 'Budi Santoso',
+            'bank_id'          => $bank->id,
+            'transfer_amount'  => 1250000,
+            'purpose'          => 'Operational transfer',
+        ]);
+
+        $realization = $request->recordRealization([
+            'amount'      => 1250000,
+            'realized_at' => now()->toDateString(),
+            'proof_path'  => 'form-transfer/realizations/tmp-installment.png',
+            'user_id'     => $user->id,
+        ])->refresh();
+
+        $this->assertInstanceOf(TransferRequestRealization::class, $realization);
+        $this->assertMatchesRegularExpression(
+            '#^form-transfer/realizations/CSN-00113-R'.$realization->getKey().'-[a-z0-9]{6}\.png$#',
+            (string) $realization->proof_path
+        );
+
+        $request->refresh();
+
+        $this->assertSame(TransferRequestRealizationStatus::DONE, $request->realization_status);
+        $this->assertSame($realization->proof_path, $request->realization_proof_path);
+
+        Storage::disk('local')->assertMissing('form-transfer/realizations/tmp-installment.png');
+        Storage::disk('local')->assertExists((string) $realization->proof_path);
+
+        $request->forceDelete();
+
+        Storage::disk('local')->assertMissing((string) $realization->proof_path);
     }
 
     public function test_transfer_request_update_deletes_replaced_attachment_and_keeps_added_invoice(): void

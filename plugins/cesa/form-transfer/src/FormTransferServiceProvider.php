@@ -58,6 +58,7 @@ class FormTransferServiceProvider extends PackageServiceProvider
                 '2026_02_05_000001_create_form_transfer_user_accesses_table',
                 '2026_04_22_130000_add_public_catalog_fields_to_form_transfers_table',
                 '2026_04_22_150000_drop_public_open_in_new_tab_from_form_transfers_table',
+                '2026_04_24_064244_create_form_transfer_request_realizations_table',
             ])
             ->runsMigrations()
             ->hasInstallCommand(function (InstallCommand $command): void {
@@ -113,6 +114,7 @@ class FormTransferServiceProvider extends PackageServiceProvider
                 'form_transfer_reference_notes',
                 'form_transfer_approval_workflows',
                 'form_transfer_requests',
+                'form_transfer_request_realizations',
                 'form_transfer_user_accesses',
             ],
         ]);

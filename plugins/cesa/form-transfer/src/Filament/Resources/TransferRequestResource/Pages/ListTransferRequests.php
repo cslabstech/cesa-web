@@ -40,7 +40,16 @@ class ListTransferRequests extends ListRecords
                 ->modifyQueryUsing(
                     fn (Builder $query): Builder => $query
                         ->where('approval_status', TransferRequestApprovalStatus::PENDING->value)
-                        ->where('realization_status', TransferRequestRealizationStatus::PENDING->value)
+                        ->whereIn('realization_status', [
+                            TransferRequestRealizationStatus::PENDING->value,
+                            TransferRequestRealizationStatus::PARTIAL->value,
+                        ])
+                ),
+            'finance-partial' => PresetView::make(__('form-transfer::enums/transfer-request-realization-status.partial'))
+                ->icon('heroicon-m-arrow-path')
+                ->modifyQueryUsing(
+                    fn (Builder $query): Builder => $query
+                        ->where('realization_status', TransferRequestRealizationStatus::PARTIAL->value)
                 ),
             'finance-completed' => PresetView::make(__('form-transfer::enums/transfer-request-realization-status.done'))
                 ->icon('heroicon-m-check-circle')

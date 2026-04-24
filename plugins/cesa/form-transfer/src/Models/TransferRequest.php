@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
@@ -52,6 +53,7 @@ class TransferRequest extends Model
         'account_name',
         'bank_id',
         'transfer_amount',
+        'realized_amount',
         'purpose',
         'reference_note',
         'invoice_path',
@@ -127,6 +129,10 @@ class TransferRequest extends Model
             if (empty($request->realization_status)) {
                 $request->realization_status = TransferRequestRealizationStatus::PENDING;
             }
+
+            if ($request->realized_amount === null || $request->realized_amount === '') {
+                $request->realized_amount = 0;
+            }
         });
 
         static::saving(function (TransferRequest $request): void {
@@ -166,6 +172,12 @@ class TransferRequest extends Model
             $request->deleteAttachmentsRemovedFromCurrentState();
         });
 
+        static::deleting(function (TransferRequest $request): void {
+            if ($request->isForceDeleting()) {
+                $request->deleteRealizationProofFiles();
+            }
+        });
+
         static::forceDeleted(function (TransferRequest $request): void {
             $request->deleteCurrentAttachmentFiles();
         });
@@ -175,6 +187,7 @@ class TransferRequest extends Model
     {
         return [
             'transfer_amount'    => 'decimal:2',
+            'realized_amount'    => 'decimal:2',
             'realized_at'        => 'date',
             'approvals'          => 'array',
             'submission_status'  => TransferRequestSubmissionStatus::class,
@@ -376,6 +389,21 @@ class TransferRequest extends Model
                 ...static::normalizeAttachmentPaths($this->getRawOriginal($attribute) ?? $this->getAttribute($attribute)),
             ];
         }
+
+        $this->deleteAttachmentFiles($paths);
+    }
+
+    protected function deleteRealizationProofFiles(): void
+    {
+        if (! $this->exists) {
+            return;
+        }
+
+        $paths = $this->realizations()
+            ->withTrashed()
+            ->pluck('proof_path')
+            ->filter(fn (mixed $path): bool => is_string($path) && $path !== '')
+            ->all();
 
         $this->deleteAttachmentFiles($paths);
     }
@@ -627,6 +655,130 @@ class TransferRequest extends Model
     public function approvalWorkflow(): BelongsTo
     {
         return $this->belongsTo(TransferApprovalWorkflow::class, 'approval_workflow_id')->withTrashed();
+    }
+
+    public function realizations(): HasMany
+    {
+        return $this->hasMany(TransferRequestRealization::class)->oldest('realized_at')->oldest('id');
+    }
+
+    public function canRecordAdditionalRealization(): bool
+    {
+        $status = $this->realization_status instanceof TransferRequestRealizationStatus
+            ? $this->realization_status
+            : TransferRequestRealizationStatus::tryFrom((string) $this->realization_status);
+
+        return in_array($status, [
+            TransferRequestRealizationStatus::PENDING,
+            TransferRequestRealizationStatus::PARTIAL,
+        ], true) && static::amountToCents($this->remaining_realization_amount) > 0;
+    }
+
+    /**
+     * @param  array{amount: mixed, realized_at?: mixed, proof_path?: mixed, notes?: mixed, user_id?: mixed}  $data
+     */
+    public function recordRealization(array $data): TransferRequestRealization
+    {
+        if (! $this->canRecordAdditionalRealization()) {
+            throw ValidationException::withMessages([
+                'realization_status' => __('form-transfer::filament/resources/transfer-request/validation.realization_closed'),
+            ]);
+        }
+
+        $amountCents = static::amountToCents($data['amount'] ?? null);
+        $remainingCents = static::amountToCents($this->remaining_realization_amount);
+
+        if ($amountCents <= 0) {
+            throw ValidationException::withMessages([
+                'amount' => __('form-transfer::filament/resources/transfer-request/validation.realization_amount_min'),
+            ]);
+        }
+
+        if ($amountCents > $remainingCents) {
+            throw ValidationException::withMessages([
+                'amount' => __('form-transfer::filament/resources/transfer-request/validation.realization_amount_max', [
+                    'amount' => static::centsToAmount($remainingCents),
+                ]),
+            ]);
+        }
+
+        return $this->realizations()->create([
+            'user_id'     => $data['user_id'] ?? null,
+            'amount'      => static::centsToAmount($amountCents),
+            'realized_at' => $data['realized_at'] ?? null,
+            'proof_path'  => $data['proof_path'] ?? null,
+            'notes'       => $data['notes'] ?? null,
+        ]);
+    }
+
+    public function cancelRealization(?string $notes = null): void
+    {
+        $this->forceFill([
+            'realization_notes'  => $notes ?? $this->realization_notes,
+            'realization_status' => TransferRequestRealizationStatus::CANCELLED,
+        ]);
+
+        $this->save();
+    }
+
+    public function refreshRealizationSummary(): void
+    {
+        $realizations = $this->realizations()
+            ->withoutTrashed()
+            ->get();
+
+        $totalCents = $realizations->sum(
+            fn (TransferRequestRealization $realization): int => static::amountToCents($realization->amount)
+        );
+        $transferCents = static::amountToCents($this->transfer_amount);
+        $latest = $realizations
+            ->sortByDesc(fn (TransferRequestRealization $realization): string => sprintf(
+                '%s-%010d',
+                $realization->realized_at?->format('Y-m-d') ?? '',
+                $realization->getKey()
+            ))
+            ->first();
+
+        $status = match (true) {
+            $totalCents <= 0                                   => TransferRequestRealizationStatus::PENDING,
+            $transferCents > 0 && $totalCents < $transferCents => TransferRequestRealizationStatus::PARTIAL,
+            default                                            => TransferRequestRealizationStatus::DONE,
+        };
+
+        $this->forceFill([
+            'realized_amount'        => static::centsToAmount($totalCents),
+            'realized_at'            => $latest?->realized_at,
+            'realization_proof_path' => $latest?->proof_path,
+            'realization_notes'      => $latest?->notes,
+            'realization_status'     => $status,
+        ]);
+
+        $this->saveQuietly();
+    }
+
+    public function getRemainingRealizationAmountAttribute(): string
+    {
+        $remainingCents = static::amountToCents($this->transfer_amount)
+            - static::amountToCents($this->realized_amount);
+
+        return static::centsToAmount(max(0, $remainingCents));
+    }
+
+    protected static function amountToCents(mixed $amount): int
+    {
+        if ($amount === null || $amount === '') {
+            return 0;
+        }
+
+        $normalized = number_format((float) $amount, 2, '.', '');
+        [$whole, $fraction] = explode('.', $normalized);
+
+        return (((int) $whole) * 100) + (int) str_pad(substr($fraction, 0, 2), 2, '0');
+    }
+
+    protected static function centsToAmount(int $cents): string
+    {
+        return number_format($cents / 100, 2, '.', '');
     }
 
     protected static function newFactory(): Factory

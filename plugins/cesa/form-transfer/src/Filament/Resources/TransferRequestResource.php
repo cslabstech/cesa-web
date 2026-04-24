@@ -13,6 +13,7 @@ use Cesa\FormTransfer\Filament\Resources\TransferRequestResource\Pages\ViewTrans
 use Cesa\FormTransfer\Models\FormTransfer;
 use Cesa\FormTransfer\Models\TransferApprovalWorkflow;
 use Cesa\FormTransfer\Models\TransferRequest;
+use Cesa\FormTransfer\Models\TransferRequestRealization;
 use Cesa\FormTransfer\Services\TransferApprovalNotificationService;
 use Cesa\FormTransfer\Services\TransferRequestPdfService;
 use Cesa\FormTransfer\Services\TransferRequestService;
@@ -73,7 +74,10 @@ class TransferRequestResource extends FormTransferResource
     public static function getNavigationBadge(): ?string
     {
         $query = static::getModel()::where('approval_status', TransferRequestApprovalStatus::PENDING)
-            ->where('realization_status', TransferRequestRealizationStatus::PENDING);
+            ->whereIn('realization_status', [
+                TransferRequestRealizationStatus::PENDING->value,
+                TransferRequestRealizationStatus::PARTIAL->value,
+            ]);
 
         // Apply access control
         $accessibleIds = static::getAccessibleFormTransferIds();
@@ -511,6 +515,16 @@ class TransferRequestResource extends FormTransferResource
                                                 ->icon('heroicon-o-check-circle')
                                                 ->dateTime('d M Y H:i')
                                                 ->placeholder('—'),
+                                            TextEntry::make('realized_amount')
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.realized_amount'))
+                                                ->icon('heroicon-o-banknotes')
+                                                ->formatStateUsing(fn ($state) => static::formatCurrency($state))
+                                                ->placeholder('—'),
+                                            TextEntry::make('remaining_realization_amount')
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.remaining_realization_amount'))
+                                                ->icon('heroicon-o-calculator')
+                                                ->formatStateUsing(fn ($state) => static::formatCurrency($state))
+                                                ->placeholder('—'),
                                             TextEntry::make('realization_notes')
                                                 ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_notes'))
                                                 ->icon('heroicon-o-document-text')
@@ -526,6 +540,38 @@ class TransferRequestResource extends FormTransferResource
                                                     ? __('form-transfer::filament/resources/transfer-request/notifications.view_attachment')
                                                     : __('form-transfer::filament/resources/transfer-request/notifications.realization_proof_missing'))
                                                 ->url(fn (TextEntry $entry) => static::getAttachmentUrlFor($entry->getRecord(), 'realization_proof_path'), true),
+                                            RepeatableEntry::make('realizations')
+                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_history'))
+                                                ->visible(fn (TransferRequest $record): bool => $record->realizations()->exists())
+                                                ->schema([
+                                                    Grid::make(2)
+                                                        ->schema([
+                                                            TextEntry::make('amount')
+                                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_amount'))
+                                                                ->formatStateUsing(fn ($state) => static::formatCurrency($state))
+                                                                ->placeholder('—'),
+                                                            TextEntry::make('realized_at')
+                                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.realized_at'))
+                                                                ->date('d M Y')
+                                                                ->placeholder('—'),
+                                                            TextEntry::make('notes')
+                                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_notes'))
+                                                                ->placeholder('—')
+                                                                ->columnSpanFull()
+                                                                ->wrap(),
+                                                            TextEntry::make('proof_path')
+                                                                ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_proof'))
+                                                                ->badge()
+                                                                ->formatStateUsing(fn ($state) => $state
+                                                                    ? __('form-transfer::filament/resources/transfer-request/notifications.view_attachment')
+                                                                    : __('form-transfer::filament/resources/transfer-request/notifications.realization_proof_missing'))
+                                                                ->url(fn ($state, mixed $record): ?string => $record instanceof TransferRequestRealization
+                                                                    ? static::getRealizationProofUrlFor($record)
+                                                                    : null, true),
+                                                        ]),
+                                                ])
+                                                ->columns(1)
+                                                ->columnSpan(2),
                                         ]),
                                 ])
                                 ->collapsible(),
@@ -645,11 +691,27 @@ class TransferRequestResource extends FormTransferResource
                     ->formatStateUsing(fn (TransferRequestRealizationStatus $state): string => static::getRealizationStatusOptions()[$state->value] ?? $state->value)
                     ->colors([
                         'warning' => TransferRequestRealizationStatus::PENDING,
+                        'info'    => TransferRequestRealizationStatus::PARTIAL,
                         'success' => TransferRequestRealizationStatus::DONE,
                         'danger'  => TransferRequestRealizationStatus::CANCELLED,
                     ])
                     ->sortable()
                     ->searchable(),
+                TextColumn::make('realized_amount')
+                    ->label(__('form-transfer::filament/resources/transfer-request/table.realized_amount'))
+                    ->formatStateUsing(fn (?string $state): ?string => $state !== null
+                        ? 'Rp '.number_format((float) $state, 2, ',', '.')
+                        : null)
+                    ->sortable()
+                    ->extraAttributes(['class' => 'text-right'])
+                    ->toggleable(),
+                TextColumn::make('remaining_realization_amount')
+                    ->label(__('form-transfer::filament/resources/transfer-request/table.remaining_realization_amount'))
+                    ->formatStateUsing(fn (?string $state): ?string => $state !== null
+                        ? 'Rp '.number_format((float) $state, 2, ',', '.')
+                        : null)
+                    ->extraAttributes(['class' => 'text-right'])
+                    ->toggleable(),
                 TextColumn::make('realization_notes')
                     ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_notes'))
                     ->limit(50)
@@ -705,12 +767,12 @@ class TransferRequestResource extends FormTransferResource
                     ->color('success')
                     ->slideOver()
                     ->modalWidth('md')
-                    ->visible(fn (TransferRequest $record): bool => $record->realization_status === TransferRequestRealizationStatus::PENDING)
+                    ->visible(fn (TransferRequest $record): bool => $record->canRecordAdditionalRealization())
                     ->form([
                         ToggleButtons::make('realization_status')
                             ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_status'))
                             ->options([
-                                TransferRequestRealizationStatus::DONE->value      => TransferRequestRealizationStatus::DONE->getLabel(),
+                                TransferRequestRealizationStatus::DONE->value      => __('form-transfer::filament/resources/transfer-request/actions.add_realization'),
                                 TransferRequestRealizationStatus::CANCELLED->value => TransferRequestRealizationStatus::CANCELLED->getLabel(),
                             ])
                             ->colors([
@@ -721,6 +783,12 @@ class TransferRequestResource extends FormTransferResource
                             ->required()
                             ->inline()
                             ->live(),
+                        TextInput::make('amount')
+                            ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_amount'))
+                            ->numeric()
+                            ->prefix('Rp')
+                            ->required(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::DONE->value)
+                            ->visible(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::DONE->value),
                         DatePicker::make('realized_at')
                             ->label(__('form-transfer::filament/resources/transfer-request/fields.realized_at'))
                             ->native(false)
@@ -735,31 +803,28 @@ class TransferRequestResource extends FormTransferResource
                             ->visible(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::DONE->value),
                     ])
                     ->fillForm(fn (TransferRequest $record): array => [
-                        'realized_at'             => $record->realized_at,
-                        'realization_proof_path'  => $record->realization_proof_path,
-                        'realization_notes'       => $record->realization_notes,
-                        'realization_status'      => TransferRequestRealizationStatus::DONE->value,
+                        'amount'             => $record->remaining_realization_amount,
+                        'realized_at'        => now()->toDateString(),
+                        'realization_notes'  => null,
+                        'realization_status' => TransferRequestRealizationStatus::DONE->value,
                     ])
                     ->action(function (TransferRequest $record, array $data): void {
                         $realizationStatus = TransferRequestRealizationStatus::tryFrom((string) ($data['realization_status'] ?? ''))
                             ?? TransferRequestRealizationStatus::DONE;
 
-                        $record->fill([
-                            'realized_at'            => $realizationStatus === TransferRequestRealizationStatus::DONE
-                                ? $data['realized_at']
-                                : null,
-                            'realization_proof_path' => $realizationStatus === TransferRequestRealizationStatus::DONE
-                                ? ($data['realization_proof_path'] ?? $record->realization_proof_path)
-                                : null,
-                            'realization_notes'      => $data['realization_notes'] ?? $record->realization_notes,
-                            'realization_status'     => $realizationStatus,
-                        ]);
+                        if ($realizationStatus === TransferRequestRealizationStatus::CANCELLED) {
+                            $record->cancelRealization($data['realization_notes'] ?? null);
 
-                        if (Auth::id()) {
-                            $record->user_id = Auth::id();
+                            return;
                         }
 
-                        $record->save();
+                        $record->recordRealization([
+                            'amount'      => $data['amount'] ?? null,
+                            'realized_at' => $data['realized_at'] ?? null,
+                            'proof_path'  => $data['realization_proof_path'] ?? null,
+                            'notes'       => $data['realization_notes'] ?? null,
+                            'user_id'     => Auth::id(),
+                        ]);
                     })
                     ->modalHeading(__('form-transfer::filament/resources/transfer-request/actions.realize_transfer')),
                 DeleteAction::make(),
@@ -782,6 +847,7 @@ class TransferRequestResource extends FormTransferResource
                 'bank',
                 'user',
                 'company',
+                'realizations',
             ]))
             ->defaultSort('created_at', 'desc');
     }
@@ -1261,6 +1327,33 @@ class TransferRequestResource extends FormTransferResource
                     'statusResponseId' => $record->status_response_id,
                     'attachment'       => $attachmentType,
                     'file'             => $fileIndex,
+                ],
+            );
+        } catch (\Throwable $exception) {
+            return null;
+        }
+    }
+
+    protected static function getRealizationProofUrlFor(?TransferRequestRealization $realization): ?string
+    {
+        if (! $realization instanceof TransferRequestRealization || blank($realization->proof_path)) {
+            return null;
+        }
+
+        $transferRequest = $realization->transferRequest;
+
+        if (! $transferRequest instanceof TransferRequest || blank($transferRequest->status_response_id)) {
+            return null;
+        }
+
+        try {
+            return URL::temporarySignedRoute(
+                'form-transfer.public.attachments.download',
+                now()->addMinutes(60),
+                [
+                    'statusResponseId' => $transferRequest->status_response_id,
+                    'attachment'       => 'realization-proof',
+                    'realization'      => $realization->getKey(),
                 ],
             );
         } catch (\Throwable $exception) {

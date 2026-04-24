@@ -39,6 +39,14 @@
                         'value' => 'Rp '.($summary['transfer_amount'] ?? '0'),
                     ],
                     [
+                        'label' => __('form-transfer::filament/resources/transfer-request/fields.realized_amount'),
+                        'value' => 'Rp '.($summary['realized_amount'] ?? '0'),
+                    ],
+                    [
+                        'label' => __('form-transfer::filament/resources/transfer-request/fields.remaining_realization_amount'),
+                        'value' => 'Rp '.($summary['remaining_amount'] ?? '0'),
+                    ],
+                    [
                         'label' => __('form-transfer::filament/resources/transfer-request/fields.purpose'),
                         'value' => $summary['purpose'] ?? '-',
                     ],
@@ -143,6 +151,52 @@
                         </div>
                     </div>
                 </div>
+
+                @if (!empty($summary['realizations']))
+                    <div x-data="{ expanded: true }" class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                        <div
+                            @click="expanded = !expanded"
+                            class="cesa-primary-bg flex cursor-pointer items-center justify-between px-6 py-4 text-white cesa-primary-bg-hover transition-colors"
+                        >
+                            <h2 class="text-lg font-medium">{{ __('form-transfer::filament/resources/transfer-request/fields.realization_history') }}</h2>
+                            <button type="button" class="text-white hover:text-gray-200 focus:outline-none">
+                                <svg
+                                    class="h-5 w-5 transform transition-transform duration-200"
+                                    :class="{'rotate-180': expanded}"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div x-show="expanded" x-collapse class="border-t border-blue-100 px-6 py-5">
+                            <ol class="space-y-3">
+                                @foreach ($summary['realizations'] as $realization)
+                                    <li class="rounded-lg border border-gray-200 p-4">
+                                        <div class="flex items-start justify-between gap-4">
+                                            <div>
+                                                <p class="text-sm font-semibold text-gray-900">
+                                                    Rp {{ $realization['amount'] ?? '0' }}
+                                                </p>
+                                                <p class="mt-1 text-xs text-gray-500">
+                                                    {{ $realization['realized_at'] ?? '-' }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        @if (!empty($realization['notes']) && $realization['notes'] !== '-')
+                                            <p class="mt-3 text-sm leading-relaxed text-gray-700">
+                                                {{ $realization['notes'] }}
+                                            </p>
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ol>
+                        </div>
+                    </div>
+                @endif
 
                 <div x-data="{ expanded: true }" class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
                     <div

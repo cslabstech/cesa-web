@@ -504,7 +504,7 @@ HTML;
 
     protected function buildRequestSummary(TransferRequest $request): array
     {
-        $request->loadMissing(['formTransfer', 'division', 'bank']);
+        $request->loadMissing(['formTransfer', 'division', 'bank', 'realizations']);
         $invoiceLinks = $this->buildAttachmentUrls($request, 'invoice_path');
         $accountAttachmentLinks = $this->buildAttachmentUrls($request, 'account_attachment_path');
 
@@ -518,6 +518,8 @@ HTML;
             'account_name'             => $request->account_name ?? '-',
             'bank'                     => $request->bank_display_name ?? $request->bank?->code ?? '-',
             'transfer_amount'          => number_format((float) ($request->transfer_amount ?? 0), 0, ',', '.'),
+            'realized_amount'          => number_format((float) ($request->realized_amount ?? 0), 0, ',', '.'),
+            'remaining_amount'         => number_format((float) ($request->remaining_realization_amount ?? 0), 0, ',', '.'),
             'purpose'                  => $request->purpose ?? '-',
             'reference_note'           => $request->reference_note ?? '-',
             'invoice'                  => $invoiceLinks[0] ?? null,
@@ -525,6 +527,14 @@ HTML;
             'account_attachment'       => $accountAttachmentLinks[0] ?? null,
             'account_attachment_links' => $accountAttachmentLinks,
             'realization_notes'        => $request->realization_notes ?? '-',
+            'realizations'             => $request->realizations
+                ->map(fn ($realization): array => [
+                    'amount'      => number_format((float) ($realization->amount ?? 0), 0, ',', '.'),
+                    'realized_at' => $realization->realized_at?->format('d M Y') ?? '-',
+                    'notes'       => $realization->notes ?? '-',
+                ])
+                ->values()
+                ->all(),
             'status'                   => $this->resolveStatusLabel($request),
             'status_color'             => $this->resolveStatusColor($request),
         ];
@@ -612,7 +622,10 @@ HTML;
             ? $request->realization_status
             : TransferRequestRealizationStatus::tryFrom((string) $request->realization_status);
 
-        if ($realizationStatus === TransferRequestRealizationStatus::DONE) {
+        if (in_array($realizationStatus, [
+            TransferRequestRealizationStatus::PARTIAL,
+            TransferRequestRealizationStatus::DONE,
+        ], true)) {
             return $realizationStatus->getLabel();
         }
 
@@ -649,7 +662,10 @@ HTML;
             ? $request->realization_status
             : TransferRequestRealizationStatus::tryFrom((string) $request->realization_status);
 
-        if ($realizationStatus === TransferRequestRealizationStatus::DONE) {
+        if (in_array($realizationStatus, [
+            TransferRequestRealizationStatus::PARTIAL,
+            TransferRequestRealizationStatus::DONE,
+        ], true)) {
             return $realizationStatus->getColor();
         }
 
@@ -743,6 +759,8 @@ HTML;
             'account_name'       => $summary['account_name'],
             'bank'               => $summary['bank'],
             'transfer_amount'    => $summary['transfer_amount'],
+            'realized_amount'    => $summary['realized_amount'] ?? '0',
+            'remaining_amount'   => $summary['remaining_amount'] ?? '0',
             'purpose'            => $summary['purpose'],
             'reference_note'     => $summary['reference_note'],
             'invoice'            => $summary['invoice'] ?? __('form-transfer::filament/resources/transfer-request/notifications.invoice_missing'),
@@ -770,19 +788,21 @@ HTML;
     protected function buildSummaryTable(array $summary): string
     {
         $rows = [
-            __('form-transfer::filament/resources/transfer-request/fields.uid')                => $summary['uid'] ?? '—',
-            __('form-transfer::filament/resources/transfer-request/fields.requester_name')     => $summary['requester_name'] ?? '—',
-            __('form-transfer::filament/resources/transfer-request/fields.email')              => $summary['email'] ?? '—',
-            __('form-transfer::filament/resources/transfer-request/fields.division')           => $summary['division'] ?? '—',
-            __('form-transfer::filament/resources/transfer-request/fields.account_number')     => $summary['account_number'] ?? '—',
-            __('form-transfer::filament/resources/transfer-request/fields.account_name')       => $summary['account_name'] ?? '—',
-            __('form-transfer::filament/resources/transfer-request/fields.bank_name')          => $summary['bank'] ?? '—',
-            __('form-transfer::filament/resources/transfer-request/fields.transfer_amount')    => 'Rp '.$summary['transfer_amount'],
-            __('form-transfer::filament/resources/transfer-request/fields.purpose')            => $summary['purpose'] ?? '—',
-            __('form-transfer::filament/resources/transfer-request/fields.reference_note')     => $summary['reference_note'] ?? '—',
-            __('form-transfer::filament/resources/transfer-request/fields.status')             => $summary['status'] ?? '—',
-            __('form-transfer::filament/resources/transfer-request/fields.invoice')            => $summary['invoice_links'] ?? ($summary['invoice'] ?? '—'),
-            __('form-transfer::filament/resources/transfer-request/fields.account_attachment') => $summary['account_attachment_links'] ?? ($summary['account_attachment'] ?? '—'),
+            __('form-transfer::filament/resources/transfer-request/fields.uid')                          => $summary['uid'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.requester_name')               => $summary['requester_name'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.email')                        => $summary['email'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.division')                     => $summary['division'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.account_number')               => $summary['account_number'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.account_name')                 => $summary['account_name'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.bank_name')                    => $summary['bank'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.transfer_amount')              => 'Rp '.$summary['transfer_amount'],
+            __('form-transfer::filament/resources/transfer-request/fields.realized_amount')              => 'Rp '.($summary['realized_amount'] ?? '0'),
+            __('form-transfer::filament/resources/transfer-request/fields.remaining_realization_amount') => 'Rp '.($summary['remaining_amount'] ?? '0'),
+            __('form-transfer::filament/resources/transfer-request/fields.purpose')                      => $summary['purpose'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.reference_note')               => $summary['reference_note'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.status')                       => $summary['status'] ?? '—',
+            __('form-transfer::filament/resources/transfer-request/fields.invoice')                      => $summary['invoice_links'] ?? ($summary['invoice'] ?? '—'),
+            __('form-transfer::filament/resources/transfer-request/fields.account_attachment')           => $summary['account_attachment_links'] ?? ($summary['account_attachment'] ?? '—'),
         ];
 
         return $this->buildKeyValueTable($rows);

@@ -21,6 +21,7 @@ class TransferRequestRepository
         'division:id,name',
         'approvalWorkflow:id,name',
         'company:id,name',
+        'realizations:id,transfer_request_id,amount,realized_at,proof_path,notes',
     ];
 
     /**
@@ -34,6 +35,7 @@ class TransferRequestRepository
         'company:id,name',
         'user:id,name,email',
         'creator:id,name,email',
+        'realizations:id,transfer_request_id,user_id,amount,realized_at,proof_path,notes',
     ];
 
     /**
@@ -227,7 +229,8 @@ class TransferRequestRepository
             'pending'   => (clone $query)->where('approval_status', 'pending')->count(),
             'approved'  => (clone $query)->where('approval_status', 'approved')->count(),
             'rejected'  => (clone $query)->where('approval_status', 'rejected')->count(),
-            'realized'  => (clone $query)->where('realization_status', 'realized')->count(),
+            'partial'   => (clone $query)->where('realization_status', 'partial')->count(),
+            'realized'  => (clone $query)->where('realization_status', 'done')->count(),
             'cancelled' => (clone $query)->where('realization_status', 'cancelled')->count(),
         ];
     }

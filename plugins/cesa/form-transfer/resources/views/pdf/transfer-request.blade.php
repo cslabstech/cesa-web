@@ -155,6 +155,8 @@
         $approvalStatus = $record->approval_status?->getLabel() ?? '-';
         $realizationStatus = $record->realization_status?->getLabel() ?? '-';
         $transferAmount = (float) $record->transfer_amount;
+        $realizedAmount = (float) $record->realized_amount;
+        $remainingAmount = (float) $record->remaining_realization_amount;
         $formTransferName = $record->formTransfer?->name ?? 'Form Transfer';
     @endphp
 
@@ -223,7 +225,11 @@
         </tr>
         <tr class="total">
             <td class="label">Total Dibayarkan</td>
-            <td class="text-right">Rp {{ number_format($transferAmount, 0, ',', '.') }}</td>
+            <td class="text-right">Rp {{ number_format($realizedAmount, 0, ',', '.') }}</td>
+        </tr>
+        <tr>
+            <td class="label">Sisa Realisasi</td>
+            <td class="text-right">Rp {{ number_format($remainingAmount, 0, ',', '.') }}</td>
         </tr>
     </table>
 
@@ -250,6 +256,26 @@
             <td>{{ $record->realization_notes ?: '-' }}</td>
         </tr>
     </table>
+
+    @if ($record->realizations->isNotEmpty())
+        <div class="section-title">Riwayat Realisasi</div>
+        <table class="items">
+            <tr>
+                <th style="width: 6%;">#</th>
+                <th style="width: 24%;">Tanggal</th>
+                <th style="width: 24%;">Nominal</th>
+                <th>Catatan</th>
+            </tr>
+            @foreach ($record->realizations as $index => $realization)
+                <tr>
+                    <td>{{ $index + 1 }}</td>
+                    <td>{{ $realization->realized_at?->format('d M Y') ?? '-' }}</td>
+                    <td class="text-right">Rp {{ number_format((float) $realization->amount, 0, ',', '.') }}</td>
+                    <td>{{ $realization->notes ?: '-' }}</td>
+                </tr>
+            @endforeach
+        </table>
+    @endif
 
     @if ($approvals !== [])
         <div class="section-title">Riwayat Approval</div>

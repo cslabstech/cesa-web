@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'add_realization'          => 'Tambah Realisasi',
     'add_approval_step'        => 'Tambah Tahap Persetujuan',
     'cancel_realization'       => 'Batalkan Realisasi',
     'download_selected_pdfs'   => 'Unduh PDF terpilih',

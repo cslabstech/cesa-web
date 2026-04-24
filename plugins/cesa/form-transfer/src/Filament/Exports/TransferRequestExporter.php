@@ -27,6 +27,7 @@ class TransferRequestExporter extends Exporter
                 'creator',
                 'division',
                 'bank',
+                'realizations',
             ]);
     }
 
@@ -39,6 +40,11 @@ class TransferRequestExporter extends Exporter
             ExportColumn::make('realized_at')
                 ->label('Tanggal Realisasi')
                 ->state(fn (TransferRequest $record): string => static::formatRealizedAtWithNotes($record)),
+            ExportColumn::make('realized_amount')
+                ->label('Jumlah Terealisasi'),
+            ExportColumn::make('remaining_realization_amount')
+                ->label('Sisa Realisasi')
+                ->state(fn (TransferRequest $record): string => (string) $record->remaining_realization_amount),
             ExportColumn::make('created_at')
                 ->label('Tanggal Pengajuan'),
             ExportColumn::make('formTransfer.name')

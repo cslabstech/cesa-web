@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'add_realization'          => 'Add Realization',
     'add_approval_step'        => 'Add Approval Step',
     'cancel_realization'       => 'Cancel Realization',
     'download_selected_pdfs'   => 'Download selected PDFs',

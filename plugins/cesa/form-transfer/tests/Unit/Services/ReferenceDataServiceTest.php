@@ -131,8 +131,8 @@ class ReferenceDataServiceTest extends FormTransferTestCase
             'name'             => 'Standard Workflow',
             'is_active'        => true,
             'steps'            => [
-                ['label' => 'Step 1'],
-                ['label' => 'Step 2'],
+                ['label' => 'Step 1', 'default_email' => 'approver-one@example.com'],
+                ['label' => 'Step 2', 'default_email' => 'approver-two@example.com'],
             ],
         ]);
 

@@ -32,6 +32,7 @@ class TransferRequestFactory extends Factory
             'account_name'            => $this->faker->name(),
             'bank_id'                 => TransferBank::factory(),
             'transfer_amount'         => $this->faker->randomFloat(2, 1_000_000, 150_000_000),
+            'realized_amount'         => 0,
             'purpose'                 => $this->faker->sentence(),
             'reference_note'          => $this->faker->optional()->sentence(),
             'invoice_path'            => $this->faker->optional()->lexify('documents/invoices/INV-????.pdf'),
