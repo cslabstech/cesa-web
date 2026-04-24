@@ -5,6 +5,7 @@ namespace Cesa\Rekrutmen\Filament\Resources\RequestManPowerResource\Pages;
 use Cesa\Rekrutmen\Filament\Resources\RequestManPowerResource;
 use Cesa\Rekrutmen\Models\RequestManPower;
 use Filament\Actions;
+use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Facades\Auth;
@@ -62,6 +63,45 @@ class ViewRequestManPower extends ViewRecord
                         ->success()
                         ->send();
                 }),
+            Actions\Action::make('hold')
+                ->label(__('rekrutmen::filament/resources/request-man-power.table.actions.hold'))
+                ->icon('heroicon-o-pause-circle')
+                ->color('gray')
+                ->visible(fn (RequestManPower $record): bool => RequestManPowerResource::canHold($record))
+                ->requiresConfirmation()
+                ->modalHeading(__('rekrutmen::filament/resources/request-man-power.table.actions.hold_modal_heading'))
+                ->modalDescription(__('rekrutmen::filament/resources/request-man-power.table.actions.hold_modal_description'))
+                ->modalSubmitActionLabel(__('rekrutmen::filament/resources/request-man-power.table.actions.hold_modal_submit'))
+                ->schema([
+                    Textarea::make('hold_reason')
+                        ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.hold_reason'))
+                        ->required()
+                        ->minLength(5)
+                        ->maxLength(2000)
+                        ->rows(4),
+                ])
+                ->action(function (RequestManPower $record, array $data): void {
+                    $record->markOnHold(Auth::id(), (string) ($data['hold_reason'] ?? ''));
+
+                    Notification::make()
+                        ->title(__('rekrutmen::filament/resources/request-man-power.notifications.hold'))
+                        ->success()
+                        ->send();
+                }),
+            Actions\Action::make('resume_hold')
+                ->label(__('rekrutmen::filament/resources/request-man-power.table.actions.resume_hold'))
+                ->icon('heroicon-o-play-circle')
+                ->color('success')
+                ->visible(fn (RequestManPower $record): bool => RequestManPowerResource::canResumeHold($record))
+                ->requiresConfirmation()
+                ->action(function (RequestManPower $record): void {
+                    $record->resumeFromHold(Auth::id());
+
+                    Notification::make()
+                        ->title(__('rekrutmen::filament/resources/request-man-power.notifications.resume_hold'))
+                        ->success()
+                        ->send();
+                }),
             Actions\Action::make('resend_pending_approval')
                 ->label(__('rekrutmen::filament/resources/request-man-power.table.actions.resend_pending_approval'))
                 ->icon('heroicon-o-paper-airplane')
@@ -82,7 +122,7 @@ class ViewRequestManPower extends ViewRecord
                 ->visible(fn (RequestManPower $record) => RequestManPowerResource::canSetPending($record))
                 ->requiresConfirmation()
                 ->action(function (RequestManPower $record): void {
-                    $record->markPending();
+                    $record->markPending(Auth::id());
 
                     Notification::make()
                         ->title(__('rekrutmen::filament/resources/request-man-power.notifications.set_pending'))

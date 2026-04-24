@@ -19,6 +19,7 @@ use Cesa\Rekrutmen\Models\RequestManPower;
 use Cesa\Rekrutmen\Models\RequestManPowerApproval;
 use Cesa\Rekrutmen\Models\RequestManPowerApprovalRequestedNotification;
 use Cesa\Rekrutmen\Models\RequestManPowerStatusChangedNotification;
+use Cesa\Rekrutmen\Models\RequestManPowerStatusHistory;
 use Cesa\Rekrutmen\Models\RequestManPowerSubmittedNotification;
 use Cesa\Rekrutmen\Tests\RekrutmenTestCase;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -388,6 +389,84 @@ class RequestManPowerTest extends RekrutmenTestCase
         });
     }
 
+    public function test_holding_an_approved_request_unpublishes_its_job_posting_and_can_resume(): void
+    {
+        Notification::fake();
+
+        RekrutmenPipeline::query()->create([
+            'name' => 'Default Pipeline',
+        ]);
+
+        $request = RequestManPower::query()->create($this->basePayload([
+            'email_address' => 'hold-lifecycle@example.com',
+            'status'        => RequestManPowerStatus::PENDING,
+        ]));
+
+        $approver = User::factory()->create();
+
+        $request->approveBy($approver->id);
+
+        $jobPosting = $request->jobPosting()->firstOrFail();
+        $jobPosting->update(['is_published' => true]);
+
+        $request->markOnHold($approver->id, 'Budget recruitment ditunda sampai kuartal berikutnya.');
+
+        $heldRequest = $request->fresh(['heldBy', 'statusHistories']);
+
+        $this->assertSame(RequestManPowerStatus::HOLD, $heldRequest->status);
+        $previousLocale = app()->getLocale();
+        app()->setLocale('id');
+        $this->assertSame('Hold', RequestManPowerStatus::HOLD->getLabel());
+        app()->setLocale($previousLocale);
+        $this->assertSame($approver->id, $heldRequest->approved_by);
+        $this->assertSame($approver->id, $heldRequest->held_by);
+        $this->assertSame('Budget recruitment ditunda sampai kuartal berikutnya.', $heldRequest->hold_reason);
+        $this->assertNotNull($heldRequest->held_at);
+        $this->assertNull($heldRequest->resumed_at);
+        $this->assertTrue($heldRequest->hold_job_posting_was_published);
+        $this->assertFalse($jobPosting->fresh()->is_published);
+        $this->assertSame(2, $heldRequest->statusHistories->count());
+        $this->assertSame(RequestManPowerStatus::HOLD, $heldRequest->statusHistories->first()->to_status);
+        $this->assertSame('Budget recruitment ditunda sampai kuartal berikutnya.', $heldRequest->statusHistories->first()->reason);
+
+        $request->resumeFromHold($approver->id);
+
+        $resumedRequest = $request->fresh(['resumedBy', 'statusHistories']);
+
+        $this->assertSame(RequestManPowerStatus::APPROVED, $resumedRequest->status);
+        $this->assertSame($approver->id, $resumedRequest->approved_by);
+        $this->assertSame($approver->id, $resumedRequest->resumed_by);
+        $this->assertNotNull($resumedRequest->resumed_at);
+        $this->assertSame($jobPosting->id, $resumedRequest->jobPosting?->id);
+        $this->assertTrue($jobPosting->fresh()->is_published);
+        $this->assertSame(3, RequestManPowerStatusHistory::query()->where('request_man_power_id', $request->id)->count());
+        $this->assertSame(3, $resumedRequest->statusHistories->count());
+        $this->assertSame(RequestManPowerStatus::APPROVED, $resumedRequest->statusHistories->first()->to_status);
+        $this->assertSame(RequestManPowerStatus::HOLD, $resumedRequest->statusHistories->first()->from_status);
+    }
+
+    public function test_holding_a_request_requires_a_reason(): void
+    {
+        Notification::fake();
+
+        RekrutmenPipeline::query()->create([
+            'name' => 'Default Pipeline',
+        ]);
+
+        $request = RequestManPower::query()->create($this->basePayload([
+            'email_address' => 'hold-reason-required@example.com',
+            'status'        => RequestManPowerStatus::PENDING,
+        ]));
+
+        $approver = User::factory()->create();
+
+        $request->approveBy($approver->id);
+
+        $this->expectException(ValidationException::class);
+
+        $request->markOnHold($approver->id, '   ');
+    }
+
     public function test_approve_by_fails_without_changing_status_when_default_pipeline_cannot_be_resolved(): void
     {
         config()->set('rekrutmen.default_pipeline_id', 999999);
@@ -483,6 +562,31 @@ class RequestManPowerTest extends RekrutmenTestCase
         $this->assertSame(__('rekrutmen::livewire/public-request-man-power-progress-page.subheading'), $page->getSubheading());
     }
 
+    public function test_public_progress_page_shows_hold_reason_and_status_history(): void
+    {
+        Notification::fake();
+
+        RekrutmenPipeline::query()->create([
+            'name' => 'Default Pipeline',
+        ]);
+
+        $request = RequestManPower::query()->create($this->basePayload([
+            'email_address' => 'progress-hold@example.com',
+            'status'        => RequestManPowerStatus::PENDING,
+        ]));
+
+        $approver = User::factory()->create();
+
+        $request->approveBy($approver->id);
+        $request->markOnHold($approver->id, 'Budget recruitment ditunda sampai kuartal berikutnya.');
+
+        $this->get('man-power/progress/'.$request->status_response_id)
+            ->assertOk()
+            ->assertSee(__('rekrutmen::livewire/public-request-man-power-progress-page.hold_notice.title'))
+            ->assertSee(__('rekrutmen::livewire/public-request-man-power-progress-page.status_history_heading'))
+            ->assertSee('Budget recruitment ditunda sampai kuartal berikutnya.');
+    }
+
     public function test_request_man_power_notifications_include_public_progress_url(): void
     {
         $request = RequestManPower::query()->create($this->basePayload());
@@ -493,6 +597,14 @@ class RequestManPowerTest extends RekrutmenTestCase
             RequestManPowerStatus::PENDING,
             RequestManPowerStatus::APPROVED,
         ))->toMail(new \stdClass);
+        $request->forceFill([
+            'hold_reason' => 'Budget recruitment ditunda.',
+        ]);
+        $holdMail = (new RequestManPowerStatusChangedNotification(
+            $request,
+            RequestManPowerStatus::APPROVED,
+            RequestManPowerStatus::HOLD,
+        ))->toMail(new \stdClass);
 
         $this->assertSame('rekrutmen::mail.request-man-power-submitted', $submittedMail->view);
         $this->assertSame('rekrutmen::mail.request-man-power-status-changed', $statusChangedMail->view);
@@ -502,6 +614,10 @@ class RequestManPowerTest extends RekrutmenTestCase
         $this->assertSame(__('rekrutmen::mail/request-man-power-status-changed.view_progress'), $statusChangedMail->actionText);
         $this->assertNotEmpty($submittedMail->viewData['summary'] ?? []);
         $this->assertNotEmpty($statusChangedMail->viewData['summary'] ?? []);
+        $this->assertContains(
+            'Budget recruitment ditunda.',
+            collect($holdMail->viewData['summary'])->pluck('value')->all()
+        );
     }
 
     public function test_soft_deleted_relations_remain_readable(): void

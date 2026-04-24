@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Cesa\Rekrutmen\Enums\JobApplicationGender;
 use Cesa\Rekrutmen\Enums\JobApplicationMaritalStatus;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
+use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Models\JobApplication;
 use Cesa\Rekrutmen\Models\JobPosting;
 use Illuminate\Database\Eloquent\Builder;
@@ -168,6 +169,13 @@ class CareerController extends Controller
         $job = JobPosting::query()
             ->where('slug', $slug)
             ->where('is_published', true)
+            ->where(function (Builder $query): void {
+                $query->whereDoesntHave('requestManPower')
+                    ->orWhereHas(
+                        'requestManPower',
+                        fn (Builder $requestQuery): Builder => $requestQuery->where('status', '!=', RequestManPowerStatus::HOLD->value)
+                    );
+            })
             ->where(function ($q) {
                 $q->whereNull('closing_date')
                     ->orWhereDate('closing_date', '>=', today());
@@ -422,6 +430,13 @@ class CareerController extends Controller
     {
         return JobPosting::query()
             ->where('is_published', true)
+            ->where(function (Builder $query): void {
+                $query->whereDoesntHave('requestManPower')
+                    ->orWhereHas(
+                        'requestManPower',
+                        fn (Builder $requestQuery): Builder => $requestQuery->where('status', '!=', RequestManPowerStatus::HOLD->value)
+                    );
+            })
             ->where(function ($q) {
                 $q->whereNull('closing_date')
                     ->orWhereDate('closing_date', '>=', today());

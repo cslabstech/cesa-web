@@ -187,6 +187,7 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
                 'tanggal_pengajuan'          => '2026-04-05',
                 'estimasi_tanggal_join'      => '2026-05-15',
                 'jumlah_karyawan_dibutuhkan' => 1,
+                'status'                     => RequestManPowerStatus::HOLD,
             ]);
 
             $aprilHiredCandidate = $this->makeJobApplication($aprilPosting, $aprilStage, 'april-hired@example.com', 'April Hired');
@@ -221,8 +222,8 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
                 $this->assertSame('Overview MPP', $sheets[0]->title());
                 $this->assertSame('Ringkasan Bulanan', $sheets[1]->title());
                 $this->assertSame('Detail Posisi', $sheets[2]->title());
-                $this->assertWorkbookSheetMatchesOverviewMppLayout($sheets[1], 'H');
-                $this->assertWorkbookSheetMatchesOverviewMppLayout($sheets[2], 'N');
+                $this->assertWorkbookSheetMatchesOverviewMppLayout($sheets[1], 'I');
+                $this->assertWorkbookSheetMatchesOverviewMppLayout($sheets[2], 'O');
                 $this->assertWorkbookSheetMatchesOverviewMppLayout($sheets[3], 'L');
 
                 $overviewRows = collect($sheets[0]->array())->values();
@@ -234,7 +235,8 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
 
                 $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'PT FINANCE CORE'
                     && ($row[4] ?? null) === 1
-                    && ($row[5] ?? null) === mb_strtoupper($mayPosting->title)));
+                    && ($row[5] ?? null) === mb_strtoupper($mayPosting->title)
+                    && ($row[10] ?? null) === 'HOLD'));
 
                 $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'PT IT CORE'
                     && ($row[4] ?? null) === 1
@@ -250,7 +252,8 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
 
                 $this->assertTrue($summaryRows->contains(fn (array $row): bool => $row[0] === 'APRIL 2026'
                     && $row[3] === 2
-                    && $row[4] === 1));
+                    && $row[4] === 1
+                    && $row[5] === 1));
 
                 $this->assertTrue($detailRows->contains(fn (array $row): bool => in_array('PT IT Core', $row, true)
                     && in_array($aprilPosting->title, $row, true)
@@ -258,7 +261,8 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
 
                 $this->assertTrue($detailRows->contains(fn (array $row): bool => in_array('PT Finance Core', $row, true)
                     && in_array($mayPosting->title, $row, true)
-                    && in_array('Pipeline cukup, lanjut monitor', $row, true)));
+                    && in_array('HOLD', $row, true)
+                    && in_array('Hold - menunggu keputusan user', $row, true)));
 
                 return true;
             });
@@ -327,6 +331,8 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
 
     private function makeJobApplication(JobPosting $jobPosting, RekrutmenStage $stage, string $email, string $fullName): JobApplication
     {
+        $phoneNumber = '081'.str_pad((string) (abs(crc32($email)) % 1000000000), 9, '0', STR_PAD_LEFT);
+
         return JobApplication::query()->create([
             'job_posting_id'             => $jobPosting->id,
             'current_stage_id'           => $stage->id,
@@ -337,11 +343,11 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
             'marital_status'             => JobApplicationMaritalStatus::Single,
             'address_ktp'                => 'Alamat KTP',
             'address_domicile'           => 'Alamat Domisili',
-            'whatsapp_number'            => '081234567890',
-            'active_phone'               => '081234567891',
+            'whatsapp_number'            => $phoneNumber,
+            'active_phone'               => $phoneNumber,
             'emergency_contact_name'     => 'Bunga',
             'emergency_contact_relation' => 'Saudara',
-            'emergency_contact_phone'    => '081234567892',
+            'emergency_contact_phone'    => $phoneNumber,
             'status'                     => JobApplicationStatus::IN_PROGRESS,
         ]);
     }

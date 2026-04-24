@@ -208,7 +208,7 @@ class PublicRequestManPowerApprovalPageTest extends RekrutmenTestCase
         Queue::assertNothingPushed();
     }
 
-    private function createRequestWithApprovers(?string $emailAddress = null): RequestManPower
+    private function createRequestWithApprovers(?string $emailAddress = 'requester@example.com'): RequestManPower
     {
         $company = Company::query()->create([
             'name' => 'PT Cesa Approval Flow',

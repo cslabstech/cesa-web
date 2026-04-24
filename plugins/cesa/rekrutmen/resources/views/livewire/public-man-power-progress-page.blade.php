@@ -6,6 +6,7 @@
             $statusClasses = match ($status?->value) {
                 'approved' => 'bg-emerald-100 text-emerald-700',
                 'rejected' => 'bg-red-100 text-red-700',
+                'hold' => 'bg-gray-100 text-gray-700',
                 default => 'bg-amber-100 text-amber-700',
             };
         @endphp
@@ -32,6 +33,22 @@
                 </div>
             </div>
         </div>
+
+        @if ($status?->value === 'hold' && filled($requestManPower->hold_reason))
+            <div class="mb-4 rounded-lg border border-gray-200 bg-white px-6 py-5 shadow-sm">
+                <p class="text-sm font-semibold text-gray-900">
+                    {{ __('rekrutmen::livewire/public-request-man-power-progress-page.hold_notice.title') }}
+                </p>
+                <p class="mt-2 whitespace-pre-line text-sm leading-6 text-gray-700">{{ $requestManPower->hold_reason }}</p>
+                @if ($requestManPower->held_at)
+                    <p class="mt-3 text-xs text-gray-500">
+                        {{ __('rekrutmen::livewire/public-request-man-power-progress-page.hold_notice.held_at', [
+                            'date' => $requestManPower->held_at->translatedFormat('d F Y H:i'),
+                        ]) }}
+                    </p>
+                @endif
+            </div>
+        @endif
 
         <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
             <div class="cesa-primary-bg px-6 py-4 text-white">
@@ -123,6 +140,51 @@
                 </div>
             </div>
         </div>
+
+        @if ($requestManPower->statusHistories->isNotEmpty())
+            <div class="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                <div class="border-b border-gray-200 px-6 py-4">
+                    <h2 class="text-lg font-medium text-gray-900">
+                        {{ __('rekrutmen::livewire/public-request-man-power-progress-page.status_history_heading') }}
+                    </h2>
+                </div>
+
+                <div class="space-y-3 px-6 py-5">
+                    @foreach ($requestManPower->statusHistories as $history)
+                        @php
+                            $historyStatus = $history->to_status;
+                            $historyStatusClasses = match ($historyStatus?->value) {
+                                'approved' => 'bg-emerald-100 text-emerald-700',
+                                'rejected' => 'bg-red-100 text-red-700',
+                                'hold' => 'bg-gray-100 text-gray-700',
+                                default => 'bg-amber-100 text-amber-700',
+                            };
+                        @endphp
+                        <div class="rounded-lg border border-gray-200 px-4 py-3">
+                            <div class="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <p class="text-sm font-semibold text-gray-900">
+                                        {{ $history->created_at?->translatedFormat('d F Y H:i') ?? '-' }}
+                                    </p>
+                                    <p class="mt-1 text-sm text-gray-600">
+                                        {{ __('rekrutmen::livewire/public-request-man-power-progress-page.status_history_transition', [
+                                            'from' => $history->from_status?->getLabel() ?? '-',
+                                            'to' => $historyStatus?->getLabel() ?? '-',
+                                        ]) }}
+                                    </p>
+                                </div>
+                                <span class="{{ $historyStatusClasses }} inline-flex items-center rounded-full px-3 py-1 text-xs font-medium">
+                                    {{ $historyStatus?->getLabel() ?? '-' }}
+                                </span>
+                            </div>
+                            @if (filled($history->reason))
+                                <p class="mt-3 whitespace-pre-line text-sm text-gray-700">{{ $history->reason }}</p>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
 
         @if ($requestManPower->approvals->isNotEmpty())
             <div class="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">

@@ -287,7 +287,58 @@ class RequestManPowerResource extends Resource
                                 TextEntry::make('approver.name')
                                     ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.approved_by'))
                                     ->visible(fn ($record) => $record && $record->approved_by),
+                                TextEntry::make('hold_reason')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.hold_reason'))
+                                    ->visible(fn (RequestManPower $record): bool => filled($record->hold_reason))
+                                    ->columnSpanFull(),
+                                TextEntry::make('heldBy.name')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.held_by'))
+                                    ->visible(fn (RequestManPower $record): bool => filled($record->held_by)),
+                                TextEntry::make('held_at')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.held_at'))
+                                    ->dateTime('d F Y H:i')
+                                    ->visible(fn (RequestManPower $record): bool => filled($record->held_at)),
+                                TextEntry::make('resumedBy.name')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.resumed_by'))
+                                    ->visible(fn (RequestManPower $record): bool => filled($record->resumed_by)),
+                                TextEntry::make('resumed_at')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.resumed_at'))
+                                    ->dateTime('d F Y H:i')
+                                    ->visible(fn (RequestManPower $record): bool => filled($record->resumed_at)),
                             ])->columns(1),
+                        Section::make(__('rekrutmen::filament/resources/request-man-power.form.sections.status_history'))
+                            ->schema([
+                                RepeatableEntry::make('statusHistories')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.sections.status_history'))
+                                    ->visible(fn (RequestManPower $record): bool => $record->statusHistories()->exists())
+                                    ->schema([
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextEntry::make('created_at')
+                                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.acted_at'))
+                                                    ->dateTime('d F Y H:i'),
+                                                TextEntry::make('actor.name')
+                                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.actor'))
+                                                    ->placeholder('—'),
+                                                TextEntry::make('from_status')
+                                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.previous_status'))
+                                                    ->formatStateUsing(fn (RequestManPowerStatus|string|null $state): string => $state instanceof RequestManPowerStatus ? $state->getLabel() : (string) ($state ?? '—'))
+                                                    ->badge(),
+                                                TextEntry::make('to_status')
+                                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.latest_status'))
+                                                    ->formatStateUsing(fn (RequestManPowerStatus|string|null $state): string => $state instanceof RequestManPowerStatus ? $state->getLabel() : (string) ($state ?? '—'))
+                                                    ->badge()
+                                                    ->color(fn ($state): string|array|null => $state instanceof RequestManPowerStatus ? $state->getColor() : null),
+                                                TextEntry::make('reason')
+                                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.reason'))
+                                                    ->placeholder('—')
+                                                    ->columnSpanFull(),
+                                            ]),
+                                    ])
+                                    ->columns(1),
+                            ])
+                            ->visible(fn (RequestManPower $record): bool => $record->statusHistories()->exists())
+                            ->collapsible(),
                         Section::make(__('rekrutmen::filament/resources/request-man-power.form.sections.approval_flow'))
                             ->schema([
                                 RepeatableEntry::make('approvals')
@@ -474,6 +525,45 @@ class RequestManPowerResource extends Resource
                                 ->success()
                                 ->send();
                         }),
+                    Action::make('hold')
+                        ->label(__('rekrutmen::filament/resources/request-man-power.table.actions.hold'))
+                        ->icon('heroicon-o-pause-circle')
+                        ->color('gray')
+                        ->visible(fn (RequestManPower $record): bool => self::canHold($record))
+                        ->requiresConfirmation()
+                        ->modalHeading(__('rekrutmen::filament/resources/request-man-power.table.actions.hold_modal_heading'))
+                        ->modalDescription(__('rekrutmen::filament/resources/request-man-power.table.actions.hold_modal_description'))
+                        ->modalSubmitActionLabel(__('rekrutmen::filament/resources/request-man-power.table.actions.hold_modal_submit'))
+                        ->schema([
+                            Textarea::make('hold_reason')
+                                ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.hold_reason'))
+                                ->required()
+                                ->minLength(5)
+                                ->maxLength(2000)
+                                ->rows(4),
+                        ])
+                        ->action(function (RequestManPower $record, array $data): void {
+                            $record->markOnHold(Auth::id(), (string) ($data['hold_reason'] ?? ''));
+
+                            Notification::make()
+                                ->title(__('rekrutmen::filament/resources/request-man-power.notifications.hold'))
+                                ->success()
+                                ->send();
+                        }),
+                    Action::make('resume_hold')
+                        ->label(__('rekrutmen::filament/resources/request-man-power.table.actions.resume_hold'))
+                        ->icon('heroicon-o-play-circle')
+                        ->color('success')
+                        ->visible(fn (RequestManPower $record): bool => self::canResumeHold($record))
+                        ->requiresConfirmation()
+                        ->action(function (RequestManPower $record): void {
+                            $record->resumeFromHold(Auth::id());
+
+                            Notification::make()
+                                ->title(__('rekrutmen::filament/resources/request-man-power.notifications.resume_hold'))
+                                ->success()
+                                ->send();
+                        }),
                     Action::make('resend_pending_approval')
                         ->label(__('rekrutmen::filament/resources/request-man-power.table.actions.resend_pending_approval'))
                         ->icon('heroicon-o-paper-airplane')
@@ -494,7 +584,7 @@ class RequestManPowerResource extends Resource
                         ->visible(fn (RequestManPower $record) => self::canSetPending($record))
                         ->requiresConfirmation()
                         ->action(function (RequestManPower $record): void {
-                            $record->markPending();
+                            $record->markPending(Auth::id());
 
                             Notification::make()
                                 ->title(__('rekrutmen::filament/resources/request-man-power.notifications.set_pending'))
@@ -552,7 +642,19 @@ class RequestManPowerResource extends Resource
 
     public static function canSetPending(RequestManPower $record): bool
     {
-        return ! self::statusIsPending($record->status) && self::currentUserCanManageApproval($record);
+        return ! self::statusIsPending($record->status)
+            && ! self::statusIsHold($record->status)
+            && self::currentUserCanManageApproval($record);
+    }
+
+    public static function canHold(RequestManPower $record): bool
+    {
+        return self::statusIsApproved($record->status) && self::currentUserCanManageApproval($record);
+    }
+
+    public static function canResumeHold(RequestManPower $record): bool
+    {
+        return self::statusIsHold($record->status) && self::currentUserCanManageApproval($record);
     }
 
     public static function canResendPendingApproval(RequestManPower $record): bool
@@ -573,6 +675,32 @@ class RequestManPowerResource extends Resource
         }
 
         return strtolower($status) === RequestManPowerStatus::PENDING->value;
+    }
+
+    protected static function statusIsApproved(mixed $status): bool
+    {
+        if ($status instanceof RequestManPowerStatus) {
+            return $status === RequestManPowerStatus::APPROVED;
+        }
+
+        if (! is_string($status)) {
+            return false;
+        }
+
+        return strtolower($status) === RequestManPowerStatus::APPROVED->value;
+    }
+
+    protected static function statusIsHold(mixed $status): bool
+    {
+        if ($status instanceof RequestManPowerStatus) {
+            return $status === RequestManPowerStatus::HOLD;
+        }
+
+        if (! is_string($status)) {
+            return false;
+        }
+
+        return strtolower($status) === RequestManPowerStatus::HOLD->value;
     }
 
     protected static function currentUserCanManageApproval(?RequestManPower $record = null): bool

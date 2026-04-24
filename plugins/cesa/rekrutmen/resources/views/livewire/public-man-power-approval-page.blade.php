@@ -5,6 +5,7 @@
     $requestStatusColor = match ($requestStatus?->value) {
         'approved' => 'success',
         'rejected' => 'danger',
+        'hold' => 'gray',
         default => 'warning',
     };
     

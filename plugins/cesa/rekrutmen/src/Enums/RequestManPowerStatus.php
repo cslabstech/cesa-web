@@ -10,6 +10,7 @@ enum RequestManPowerStatus: string implements HasColor, HasLabel
     case PENDING = 'pending';
     case APPROVED = 'approved';
     case REJECTED = 'rejected';
+    case HOLD = 'hold';
 
     public function getLabel(): ?string
     {
@@ -17,6 +18,7 @@ enum RequestManPowerStatus: string implements HasColor, HasLabel
             self::PENDING  => __('rekrutmen::enums/request-man-power-status.pending'),
             self::APPROVED => __('rekrutmen::enums/request-man-power-status.approved'),
             self::REJECTED => __('rekrutmen::enums/request-man-power-status.rejected'),
+            self::HOLD     => __('rekrutmen::enums/request-man-power-status.hold'),
         };
     }
 
@@ -26,6 +28,7 @@ enum RequestManPowerStatus: string implements HasColor, HasLabel
             self::PENDING  => 'warning',
             self::APPROVED => 'success',
             self::REJECTED => 'danger',
+            self::HOLD     => 'gray',
         };
     }
 }

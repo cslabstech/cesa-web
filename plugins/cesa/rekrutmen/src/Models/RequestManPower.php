@@ -62,22 +62,31 @@ class RequestManPower extends Model
         'keterangan',
         'status',
         'approved_by',
+        'hold_reason',
+        'held_at',
+        'held_by',
+        'resumed_at',
+        'resumed_by',
+        'hold_job_posting_was_published',
     ];
 
     protected function casts(): array
     {
         return [
-            'status_kebutuhan'           => StatusKebutuhan::class,
-            'status'                     => RequestManPowerStatus::class,
-            'company_id'                 => 'integer',
-            'division_id'                => 'integer',
-            'tanggal_pengajuan'          => 'date',
-            'estimasi_tanggal_join'      => 'date',
-            'jumlah_karyawan_dibutuhkan' => 'integer',
-            'status_response_id'         => 'string',
-            'created_at'                 => 'datetime',
-            'updated_at'                 => 'datetime',
-            'deleted_at'                 => 'datetime',
+            'status_kebutuhan'               => StatusKebutuhan::class,
+            'status'                         => RequestManPowerStatus::class,
+            'company_id'                     => 'integer',
+            'division_id'                    => 'integer',
+            'tanggal_pengajuan'              => 'date',
+            'estimasi_tanggal_join'          => 'date',
+            'jumlah_karyawan_dibutuhkan'     => 'integer',
+            'status_response_id'             => 'string',
+            'held_at'                        => 'datetime',
+            'resumed_at'                     => 'datetime',
+            'hold_job_posting_was_published' => 'boolean',
+            'created_at'                     => 'datetime',
+            'updated_at'                     => 'datetime',
+            'deleted_at'                     => 'datetime',
         ];
     }
 
@@ -134,6 +143,16 @@ class RequestManPower extends Model
         return $this->belongsTo(User::class, 'approved_by')->withTrashed();
     }
 
+    public function heldBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'held_by')->withTrashed();
+    }
+
+    public function resumedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'resumed_by')->withTrashed();
+    }
+
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id')->withTrashed();
@@ -153,6 +172,14 @@ class RequestManPower extends Model
     {
         return $this->hasMany(RequestManPowerApproval::class, 'request_man_power_id')
             ->orderBy('step_order');
+    }
+
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(RequestManPowerStatusHistory::class, 'request_man_power_id')
+            ->with('actor')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
     }
 
     public function currentPendingApproval(): HasOne
@@ -443,13 +470,15 @@ class RequestManPower extends Model
     {
         $previousStatus = $this->status;
 
-        DB::transaction(function () use ($approverId): void {
+        DB::transaction(function () use ($approverId, $previousStatus): void {
             $this->createJobPostingIfMissing();
 
             $this->update([
                 'status'      => RequestManPowerStatus::APPROVED,
                 'approved_by' => $approverId,
             ]);
+
+            $this->recordStatusHistory($previousStatus, RequestManPowerStatus::APPROVED, $approverId);
         });
 
         $this->sendStatusChangedNotification($previousStatus, RequestManPowerStatus::APPROVED);
@@ -459,23 +488,25 @@ class RequestManPower extends Model
     {
         $previousStatus = $this->status;
 
-        DB::transaction(function () use ($approverId): void {
+        DB::transaction(function () use ($approverId, $previousStatus): void {
             $this->update([
                 'status'      => RequestManPowerStatus::REJECTED,
                 'approved_by' => $approverId,
             ]);
 
             $this->unpublishLinkedJobPosting();
+
+            $this->recordStatusHistory($previousStatus, RequestManPowerStatus::REJECTED, $approverId);
         });
 
         $this->sendStatusChangedNotification($previousStatus, RequestManPowerStatus::REJECTED);
     }
 
-    public function markPending(): void
+    public function markPending(?int $actorId = null): void
     {
         $previousStatus = $this->status;
 
-        DB::transaction(function (): void {
+        DB::transaction(function () use ($actorId, $previousStatus): void {
             $this->update([
                 'status'      => RequestManPowerStatus::PENDING,
                 'approved_by' => null,
@@ -483,10 +514,82 @@ class RequestManPower extends Model
 
             $this->initializeApprovalWorkflow(replaceExisting: true);
             $this->unpublishLinkedJobPosting();
+            $this->recordStatusHistory($previousStatus, RequestManPowerStatus::PENDING, $actorId ?? Auth::id());
         });
 
         $this->sendStatusChangedNotification($previousStatus, RequestManPowerStatus::PENDING);
         $this->notifyCurrentPendingApproval(true);
+    }
+
+    public function markOnHold(?int $actorId = null, string $holdReason = ''): void
+    {
+        $reason = trim($holdReason);
+
+        if ($reason === '') {
+            throw ValidationException::withMessages([
+                'hold_reason' => __('validation.required', [
+                    'attribute' => Str::lower(__('rekrutmen::filament/resources/request-man-power.form.fields.hold_reason')),
+                ]),
+            ]);
+        }
+
+        $previousStatus = $this->status;
+        $resolvedActorId = $actorId ?? Auth::id();
+        $timestamp = now();
+
+        DB::transaction(function () use ($previousStatus, $reason, $resolvedActorId, $timestamp): void {
+            $jobPosting = $this->jobPosting()->first();
+            $wasPublished = (bool) ($jobPosting?->is_published ?? false);
+
+            $this->update([
+                'status'                         => RequestManPowerStatus::HOLD,
+                'approved_by'                    => $this->approved_by ?? $resolvedActorId,
+                'hold_reason'                    => $reason,
+                'held_at'                        => $timestamp,
+                'held_by'                        => $resolvedActorId,
+                'resumed_at'                     => null,
+                'resumed_by'                     => null,
+                'hold_job_posting_was_published' => $wasPublished,
+            ]);
+
+            if ($jobPosting) {
+                $jobPosting->update([
+                    'is_published' => false,
+                ]);
+            }
+
+            $this->recordStatusHistory($previousStatus, RequestManPowerStatus::HOLD, $resolvedActorId, $reason);
+        });
+
+        $this->sendStatusChangedNotification($previousStatus, RequestManPowerStatus::HOLD);
+    }
+
+    public function resumeFromHold(?int $actorId = null): void
+    {
+        $previousStatus = $this->status;
+        $resolvedActorId = $actorId ?? Auth::id();
+        $timestamp = now();
+
+        DB::transaction(function () use ($previousStatus, $resolvedActorId, $timestamp): void {
+            $jobPosting = $this->createJobPostingIfMissing();
+
+            $this->update([
+                'status'      => RequestManPowerStatus::APPROVED,
+                'approved_by' => $this->approved_by ?? $resolvedActorId,
+                'resumed_at'  => $timestamp,
+                'resumed_by'  => $resolvedActorId,
+            ]);
+
+            if ($this->hold_job_posting_was_published) {
+                $jobPosting->update([
+                    'is_published' => true,
+                ]);
+            }
+
+            $this->recordStatusHistory($previousStatus, RequestManPowerStatus::APPROVED, $resolvedActorId);
+        });
+
+        $this->sendStatusChangedNotification($previousStatus, RequestManPowerStatus::APPROVED);
     }
 
     public function isCurrentPendingApproval(RequestManPowerApproval $approval): bool
@@ -516,7 +619,7 @@ class RequestManPower extends Model
         $actedByUserId = $this->resolveMatchedUserIdByEmail($approval->approver_email);
         $nextApprovalId = null;
 
-        DB::transaction(function () use ($approval, $notes, $actedByUserId, &$nextApprovalId): void {
+        DB::transaction(function () use ($approval, $notes, $actedByUserId, $previousStatus, &$nextApprovalId): void {
             $approval->forceFill([
                 'status'            => RequestManPowerApprovalStatus::APPROVED,
                 'notes'             => $notes,
@@ -548,6 +651,8 @@ class RequestManPower extends Model
                 'status'      => RequestManPowerStatus::APPROVED,
                 'approved_by' => $actedByUserId,
             ]);
+
+            $this->recordStatusHistory($previousStatus, RequestManPowerStatus::APPROVED, $actedByUserId, $notes);
         });
 
         if ($nextApprovalId) {
@@ -570,7 +675,7 @@ class RequestManPower extends Model
         $previousStatus = $this->status;
         $actedByUserId = $this->resolveMatchedUserIdByEmail($approval->approver_email);
 
-        DB::transaction(function () use ($approval, $notes, $actedByUserId): void {
+        DB::transaction(function () use ($approval, $notes, $actedByUserId, $previousStatus): void {
             $approval->forceFill([
                 'status'            => RequestManPowerApprovalStatus::REJECTED,
                 'notes'             => $notes,
@@ -598,6 +703,7 @@ class RequestManPower extends Model
             ]);
 
             $this->unpublishLinkedJobPosting();
+            $this->recordStatusHistory($previousStatus, RequestManPowerStatus::REJECTED, $actedByUserId, $notes);
         });
 
         $this->sendStatusChangedNotification($previousStatus, RequestManPowerStatus::REJECTED);
@@ -666,6 +772,26 @@ class RequestManPower extends Model
         }
 
         return RequestManPowerStatus::tryFrom($status);
+    }
+
+    private function recordStatusHistory(
+        mixed $fromStatus,
+        RequestManPowerStatus $toStatus,
+        ?int $actorId = null,
+        ?string $reason = null,
+    ): void {
+        $from = $this->normalizeStatus($fromStatus);
+
+        if ($from?->value === $toStatus->value) {
+            return;
+        }
+
+        $this->statusHistories()->create([
+            'from_status'       => $from?->value,
+            'to_status'         => $toStatus->value,
+            'reason'            => filled($reason) ? trim((string) $reason) : null,
+            'acted_by_user_id'  => $actorId,
+        ]);
     }
 
     private function resolveMatchedUserIdByEmail(?string $email): ?int
@@ -944,6 +1070,13 @@ class RequestManPowerStatusChangedNotification extends Notification implements S
             $summary[] = [
                 'label' => __('rekrutmen::mail/request-man-power-status-changed.summary_fields.previous_status'),
                 'value' => $this->fromStatus->getLabel(),
+            ];
+        }
+
+        if ($this->toStatus === RequestManPowerStatus::HOLD && filled($this->requestManPower->hold_reason)) {
+            $summary[] = [
+                'label' => __('rekrutmen::mail/request-man-power-status-changed.summary_fields.hold_reason'),
+                'value' => $this->requestManPower->hold_reason,
             ];
         }
 

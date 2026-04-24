@@ -41,6 +41,9 @@ class RecruitmentProgressController extends Controller
                 'hired'                  => $position['statistics']['hired'],
                 'in_progress'            => $position['statistics']['in_progress'],
                 'rejected'               => $position['statistics']['rejected'],
+                'request_status'         => $position['request_status'],
+                'request_status_label'   => $position['request_status_label'],
+                'is_on_hold'             => $position['is_on_hold'],
                 'latest_activity'        => $position['latest_activity']
                     ? [
                         'date'    => $position['latest_activity']['activity_date']?->format('Y-m-d'),

@@ -70,6 +70,8 @@ class RekrutmenServiceProvider extends PackageServiceProvider
                 '2026_04_16_142720_rekrutmen_add_source_to_job_applications_table',
                 '2026_04_16_150000_rekrutmen_add_approval_order_to_approvers_table',
                 '2026_04_16_150100_rekrutmen_create_request_man_power_approvals_table',
+                '2026_04_24_073355_rekrutmen_add_hold_audit_fields_to_request_man_powers_table',
+                '2026_04_24_073401_rekrutmen_create_request_man_power_status_histories_table',
             ])
             ->runsMigrations()
             ->runsSeeders()
@@ -132,6 +134,7 @@ class RekrutmenServiceProvider extends PackageServiceProvider
                 'rekrutmen_divisions',
                 'rekrutmen_request_man_powers',
                 'rekrutmen_request_man_power_approvals',
+                'rekrutmen_request_man_power_status_histories',
                 'rekrutmen_job_postings',
                 'rekrutmen_job_applications',
                 'rekrutmen_job_application_histories',

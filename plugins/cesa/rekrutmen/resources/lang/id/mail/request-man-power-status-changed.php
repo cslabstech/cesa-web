@@ -13,6 +13,7 @@ return [
         'position'        => 'Posisi',
         'latest_status'   => 'Status Terbaru',
         'previous_status' => 'Status Sebelumnya',
+        'hold_reason'     => 'Alasan Hold',
         'division'        => 'Divisi',
         'business_entity' => 'Badan Usaha',
     ],

@@ -13,6 +13,7 @@ return [
         'position'        => 'Position',
         'latest_status'   => 'Latest Status',
         'previous_status' => 'Previous Status',
+        'hold_reason'     => 'Hold Reason',
         'division'        => 'Division',
         'business_entity' => 'Business Entity',
     ],

@@ -3,6 +3,7 @@
 namespace Cesa\Rekrutmen\Services;
 
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
+use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Models\JobApplicationHistory;
 use Cesa\Rekrutmen\Models\RequestManPower;
 use Illuminate\Support\Carbon;
@@ -106,6 +107,7 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
                     'Snapshot',
                     'Posisi Open',
                     'Outstanding MPP',
+                    'Outstanding Hold',
                     'Karyawan Join',
                     'Rata-rata Lama Pemenuhan (Hari)',
                     'Perusahaan',
@@ -117,12 +119,13 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
                     'B' => 16,
                     'C' => 12,
                     'D' => 16,
-                    'E' => 14,
-                    'F' => 24,
-                    'G' => 28,
-                    'H' => 32,
+                    'E' => 16,
+                    'F' => 14,
+                    'G' => 24,
+                    'H' => 28,
+                    'I' => 36,
                 ],
-                centeredColumns: ['C', 'D', 'E', 'F'],
+                centeredColumns: ['C', 'D', 'E', 'F', 'G'],
             ),
             new RecruitmentProgressWorkbookSheet(
                 title: 'Detail Posisi',
@@ -142,6 +145,7 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
                     'User',
                     'PIC Terakhir',
                     'Jenis Kebutuhan',
+                    'Status Permintaan',
                     'Prioritas Tindak Lanjut',
                     'Update Progres Terakhir',
                 ],
@@ -159,7 +163,9 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
                     'J' => 18,
                     'K' => 18,
                     'L' => 18,
-                    'M' => 28,
+                    'M' => 18,
+                    'N' => 28,
+                    'O' => 18,
                 ],
                 centeredColumns: ['C', 'F', 'G', 'H', 'I'],
             ),
@@ -238,35 +244,47 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
     protected function monthlySummaryRows(Collection $monthlySections): Collection
     {
         return $monthlySections->map(function (array $section): array {
+            $openRows = collect($section['open_rows']);
             $joinDays = collect($section['join_rows'])
                 ->pluck('days')
                 ->filter(fn (mixed $days): bool => is_int($days) || is_float($days));
-            $companies = collect($section['open_rows'])
+            $companies = $openRows
                 ->pluck('company')
                 ->merge(collect($section['join_rows'])->pluck('company'))
                 ->filter(fn (?string $company): bool => filled($company) && $company !== '-')
                 ->unique()
                 ->values();
+            $holdTotal = (int) $openRows
+                ->where('is_on_hold', true)
+                ->sum('quantity');
 
             return [
                 $section['month_label'],
                 $this->formatDate($section['snapshot_date']),
-                collect($section['open_rows'])->count(),
+                $openRows->count(),
                 $section['open_total'],
+                $holdTotal,
                 $section['join_total'],
                 $joinDays->isEmpty() ? 0 : (int) round($joinDays->avg()),
                 $this->companyScopeLabel($companies),
-                $this->monthlyStatusLabel($section['open_total'], $section['join_total']),
+                $this->monthlyStatusLabel($section['open_total'], $section['join_total'], $holdTotal),
             ];
         })->values();
     }
 
     protected function monthlySummaryLine(Collection $monthlySections): string
     {
+        $holdTotal = (int) $monthlySections->sum(
+            fn (array $section): int => (int) collect($section['open_rows'])
+                ->where('is_on_hold', true)
+                ->sum('quantity')
+        );
+
         return sprintf(
-            'Ringkasan: %d bulan | Outstanding MPP %d | Karyawan join %d',
+            'Ringkasan: %d bulan | Outstanding MPP %d | Outstanding hold %d | Karyawan join %d',
             $monthlySections->count(),
             (int) $monthlySections->sum('open_total'),
+            $holdTotal,
             (int) $monthlySections->sum('join_total'),
         );
     }
@@ -290,6 +308,7 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
                 $row['user'],
                 $row['pic'],
                 $row['need_type'],
+                $row['request_status'],
                 $row['priority'],
                 $row['update_date'],
             ])
@@ -309,12 +328,16 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
         $openPositions = $this->openPositionSnapshots();
         $outstanding = (int) $openPositions->sum('outstanding');
         $urgent = $openPositions->where('priority', 'Perlu eskalasi segera')->count();
+        $hold = (int) $openPositions
+            ->where('is_on_hold', true)
+            ->sum('outstanding');
 
         return sprintf(
-            'Snapshot %s | Posisi open %d | Outstanding MPP %d | Perlu eskalasi %d',
+            'Snapshot %s | Posisi open %d | Outstanding MPP %d | Outstanding hold %d | Perlu eskalasi %d',
             $this->formatDate($snapshotDate),
             $openPositions->count(),
             $outstanding,
+            $hold,
             $urgent,
         );
     }
@@ -399,6 +422,7 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
                 $postingId = (int) ($position['posting']?->id ?? 0);
                 $request = $position['request'] ?? null;
                 $requestDate = $request?->tanggal_pengajuan;
+                $isOnHold = $request?->status === RequestManPowerStatus::HOLD;
 
                 if (! $requestDate instanceof Carbon || $requestDate->greaterThan($snapshotDate)) {
                     return null;
@@ -426,6 +450,8 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
                     'user'             => $this->uppercase($request?->nama_pengaju),
                     'pic'              => $this->uppercase($latestHistory?->performer?->name),
                     'need_type'        => $this->needTypeLabel($request),
+                    'request_status'   => $this->requestStatusLabel($request),
+                    'is_on_hold'       => $isOnHold,
                     'replacement_note' => $this->replacementNote($request),
                     'update_date'      => $this->formatDate($updateDate),
                 ];
@@ -464,6 +490,7 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
                 $request = $position['request'] ?? null;
                 $requestDate = $request?->tanggal_pengajuan;
                 $joinDate = $this->historyEventDate($history);
+                $isOnHold = $request?->status === RequestManPowerStatus::HOLD;
 
                 if (! $requestDate instanceof Carbon || ! $joinDate instanceof Carbon) {
                     return null;
@@ -480,6 +507,8 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
                     'user'             => $this->uppercase($request?->nama_pengaju),
                     'pic'              => $this->uppercase($history->performer?->name),
                     'need_type'        => $this->needTypeLabel($request),
+                    'request_status'   => $this->requestStatusLabel($request),
+                    'is_on_hold'       => $isOnHold,
                     'replacement_note' => $this->replacementNote($request),
                     'update_date'      => $this->formatDate($joinDate),
                 ];
@@ -601,6 +630,13 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
         return '-';
     }
 
+    protected function requestStatusLabel(?RequestManPower $request): string
+    {
+        return filled($request?->status?->value)
+            ? mb_strtoupper((string) $request->status->getLabel())
+            : '-';
+    }
+
     /**
      * @param  Collection<int, string>  $companies
      */
@@ -617,10 +653,14 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
         return $companies->count().' perusahaan';
     }
 
-    protected function monthlyStatusLabel(int $openTotal, int $joinTotal): string
+    protected function monthlyStatusLabel(int $openTotal, int $joinTotal, int $holdTotal): string
     {
         if ($openTotal <= 0) {
             return 'Semua kebutuhan pada snapshot ini sudah terpenuhi';
+        }
+
+        if ($holdTotal > 0) {
+            return 'Ada kebutuhan di-hold, outstanding dipisahkan dari kebutuhan aktif';
         }
 
         if ($joinTotal > 0) {
@@ -691,6 +731,7 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
                 $postingId = (int) ($position['posting']?->id ?? 0);
                 $request = $position['request'] ?? null;
                 $requestDate = $request?->tanggal_pengajuan;
+                $isOnHold = $request?->status === RequestManPowerStatus::HOLD;
 
                 if (! $requestDate instanceof Carbon || $requestDate->greaterThan($snapshotDate)) {
                     return null;
@@ -708,20 +749,22 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
                 $inProgress = (int) ($position['statistics']['in_progress'] ?? 0);
 
                 return [
-                    'company'      => $request?->company?->name ?? '-',
-                    'request_date' => $this->formatDate($requestDate),
-                    'age_days'     => $requestDate->diffInDays($snapshotDate),
-                    'position'     => $position['posting']?->title ?? '-',
-                    'location'     => $position['posting']?->location ?? '-',
-                    'needed'       => $needed,
-                    'hired'        => $hired,
-                    'outstanding'  => $outstanding,
-                    'in_progress'  => $inProgress,
-                    'user'         => $request?->nama_pengaju ?? '-',
-                    'pic'          => $latestHistory?->performer?->name ?? '-',
-                    'need_type'    => $this->needTypeLabel($request),
-                    'priority'     => $this->positionPriorityLabel($outstanding, $inProgress, $requestDate, $snapshotDate),
-                    'update_date'  => $this->formatDate($this->historyEventDate($latestHistory) ?? $requestDate),
+                    'company'        => $request?->company?->name ?? '-',
+                    'request_date'   => $this->formatDate($requestDate),
+                    'age_days'       => $requestDate->diffInDays($snapshotDate),
+                    'position'       => $position['posting']?->title ?? '-',
+                    'location'       => $position['posting']?->location ?? '-',
+                    'needed'         => $needed,
+                    'hired'          => $hired,
+                    'outstanding'    => $outstanding,
+                    'in_progress'    => $inProgress,
+                    'user'           => $request?->nama_pengaju ?? '-',
+                    'pic'            => $latestHistory?->performer?->name ?? '-',
+                    'need_type'      => $this->needTypeLabel($request),
+                    'request_status' => $this->requestStatusLabel($request),
+                    'is_on_hold'     => $isOnHold,
+                    'priority'       => $this->positionPriorityLabel($outstanding, $inProgress, $requestDate, $snapshotDate, $isOnHold),
+                    'update_date'    => $this->formatDate($this->historyEventDate($latestHistory) ?? $requestDate),
                 ];
             })
             ->filter()
@@ -730,9 +773,13 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
         return $this->openPositionSnapshots;
     }
 
-    protected function positionPriorityLabel(int $outstanding, int $inProgress, Carbon $requestDate, Carbon $snapshotDate): string
+    protected function positionPriorityLabel(int $outstanding, int $inProgress, Carbon $requestDate, Carbon $snapshotDate, bool $isOnHold): string
     {
         $ageDays = $requestDate->diffInDays($snapshotDate);
+
+        if ($isOnHold) {
+            return 'Hold - menunggu keputusan user';
+        }
 
         if ($outstanding > 0 && $inProgress === 0 && $ageDays >= 30) {
             return 'Perlu eskalasi segera';
@@ -803,7 +850,7 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
             $openRows = collect($section['open_rows']);
 
             if ($openRows->isEmpty()) {
-                $rows[] = ['Tidak ada kebutuhan MPP terbuka pada bulan ini.', null, null, null, 0, null, null, null, null, null, null, null];
+                $rows[] = ['Tidak ada kebutuhan MPP terbuka pada bulan ini.', null, null, null, 0, null, null, null, null, null, null, null, null];
                 $currentRow++;
             } else {
                 foreach ($openRows as $row) {
@@ -818,6 +865,7 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
                         $row['user'],
                         $row['pic'],
                         $row['need_type'],
+                        $row['request_status'],
                         $row['replacement_note'],
                         $row['update_date'],
                     ];
@@ -826,7 +874,7 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
             }
 
             $this->totalRows[] = $currentRow;
-            $rows[] = ['TOTAL', null, null, null, $section['open_total'], null, null, null, null, null, null, null];
+            $rows[] = ['TOTAL', null, null, null, $section['open_total'], null, null, null, null, null, null, null, null];
             $currentRow++;
             $rows[] = [null];
             $currentRow++;
@@ -842,7 +890,7 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
             $joinRows = collect($section['join_rows']);
 
             if ($joinRows->isEmpty()) {
-                $rows[] = ['Belum ada karyawan join pada bulan ini.', null, null, null, 0, null, null, null, null, null, null, null];
+                $rows[] = ['Belum ada karyawan join pada bulan ini.', null, null, null, 0, null, null, null, null, null, null, null, null];
                 $currentRow++;
             } else {
                 foreach ($joinRows as $row) {
@@ -857,6 +905,7 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
                         $row['user'],
                         $row['pic'],
                         $row['need_type'],
+                        $row['request_status'],
                         $row['replacement_note'],
                         $row['update_date'],
                     ];
@@ -865,7 +914,7 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
             }
 
             $this->totalRows[] = $currentRow;
-            $rows[] = ['TOTAL', null, null, null, $section['join_total'], null, null, null, null, null, null, null];
+            $rows[] = ['TOTAL', null, null, null, $section['join_total'], null, null, null, null, null, null, null, null];
             $currentRow++;
             $rows[] = [null];
             $currentRow++;
@@ -890,6 +939,7 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
             'USER',
             'PIC',
             'REPLACEMENT/NEW HIRING',
+            'STATUS REQUEST',
             'KETERANGAN REPLACEMENT',
             'TANGGAL UPDATE PROGRES',
         ];
@@ -908,8 +958,9 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
             'H' => 18,
             'I' => 18,
             'J' => 24,
-            'K' => 28,
-            'L' => 18,
+            'K' => 18,
+            'L' => 28,
+            'M' => 18,
         ];
     }
 
@@ -926,8 +977,8 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
         $lastRow = $sheet->getHighestRow();
 
         foreach ($this->titleRows as $row) {
-            $sheet->mergeCells("A{$row}:L{$row}");
-            $sheet->getStyle("A{$row}:L{$row}")->applyFromArray([
+            $sheet->mergeCells("A{$row}:M{$row}");
+            $sheet->getStyle("A{$row}:M{$row}")->applyFromArray([
                 'font' => [
                     'bold'  => true,
                     'size'  => 16,
@@ -941,7 +992,7 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
         }
 
         foreach ($this->headerRows as $row) {
-            $sheet->getStyle("A{$row}:L{$row}")->applyFromArray([
+            $sheet->getStyle("A{$row}:M{$row}")->applyFromArray([
                 'font' => [
                     'bold'  => true,
                     'color' => ['rgb' => '0F172A'],
@@ -965,7 +1016,7 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
         }
 
         foreach ($this->totalRows as $row) {
-            $sheet->getStyle("A{$row}:L{$row}")->applyFromArray([
+            $sheet->getStyle("A{$row}:M{$row}")->applyFromArray([
                 'font' => [
                     'bold' => true,
                 ],
@@ -982,14 +1033,14 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
             ]);
         }
 
-        $sheet->getStyle("A1:L{$lastRow}")->applyFromArray([
+        $sheet->getStyle("A1:M{$lastRow}")->applyFromArray([
             'alignment' => [
                 'vertical' => Alignment::VERTICAL_TOP,
                 'wrapText' => true,
             ],
         ]);
 
-        $sheet->getStyle("A1:L{$lastRow}")
+        $sheet->getStyle("A1:M{$lastRow}")
             ->getBorders()
             ->getAllBorders()
             ->setBorderStyle(Border::BORDER_THIN);

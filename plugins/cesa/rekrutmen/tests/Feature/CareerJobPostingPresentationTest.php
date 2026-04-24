@@ -2,12 +2,16 @@
 
 namespace Cesa\Rekrutmen\Tests\Feature;
 
+use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
+use Cesa\Rekrutmen\Enums\StatusKebutuhan;
 use Cesa\Rekrutmen\Http\Controllers\Api\CareerController;
 use Cesa\Rekrutmen\Models\JobPosting;
 use Cesa\Rekrutmen\Models\RekrutmenPipeline;
 use Cesa\Rekrutmen\Models\RekrutmenStage;
+use Cesa\Rekrutmen\Models\RequestManPower;
 use Cesa\Rekrutmen\Tests\RekrutmenTestCase;
 use Illuminate\Support\Facades\Storage;
+use Webkul\Support\Models\Company;
 
 class CareerJobPostingPresentationTest extends RekrutmenTestCase
 {
@@ -57,6 +61,9 @@ class CareerJobPostingPresentationTest extends RekrutmenTestCase
             fn (array $job): bool => ($job['slug'] ?? null) === $jobPosting->slug
         ));
         $this->assertSame(404, $detailResponse->getStatusCode());
+
+        $this->postJson("/api/jobs/{$jobPosting->slug}/apply")
+            ->assertNotFound();
     }
 
     public function test_job_posting_remains_visible_through_its_closing_date(): void
@@ -93,6 +100,45 @@ class CareerJobPostingPresentationTest extends RekrutmenTestCase
             'requirements'          => 'Laravel and SQL',
             'location'              => 'Jakarta',
             'is_published'          => true,
+        ]);
+
+        $indexPayload = app(CareerController::class)->index()->getData(true);
+        $detailResponse = app(CareerController::class)->show($jobPosting->slug);
+
+        $this->assertFalse(collect($indexPayload['data'])->contains(
+            fn (array $job): bool => ($job['slug'] ?? null) === $jobPosting->slug
+        ));
+        $this->assertSame(404, $detailResponse->getStatusCode());
+    }
+
+    public function test_held_manpower_job_posting_is_hidden_even_when_published(): void
+    {
+        $company = Company::query()->create([
+            'name' => 'PT Hold Recruitment',
+        ]);
+
+        $requestManPower = RequestManPower::query()->create([
+            'company_id'                 => $company->id,
+            'email_address'              => 'hold-request@example.com',
+            'nama_pengaju'               => 'Requester Hold',
+            'posisi_pengaju'             => 'HR Manager',
+            'tanggal_pengajuan'          => today()->toDateString(),
+            'posisi_dibutuhkan'          => 'Backend Developer',
+            'lokasi_penempatan'          => 'Jakarta',
+            'status_kebutuhan'           => StatusKebutuhan::NEW_HIRING,
+            'divisi'                     => 'IT',
+            'level_pekerjaan'            => 'Staff',
+            'jumlah_karyawan_dibutuhkan' => 1,
+            'estimasi_tanggal_join'      => today()->addMonth()->toDateString(),
+            'requirements_kualifikasi'   => 'Laravel',
+            'job_description'            => 'Build APIs',
+            'status'                     => RequestManPowerStatus::HOLD,
+        ]);
+
+        $jobPosting = $this->createReadyJobPosting([
+            'request_man_power_id' => $requestManPower->id,
+            'title'                => 'Held Backend Developer',
+            'slug'                 => 'held-backend-developer',
         ]);
 
         $indexPayload = app(CareerController::class)->index()->getData(true);

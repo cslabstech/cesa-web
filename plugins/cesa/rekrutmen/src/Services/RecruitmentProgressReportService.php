@@ -3,6 +3,7 @@
 namespace Cesa\Rekrutmen\Services;
 
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
+use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Models\JobApplicationHistory;
 use Cesa\Rekrutmen\Models\JobPosting;
 use Illuminate\Database\Eloquent\Builder;
@@ -365,9 +366,11 @@ class RecruitmentProgressReportService
 
         return $postings->map(function (JobPosting $posting) use ($statsByPosting, $stageCountsByPosting, $passedCountsByPostingStage, $activitiesByPosting): array {
             $stats = $statsByPosting->get($posting->id);
+            $request = $posting->requestManPower;
             $needed = (int) ($posting->requestManPower?->jumlah_karyawan_dibutuhkan ?? 1);
             $hired = (int) ($stats->hired ?? 0);
             $postingActivities = $activitiesByPosting->get($posting->id, collect())->values();
+            $isOnHold = $request?->status === RequestManPowerStatus::HOLD;
 
             $pipelineStages = $posting->rekrutmenPipeline?->stages
                 ?->sortBy('order_column')
@@ -382,7 +385,7 @@ class RecruitmentProgressReportService
 
             return [
                 'posting'    => $posting,
-                'request'    => $posting->requestManPower,
+                'request'    => $request,
                 'statistics' => [
                     'total_applicants' => (int) ($stats->total ?? 0),
                     'in_progress'      => (int) ($stats->in_progress ?? 0),
@@ -394,6 +397,9 @@ class RecruitmentProgressReportService
                 'latest_activity'        => $postingActivities->first(),
                 'needed'                 => $needed,
                 'fulfillment_percentage' => $needed > 0 ? min(100, round(($hired / $needed) * 100)) : 0,
+                'request_status'         => $request?->status?->value,
+                'request_status_label'   => $request?->status?->getLabel() ?? '-',
+                'is_on_hold'             => $isOnHold,
             ];
         })->values();
     }
@@ -462,6 +468,9 @@ class RecruitmentProgressReportService
                 'latest_activity'        => $position['latest_activity'],
                 'pipeline_progress'      => $position['pipeline_stages'],
                 'fulfillment_percentage' => $position['fulfillment_percentage'],
+                'request_status'         => $position['request_status'],
+                'request_status_label'   => $position['request_status_label'],
+                'is_on_hold'             => $position['is_on_hold'],
             ];
         })->values();
     }
