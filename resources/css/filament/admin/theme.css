@@ -427,17 +427,33 @@ html.dark .fi-sidebar::-webkit-scrollbar-thumb:hover {
     border-color: rgb(229 231 235 / 1);
 }
 
+.dark .flowforge-column {
+    @apply border-gray-700 bg-gray-950 shadow-md;
+}
+
 .flowforge-column-header {
     @apply border-b bg-gray-50 px-4 py-3;
     border-color: rgb(229 231 235 / 1);
+}
+
+.dark .flowforge-column-header {
+    @apply border-gray-800 bg-gray-900;
 }
 
 .flowforge-column-header h3 {
     @apply text-sm font-semibold text-gray-800;
 }
 
+.dark .flowforge-column-header h3 {
+    @apply text-gray-100;
+}
+
 .flowforge-column-content {
     @apply bg-gray-50/50 p-3;
+}
+
+.dark .flowforge-column-content {
+    @apply bg-gray-950/70;
 }
 
 .flowforge-card {
@@ -446,9 +462,17 @@ html.dark .fi-sidebar::-webkit-scrollbar-thumb:hover {
     transform: none;
 }
 
+.dark .flowforge-card {
+    @apply border-gray-700 bg-gray-900 shadow-sm;
+}
+
 .flowforge-card:hover {
     @apply border-gray-200 shadow-sm;
     transform: none;
+}
+
+.dark .flowforge-card:hover {
+    @apply border-gray-600 shadow-sm;
 }
 
 .rekrutmen-board-card-body {
@@ -463,8 +487,16 @@ html.dark .fi-sidebar::-webkit-scrollbar-thumb:hover {
     @apply h-12 w-12 rounded-full border border-gray-200 object-cover shadow-sm;
 }
 
+.dark .rekrutmen-board-card-avatar {
+    @apply border-gray-700;
+}
+
 .rekrutmen-board-card-avatar-fallback {
     @apply flex items-center justify-center bg-gray-900 text-sm font-semibold text-white;
+}
+
+.dark .rekrutmen-board-card-avatar-fallback {
+    @apply bg-gray-700 text-gray-100;
 }
 
 .rekrutmen-board-card-meta {
@@ -479,8 +511,16 @@ html.dark .fi-sidebar::-webkit-scrollbar-thumb:hover {
     @apply text-xs leading-5 text-gray-500;
 }
 
+.dark .rekrutmen-board-card-updated {
+    @apply text-gray-400;
+}
+
 .rekrutmen-board-card-context {
     @apply text-sm leading-6 text-gray-600;
+}
+
+.dark .rekrutmen-board-card-context {
+    @apply text-gray-300;
 }
 
 .cesa-auth-media {

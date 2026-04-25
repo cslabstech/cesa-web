@@ -233,6 +233,19 @@ class PipelineBoardStatusTest extends RekrutmenTestCase
         $this->assertSame('Screening CV', $screeningStage->activityLabel());
     }
 
+    public function test_pipeline_board_styles_include_dark_mode_overrides(): void
+    {
+        $themeCss = file_get_contents(base_path('resources/css/filament/admin/theme.css'));
+
+        $this->assertIsString($themeCss);
+        $this->assertStringContainsString('.dark .flowforge-column', $themeCss);
+        $this->assertStringContainsString('@apply border-gray-700 bg-gray-950 shadow-md;', $themeCss);
+        $this->assertStringContainsString('.dark .flowforge-column-content', $themeCss);
+        $this->assertStringContainsString('@apply bg-gray-950/70;', $themeCss);
+        $this->assertStringContainsString('.dark .flowforge-card', $themeCss);
+        $this->assertStringContainsString('@apply border-gray-700 bg-gray-900 shadow-sm;', $themeCss);
+    }
+
     private function createPipeline(string $name): RekrutmenPipeline
     {
         return RekrutmenPipeline::query()->create([
