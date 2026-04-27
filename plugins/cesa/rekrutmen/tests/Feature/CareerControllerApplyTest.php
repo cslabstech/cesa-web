@@ -20,7 +20,8 @@ class CareerControllerApplyTest extends RekrutmenTestCase
 {
     public function test_job_application_submission_notification_uses_standard_notifications_queue(): void
     {
-        $notification = new JobApplicationSubmittedNotification(new JobApplication);
+        $jobApplication = new JobApplication;
+        $notification = new JobApplicationSubmittedNotification($jobApplication);
 
         $this->assertSame('notifications', config('rekrutmen.notifications.queue'));
         $this->assertInstanceOf(ShouldQueue::class, $notification);

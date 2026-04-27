@@ -30,7 +30,7 @@ class CareerJobPostingPresentationTest extends RekrutmenTestCase
             'thumbnail_path' => 'rekrutmen/job-postings/backend-thumb.jpg',
         ]);
 
-        $indexPayload = app(CareerController::class)->index()->getData(true);
+        $indexPayload = $this->getJobIndexPayload();
         $detailPayload = app(CareerController::class)->show($jobPosting->slug)->getData(true);
 
         $this->assertStringContainsString(
@@ -41,6 +41,80 @@ class CareerJobPostingPresentationTest extends RekrutmenTestCase
             'rekrutmen/job-postings/backend-thumb.jpg',
             $detailPayload['data']['thumbnail_url'] ?? ''
         );
+    }
+
+    public function test_job_listing_is_limited_and_exposes_pagination_metadata(): void
+    {
+        foreach (range(1, 13) as $sequence) {
+            $this->createReadyJobPosting([
+                'title' => "Public Job {$sequence}",
+                'slug'  => "public-job-{$sequence}",
+            ]);
+        }
+
+        $payload = $this->getJobIndexPayload();
+
+        $this->assertCount(12, $payload['data']);
+        $this->assertSame(1, $payload['meta']['current_page']);
+        $this->assertSame(12, $payload['meta']['per_page']);
+        $this->assertTrue($payload['meta']['has_more_pages']);
+        $this->assertNotNull($payload['links']['next']);
+    }
+
+    public function test_job_listing_can_be_filtered_before_pagination(): void
+    {
+        $matchingPosting = $this->createReadyJobPosting([
+            'title'    => 'Backend API Specialist',
+            'slug'     => 'backend-api-specialist-filter',
+            'location' => 'Jakarta Selatan',
+        ]);
+
+        $this->createReadyJobPosting([
+            'title'    => 'Sales Consultant',
+            'slug'     => 'sales-consultant-filter',
+            'location' => 'Bandung',
+        ]);
+
+        $payload = $this->getJobIndexPayload([
+            'search'   => 'backend',
+            'location' => 'Jakarta',
+            'per_page' => 5,
+        ]);
+
+        $this->assertSame([$matchingPosting->slug], collect($payload['data'])->pluck('slug')->all());
+        $this->assertSame('backend', $payload['meta']['filters']['search']);
+        $this->assertSame('Jakarta', $payload['meta']['filters']['location']);
+        $this->assertFalse($payload['meta']['has_more_pages']);
+    }
+
+    public function test_job_listing_supports_short_search_and_limit_aliases(): void
+    {
+        $matchingPosting = $this->createReadyJobPosting([
+            'title' => 'Retail Sales Lead',
+            'slug'  => 'retail-sales-lead-alias',
+        ]);
+
+        $this->createReadyJobPosting([
+            'title' => 'Warehouse Coordinator',
+            'slug'  => 'warehouse-coordinator-alias',
+        ]);
+
+        $payload = $this->getJobIndexPayload([
+            'q'     => 'sales',
+            'limit' => 1,
+        ]);
+
+        $this->assertCount(1, $payload['data']);
+        $this->assertSame($matchingPosting->slug, $payload['data'][0]['slug']);
+        $this->assertSame(1, $payload['meta']['per_page']);
+        $this->assertSame('sales', $payload['meta']['filters']['search']);
+    }
+
+    public function test_job_listing_rejects_oversized_page_requests(): void
+    {
+        $this->getJson('/api/jobs?per_page=51')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['per_page']);
     }
 
     public function test_expired_job_posting_is_hidden_from_listing_and_detail(): void
@@ -54,7 +128,7 @@ class CareerJobPostingPresentationTest extends RekrutmenTestCase
             'closing_date' => now()->subDay()->toDateString(),
         ]);
 
-        $indexPayload = app(CareerController::class)->index()->getData(true);
+        $indexPayload = $this->getJobIndexPayload();
         $detailResponse = app(CareerController::class)->show($jobPosting->slug);
 
         $this->assertFalse(collect($indexPayload['data'])->contains(
@@ -77,7 +151,7 @@ class CareerJobPostingPresentationTest extends RekrutmenTestCase
             'closing_date' => today()->toDateString(),
         ]);
 
-        $indexPayload = app(CareerController::class)->index()->getData(true);
+        $indexPayload = $this->getJobIndexPayload();
         $detailResponse = app(CareerController::class)->show($jobPosting->slug);
 
         $this->assertTrue(collect($indexPayload['data'])->contains(
@@ -102,7 +176,7 @@ class CareerJobPostingPresentationTest extends RekrutmenTestCase
             'is_published'          => true,
         ]);
 
-        $indexPayload = app(CareerController::class)->index()->getData(true);
+        $indexPayload = $this->getJobIndexPayload();
         $detailResponse = app(CareerController::class)->show($jobPosting->slug);
 
         $this->assertFalse(collect($indexPayload['data'])->contains(
@@ -141,13 +215,30 @@ class CareerJobPostingPresentationTest extends RekrutmenTestCase
             'slug'                 => 'held-backend-developer',
         ]);
 
-        $indexPayload = app(CareerController::class)->index()->getData(true);
+        $indexPayload = $this->getJobIndexPayload();
         $detailResponse = app(CareerController::class)->show($jobPosting->slug);
 
         $this->assertFalse(collect($indexPayload['data'])->contains(
             fn (array $job): bool => ($job['slug'] ?? null) === $jobPosting->slug
         ));
         $this->assertSame(404, $detailResponse->getStatusCode());
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     * @return array<string, mixed>
+     */
+    private function getJobIndexPayload(array $query = []): array
+    {
+        $uri = '/api/jobs';
+
+        if ($query !== []) {
+            $uri .= '?'.http_build_query($query);
+        }
+
+        return $this->getJson($uri)
+            ->assertOk()
+            ->json();
     }
 
     private function createReadyJobPosting(array $attributes): JobPosting

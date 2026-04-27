@@ -59,9 +59,18 @@
             <div class="border-t border-gray-200 px-6 py-3">
                 <div class="flex flex-wrap items-center gap-2 text-xs text-gray-600">
                     <span>Status pengajuan</span>
-                    <x-filament::badge :color="$statusColor" class="rounded-full px-3 py-1 text-xs font-medium">
+                    @php
+                        $badgeColorClass = match($statusColor ?? 'gray') {
+                            'success' => 'bg-green-50 text-green-700 ring-green-600/20',
+                            'danger' => 'bg-red-50 text-red-700 ring-red-600/10',
+                            'warning' => 'bg-yellow-50 text-yellow-800 ring-yellow-600/20',
+                            'primary' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
+                            default => 'bg-gray-50 text-gray-600 ring-gray-500/10',
+                        };
+                    @endphp
+                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset {{ $badgeColorClass }}">
                         {{ $assetRequest->status->label() }}
-                    </x-filament::badge>
+                    </span>
                     <span class="text-gray-300">|</span>
                     <span class="font-mono text-gray-400">{{ $assetRequest->uuid }}</span>
                 </div>
@@ -139,9 +148,18 @@
                                             <p class="text-sm font-semibold text-gray-900">{{ $step->approver_name }}</p>
                                             <p class="text-sm text-gray-600">Level {{ $step->level }}</p>
                                         </div>
-                                        <x-filament::badge :color="$approvalColor" class="rounded-full px-3 py-1 text-xs font-medium">
+                                        @php
+                                            $badgeColorClass = match($approvalColor ?? 'gray') {
+                                                'success' => 'bg-green-50 text-green-700 ring-green-600/20',
+                                                'danger' => 'bg-red-50 text-red-700 ring-red-600/10',
+                                                'warning' => 'bg-yellow-50 text-yellow-800 ring-yellow-600/20',
+                                                'primary' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
+                                                default => 'bg-gray-50 text-gray-600 ring-gray-500/10',
+                                            };
+                                        @endphp
+                                        <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset {{ $badgeColorClass }}">
                                             {{ $step->status->label() }}
-                                        </x-filament::badge>
+                                        </span>
                                     </div>
 
                                     @if (! empty($step->notes))

@@ -15,6 +15,23 @@ return [
         'title'   => 'Permintaan ini sedang di-hold',
         'held_at' => 'Di-hold pada :date',
     ],
+    'lookup' => [
+        'heading'                    => 'Cek progress request man power',
+        'description'                => 'Masukkan email pengaju untuk melihat daftar request man power yang pernah dikirim.',
+        'email_label'                => 'Email Pengaju',
+        'email_placeholder'          => 'Email yang dipakai saat pengajuan',
+        'submit'                     => 'Cek Progress',
+        'results_heading'            => 'Daftar Pengajuan',
+        'empty_state'                => 'Belum ada request man power untuk email tersebut.',
+        'view_progress'              => 'Lihat progress',
+        'submitted_at'               => 'Tanggal Pengajuan',
+        'needed_count'               => 'Kebutuhan',
+        'join_date'                  => 'Estimasi Join',
+        'rate_limit'                 => [
+            'title' => 'Terlalu Banyak Percobaan',
+            'body'  => 'Tunggu :seconds detik sebelum mencoba lagi.',
+        ],
+    ],
     'fields'                => [
         'status_response_id'         => 'ID Tracking',
         'tanggal_pengajuan'          => 'Tanggal Pengajuan',

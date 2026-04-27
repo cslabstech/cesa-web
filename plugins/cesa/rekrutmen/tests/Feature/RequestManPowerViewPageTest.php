@@ -2,8 +2,10 @@
 
 namespace Cesa\Rekrutmen\Tests\Feature;
 
+use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Filament\Resources\RequestManPowerResource;
 use Cesa\Rekrutmen\Filament\Resources\RequestManPowerResource\RelationManagers\ApprovalsRelationManager;
+use Cesa\Rekrutmen\Models\RequestManPower;
 use Cesa\Rekrutmen\Tests\RekrutmenTestCase;
 use Filament\Facades\Filament;
 use Spatie\Permission\Models\Permission;
@@ -37,6 +39,25 @@ class RequestManPowerViewPageTest extends RekrutmenTestCase
         $this->assertSame([
             ApprovalsRelationManager::class,
         ], RequestManPowerResource::getRelations());
+    }
+
+    public function test_approved_request_man_power_can_be_held_but_not_set_pending(): void
+    {
+        $record = new RequestManPower([
+            'status' => RequestManPowerStatus::APPROVED,
+        ]);
+
+        $this->assertTrue(RequestManPowerResource::canHold($record));
+        $this->assertFalse(RequestManPowerResource::canSetPending($record));
+    }
+
+    public function test_rejected_request_man_power_can_be_set_pending(): void
+    {
+        $record = new RequestManPower([
+            'status' => RequestManPowerStatus::REJECTED,
+        ]);
+
+        $this->assertTrue(RequestManPowerResource::canSetPending($record));
     }
 
     public function test_request_man_power_infolist_uses_repeatable_entry_for_approval_flow(): void

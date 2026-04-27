@@ -65,14 +65,32 @@
             <div class="border-t border-gray-200 px-6 py-3">
                 <div class="flex flex-wrap items-center gap-2 text-xs text-gray-600">
                     <span>{{ __('rekrutmen::livewire/public-request-man-power-approval-page.current_status') }}</span>
-                    <x-filament::badge :color="$requestStatusColor" class="rounded-full px-3 py-1 text-xs font-medium">
+                    @php
+                        $badgeColorClass = match($requestStatusColor ?? 'gray') {
+                            'success' => 'bg-green-50 text-green-700 ring-green-600/20',
+                            'danger' => 'bg-red-50 text-red-700 ring-red-600/10',
+                            'warning' => 'bg-yellow-50 text-yellow-800 ring-yellow-600/20',
+                            'primary' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
+                            default => 'bg-gray-50 text-gray-600 ring-gray-500/10',
+                        };
+                    @endphp
+                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset {{ $badgeColorClass }}">
                         {{ $requestStatusLabel }}
-                    </x-filament::badge>
+                    </span>
                     <span class="text-gray-300">|</span>
                     <span>Status Persetujuan Anda</span>
-                    <x-filament::badge :color="$currentStatusColor" class="rounded-full px-3 py-1 text-xs font-medium">
+                    @php
+                        $badgeColorClass = match($currentStatusColor ?? 'gray') {
+                            'success' => 'bg-green-50 text-green-700 ring-green-600/20',
+                            'danger' => 'bg-red-50 text-red-700 ring-red-600/10',
+                            'warning' => 'bg-yellow-50 text-yellow-800 ring-yellow-600/20',
+                            'primary' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
+                            default => 'bg-gray-50 text-gray-600 ring-gray-500/10',
+                        };
+                    @endphp
+                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset {{ $badgeColorClass }}">
                         {{ $currentStatusLabel }}
-                    </x-filament::badge>
+                    </span>
                 </div>
             </div>
         </div>
@@ -116,8 +134,11 @@
                         @endphp
                         <li @class([
                             'rounded-lg border p-4',
-                            'cesa-primary-border cesa-primary-soft' => $isCurrent,
-                            'border-gray-200' => !$isCurrent,
+                            'cesa-primary-border cesa-primary-soft' => $isCurrent && in_array($loopStatusValue, ['pending', 'waiting']),
+                            'border-green-600 bg-green-50' => $isCurrent && $loopStatusValue === 'approved',
+                            'border-red-600 bg-red-50' => $isCurrent && in_array($loopStatusValue, ['rejected', 'ditolak']),
+                            'border-yellow-600 bg-yellow-50' => $isCurrent && $loopStatusValue === 'revisi',
+                            'border-gray-200' => !$isCurrent || !in_array($loopStatusValue, ['pending', 'waiting', 'approved', 'rejected', 'ditolak', 'revisi']),
                         ])>
                             <div class="flex items-start justify-between gap-4">
                                 <div>
@@ -129,9 +150,18 @@
                                         {{ $approval->approver_title ?: '-' }}
                                     </p>
                                 </div>
-                                <x-filament::badge :color="$loopStatusColor" class="rounded-full px-3 py-1 text-xs font-medium">
+                                @php
+                                    $badgeColorClass = match($loopStatusColor ?? 'gray') {
+                                        'success' => 'bg-green-50 text-green-700 ring-green-600/20',
+                                        'danger' => 'bg-red-50 text-red-700 ring-red-600/10',
+                                        'warning' => 'bg-yellow-50 text-yellow-800 ring-yellow-600/20',
+                                        'primary' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
+                                        default => 'bg-gray-50 text-gray-600 ring-gray-500/10',
+                                    };
+                                @endphp
+                                <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset {{ $badgeColorClass }}">
                                     {{ $loopStatusLabel }}
-                                </x-filament::badge>
+                                </span>
                             </div>
 
                             @if (filled($approval->notes))

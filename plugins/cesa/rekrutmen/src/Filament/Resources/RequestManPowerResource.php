@@ -642,8 +642,7 @@ class RequestManPowerResource extends Resource
 
     public static function canSetPending(RequestManPower $record): bool
     {
-        return ! self::statusIsPending($record->status)
-            && ! self::statusIsHold($record->status)
+        return self::statusIsRejected($record->status)
             && self::currentUserCanManageApproval($record);
     }
 
@@ -688,6 +687,19 @@ class RequestManPowerResource extends Resource
         }
 
         return strtolower($status) === RequestManPowerStatus::APPROVED->value;
+    }
+
+    protected static function statusIsRejected(mixed $status): bool
+    {
+        if ($status instanceof RequestManPowerStatus) {
+            return $status === RequestManPowerStatus::REJECTED;
+        }
+
+        if (! is_string($status)) {
+            return false;
+        }
+
+        return strtolower($status) === RequestManPowerStatus::REJECTED->value;
     }
 
     protected static function statusIsHold(mixed $status): bool

@@ -35,6 +35,7 @@ class JobApplicationHistoryPolicy
     {
         return $this->hasAnyPermission($user, [
             'update_cesa::rekrutmen::models::job::application::history',
+            'update_rekrutmen_job::application',
         ]);
     }
 

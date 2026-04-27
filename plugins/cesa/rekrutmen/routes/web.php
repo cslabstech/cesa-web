@@ -21,6 +21,9 @@ Route::middleware('web')->group(function () {
         ])
         ->name('rekrutmen.public.request-man-power.form');
 
+    Route::get('man-power/progress', PublicRequestManPowerProgressPage::class)
+        ->name('rekrutmen.public.request-man-power.progress.lookup');
+
     Route::get('man-power/progress/{response}', PublicRequestManPowerProgressPage::class)
         ->name('rekrutmen.public.request-man-power.progress');
 

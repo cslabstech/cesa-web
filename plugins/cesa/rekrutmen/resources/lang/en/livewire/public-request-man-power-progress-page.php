@@ -15,6 +15,23 @@ return [
         'title'   => 'This request is currently on hold',
         'held_at' => 'Held on :date',
     ],
+    'lookup' => [
+        'heading'                    => 'Check manpower request progress',
+        'description'                => 'Enter the requester email to view submitted manpower requests.',
+        'email_label'                => 'Requester Email',
+        'email_placeholder'          => 'Email used in the request',
+        'submit'                     => 'Check Progress',
+        'results_heading'            => 'Submitted Requests',
+        'empty_state'                => 'No manpower requests were found for that email.',
+        'view_progress'              => 'View progress',
+        'submitted_at'               => 'Submission Date',
+        'needed_count'               => 'Needed',
+        'join_date'                  => 'Estimated Join',
+        'rate_limit'                 => [
+            'title' => 'Too Many Attempts',
+            'body'  => 'Please wait :seconds seconds before trying again.',
+        ],
+    ],
     'fields'                => [
         'status_response_id'         => 'Tracking ID',
         'tanggal_pengajuan'          => 'Submission Date',

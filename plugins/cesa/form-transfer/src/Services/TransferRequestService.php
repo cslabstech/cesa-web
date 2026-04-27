@@ -5,6 +5,9 @@ namespace Cesa\FormTransfer\Services;
 use Cesa\FormTransfer\Models\TransferBank;
 use Cesa\FormTransfer\Models\TransferReferenceNote;
 use Cesa\FormTransfer\Models\TransferRequest;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * Service for managing transfer requests.
@@ -142,6 +145,54 @@ class TransferRequestService
 
             return null;
         }
+    }
+
+    /**
+     * Find a transfer request for public progress lookup.
+     */
+    public function findByPublicLookup(string $reference, string $email): ?TransferRequest
+    {
+        $reference = trim($reference);
+        $normalizedEmail = $this->normalizeLookupEmail($email);
+
+        if ($reference === '' || $normalizedEmail === '') {
+            return null;
+        }
+
+        return TransferRequest::query()
+            ->where(function (Builder $query) use ($reference): void {
+                $query
+                    ->where('uid', Str::upper($reference))
+                    ->orWhere('status_response_id', Str::lower($reference));
+            })
+            ->whereRaw('LOWER(email) = ?', [$normalizedEmail])
+            ->first();
+    }
+
+    /**
+     * Find transfer requests submitted with a public lookup email.
+     *
+     * @return Collection<int, TransferRequest>
+     */
+    public function findByPublicEmail(string $email): Collection
+    {
+        $normalizedEmail = $this->normalizeLookupEmail($email);
+
+        if ($normalizedEmail === '') {
+            return collect();
+        }
+
+        return TransferRequest::query()
+            ->with(['formTransfer', 'bank', 'realizations'])
+            ->whereRaw('LOWER(email) = ?', [$normalizedEmail])
+            ->whereNotNull('status_response_id')
+            ->latest()
+            ->get();
+    }
+
+    protected function normalizeLookupEmail(string $email): string
+    {
+        return Str::lower(trim($email));
     }
 
     /**

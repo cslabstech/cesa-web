@@ -7,6 +7,7 @@ use Cesa\Rekrutmen\Enums\JobApplicationGender;
 use Cesa\Rekrutmen\Enums\JobApplicationMaritalStatus;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
+use Cesa\Rekrutmen\Http\Requests\CareerJobIndexRequest;
 use Cesa\Rekrutmen\Models\JobApplication;
 use Cesa\Rekrutmen\Models\JobPosting;
 use Illuminate\Database\Eloquent\Builder;
@@ -101,28 +102,50 @@ class CareerController extends Controller
         ],
     ];
 
-    public function index(): JsonResponse
+    public function index(CareerJobIndexRequest $request): JsonResponse
     {
         $jobs = $this->publicJobPostingsQuery()
-            ->latest()
-            ->get([
+            ->when($request->searchTerm(), function (Builder $query, string $search): void {
+                $query->where(function (Builder $query) use ($search): void {
+                    $query->where('title', 'like', "%{$search}%")
+                        ->orWhere('location', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->locationFilter(), fn (Builder $query, string $location): Builder => $query->where('location', 'like', "%{$location}%"))
+            ->latest('created_at')
+            ->simplePaginate($request->perPage(), [
                 'title',
                 'slug',
                 'location',
                 'thumbnail_path',
                 'closing_date',
-            ]);
+            ])
+            ->withQueryString();
 
         return response()->json([
             'success' => true,
             'message' => __('rekrutmen::api/career.messages.job_listed'),
-            'data'    => $jobs->map(fn (JobPosting $job): array => [
+            'data'    => $jobs->getCollection()->map(fn (JobPosting $job): array => [
                 'title'         => $job->title,
                 'slug'          => $job->slug,
                 'location'      => $job->location,
                 'thumbnail_url' => $job->thumbnail_url,
                 'closing_date'  => $job->closing_date,
             ])->values(),
+            'meta' => [
+                'current_page'   => $jobs->currentPage(),
+                'per_page'       => $jobs->perPage(),
+                'has_more_pages' => $jobs->hasMorePages(),
+                'filters'        => Arr::whereNotNull([
+                    'search'   => $request->searchTerm(),
+                    'location' => $request->locationFilter(),
+                ]),
+            ],
+            'links' => [
+                'first' => $jobs->url(1),
+                'prev'  => $jobs->previousPageUrl(),
+                'next'  => $jobs->nextPageUrl(),
+            ],
         ]);
     }
 
@@ -178,7 +201,7 @@ class CareerController extends Controller
             })
             ->where(function ($q) {
                 $q->whereNull('closing_date')
-                    ->orWhereDate('closing_date', '>=', today());
+                    ->orWhere('closing_date', '>=', today()->toDateString());
             })
             ->first();
 
@@ -439,7 +462,7 @@ class CareerController extends Controller
             })
             ->where(function ($q) {
                 $q->whereNull('closing_date')
-                    ->orWhereDate('closing_date', '>=', today());
+                    ->orWhere('closing_date', '>=', today()->toDateString());
             })
             ->whereHas('rekrutmenPipeline.activeStages');
     }

@@ -78,6 +78,25 @@ return [
         'current_status'     => 'Status saat ini',
         'submission_summary' => 'RINGKASAN PENGAJUAN',
         'approval_flow'      => 'ALUR PERSETUJUAN',
+        'lookup'             => [
+            'heading'                    => 'Cek progres pengajuan',
+            'description'                => 'Masukkan email untuk melihat daftar pengajuan, atau tambahkan ID referensi untuk langsung membuka satu pengajuan.',
+            'reference_label'            => 'ID Referensi / ID Status Response (opsional)',
+            'reference_placeholder'      => 'Contoh: MAJU-00001',
+            'email_label'                => 'Email',
+            'email_placeholder'          => 'Email yang dipakai saat pengajuan',
+            'submit'                     => 'Cek Progres',
+            'results_heading'            => 'Daftar Pengajuan',
+            'empty_state'                => 'Belum ada pengajuan untuk email tersebut.',
+            'view_progress'              => 'Lihat progres',
+            'submitted_at'               => 'Diajukan',
+            'amount'                     => 'Nominal',
+            'not_found'                  => 'Pengajuan tidak ditemukan. Periksa kembali ID referensi dan email.',
+            'rate_limit'                 => [
+                'title' => 'Terlalu Banyak Percobaan',
+                'body'  => 'Tunggu :seconds detik sebelum mencoba lagi.',
+            ],
+        ],
     ],
 
     'submission' => [
@@ -101,5 +120,11 @@ return [
         'approve'                 => 'Setujui',
         'information'             => 'INFORMASI',
         'completed_info'          => 'Tahap ini sudah diproses. Anda dapat menutup halaman ini.',
+        'confirm'                 => [
+            'approve_heading' => 'Setujui pengajuan?',
+            'approve'         => 'Yakin menyetujui pengajuan ini? Keputusan akan langsung disimpan.',
+            'reject_heading'  => 'Tolak pengajuan?',
+            'reject'          => 'Yakin menolak pengajuan ini? Keputusan akan langsung disimpan.',
+        ],
     ],
 ];

@@ -7,6 +7,7 @@ use Cesa\FormTransfer\Enums\TransferRequestApprovalStatus;
 use Cesa\FormTransfer\Models\TransferRequest;
 use Cesa\FormTransfer\Services\TransferApprovalNotificationService;
 use Cesa\FormTransfer\Services\TransferRequestService;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -195,6 +196,44 @@ class PublicTransferApprovalPage extends SimplePage implements HasForms
             ->send();
 
         $this->dispatch('form-processing-finished');
+    }
+
+    public function confirmApproveAction(): Action
+    {
+        return Action::make('confirmApprove')
+            ->label(__('form-transfer::public.approval.approve'))
+            ->button()
+            ->color('success')
+            ->icon('heroicon-m-check-circle')
+            ->extraAttributes(['class' => 'w-full sm:w-auto'])
+            ->requiresConfirmation()
+            ->modalHeading(__('form-transfer::public.approval.confirm.approve_heading'))
+            ->modalDescription(__('form-transfer::public.approval.confirm.approve'))
+            ->modalSubmitActionLabel(__('form-transfer::public.approval.approve'))
+            ->modalIcon('heroicon-m-check-circle')
+            ->modalIconColor('success')
+            ->action(function (): void {
+                $this->approve();
+            });
+    }
+
+    public function confirmRejectAction(): Action
+    {
+        return Action::make('confirmReject')
+            ->label(__('form-transfer::public.approval.reject'))
+            ->button()
+            ->color('danger')
+            ->icon('heroicon-m-x-circle')
+            ->extraAttributes(['class' => 'w-full sm:w-auto'])
+            ->requiresConfirmation()
+            ->modalHeading(__('form-transfer::public.approval.confirm.reject_heading'))
+            ->modalDescription(__('form-transfer::public.approval.confirm.reject'))
+            ->modalSubmitActionLabel(__('form-transfer::public.approval.reject'))
+            ->modalIcon('heroicon-m-x-circle')
+            ->modalIconColor('danger')
+            ->action(function (): void {
+                $this->reject();
+            });
     }
 
     public function getHeading(): string

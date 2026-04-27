@@ -77,14 +77,32 @@
                 <div class="border-t border-gray-200 px-6 py-3">
                     <div class="flex flex-wrap items-center gap-2 text-xs text-gray-600">
                         <span>{{ __('form-transfer::public.approval.submission_status_label') }}</span>
-                        <x-filament::badge :color="$statusColor" class="rounded-full px-3 py-1 text-xs font-medium">
+                        @php
+                            $badgeColorClass = match($statusColor ?? 'gray') {
+                                'success' => 'bg-green-50 text-green-700 ring-green-600/20',
+                                'danger' => 'bg-red-50 text-red-700 ring-red-600/10',
+                                'warning' => 'bg-yellow-50 text-yellow-800 ring-yellow-600/20',
+                                'primary' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
+                                default => 'bg-gray-50 text-gray-600 ring-gray-500/10',
+                            };
+                        @endphp
+                        <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset {{ $badgeColorClass }}">
                             {{ $statusLabel }}
-                        </x-filament::badge>
+                        </span>
                         <span class="text-gray-300">|</span>
                         <span>{{ __('form-transfer::public.approval.your_approval_status') }}</span>
-                        <x-filament::badge :color="$currentStatusColor" class="rounded-full px-3 py-1 text-xs font-medium">
+                        @php
+                            $badgeColorClass = match($currentStatusColor ?? 'gray') {
+                                'success' => 'bg-green-50 text-green-700 ring-green-600/20',
+                                'danger' => 'bg-red-50 text-red-700 ring-red-600/10',
+                                'warning' => 'bg-yellow-50 text-yellow-800 ring-yellow-600/20',
+                                'primary' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
+                                default => 'bg-gray-50 text-gray-600 ring-gray-500/10',
+                            };
+                        @endphp
+                        <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset {{ $badgeColorClass }}">
                             {{ $currentStatusLabel }}
-                        </x-filament::badge>
+                        </span>
                         @if (!empty($uid) && $uid !== '-')
                             <span class="text-gray-300">|</span>
                             <span class="font-mono text-gray-400">{{ $uid }}</span>
@@ -151,8 +169,11 @@
                             @endphp
                             <li @class([
                                 'rounded-lg border p-4',
-	                                'cesa-primary-border cesa-primary-soft' => $index === $currentApprovalIndex,
-                                'border-gray-200' => $index !== $currentApprovalIndex,
+                                'cesa-primary-border cesa-primary-soft' => $index === $currentApprovalIndex && in_array($approvalStatusValue, ['pending', 'waiting']),
+                                'border-green-600 bg-green-50' => $index === $currentApprovalIndex && $approvalStatusValue === 'approved',
+                                'border-red-600 bg-red-50' => $index === $currentApprovalIndex && in_array($approvalStatusValue, ['ditolak', 'rejected']),
+                                'border-yellow-600 bg-yellow-50' => $index === $currentApprovalIndex && $approvalStatusValue === 'revisi',
+                                'border-gray-200' => $index !== $currentApprovalIndex || !in_array($approvalStatusValue, ['pending', 'waiting', 'approved', 'ditolak', 'rejected', 'revisi']),
                             ])>
                                 <div class="flex items-start justify-between gap-4">
                                     <div>
@@ -163,9 +184,18 @@
                                             @if (!empty($approval['title'])) {{ $approval['title'] }} @endif
                                         </p>
                                     </div>
-                                    <x-filament::badge :color="$approvalStatusColor" class="rounded-full px-3 py-1 text-xs font-medium">
+                                    @php
+                                        $badgeColorClass = match($approvalStatusColor ?? 'gray') {
+                                            'success' => 'bg-green-50 text-green-700 ring-green-600/20',
+                                            'danger' => 'bg-red-50 text-red-700 ring-red-600/10',
+                                            'warning' => 'bg-yellow-50 text-yellow-800 ring-yellow-600/20',
+                                            'primary' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
+                                            default => 'bg-gray-50 text-gray-600 ring-gray-500/10',
+                                        };
+                                    @endphp
+                                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset {{ $badgeColorClass }}">
                                         {{ $approvalStatusLabel }}
-                                    </x-filament::badge>
+                                    </span>
                                 </div>
 
                                 @if (!empty($approval['comments']))
@@ -190,34 +220,13 @@
 	                        </div>
 
                         <form
-                            wire:submit="approve"
                             class="space-y-6"
                         >
                             {{ $this->form }}
 
                             <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-                                <x-filament::button
-                                    color="danger"
-                                    type="button"
-                                    wire:click="reject"
-                                    wire:loading.attr="disabled"
-                                    wire:target="reject"
-                                    icon="heroicon-m-x-circle"
-                                    class="w-full sm:w-auto"
-                                >
-                                    {{ __('form-transfer::public.approval.reject') }}
-                                </x-filament::button>
-
-                                <x-filament::button
-                                    type="submit"
-                                    color="success"
-                                    wire:loading.attr="disabled"
-                                    wire:target="approve"
-                                    icon="heroicon-m-check-circle"
-                                    class="w-full sm:w-auto"
-                                >
-                                    {{ __('form-transfer::public.approval.approve') }}
-                                </x-filament::button>
+                                {{ $this->confirmRejectAction() }}
+                                {{ $this->confirmApproveAction() }}
                             </div>
                         </form>
                     </div>
@@ -233,5 +242,6 @@
                     </div>
                 @endif
             </div>
+            <x-filament-actions::modals />
     </div>
 </div>

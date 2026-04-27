@@ -78,6 +78,25 @@ return [
         'current_status'     => 'Current Status',
         'submission_summary' => 'SUBMISSION SUMMARY',
         'approval_flow'      => 'APPROVAL FLOW',
+        'lookup'             => [
+            'heading'                    => 'Check request progress',
+            'description'                => 'Enter an email to view submitted requests, or add a reference ID to open one request directly.',
+            'reference_label'            => 'Reference ID / Status Response ID (optional)',
+            'reference_placeholder'      => 'Example: MAJU-00001',
+            'email_label'                => 'Email',
+            'email_placeholder'          => 'Email used in the request',
+            'submit'                     => 'Check Progress',
+            'results_heading'            => 'Submitted Requests',
+            'empty_state'                => 'No requests were found for that email.',
+            'view_progress'              => 'View progress',
+            'submitted_at'               => 'Submitted',
+            'amount'                     => 'Amount',
+            'not_found'                  => 'Request not found. Please check the reference ID and email.',
+            'rate_limit'                 => [
+                'title' => 'Too Many Attempts',
+                'body'  => 'Please wait :seconds seconds before trying again.',
+            ],
+        ],
     ],
 
     'submission' => [
@@ -101,5 +120,11 @@ return [
         'approve'                 => 'Approve',
         'information'             => 'INFORMATION',
         'completed_info'          => 'This stage has been processed. You may close this page.',
+        'confirm'                 => [
+            'approve_heading' => 'Approve this request?',
+            'approve'         => 'Are you sure you want to approve this request? The decision will be saved immediately.',
+            'reject_heading'  => 'Reject this request?',
+            'reject'          => 'Are you sure you want to reject this request? The decision will be saved immediately.',
+        ],
     ],
 ];

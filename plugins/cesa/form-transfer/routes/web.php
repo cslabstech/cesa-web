@@ -17,6 +17,9 @@ Route::middleware(['web'])->group(function (): void {
     Route::get('transfer-requests/approval/{task}', PublicTransferApprovalPage::class)
         ->name('form-transfer.public.approval');
 
+    Route::get('transfer-requests/progress', PublicTransferProgressPage::class)
+        ->name('form-transfer.public.progress.lookup');
+
     Route::get('transfer-requests/progress/{response}', PublicTransferProgressPage::class)
         ->name('form-transfer.public.progress');
 
