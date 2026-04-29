@@ -307,6 +307,72 @@ class JobApplication extends Model
         );
     }
 
+    public function nextStageAfterCurrentStage(): ?RekrutmenStage
+    {
+        if ($this->isTerminalStatus() || ! is_numeric($this->current_stage_id)) {
+            return null;
+        }
+
+        $pipelineId = $this->resolvePipelineIdForCurrentJobPosting();
+
+        if (! $pipelineId) {
+            return null;
+        }
+
+        $currentStageOrder = RekrutmenStage::query()
+            ->whereKey((int) $this->current_stage_id)
+            ->where('rekrutmen_pipeline_id', $pipelineId)
+            ->value('order_column');
+
+        if ($currentStageOrder === null) {
+            return null;
+        }
+
+        return RekrutmenStage::query()
+            ->where('rekrutmen_pipeline_id', $pipelineId)
+            ->where('order_column', '>', $currentStageOrder)
+            ->orderBy('order_column')
+            ->first();
+    }
+
+    public function canPassCurrentStage(): bool
+    {
+        return $this->nextStageAfterCurrentStage() instanceof RekrutmenStage;
+    }
+
+    public function passCurrentStage(string $activityDate, ?string $notes = null, ?int $performedBy = null): RekrutmenStage
+    {
+        if ($this->isTerminalStatus()) {
+            throw new InvalidArgumentException(__('rekrutmen::filament/resources/job-application.workflow_errors.terminal_stage_locked'));
+        }
+
+        if (! is_numeric($this->job_posting_id) || ! is_numeric($this->current_stage_id)) {
+            throw new InvalidArgumentException(__('rekrutmen::filament/resources/job-application.workflow_errors.invalid_stage'));
+        }
+
+        $nextStage = $this->nextStageAfterCurrentStage();
+
+        if (! $nextStage) {
+            throw new InvalidArgumentException(__('rekrutmen::filament/resources/job-application.workflow_errors.no_next_stage'));
+        }
+
+        static::recordBatchActivity(
+            (int) $this->job_posting_id,
+            (int) $this->current_stage_id,
+            $activityDate,
+            [[
+                'job_application_id' => (int) $this->getKey(),
+                'result'             => ActivityEntryResult::PASSED->value,
+                'notes'              => $notes,
+            ]],
+            $performedBy,
+        );
+
+        $this->refresh();
+
+        return $nextStage;
+    }
+
     public function markAsHired(?string $notes = null, ?int $performedBy = null): void
     {
         $this->assertDecisionNotesProvided($notes);

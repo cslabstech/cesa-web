@@ -3,8 +3,10 @@
 namespace Cesa\ExitClearance\Filament\Resources;
 
 use Cesa\ExitClearance\Enums\ApprovalStatus;
+use Cesa\ExitClearance\Models\Approver;
 use Cesa\ExitClearance\Models\Department;
 use Cesa\ExitClearance\Models\Request;
+use Cesa\ExitClearance\Services\ExitClearanceNotificationService;
 use Cesa\ExitClearance\Services\ExitClearanceRequestPdfService;
 use Cesa\ExitClearance\Services\ExitClearanceRequestService;
 use Filament\Actions\Action;
@@ -457,26 +459,40 @@ class RequestResource extends ExitClearanceResource
                         ->schema([
                             Section::make(__('exit-clearance::filament/resources/request.infolist.approval_chain'))
                                 ->schema([
-                                    RepeatableEntry::make('approvers')
+                                    RepeatableEntry::make('approval_flow')
+                                        ->state(fn (Request $record): array => static::getApprovalFlowEntries($record))
                                         ->schema([
-                                            TextEntry::make('name')
-                                                ->label(__('exit-clearance::filament/resources/request.infolist_fields.name'))
-                                                ->formatStateUsing(function ($state, $record): string {
-                                                    if ($record->trashed()) {
-                                                        return $record->name.' (Dihapus)';
-                                                    }
-
-                                                    return $record->name;
-                                                })
-                                                ->color(fn ($record): string => $record->trashed() ? 'gray' : 'default'),
-                                            TextEntry::make('title')->label(__('exit-clearance::filament/resources/request.infolist_fields.title')),
-                                            TextEntry::make('pivot.status')
-                                                ->label(__('exit-clearance::filament/resources/request.infolist_fields.status'))
-                                                ->badge()
-                                                ->color(fn ($state) => static::resolveApproverStatusColor($state))
-                                                ->formatStateUsing(fn ($state) => static::formatApproverStatusLabel($state)),
+                                            Grid::make(2)
+                                                ->schema([
+                                                    TextEntry::make('title')
+                                                        ->label(__('exit-clearance::filament/resources/request.infolist_fields.approval_step'))
+                                                        ->icon('heroicon-o-queue-list')
+                                                        ->placeholder('—'),
+                                                    TextEntry::make('name')
+                                                        ->label(__('exit-clearance::filament/resources/request.infolist_fields.approver_name'))
+                                                        ->icon('heroicon-o-user')
+                                                        ->placeholder('—')
+                                                        ->color(fn (Get $get): string => $get('is_deleted') ? 'gray' : 'default'),
+                                                    TextEntry::make('status')
+                                                        ->label(__('exit-clearance::filament/resources/request.infolist_fields.approver_status'))
+                                                        ->icon('heroicon-o-check-circle')
+                                                        ->placeholder('—')
+                                                        ->badge()
+                                                        ->color(fn ($state) => static::resolveApproverStatusColor($state))
+                                                        ->formatStateUsing(fn ($state) => static::formatApproverStatusLabel($state)),
+                                                    TextEntry::make('approval_url')
+                                                        ->label(__('exit-clearance::filament/resources/request.infolist_fields.approval_link'))
+                                                        ->icon('heroicon-o-arrow-top-right-on-square')
+                                                        ->formatStateUsing(fn (): string => __('exit-clearance::filament/resources/request.actions.open_approval_page'))
+                                                        ->badge()
+                                                        ->color('primary')
+                                                        ->url(fn (?string $state): ?string => $state, true)
+                                                        ->copyable()
+                                                        ->copyableState(fn (?string $state): ?string => $state)
+                                                        ->columnSpanFull(),
+                                                ]),
                                         ])
-                                        ->columns(3),
+                                        ->columns(1),
                                 ])
                                 ->collapsible(),
                             Section::make(__('exit-clearance::filament/resources/request.infolist.request_status'))
@@ -485,6 +501,13 @@ class RequestResource extends ExitClearanceResource
                                         ->label(__('exit-clearance::filament/resources/request.infolist_fields.uid'))
                                         ->icon('heroicon-o-hashtag')
                                         ->copyable(),
+                                    TextEntry::make('form_response_id')
+                                        ->label(__('exit-clearance::filament/resources/request.infolist_fields.progress_url'))
+                                        ->formatStateUsing(fn (): string => __('exit-clearance::filament/resources/request.actions.view_progress'))
+                                        ->url(fn (Request $record): string => $record->getPublicProgressUrl(), true)
+                                        ->copyable()
+                                        ->copyableState(fn (Request $record): string => $record->getPublicProgressUrl())
+                                        ->icon('heroicon-o-arrow-top-right-on-square'),
                                     TextEntry::make('form_status')
                                         ->label(__('exit-clearance::filament/resources/request.infolist_fields.status'))
                                         ->badge()
@@ -591,6 +614,12 @@ class RequestResource extends ExitClearanceResource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
+                Action::make('view_progress')
+                    ->label(__('exit-clearance::filament/resources/request.actions.view_progress'))
+                    ->icon('heroicon-o-arrow-top-right-on-square')
+                    ->color('gray')
+                    ->url(fn (Request $record): string => $record->getPublicProgressUrl())
+                    ->openUrlInNewTab(),
                 Action::make('download-pdf')
                     ->label(__('exit-clearance::filament/resources/request.actions.download_pdf'))
                     ->icon('heroicon-o-arrow-down-tray')
@@ -655,6 +684,27 @@ class RequestResource extends ExitClearanceResource
             'rejected' => 'danger',
             default    => 'gray',
         };
+    }
+
+    /**
+     * @return array<int, array{title: string|null, name: string|null, status: string|null, approval_url: string, is_deleted: bool}>
+     */
+    protected static function getApprovalFlowEntries(Request $record): array
+    {
+        $record->loadMissing('approvers');
+
+        $notificationService = app(ExitClearanceNotificationService::class);
+
+        return $record->approvers
+            ->values()
+            ->map(fn (Approver $approver): array => [
+                'title'        => $approver->title,
+                'name'         => $approver->trashed() ? $approver->name.' (Dihapus)' : $approver->name,
+                'status'       => $approver->pivot?->status,
+                'approval_url' => $notificationService->buildApprovalUrl($record, $approver),
+                'is_deleted'   => $approver->trashed(),
+            ])
+            ->all();
     }
 
     protected static function formatApproverStatusLabel(?string $status): string

@@ -20,6 +20,12 @@ class ViewRequest extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('view_progress')
+                ->label(__('exit-clearance::filament/resources/request.actions.view_progress'))
+                ->icon('heroicon-o-arrow-top-right-on-square')
+                ->color('gray')
+                ->url(fn (Request $record): string => $record->getPublicProgressUrl())
+                ->openUrlInNewTab(),
             EditAction::make()
                 ->visible(fn (Request $record): bool => $this->canModify($record)),
             Action::make('download-pdf')

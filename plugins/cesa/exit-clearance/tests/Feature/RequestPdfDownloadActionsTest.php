@@ -4,7 +4,9 @@ namespace Cesa\ExitClearance\Tests\Feature;
 
 use Cesa\ExitClearance\Filament\Resources\RequestResource\Pages\ListRequests;
 use Cesa\ExitClearance\Filament\Resources\RequestResource\Pages\ViewRequest;
+use Cesa\ExitClearance\Models\Approver;
 use Cesa\ExitClearance\Models\Request;
+use Cesa\ExitClearance\Services\ExitClearanceNotificationService;
 use Cesa\ExitClearance\Tests\ExitClearanceTestCase;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\DB;
@@ -34,8 +36,64 @@ class RequestPdfDownloadActionsTest extends ExitClearanceTestCase
         $request = Request::factory()->create();
 
         Livewire::test(ListRequests::class)
+            ->assertTableActionExists('view_progress', record: $request)
             ->assertTableActionExists('download-pdf', record: $request)
             ->assertTableBulkActionExists('download-pdf-bulk');
+    }
+
+    public function test_admin_request_view_exposes_public_progress_link(): void
+    {
+        $request = Request::factory()->create([
+            'form_response_id' => 'exit-progress-token-123',
+        ]);
+
+        $expectedUrl = route('exit-clearance.public.progress', [
+            'response' => 'exit-progress-token-123',
+        ]);
+
+        $this->assertSame($expectedUrl, $request->getPublicProgressUrl());
+
+        Livewire::test(ViewRequest::class, [
+            'record' => $request->getKey(),
+        ])
+            ->assertActionExists('view_progress')
+            ->assertSee(__('exit-clearance::filament/resources/request.actions.view_progress'))
+            ->assertSee($expectedUrl, false);
+    }
+
+    public function test_admin_request_view_shows_approval_flow_with_immediate_approval_links(): void
+    {
+        app()->setLocale('id');
+
+        $request = Request::factory()->create([
+            'form_status' => 'Pending',
+        ]);
+
+        $approver = Approver::query()->create([
+            'name'  => 'Arik Cahya Hidayat',
+            'email' => 'arik@example.com',
+            'title' => 'IT Manager',
+        ]);
+
+        $request->approvers()->sync([
+            $approver->getKey() => ['status' => 'pending'],
+        ]);
+
+        $expectedUrl = app(ExitClearanceNotificationService::class)->buildApprovalUrl($request, $approver);
+
+        Livewire::test(ViewRequest::class, [
+            'record' => $request->getKey(),
+        ])
+            ->assertSee(__('exit-clearance::filament/resources/request.infolist.approval_chain'))
+            ->assertSee(__('exit-clearance::filament/resources/request.infolist_fields.approval_step'))
+            ->assertSee(__('exit-clearance::filament/resources/request.infolist_fields.approver_name'))
+            ->assertSee(__('exit-clearance::filament/resources/request.infolist_fields.approver_status'))
+            ->assertSee(__('exit-clearance::filament/resources/request.infolist_fields.approval_link'))
+            ->assertSee('IT Manager')
+            ->assertSee('Arik Cahya Hidayat')
+            ->assertSee('Menunggu')
+            ->assertSee(__('exit-clearance::filament/resources/request.actions.open_approval_page'))
+            ->assertSee($expectedUrl, false);
     }
 
     public function test_view_page_download_pdf_action_downloads_pdf(): void
@@ -128,6 +186,20 @@ class RequestPdfDownloadActionsTest extends ExitClearanceTestCase
             Route::get('/testing/exit-clearance/public/attachments/{response}/{attachment}', fn (): string => 'attachment')
                 ->name('exit-clearance.public.attachments.download');
         }
+
+        if (! Route::has('exit-clearance.public.progress')) {
+            Route::get('/exit-clearance/progress/{response}', fn (): string => 'progress')
+                ->name('exit-clearance.public.progress');
+        }
+
+        if (! Route::has('exit-clearance.public.approval')) {
+            Route::get('/exit-clearance/approval/{request}/{approver}', fn (): string => 'approval')
+                ->name('exit-clearance.public.approval');
+        }
+
+        $routes = app('router')->getRoutes();
+        $routes->refreshNameLookups();
+        $routes->refreshActionLookups();
     }
 
     /**

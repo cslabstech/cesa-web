@@ -29,9 +29,14 @@ class PublicRequestManPowerApprovalPageTest extends RekrutmenTestCase
 
         $approval = $request->currentPendingApproval()->firstOrFail();
 
-        $this->get($approval->buildApprovalUrl())
+        $response = $this->get($approval->buildApprovalUrl());
+
+        $response
             ->assertOk()
             ->assertSee(__('rekrutmen::livewire/public-request-man-power-approval-page.page_title'));
+
+        expect(substr_count($response->getContent(), 'x-data="{ expanded: true }"'))
+            ->toBeGreaterThanOrEqual(3);
     }
 
     public function test_public_approval_page_processes_approvals_sequentially_until_final_approval(): void

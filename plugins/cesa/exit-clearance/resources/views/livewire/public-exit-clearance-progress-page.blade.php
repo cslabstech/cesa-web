@@ -33,23 +33,19 @@
 
         <div class="space-y-4">
             <div x-data="{ expanded: true, activeTab: 'data_diri' }" class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-                <div
-                    @click="expanded = !expanded"
-                    class="cesa-primary-bg flex cursor-pointer items-center justify-between px-6 py-4 text-white cesa-primary-bg-hover transition-colors"
+                <button
+                    type="button"
+                    @click="expanded = ! expanded"
+                    :aria-expanded="expanded.toString()"
+                    class="cesa-primary-bg cesa-primary-bg-hover flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left text-white transition-colors"
                 >
                     <h2 class="text-lg font-medium">{{ __('exit-clearance::livewire/public-exit-clearance-progress-page.submission_summary') }}</h2>
-                    <button type="button" class="text-white hover:text-gray-200 focus:outline-none">
-                        <svg
-                            class="h-5 w-5 transform transition-transform duration-200"
-                            :class="{'rotate-180': expanded}"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
-                </div>
+                    <x-filament::icon
+                        icon="heroicon-m-chevron-down"
+                        class="h-5 w-5 transform transition-transform duration-200"
+                        ::class="{ 'rotate-180': expanded }"
+                    />
+                </button>
 
                 <div x-show="expanded" x-collapse class="border-t border-blue-100 px-6 py-5">
                     <div class="border-b border-gray-200 pb-4">
@@ -143,23 +139,19 @@
             </div>
 
             <div x-data="{ expanded: true }" class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-                <div
-                    @click="expanded = !expanded"
-                    class="cesa-primary-bg flex cursor-pointer items-center justify-between px-6 py-4 text-white cesa-primary-bg-hover transition-colors"
+                <button
+                    type="button"
+                    @click="expanded = ! expanded"
+                    :aria-expanded="expanded.toString()"
+                    class="cesa-primary-bg cesa-primary-bg-hover flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left text-white transition-colors"
                 >
                     <h2 class="text-lg font-medium">{{ __('exit-clearance::livewire/public-exit-clearance-progress-page.approval_flow') }}</h2>
-                    <button type="button" class="text-white hover:text-gray-200 focus:outline-none">
-                        <svg
-                            class="h-5 w-5 transform transition-transform duration-200"
-                            :class="{'rotate-180': expanded}"
-                            fill="none"
-                             viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
-                </div>
+                    <x-filament::icon
+                        icon="heroicon-m-chevron-down"
+                        class="h-5 w-5 transform transition-transform duration-200"
+                        ::class="{ 'rotate-180': expanded }"
+                    />
+                </button>
 
                 <div x-show="expanded" x-collapse class="border-t border-blue-100 px-6 py-5">
                     <ol class="space-y-4">

@@ -22,11 +22,16 @@ class PublicTransferProgressLookupTest extends FormTransferTestCase
 
     public function test_public_progress_lookup_form_is_available_without_response_token(): void
     {
-        $this->get('/transfer-requests/progress')
+        $response = $this->get('/transfer-requests/progress');
+
+        $response
             ->assertOk()
             ->assertSee('Cek progres pengajuan')
             ->assertSee('ID Referensi / ID Status Response')
             ->assertSee('Email');
+
+        expect(substr_count($response->getContent(), 'x-data="{ expanded: true }"'))
+            ->toBeGreaterThanOrEqual(1);
     }
 
     public function test_public_progress_lookup_redirects_to_token_url_when_reference_and_email_match(): void
@@ -103,9 +108,14 @@ class PublicTransferProgressLookupTest extends FormTransferTestCase
             'status_response_id' => 'status-token-789',
         ]);
 
-        $this->get('/transfer-requests/progress/'.$request->status_response_id)
+        $response = $this->get('/transfer-requests/progress/'.$request->status_response_id);
+
+        $response
             ->assertOk()
             ->assertSee('MAJU-00003')
             ->assertSee('Status saat ini');
+
+        expect(substr_count($response->getContent(), 'x-data="{ expanded: true }"'))
+            ->toBeGreaterThanOrEqual(2);
     }
 }

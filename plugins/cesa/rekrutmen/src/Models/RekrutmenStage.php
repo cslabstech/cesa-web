@@ -26,6 +26,7 @@ class RekrutmenStage extends Model
     protected static function booted(): void
     {
         static::saving(function (RekrutmenStage $stage): void {
+            $stage->reserveOrderBeforeLockedFinalStage();
             $stage->normalizeLockedFinalStage();
         });
 
@@ -150,6 +151,39 @@ class RekrutmenStage extends Model
         }
     }
 
+    protected function reserveOrderBeforeLockedFinalStage(): void
+    {
+        if ($this->isLockedFinalStage() || ! is_numeric($this->rekrutmen_pipeline_id) || ! is_numeric($this->order_column)) {
+            return;
+        }
+
+        $finalHiredStage = static::query()
+            ->where('rekrutmen_pipeline_id', (int) $this->rekrutmen_pipeline_id)
+            ->whereRaw('LOWER(name) = ?', [Str::lower(static::FINAL_HIRED_STAGE_NAME)])
+            ->when($this->exists, fn ($query) => $query->whereKeyNot($this->getKey()))
+            ->first();
+
+        if (! $finalHiredStage || (int) $finalHiredStage->order_column !== (int) $this->order_column) {
+            return;
+        }
+
+        $targetOrder = $this->nextAvailableOrderForPipeline(
+            (int) $this->rekrutmen_pipeline_id,
+            ((int) static::withTrashed()
+                ->where('rekrutmen_pipeline_id', (int) $this->rekrutmen_pipeline_id)
+                ->max('order_column')) + 1,
+            (int) $finalHiredStage->getKey(),
+        );
+
+        static::withoutEvents(function () use ($finalHiredStage, $targetOrder): void {
+            static::query()
+                ->whereKey($finalHiredStage->getKey())
+                ->update([
+                    'order_column' => $targetOrder,
+                ]);
+        });
+    }
+
     protected function syncLockedFinalStageToPipelineEnd(): void
     {
         if (! is_numeric($this->rekrutmen_pipeline_id)) {
@@ -171,7 +205,11 @@ class RekrutmenStage extends Model
             ->whereKeyNot($finalHiredStage->getKey())
             ->max('order_column');
 
-        $targetOrder = ((int) $highestNonFinalOrder) + 1;
+        $targetOrder = $this->nextAvailableOrderForPipeline(
+            (int) $this->rekrutmen_pipeline_id,
+            ((int) $highestNonFinalOrder) + 1,
+            (int) $finalHiredStage->getKey(),
+        );
 
         if (
             $finalHiredStage->name === static::FINAL_HIRED_STAGE_NAME
@@ -188,6 +226,23 @@ class RekrutmenStage extends Model
                     'order_column' => $targetOrder,
                 ]);
         });
+    }
+
+    protected function nextAvailableOrderForPipeline(int $pipelineId, int $startAt = 1, ?int $exceptStageId = null): int
+    {
+        $usedOrders = static::withTrashed()
+            ->where('rekrutmen_pipeline_id', $pipelineId)
+            ->when($exceptStageId !== null, fn ($query) => $query->whereKeyNot($exceptStageId))
+            ->pluck('order_column')
+            ->map(fn (mixed $order): int => (int) $order);
+
+        $candidateOrder = max(1, $startAt);
+
+        while ($usedOrders->contains($candidateOrder)) {
+            $candidateOrder++;
+        }
+
+        return $candidateOrder;
     }
 
     protected function guardLockedFinalStageDeletion(): void

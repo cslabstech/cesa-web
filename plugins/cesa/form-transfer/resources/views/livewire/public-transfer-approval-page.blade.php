@@ -111,13 +111,24 @@
                 </div>
             </div>
 
-                <div class="space-y-4">
-	                <div class="rounded-lg bg-white p-6 shadow-sm border border-gray-200">
-		                    <div class="-mx-6 -mt-6 mb-6 rounded-t-lg cesa-primary-bg px-6 py-3 text-white">
-	                        <h2 class="text-lg font-medium">{{ __('form-transfer::public.approval.submission_summary') }}</h2>
-	                    </div>
+            <div class="space-y-4">
+                <div x-data="{ expanded: true }" class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                    <button
+                        type="button"
+                        @click="expanded = ! expanded"
+                        :aria-expanded="expanded.toString()"
+                        class="cesa-primary-bg cesa-primary-bg-hover flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left text-white transition-colors"
+                    >
+                        <h2 class="text-lg font-medium">{{ __('form-transfer::public.approval.submission_summary') }}</h2>
+                        <x-filament::icon
+                            icon="heroicon-m-chevron-down"
+                            class="h-5 w-5 transform transition-transform duration-200"
+                            ::class="{ 'rotate-180': expanded }"
+                        />
+                    </button>
 
-                    <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
+                    <div x-show="expanded" x-collapse class="border-t border-blue-100 px-6 py-5">
+                        <div class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
                         @foreach ($summaryItems as $item)
                             <div class="space-y-1">
                                 <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -151,15 +162,27 @@
                                 </div>
                             </div>
                         @endforeach
+                        </div>
                     </div>
                 </div>
 
-	                <div class="rounded-lg bg-white p-6 shadow-sm border border-gray-200">
-		                    <div class="-mx-6 -mt-6 mb-6 rounded-t-lg cesa-primary-bg px-6 py-3 text-white">
-	                        <h2 class="text-lg font-medium">{{ __('form-transfer::public.approval.approval_flow') }}</h2>
-	                    </div>
+                <div x-data="{ expanded: true }" class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                    <button
+                        type="button"
+                        @click="expanded = ! expanded"
+                        :aria-expanded="expanded.toString()"
+                        class="cesa-primary-bg cesa-primary-bg-hover flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left text-white transition-colors"
+                    >
+                        <h2 class="text-lg font-medium">{{ __('form-transfer::public.approval.approval_flow') }}</h2>
+                        <x-filament::icon
+                            icon="heroicon-m-chevron-down"
+                            class="h-5 w-5 transform transition-transform duration-200"
+                            ::class="{ 'rotate-180': expanded }"
+                        />
+                    </button>
 
-                    <ol class="space-y-4">
+                    <div x-show="expanded" x-collapse class="border-t border-blue-100 px-6 py-5">
+                        <ol class="space-y-4">
                         @foreach ($approvals as $index => $approval)
                             @php
                                 $approvalStatusValue = strtolower($approval['status'] ?? 'pending');
@@ -210,35 +233,58 @@
                                 @endif
                             </li>
                         @endforeach
-                    </ol>
+                        </ol>
+                    </div>
                 </div>
 
                 @if ($this->isPendingApproval() && ! $actionTaken)
-	                    <div class="rounded-lg bg-white p-6 shadow-sm border border-gray-200">
-	                        <div class="-mx-6 -mt-6 mb-6 rounded-t-lg cesa-primary-bg px-6 py-3 text-white">
-	                            <h2 class="text-lg font-medium">{{ __('form-transfer::public.approval.actions') }}</h2>
-	                        </div>
-
-                        <form
-                            class="space-y-6"
+                    <div x-data="{ expanded: true }" class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                        <button
+                            type="button"
+                            @click="expanded = ! expanded"
+                            :aria-expanded="expanded.toString()"
+                            class="cesa-primary-bg cesa-primary-bg-hover flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left text-white transition-colors"
                         >
-                            {{ $this->form }}
+                            <h2 class="text-lg font-medium">{{ __('form-transfer::public.approval.actions') }}</h2>
+                            <x-filament::icon
+                                icon="heroicon-m-chevron-down"
+                                class="h-5 w-5 transform transition-transform duration-200"
+                                ::class="{ 'rotate-180': expanded }"
+                            />
+                        </button>
 
-                            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-                                {{ $this->confirmRejectAction() }}
-                                {{ $this->confirmApproveAction() }}
-                            </div>
-                        </form>
+                        <div x-show="expanded" x-collapse class="border-t border-blue-100 px-6 py-5">
+                            <form class="space-y-6">
+                                {{ $this->form }}
+
+                                <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+                                    {{ $this->confirmRejectAction() }}
+                                    {{ $this->confirmApproveAction() }}
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 @else
-	                    <div class="rounded-lg bg-white p-6 shadow-sm border border-gray-200">
-	                        <div class="-mx-6 -mt-6 mb-6 rounded-t-lg cesa-primary-bg px-6 py-3 text-white">
-	                            <h2 class="text-lg font-medium">{{ __('form-transfer::public.approval.information') }}</h2>
-	                        </div>
+                    <div x-data="{ expanded: true }" class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                        <button
+                            type="button"
+                            @click="expanded = ! expanded"
+                            :aria-expanded="expanded.toString()"
+                            class="cesa-primary-bg cesa-primary-bg-hover flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left text-white transition-colors"
+                        >
+                            <h2 class="text-lg font-medium">{{ __('form-transfer::public.approval.information') }}</h2>
+                            <x-filament::icon
+                                icon="heroicon-m-chevron-down"
+                                class="h-5 w-5 transform transition-transform duration-200"
+                                ::class="{ 'rotate-180': expanded }"
+                            />
+                        </button>
 
-                        <p class="text-sm text-gray-600">
-                            {{ __('form-transfer::public.approval.completed_info') }}
-                        </p>
+                        <div x-show="expanded" x-collapse class="border-t border-blue-100 px-6 py-5">
+                            <p class="text-sm text-gray-600">
+                                {{ __('form-transfer::public.approval.completed_info') }}
+                            </p>
+                        </div>
                     </div>
                 @endif
             </div>

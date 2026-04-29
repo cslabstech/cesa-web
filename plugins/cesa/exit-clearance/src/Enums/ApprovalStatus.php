@@ -12,10 +12,10 @@ enum ApprovalStatus: string
     public function getLabel(): string
     {
         return match ($this) {
-            self::PENDING  => 'Pending',
-            self::WAITING  => 'Waiting',
-            self::APPROVED => 'Approved',
-            self::REJECTED => 'Rejected',
+            self::PENDING  => __('exit-clearance::enums/approval-status.pending'),
+            self::WAITING  => __('exit-clearance::enums/approval-status.waiting'),
+            self::APPROVED => __('exit-clearance::enums/approval-status.approved'),
+            self::REJECTED => __('exit-clearance::enums/approval-status.rejected'),
         };
     }
 

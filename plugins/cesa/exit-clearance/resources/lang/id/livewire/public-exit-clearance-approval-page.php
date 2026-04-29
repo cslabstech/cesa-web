@@ -23,6 +23,12 @@ return [
     'action'               => 'TINDAKAN',
     'reject'               => 'Tolak',
     'approve'              => 'Setujui',
+    'confirm'              => [
+        'approve_heading'     => 'Setujui exit clearance ini?',
+        'approve_description' => 'Pastikan data pengajuan dan catatan sudah benar. Setelah disetujui, status persetujuan Anda akan tersimpan.',
+        'reject_heading'      => 'Tolak exit clearance ini?',
+        'reject_description'  => 'Pastikan catatan penolakan sudah sesuai. Setelah ditolak, status persetujuan Anda akan tersimpan.',
+    ],
     'information'          => 'INFORMASI',
     'already_processed'    => 'Tahapan ini sudah diproses. Anda dapat menutup halaman ini.',
 ];

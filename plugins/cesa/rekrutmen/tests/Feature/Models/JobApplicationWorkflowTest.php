@@ -43,6 +43,36 @@ class JobApplicationWorkflowTest extends RekrutmenTestCase
         $application->transitionToStage($foreignStage->id);
     }
 
+    public function test_passing_current_stage_records_passed_activity_and_moves_to_next_stage(): void
+    {
+        [$jobPosting, $firstStage, $secondStage] = $this->createPipelineFixture('Pass Current Stage');
+
+        $application = $this->makeJobApplication($jobPosting, $firstStage, 'pass-current-stage@example.com');
+
+        $nextStage = $application->passCurrentStage('2026-04-16', 'Lolos interview awal.');
+        $application->refresh();
+
+        $this->assertSame($secondStage->id, $nextStage->id);
+        $this->assertSame($secondStage->id, $application->current_stage_id);
+        $this->assertSame(JobApplicationStatus::IN_PROGRESS, $application->status);
+        $this->assertDatabaseHas('rekrutmen_job_application_histories', [
+            'job_application_id' => $application->id,
+            'from_stage_id'      => $firstStage->id,
+            'to_stage_id'        => $firstStage->id,
+            'activity_type'      => $firstStage->activityKey(),
+            'result'             => 'passed',
+            'activity_date'      => '2026-04-16 00:00:00',
+            'notes'              => 'Lolos interview awal.',
+        ]);
+        $this->assertDatabaseHas('rekrutmen_job_application_histories', [
+            'job_application_id' => $application->id,
+            'from_stage_id'      => $firstStage->id,
+            'to_stage_id'        => $secondStage->id,
+            'status'             => JobApplicationStatus::IN_PROGRESS->value,
+            'notes'              => 'Lolos interview awal.',
+        ]);
+    }
+
     public function test_marking_candidate_as_hired_and_rejected_records_history(): void
     {
         [$jobPosting, $firstStage] = $this->createPipelineFixture('Decision');

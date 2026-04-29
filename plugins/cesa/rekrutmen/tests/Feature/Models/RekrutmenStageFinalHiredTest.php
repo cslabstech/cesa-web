@@ -33,6 +33,36 @@ class RekrutmenStageFinalHiredTest extends RekrutmenTestCase
         $this->assertSame(3, (int) $hiredStage->order_column);
     }
 
+    public function test_new_stage_can_be_inserted_before_hired_stage(): void
+    {
+        $pipeline = RekrutmenPipeline::query()->create([
+            'name' => 'Insert Before Hired',
+        ]);
+
+        RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => 'Interview HR',
+            'order_column'          => 1,
+        ]);
+
+        $hiredStage = RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => 'Hired',
+            'order_column'          => 2,
+        ]);
+
+        $medicalStage = RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => 'Medical Checkup',
+            'order_column'          => 2,
+        ]);
+
+        $hiredStage->refresh();
+
+        $this->assertSame(2, (int) $medicalStage->order_column);
+        $this->assertSame(3, (int) $hiredStage->order_column);
+    }
+
     public function test_hired_stage_name_is_locked_to_hired(): void
     {
         $pipeline = RekrutmenPipeline::query()->create([

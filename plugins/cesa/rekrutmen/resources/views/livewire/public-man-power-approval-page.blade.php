@@ -96,124 +96,162 @@
         </div>
 
         <div class="space-y-4">
-            <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                <div class="-mx-6 -mt-6 mb-6 rounded-t-lg px-6 py-3 text-white cesa-primary-bg">
+            <div x-data="{ expanded: true }" class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                <button
+                    type="button"
+                    @click="expanded = ! expanded"
+                    :aria-expanded="expanded.toString()"
+                    class="cesa-primary-bg cesa-primary-bg-hover flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left text-white transition-colors"
+                >
                     <h2 class="text-lg font-medium">{{ __('rekrutmen::livewire/public-request-man-power-approval-page.summary_heading') }}</h2>
-                </div>
-                <div class="grid grid-cols-1 gap-y-6">
-                    @foreach ($summaryItems as $item)
-                        <div class="space-y-1">
-                            <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                {{ $item['label'] }}
-                            </p>
-                            <div class="text-base font-medium text-gray-900 break-words {{ empty($item['is_html']) ? 'whitespace-pre-line' : 'prose prose-sm max-w-none' }}">@if (!empty($item['is_html'])){!! $item['value'] ?? '-' !!}@else{{ $item['value'] ?? '-' }}@endif</div>
-                        </div>
-                    @endforeach
+                    <x-filament::icon
+                        icon="heroicon-m-chevron-down"
+                        class="h-5 w-5 transform transition-transform duration-200"
+                        ::class="{ 'rotate-180': expanded }"
+                    />
+                </button>
+
+                <div x-show="expanded" x-collapse class="border-t border-blue-100 px-6 py-5">
+                    <div class="grid grid-cols-1 gap-y-6">
+                        @foreach ($summaryItems as $item)
+                            <div class="space-y-1">
+                                <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                    {{ $item['label'] }}
+                                </p>
+                                <div class="text-base font-medium text-gray-900 break-words {{ empty($item['is_html']) ? 'whitespace-pre-line' : 'prose prose-sm max-w-none' }}">@if (!empty($item['is_html'])){!! $item['value'] ?? '-' !!}@else{{ $item['value'] ?? '-' }}@endif</div>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             </div>
 
-            <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                <div class="-mx-6 -mt-6 mb-6 rounded-t-lg px-6 py-3 text-white cesa-primary-bg">
+            <div x-data="{ expanded: true }" class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                <button
+                    type="button"
+                    @click="expanded = ! expanded"
+                    :aria-expanded="expanded.toString()"
+                    class="cesa-primary-bg cesa-primary-bg-hover flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left text-white transition-colors"
+                >
                     <h2 class="text-lg font-medium">{{ __('rekrutmen::livewire/public-request-man-power-approval-page.approval_flow_heading') }}</h2>
-                </div>
-                <ol class="space-y-4">
-                    @php
-                        $currentApprovalStep = $approvalRecord->step_order ?? null;
-                    @endphp
-                    @foreach ($requestManPower->approvals->sortBy('step_order') as $approval)
-                        @php
-                            $loopStatusValue = strtolower($approval->status?->value ?? 'pending');
-                            $loopStatusLabel = $approval->status?->getLabel() ?? ucfirst($loopStatusValue);
-                            $loopStatusColor = match ($loopStatusValue) {
-                                'approved' => 'success',
-                                'rejected' => 'danger',
-                                'pending'  => 'warning',
-                                default    => 'gray',
-                            };
-                            $isCurrent = $approval->step_order === $currentApprovalStep;
-                        @endphp
-                        <li @class([
-                            'rounded-lg border p-4',
-                            'cesa-primary-border cesa-primary-soft' => $isCurrent && in_array($loopStatusValue, ['pending', 'waiting']),
-                            'border-green-600 bg-green-50' => $isCurrent && $loopStatusValue === 'approved',
-                            'border-red-600 bg-red-50' => $isCurrent && in_array($loopStatusValue, ['rejected', 'ditolak']),
-                            'border-yellow-600 bg-yellow-50' => $isCurrent && $loopStatusValue === 'revisi',
-                            'border-gray-200' => !$isCurrent || !in_array($loopStatusValue, ['pending', 'waiting', 'approved', 'rejected', 'ditolak', 'revisi']),
-                        ])>
-                            <div class="flex items-start justify-between gap-4">
-                                <div>
-                                    <p class="text-sm font-semibold text-gray-900">
-                                        {{ __('rekrutmen::livewire/public-request-man-power-approval-page.step_label', ['step' => $approval->step_order]) }}
-                                        - {{ $approval->approver_name }}
-                                    </p>
-                                    <p class="text-sm text-gray-600">
-                                        {{ $approval->approver_title ?: '-' }}
-                                    </p>
-                                </div>
-                                @php
-                                    $badgeColorClass = match($loopStatusColor ?? 'gray') {
-                                        'success' => 'bg-green-50 text-green-700 ring-green-600/20',
-                                        'danger' => 'bg-red-50 text-red-700 ring-red-600/10',
-                                        'warning' => 'bg-yellow-50 text-yellow-800 ring-yellow-600/20',
-                                        'primary' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
-                                        default => 'bg-gray-50 text-gray-600 ring-gray-500/10',
-                                    };
-                                @endphp
-                                <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset {{ $badgeColorClass }}">
-                                    {{ $loopStatusLabel }}
-                                </span>
-                            </div>
+                    <x-filament::icon
+                        icon="heroicon-m-chevron-down"
+                        class="h-5 w-5 transform transition-transform duration-200"
+                        ::class="{ 'rotate-180': expanded }"
+                    />
+                </button>
 
-                            @if (filled($approval->notes))
-                                <div class="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                        {{ __('form-transfer::public.form.actions.comments') ?? 'Catatan' }}
-                                    </p>
-                                    <p class="mt-1 text-sm leading-relaxed text-gray-700">
-                                        {{ $approval->notes }}
-                                    </p>
+                <div x-show="expanded" x-collapse class="border-t border-blue-100 px-6 py-5">
+                    <ol class="space-y-4">
+                        @php
+                            $currentApprovalStep = $approvalRecord->step_order ?? null;
+                        @endphp
+                        @foreach ($requestManPower->approvals->sortBy('step_order') as $approval)
+                            @php
+                                $loopStatusValue = strtolower($approval->status?->value ?? 'pending');
+                                $loopStatusLabel = $approval->status?->getLabel() ?? ucfirst($loopStatusValue);
+                                $loopStatusColor = match ($loopStatusValue) {
+                                    'approved' => 'success',
+                                    'rejected' => 'danger',
+                                    'pending'  => 'warning',
+                                    default    => 'gray',
+                                };
+                                $isCurrent = $approval->step_order === $currentApprovalStep;
+                            @endphp
+                            <li @class([
+                                'rounded-lg border p-4',
+                                'cesa-primary-border cesa-primary-soft' => $isCurrent && in_array($loopStatusValue, ['pending', 'waiting']),
+                                'border-green-600 bg-green-50' => $isCurrent && $loopStatusValue === 'approved',
+                                'border-red-600 bg-red-50' => $isCurrent && in_array($loopStatusValue, ['rejected', 'ditolak']),
+                                'border-yellow-600 bg-yellow-50' => $isCurrent && $loopStatusValue === 'revisi',
+                                'border-gray-200' => !$isCurrent || !in_array($loopStatusValue, ['pending', 'waiting', 'approved', 'rejected', 'ditolak', 'revisi']),
+                            ])>
+                                <div class="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p class="text-sm font-semibold text-gray-900">
+                                            {{ __('rekrutmen::livewire/public-request-man-power-approval-page.step_label', ['step' => $approval->step_order]) }}
+                                            - {{ $approval->approver_name }}
+                                        </p>
+                                        <p class="text-sm text-gray-600">
+                                            {{ $approval->approver_title ?: '-' }}
+                                        </p>
+                                    </div>
+                                    @php
+                                        $badgeColorClass = match($loopStatusColor ?? 'gray') {
+                                            'success' => 'bg-green-50 text-green-700 ring-green-600/20',
+                                            'danger' => 'bg-red-50 text-red-700 ring-red-600/10',
+                                            'warning' => 'bg-yellow-50 text-yellow-800 ring-yellow-600/20',
+                                            'primary' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
+                                            default => 'bg-gray-50 text-gray-600 ring-gray-500/10',
+                                        };
+                                    @endphp
+                                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset {{ $badgeColorClass }}">
+                                        {{ $loopStatusLabel }}
+                                    </span>
                                 </div>
-                            @endif
-                        </li>
-                    @endforeach
-                </ol>
+
+                                @if (filled($approval->notes))
+                                    <div class="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                            {{ __('form-transfer::public.form.actions.comments') ?? 'Catatan' }}
+                                        </p>
+                                        <p class="mt-1 text-sm leading-relaxed text-gray-700">
+                                            {{ $approval->notes }}
+                                        </p>
+                                    </div>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ol>
+                </div>
             </div>
 
             @if ($this->isPendingApproval() && ! $actionTaken)
-                <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                    <div class="-mx-6 -mt-6 mb-6 rounded-t-lg px-6 py-3 text-white cesa-primary-bg">
+                <div x-data="{ expanded: true }" class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                    <button
+                        type="button"
+                        @click="expanded = ! expanded"
+                        :aria-expanded="expanded.toString()"
+                        class="cesa-primary-bg cesa-primary-bg-hover flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left text-white transition-colors"
+                    >
                         <h2 class="text-lg font-medium">{{ __('rekrutmen::livewire/public-request-man-power-approval-page.action_heading') }}</h2>
+                        <x-filament::icon
+                            icon="heroicon-m-chevron-down"
+                            class="h-5 w-5 transform transition-transform duration-200"
+                            ::class="{ 'rotate-180': expanded }"
+                        />
+                    </button>
+
+                    <div x-show="expanded" x-collapse class="border-t border-blue-100 px-6 py-5">
+                        <form class="space-y-6">
+                            {{ $this->form }}
+
+                            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+                                <x-filament::button
+                                    color="danger"
+                                    wire:click="reject"
+                                    :disabled="! $this->isPendingApproval()"
+                                    wire:loading.attr="disabled"
+                                    wire:target="reject"
+                                    icon="heroicon-m-x-circle"
+                                    class="w-full sm:w-auto"
+                                >
+                                    {{ __('rekrutmen::livewire/public-request-man-power-approval-page.actions.reject') }}
+                                </x-filament::button>
+
+                                <x-filament::button
+                                    color="success"
+                                    wire:click="approve"
+                                    :disabled="! $this->isPendingApproval()"
+                                    wire:loading.attr="disabled"
+                                    wire:target="approve"
+                                    icon="heroicon-m-check-circle"
+                                    class="w-full sm:w-auto"
+                                >
+                                    {{ __('rekrutmen::livewire/public-request-man-power-approval-page.actions.approve') }}
+                                </x-filament::button>
+                            </div>
+                        </form>
                     </div>
-
-                    <form class="space-y-6">
-                        {{ $this->form }}
-
-                        <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-                            <x-filament::button
-                                color="danger"
-                                wire:click="reject"
-                                :disabled="! $this->isPendingApproval()"
-                                wire:loading.attr="disabled"
-                                wire:target="reject"
-                                icon="heroicon-m-x-circle"
-                                class="w-full sm:w-auto"
-                            >
-                                {{ __('rekrutmen::livewire/public-request-man-power-approval-page.actions.reject') }}
-                            </x-filament::button>
-
-                            <x-filament::button
-                                color="success"
-                                wire:click="approve"
-                                :disabled="! $this->isPendingApproval()"
-                                wire:loading.attr="disabled"
-                                wire:target="approve"
-                                icon="heroicon-m-check-circle"
-                                class="w-full sm:w-auto"
-                            >
-                                {{ __('rekrutmen::livewire/public-request-man-power-approval-page.actions.approve') }}
-                            </x-filament::button>
-                        </div>
-                    </form>
                 </div>
             @endif
         </div>

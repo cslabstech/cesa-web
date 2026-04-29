@@ -45,6 +45,20 @@ class JobApplicationHistoryCorrectionTest extends RekrutmenTestCase
         $this->actingAs($this->user);
     }
 
+    public function test_job_application_view_registers_pass_current_stage_action(): void
+    {
+        $page = app(ViewJobApplication::class);
+        $getHeaderActions = new \ReflectionMethod($page, 'getHeaderActions');
+        $getHeaderActions->setAccessible(true);
+
+        $actions = $getHeaderActions->invoke($page);
+
+        $this->assertTrue(
+            collect($actions)->contains(fn (mixed $action): bool => method_exists($action, 'getName')
+                && $action->getName() === 'pass_current_stage')
+        );
+    }
+
     public function test_job_application_history_activity_date_can_be_corrected_from_relation_manager(): void
     {
         [$jobPosting, $screeningStage, $hiredStage] = $this->createPipelineFixture();
@@ -59,6 +73,7 @@ class JobApplicationHistoryCorrectionTest extends RekrutmenTestCase
             'created_at'    => Carbon::parse('2026-04-27 09:00:00'),
             'updated_at'    => Carbon::parse('2026-04-27 09:00:00'),
         ]);
+        $recordedAt = $history->created_at?->toDateString();
 
         Livewire::test(HistoriesRelationManager::class, [
             'ownerRecord' => $candidate,
@@ -73,7 +88,7 @@ class JobApplicationHistoryCorrectionTest extends RekrutmenTestCase
 
         $this->assertSame('2026-04-02', $history->activity_date?->toDateString());
         $this->assertSame('Tanggal dikoreksi sesuai tanggal hired aktual.', $history->notes);
-        $this->assertSame('2026-04-27', $history->created_at?->toDateString());
+        $this->assertSame($recordedAt, $history->created_at?->toDateString());
     }
 
     public function test_correcting_batch_history_date_keeps_group_activity_date_consistent(): void

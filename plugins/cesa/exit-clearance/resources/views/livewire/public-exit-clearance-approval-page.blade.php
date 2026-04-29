@@ -31,7 +31,7 @@
                     <x-filament::badge :color="$currentStatusColor" class="rounded-full px-3 py-1 text-xs font-medium">
                         {{ $currentStatusLabel }}
                     </x-filament::badge>
-                    @if(!empty($requestRecord->form_uid))
+                    @if (! empty($requestRecord->form_uid))
                         <span class="text-gray-300">|</span>
                         <span class="font-mono text-gray-400">{{ $requestRecord->form_uid }}</span>
                     @endif
@@ -41,23 +41,19 @@
 
         <div class="space-y-4">
             <div x-data="{ expanded: true, activeTab: 'data_diri' }" class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-                <div
-                    @click="expanded = !expanded"
-                    class="cesa-primary-bg flex cursor-pointer items-center justify-between px-6 py-4 text-white cesa-primary-bg-hover transition-colors"
+                <button
+                    type="button"
+                    @click="expanded = ! expanded"
+                    :aria-expanded="expanded.toString()"
+                    class="cesa-primary-bg cesa-primary-bg-hover flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left text-white transition-colors"
                 >
                     <h2 class="text-lg font-medium">{{ __('exit-clearance::livewire/public-exit-clearance-approval-page.submission_summary') }}</h2>
-                    <button type="button" class="text-white hover:text-gray-200 focus:outline-none">
-                        <svg
-                            class="h-5 w-5 transform transition-transform duration-200"
-                            :class="{'rotate-180': expanded}"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
-                </div>
+                    <x-filament::icon
+                        icon="heroicon-m-chevron-down"
+                        class="h-5 w-5 transform transition-transform duration-200"
+                        ::class="{ 'rotate-180': expanded }"
+                    />
+                </button>
 
                 <div x-show="expanded" x-collapse class="border-t border-blue-100 px-6 py-5">
                     <div class="border-b border-gray-200 pb-4">
@@ -103,7 +99,7 @@
                                     </p>
                                     <div class="text-base font-medium text-gray-900 break-words">
                                         @if (($item['type'] ?? null) === 'link')
-                                            @if (!empty($item['value']))
+                                            @if (! empty($item['value']))
                                                 <a class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-500 hover:underline" href="{{ $item['value'] }}" target="_blank" rel="noopener">
                                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
@@ -151,26 +147,22 @@
             </div>
 
             <div x-data="{ expanded: true }" class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-                <div
-                    @click="expanded = !expanded"
-                    class="cesa-primary-bg flex cursor-pointer items-center justify-between px-6 py-4 text-white cesa-primary-bg-hover transition-colors"
+                <button
+                    type="button"
+                    @click="expanded = ! expanded"
+                    :aria-expanded="expanded.toString()"
+                    class="cesa-primary-bg cesa-primary-bg-hover flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left text-white transition-colors"
                 >
                     <h2 class="text-lg font-medium">{{ __('exit-clearance::livewire/public-exit-clearance-approval-page.approval_flow') }}</h2>
-                    <button type="button" class="text-white hover:text-gray-200 focus:outline-none">
-                        <svg
-                            class="h-5 w-5 transform transition-transform duration-200"
-                            :class="{'rotate-180': expanded}"
-                            fill="none"
-                             viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
-                </div>
+                    <x-filament::icon
+                        icon="heroicon-m-chevron-down"
+                        class="h-5 w-5 transform transition-transform duration-200"
+                        ::class="{ 'rotate-180': expanded }"
+                    />
+                </button>
 
                 <div x-show="expanded" x-collapse class="border-t border-blue-100 px-6 py-5">
-                    <ol class="space-y-4">
+                    <ol class="divide-y divide-gray-100">
                         @foreach ($approvals as $approval)
                             @php
                                 $approvalStatusValue = strtolower($approval['status'] ?? 'pending');
@@ -180,38 +172,50 @@
                                 $statusEnum = \Cesa\ExitClearance\Enums\ApprovalStatus::tryFrom($approvalStatusValue);
                                 $approvalStatusLabel = $statusEnum ? $statusEnum->getLabel() : ucfirst($approvalStatusValue);
                                 $approvalStatusColor = $statusEnum?->getColor() ?? 'gray';
+                                $processedAt = $approval['approved_at'] ?? null;
+                                $hasNotes = filled($approval['notes'] ?? null);
                             @endphp
-                            <li class="rounded-lg border border-gray-200 p-4">
-                                <div class="flex items-start justify-between gap-4">
-                                    <div>
-                                        <p class="text-sm font-semibold text-gray-900">
+                            <li class="py-5 first:pt-0 last:pb-0" data-testid="approval-flow-item">
+                                <div class="grid grid-cols-[minmax(0,1fr)_max-content] items-start gap-x-4 gap-y-3">
+                                    <div class="min-w-0 space-y-1">
+                                        <p class="break-words text-sm font-semibold leading-5 text-gray-950">
                                             {{ $approval['name'] ?? '-' }}
                                         </p>
-                                        <p class="text-sm text-gray-600">
-                                            @if (!empty($approval['title'])) {{ $approval['title'] }} @endif
-                                        </p>
+
+                                        @if (! empty($approval['title']))
+                                            <p class="break-words text-sm leading-5 text-gray-600">
+                                                {{ $approval['title'] }}
+                                            </p>
+                                        @endif
                                     </div>
-                                    <x-filament::badge :color="$approvalStatusColor" class="rounded-full px-3 py-1 text-xs font-medium">
-                                        {{ $approvalStatusLabel }}
-                                    </x-filament::badge>
+
+                                    <div class="flex min-w-max flex-col items-end gap-1.5">
+                                        <x-filament::badge :color="$approvalStatusColor" class="w-fit rounded-full px-3 py-1 text-xs font-medium">
+                                            {{ $approvalStatusLabel }}
+                                        </x-filament::badge>
+                                    </div>
+
+                                    @if (! empty($processedAt))
+                                        <p class="col-span-2 flex items-center justify-between gap-3 text-xs leading-5 text-gray-500">
+                                            <span class="inline-flex items-center gap-1.5">
+                                                <x-filament::icon icon="heroicon-m-clock" class="h-4 w-4 text-gray-400" />
+                                                <span>{{ __('exit-clearance::livewire/public-exit-clearance-approval-page.process_time') }}</span>
+                                            </span>
+                                            <span class="shrink-0 text-right font-medium text-gray-600">{{ $processedAt }}</span>
+                                        </p>
+                                    @endif
+
+                                    @if ($hasNotes)
+                                        <div class="col-span-2 rounded-md bg-gray-50 px-3 py-3 ring-1 ring-inset ring-gray-200" data-testid="approval-flow-notes">
+                                            <p class="text-xs font-semibold uppercase leading-4 tracking-wide text-gray-500">
+                                                {{ __('exit-clearance::livewire/public-exit-clearance-approval-page.notes') }}
+                                            </p>
+                                            <p class="mt-1 break-words text-sm leading-6 text-gray-700">
+                                                {{ $approval['notes'] }}
+                                            </p>
+                                        </div>
+                                    @endif
                                 </div>
-
-                                @if (!empty($approval['notes']))
-                                    <div class="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                            {{ __('exit-clearance::livewire/public-exit-clearance-approval-page.notes') }}
-                                        </p>
-                                        <p class="mt-1 text-sm leading-relaxed text-gray-700">
-                                            {{ $approval['notes'] }}
-                                        </p>
-                                    </div>
-                                @endif
-
-                                @if (!empty($approval['approved_at']))
-                                    <p class="mt-3 text-xs text-gray-500">
-                                        {{ __('exit-clearance::livewire/public-exit-clearance-approval-page.process_time') }} {{ $approval['approved_at'] }}
-                                    </p>
-                                @endif
                             </li>
                         @endforeach
                     </ol>
@@ -219,54 +223,56 @@
             </div>
 
             @if ($this->isPendingApproval() && ! $actionTaken)
-                <div class="rounded-lg bg-white p-6 shadow-sm border border-gray-200">
-	                    <div class="-mx-6 -mt-6 mb-6 rounded-t-lg cesa-primary-bg px-6 py-3 text-white">
-                        <h2 class="text-lg font-medium">{{ __('exit-clearance::livewire/public-exit-clearance-approval-page.action') }}</h2>
-                    </div>
-
-                    <form
-                        wire:submit="approve"
-                        class="space-y-6"
+                <div x-data="{ expanded: true }" class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                    <button
+                        type="button"
+                        @click="expanded = ! expanded"
+                        :aria-expanded="expanded.toString()"
+                        class="cesa-primary-bg cesa-primary-bg-hover flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left text-white transition-colors"
                     >
-                        {{ $this->form }}
+                        <h2 class="text-lg font-medium">{{ __('exit-clearance::livewire/public-exit-clearance-approval-page.action') }}</h2>
+                        <x-filament::icon
+                            icon="heroicon-m-chevron-down"
+                            class="h-5 w-5 transform transition-transform duration-200"
+                            ::class="{ 'rotate-180': expanded }"
+                        />
+                    </button>
 
-                        <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-                            <x-filament::button
-                                type="button"
-                                color="danger"
-                                wire:click="reject"
-                                wire:loading.attr="disabled"
-                                wire:target="reject"
-                                icon="heroicon-m-x-circle"
-                                class="w-full sm:w-auto"
-                            >
-                                {{ __('exit-clearance::livewire/public-exit-clearance-approval-page.reject') }}
-                            </x-filament::button>
+                    <div x-show="expanded" x-collapse class="border-t border-blue-100 px-6 py-5">
+                        <form class="space-y-6">
+                            {{ $this->form }}
 
-                            <x-filament::button
-                                type="submit"
-                                color="success"
-                                wire:loading.attr="disabled"
-                                wire:target="approve"
-                                icon="heroicon-m-check-circle"
-                                class="w-full sm:w-auto"
-                            >
-                                {{ __('exit-clearance::livewire/public-exit-clearance-approval-page.approve') }}
-                            </x-filament::button>
-                        </div>
-                    </form>
+                            <div class="mt-6 grid grid-cols-2 gap-3" data-testid="approval-action-buttons">
+                                {{ $this->confirmApproveAction() }}
+                                {{ $this->confirmRejectAction() }}
+                            </div>
+                        </form>
+                    </div>
                 </div>
             @else
-                <div class="rounded-lg bg-white p-6 shadow-sm border border-gray-200">
-	                    <div class="-mx-6 -mt-6 mb-6 rounded-t-lg cesa-primary-bg px-6 py-3 text-white">
+                <div x-data="{ expanded: true }" class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                    <button
+                        type="button"
+                        @click="expanded = ! expanded"
+                        :aria-expanded="expanded.toString()"
+                        class="cesa-primary-bg cesa-primary-bg-hover flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left text-white transition-colors"
+                    >
                         <h2 class="text-lg font-medium">{{ __('exit-clearance::livewire/public-exit-clearance-approval-page.information') }}</h2>
-                    </div>
+                        <x-filament::icon
+                            icon="heroicon-m-chevron-down"
+                            class="h-5 w-5 transform transition-transform duration-200"
+                            ::class="{ 'rotate-180': expanded }"
+                        />
+                    </button>
 
-                    <p class="text-sm text-gray-600">
-                        {{ __('exit-clearance::livewire/public-exit-clearance-approval-page.already_processed') }}
-                    </p>
+                    <div x-show="expanded" x-collapse class="border-t border-blue-100 px-6 py-5">
+                        <p class="text-sm text-gray-600">
+                            {{ __('exit-clearance::livewire/public-exit-clearance-approval-page.already_processed') }}
+                        </p>
+                    </div>
                 </div>
             @endif
         </div>
+        <x-filament-actions::modals />
     </div>
 </div>

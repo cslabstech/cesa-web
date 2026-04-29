@@ -40,11 +40,16 @@ class PublicTransferApprovalConfirmationTest extends FormTransferTestCase
             ],
         ]);
 
-        $this->get('/transfer-requests/approval/approval-task-123')
+        $response = $this->get('/transfer-requests/approval/approval-task-123');
+
+        $response
             ->assertOk()
             ->assertDontSee('wire:confirm', false)
             ->assertSee("mountAction('confirmApprove'", false)
             ->assertSee("mountAction('confirmReject'", false);
+
+        expect(substr_count($response->getContent(), 'x-data="{ expanded: true }"'))
+            ->toBeGreaterThanOrEqual(3);
 
         Livewire::test(PublicTransferApprovalPage::class, ['task' => 'approval-task-123'])
             ->assertActionExists('confirmApprove')

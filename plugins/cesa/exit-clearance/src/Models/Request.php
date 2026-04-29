@@ -137,6 +137,17 @@ class Request extends Model
             ->withTrashed();
     }
 
+    public function getPublicProgressUrl(): string
+    {
+        if (blank($this->form_response_id)) {
+            return url('exit-clearance');
+        }
+
+        return route('exit-clearance.public.progress', [
+            'response' => $this->form_response_id,
+        ]);
+    }
+
     protected static function newFactory(): RequestFactory
     {
         return RequestFactory::new();

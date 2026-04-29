@@ -23,6 +23,12 @@ return [
     'action'               => 'Action',
     'reject'               => 'Reject',
     'approve'              => 'Approve',
+    'confirm'              => [
+        'approve_heading'     => 'Approve this exit clearance?',
+        'approve_description' => 'Make sure the submission details and notes are correct. After approval, your approval status will be saved.',
+        'reject_heading'      => 'Reject this exit clearance?',
+        'reject_description'  => 'Make sure the rejection note is correct. After rejection, your approval status will be saved.',
+    ],
     'information'          => 'Information',
     'already_processed'    => 'This stage has been processed. You may close this page.',
 ];

@@ -6,6 +6,7 @@ use Cesa\ExitClearance\Models\Approver;
 use Cesa\ExitClearance\Models\Request as ExitClearanceRequest;
 use Cesa\ExitClearance\Services\ExitClearanceNotificationService;
 use Cesa\ExitClearance\Services\ExitClearanceRequestService;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Notifications\Notification;
@@ -158,6 +159,44 @@ class PublicExitClearanceApprovalPage extends SimplePage
             ->title(__('exit-clearance::livewire/public-exit-clearance-approval-page.rejected_success'))
             ->danger()
             ->send();
+    }
+
+    public function confirmApproveAction(): Action
+    {
+        return Action::make('confirmApprove')
+            ->label(__('exit-clearance::livewire/public-exit-clearance-approval-page.approve'))
+            ->button()
+            ->color('success')
+            ->icon('heroicon-m-check-circle')
+            ->extraAttributes(['class' => 'w-full justify-center'])
+            ->requiresConfirmation()
+            ->modalHeading(__('exit-clearance::livewire/public-exit-clearance-approval-page.confirm.approve_heading'))
+            ->modalDescription(__('exit-clearance::livewire/public-exit-clearance-approval-page.confirm.approve_description'))
+            ->modalSubmitActionLabel(__('exit-clearance::livewire/public-exit-clearance-approval-page.approve'))
+            ->modalIcon('heroicon-m-check-circle')
+            ->modalIconColor('success')
+            ->action(function (): void {
+                $this->approve();
+            });
+    }
+
+    public function confirmRejectAction(): Action
+    {
+        return Action::make('confirmReject')
+            ->label(__('exit-clearance::livewire/public-exit-clearance-approval-page.reject'))
+            ->button()
+            ->color('danger')
+            ->icon('heroicon-m-x-circle')
+            ->extraAttributes(['class' => 'w-full justify-center'])
+            ->requiresConfirmation()
+            ->modalHeading(__('exit-clearance::livewire/public-exit-clearance-approval-page.confirm.reject_heading'))
+            ->modalDescription(__('exit-clearance::livewire/public-exit-clearance-approval-page.confirm.reject_description'))
+            ->modalSubmitActionLabel(__('exit-clearance::livewire/public-exit-clearance-approval-page.reject'))
+            ->modalIcon('heroicon-m-x-circle')
+            ->modalIconColor('danger')
+            ->action(function (): void {
+                $this->reject();
+            });
     }
 
     public function isPendingApproval(): bool

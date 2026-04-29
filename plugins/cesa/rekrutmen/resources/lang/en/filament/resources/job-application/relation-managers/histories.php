@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'title'   => 'History',
+    'title'   => 'Activity Notes',
     'form'    => [
         'fields' => [
             'activity_date' => 'Activity Date',
@@ -9,6 +9,8 @@ return [
         ],
     ],
     'columns' => [
+        'activity'      => 'Activity',
+        'result'        => 'Result',
         'from_stage'    => 'From Stage',
         'to_stage'      => 'To Stage',
         'status'        => 'Status',
@@ -27,6 +29,8 @@ return [
         'updated' => 'Activity history date has been updated.',
     ],
     'placeholders' => [
+        'activity'   => 'Manual activity',
+        'result'     => '-',
         'from_stage' => 'Start',
         'to_stage'   => 'N/A',
     ],

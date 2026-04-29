@@ -2,6 +2,7 @@
 
 namespace Cesa\Rekrutmen\Tests\Feature;
 
+use Cesa\Rekrutmen\Enums\RequestManPowerApprovalStatus;
 use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Enums\StatusKebutuhan;
 use Cesa\Rekrutmen\Livewire\PublicRequestManPowerProgressPage;
@@ -13,11 +14,16 @@ class PublicRequestManPowerProgressLookupTest extends RekrutmenTestCase
 {
     public function test_public_manpower_progress_lookup_form_is_available_without_response_token(): void
     {
-        $this->get('/man-power/progress')
+        $response = $this->get('/man-power/progress');
+
+        $response
             ->assertOk()
             ->assertSee('Cek progress request man power')
             ->assertSee('Email Pengaju')
             ->assertDontSee('ID Tracking (opsional)');
+
+        expect(substr_count($response->getContent(), 'x-data="{ expanded: true }"'))
+            ->toBeGreaterThanOrEqual(1);
     }
 
     public function test_public_manpower_progress_lookup_lists_requests_for_email(): void
@@ -61,10 +67,25 @@ class PublicRequestManPowerProgressLookupTest extends RekrutmenTestCase
             'status_response_id' => 'tracking-token-789',
         ]);
 
-        $this->get('/man-power/progress/'.$request->status_response_id)
+        $request->approvals()->create([
+            'approver_name'      => 'Approval Manager',
+            'approver_email'     => 'approval.manager@example.com',
+            'approver_title'     => 'Manager',
+            'step_order'         => 1,
+            'status'             => RequestManPowerApprovalStatus::PENDING,
+            'action_token'       => 'progress-approval-token',
+            'action_expires_at'  => now()->addDay(),
+        ]);
+
+        $response = $this->get('/man-power/progress/'.$request->status_response_id);
+
+        $response
             ->assertOk()
             ->assertSee('Backend Engineer')
             ->assertSee('Status saat ini');
+
+        expect(substr_count($response->getContent(), 'x-data="{ expanded: true }"'))
+            ->toBeGreaterThanOrEqual(2);
     }
 
     private function createRequestManPower(array $attributes = []): RequestManPower

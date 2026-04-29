@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'title'   => 'Riwayat',
+    'title'   => 'Catatan Aktivitas',
     'form'    => [
         'fields' => [
             'activity_date' => 'Tanggal Aktivitas',
@@ -9,6 +9,8 @@ return [
         ],
     ],
     'columns' => [
+        'activity'      => 'Aktivitas',
+        'result'        => 'Hasil',
         'from_stage'    => 'Dari Tahap',
         'to_stage'      => 'Ke Tahap',
         'status'        => 'Status',
@@ -27,6 +29,8 @@ return [
         'updated' => 'Tanggal riwayat aktivitas berhasil diperbarui.',
     ],
     'placeholders' => [
+        'activity'   => 'Aktivitas manual',
+        'result'     => '-',
         'from_stage' => 'Awal',
         'to_stage'   => 'N/A',
     ],

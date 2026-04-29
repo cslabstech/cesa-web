@@ -65,6 +65,14 @@ class HistoriesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('status')
             ->columns([
+                Tables\Columns\TextColumn::make('activity_title')
+                    ->label(__('rekrutmen::filament/resources/job-application/relation-managers/histories.columns.activity'))
+                    ->state(fn (JobApplicationHistory $record): string => $record->activity_title ?: $record->activityLabel())
+                    ->placeholder(__('rekrutmen::filament/resources/job-application/relation-managers/histories.placeholders.activity')),
+                Tables\Columns\TextColumn::make('result')
+                    ->label(__('rekrutmen::filament/resources/job-application/relation-managers/histories.columns.result'))
+                    ->badge()
+                    ->placeholder(__('rekrutmen::filament/resources/job-application/relation-managers/histories.placeholders.result')),
                 Tables\Columns\TextColumn::make('fromStage.name')
                     ->label(__('rekrutmen::filament/resources/job-application/relation-managers/histories.columns.from_stage'))
                     ->placeholder(__('rekrutmen::filament/resources/job-application/relation-managers/histories.placeholders.from_stage')),
