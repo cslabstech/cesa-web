@@ -32,6 +32,8 @@ return [
     'realization_closed'              => 'Pengajuan transfer ini tidak dapat menerima realisasi tambahan.',
     'realization_amount_min'          => 'Nominal realisasi harus lebih dari nol.',
     'realization_amount_max'          => 'Nominal realisasi tidak boleh melebihi sisa realisasi (:amount).',
+    'realization_total_amount_max'    => 'Total nominal realisasi tidak boleh melebihi nominal transfer (:amount).',
+    'realization_not_found'           => 'Baris realisasi yang dipilih tidak ditemukan.',
     'recaptcha_required'              => 'Harap selesaikan verifikasi keamanan sebelum mengirim.',
     'recaptcha_failed'                => 'Verifikasi keamanan gagal. Silakan coba lagi.',
     'rate_limited'                    => 'Terlalu banyak pengajuan terdeteksi. Coba lagi dalam :seconds detik.',

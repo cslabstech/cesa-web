@@ -7,6 +7,6 @@ test('view transfer request page gates mutating header actions with update autho
 
     expect($contents)->toBeString()
         ->toContain('use Illuminate\Support\Facades\Gate;')
-        ->and(substr_count($contents, "Gate::allows('update', \$record)"))->toBe(2)
-        ->and(substr_count($contents, "Gate::authorize('update', \$record);"))->toBe(2);
+        ->and(substr_count($contents, "Gate::allows('update', \$record)"))->toBe(3)
+        ->and(substr_count($contents, "Gate::authorize('update', \$record);"))->toBe(3);
 });

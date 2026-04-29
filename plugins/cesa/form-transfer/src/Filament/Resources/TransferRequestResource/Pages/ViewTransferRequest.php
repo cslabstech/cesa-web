@@ -14,6 +14,8 @@ use Cesa\FormTransfer\Support\TransferRequestAttachmentField;
 use Filament\Actions;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -138,7 +140,7 @@ class ViewTransferRequest extends ViewRecord
                         ->visible(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::DONE->value),
                 ])
                 ->fillForm(fn (TransferRequest $record): array => [
-                    'amount'             => $record->remaining_realization_amount,
+                    'amount'             => null,
                     'realization_status' => TransferRequestRealizationStatus::DONE->value,
                     'realized_at'        => now()->toDateString(),
                     'realization_notes'  => null,
@@ -163,6 +165,63 @@ class ViewTransferRequest extends ViewRecord
                     ]);
                 })
                 ->modalHeading(__('form-transfer::filament/resources/transfer-request/actions.realize_transfer')),
+            Action::make('edit-realizations')
+                ->label(__('form-transfer::filament/resources/transfer-request/actions.edit_realization'))
+                ->icon('heroicon-o-pencil-square')
+                ->color('gray')
+                ->slideOver()
+                ->modalWidth('lg')
+                ->visible(fn (TransferRequest $record): bool => Gate::allows('update', $record) && $record->realizations()->exists())
+                ->form([
+                    Repeater::make('realizations')
+                        ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_history'))
+                        ->schema([
+                            Hidden::make('id'),
+                            TextInput::make('amount')
+                                ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_amount'))
+                                ->numeric()
+                                ->prefix('Rp')
+                                ->required(),
+                            DatePicker::make('realized_at')
+                                ->label(__('form-transfer::filament/resources/transfer-request/fields.realized_at'))
+                                ->native(false)
+                                ->required(),
+                            Textarea::make('notes')
+                                ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_notes'))
+                                ->rows(3)
+                                ->nullable()
+                                ->columnSpanFull(),
+                            TransferRequestAttachmentField::makeRealizationProof('proof_path')
+                                ->columnSpanFull(),
+                        ])
+                        ->columns(2)
+                        ->defaultItems(0)
+                        ->reorderable(false)
+                        ->addActionLabel(__('form-transfer::filament/resources/transfer-request/actions.add_realization'))
+                        ->columnSpanFull(),
+                ])
+                ->fillForm(fn (TransferRequest $record): array => [
+                    'realizations' => $record->realizations()
+                        ->get()
+                        ->map(fn ($realization): array => [
+                            'id'          => $realization->getKey(),
+                            'amount'      => $realization->amount,
+                            'realized_at' => $realization->realized_at?->toDateString(),
+                            'proof_path'  => $realization->proof_path,
+                            'notes'       => $realization->notes,
+                        ])
+                        ->values()
+                        ->all(),
+                ])
+                ->action(function (TransferRequest $record, array $data): void {
+                    Gate::authorize('update', $record);
+
+                    $record->replaceRealizations(
+                        is_array($data['realizations'] ?? null) ? $data['realizations'] : [],
+                        Auth::id(),
+                    );
+                })
+                ->modalHeading(__('form-transfer::filament/resources/transfer-request/actions.edit_realization')),
         ];
     }
 

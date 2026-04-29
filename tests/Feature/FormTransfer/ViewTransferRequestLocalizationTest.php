@@ -8,6 +8,7 @@ test('view transfer request page uses translation keys for admin actions and not
     expect($contents)->toBeString()
         ->toContain("__('form-transfer::filament/resources/transfer-request/view.transfer_request.actions.download_pdf')")
         ->toContain("__('form-transfer::filament/resources/transfer-request/view.transfer_request.actions.resend_pending_approver')")
+        ->toContain("__('form-transfer::filament/resources/transfer-request/actions.edit_realization')")
         ->toContain("__('form-transfer::filament/resources/transfer-request/view.transfer_request.actions.resend_notification_heading')")
         ->toContain("__('form-transfer::filament/resources/transfer-request/view.transfer_request.notifications.approval_completed_title')")
         ->toContain('form-transfer::filament/resources/transfer-request/view.transfer_request.notifications.notification_resent_body')

@@ -202,6 +202,97 @@ class FormTransferModelTest extends FormTransferTestCase
         $this->assertSame('Pelunasan', $request->realization_notes);
     }
 
+    public function test_transfer_request_realizations_can_be_adjusted_after_accidental_full_realization(): void
+    {
+        $user = User::factory()->create();
+        $bank = TransferBank::factory()->create();
+        $formTransfer = FormTransfer::factory()->create([
+            'creator_id' => $user->id,
+        ]);
+
+        $request = TransferRequest::query()->create([
+            'form_transfer_id' => $formTransfer->id,
+            'user_id'          => $user->id,
+            'creator_id'       => $user->id,
+            'requester_name'   => 'Budi',
+            'email'            => 'budi@example.com',
+            'account_number'   => '123456789',
+            'account_name'     => 'Budi Santoso',
+            'bank_id'          => $bank->id,
+            'transfer_amount'  => 1000000,
+            'purpose'          => 'Operational transfer',
+        ]);
+
+        $realization = $request->recordRealization([
+            'amount'      => 1000000,
+            'realized_at' => '2026-04-20',
+            'notes'       => 'Salah input full',
+            'user_id'     => $user->id,
+        ]);
+
+        $request->refresh();
+
+        $this->assertSame(TransferRequestRealizationStatus::DONE, $request->realization_status);
+
+        $request->replaceRealizations([
+            [
+                'id'          => $realization->id,
+                'amount'      => 400000,
+                'realized_at' => '2026-04-20',
+                'notes'       => 'Koreksi cicilan pertama',
+            ],
+        ], $user->id);
+
+        $request->refresh();
+        $realization->refresh();
+
+        $this->assertSame(TransferRequestRealizationStatus::PARTIAL, $request->realization_status);
+        $this->assertSame('400000.00', $request->realized_amount);
+        $this->assertSame('600000.00', $request->remaining_realization_amount);
+        $this->assertTrue($request->canRecordAdditionalRealization());
+        $this->assertSame('400000.00', $realization->amount);
+        $this->assertSame('Koreksi cicilan pertama', $request->realization_notes);
+    }
+
+    public function test_transfer_request_realization_adjustment_rejects_total_above_transfer_amount(): void
+    {
+        $user = User::factory()->create();
+        $bank = TransferBank::factory()->create();
+        $formTransfer = FormTransfer::factory()->create([
+            'creator_id' => $user->id,
+        ]);
+
+        $request = TransferRequest::query()->create([
+            'form_transfer_id' => $formTransfer->id,
+            'user_id'          => $user->id,
+            'creator_id'       => $user->id,
+            'requester_name'   => 'Budi',
+            'email'            => 'budi@example.com',
+            'account_number'   => '123456789',
+            'account_name'     => 'Budi Santoso',
+            'bank_id'          => $bank->id,
+            'transfer_amount'  => 1000000,
+            'purpose'          => 'Operational transfer',
+        ]);
+
+        try {
+            $request->replaceRealizations([
+                ['amount' => 700000, 'realized_at' => '2026-04-20'],
+                ['amount' => 400000, 'realized_at' => '2026-04-21'],
+            ], $user->id);
+
+            $this->fail('Expected over-realization adjustment to be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('realizations', $exception->errors());
+        }
+
+        $request->refresh();
+
+        $this->assertSame(TransferRequestRealizationStatus::PENDING, $request->realization_status);
+        $this->assertSame('0.00', $request->realized_amount);
+        $this->assertSame(0, $request->realizations()->count());
+    }
+
     public function test_transfer_request_rejects_realization_amount_above_remaining_balance(): void
     {
         $user = User::factory()->create();

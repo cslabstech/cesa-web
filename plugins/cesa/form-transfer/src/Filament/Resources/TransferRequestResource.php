@@ -803,7 +803,7 @@ class TransferRequestResource extends FormTransferResource
                             ->visible(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::DONE->value),
                     ])
                     ->fillForm(fn (TransferRequest $record): array => [
-                        'amount'             => $record->remaining_realization_amount,
+                        'amount'             => null,
                         'realized_at'        => now()->toDateString(),
                         'realization_notes'  => null,
                         'realization_status' => TransferRequestRealizationStatus::DONE->value,

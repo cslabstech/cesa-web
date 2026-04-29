@@ -32,6 +32,8 @@ return [
     'realization_closed'              => 'This transfer request cannot receive another realization.',
     'realization_amount_min'          => 'The realization amount must be greater than zero.',
     'realization_amount_max'          => 'The realization amount may not be greater than the remaining amount (:amount).',
+    'realization_total_amount_max'    => 'The total realization amount may not be greater than the transfer amount (:amount).',
+    'realization_not_found'           => 'The selected realization row could not be found.',
     'rate_limited'                    => 'Too many submissions detected. Please try again in :seconds seconds.',
     'recaptcha_required'              => 'Please complete the security verification before submitting.',
     'recaptcha_failed'                => 'Security verification failed. Please try again.',

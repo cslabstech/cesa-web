@@ -711,6 +711,102 @@ class TransferRequest extends Model
         ]);
     }
 
+    /**
+     * @param  array<int, array{id?: mixed, amount?: mixed, realized_at?: mixed, proof_path?: mixed, notes?: mixed}>  $realizations
+     */
+    public function replaceRealizations(array $realizations, ?int $userId = null): void
+    {
+        $normalizedRealizations = [];
+        $totalCents = 0;
+
+        foreach (array_values($realizations) as $realization) {
+            if (! is_array($realization)) {
+                continue;
+            }
+
+            $amountCents = static::amountToCents($realization['amount'] ?? null);
+
+            if ($amountCents <= 0) {
+                throw ValidationException::withMessages([
+                    'realizations' => __('form-transfer::filament/resources/transfer-request/validation.realization_amount_min'),
+                ]);
+            }
+
+            $totalCents += $amountCents;
+
+            $normalizedRealizations[] = [
+                'id'          => is_numeric($realization['id'] ?? null) ? (int) $realization['id'] : null,
+                'amount'      => static::centsToAmount($amountCents),
+                'realized_at' => $realization['realized_at'] ?? null,
+                'proof_path'  => $realization['proof_path'] ?? null,
+                'notes'       => $realization['notes'] ?? null,
+            ];
+        }
+
+        $transferCents = static::amountToCents($this->transfer_amount);
+
+        if ($transferCents > 0 && $totalCents > $transferCents) {
+            throw ValidationException::withMessages([
+                'realizations' => __('form-transfer::filament/resources/transfer-request/validation.realization_total_amount_max', [
+                    'amount' => static::centsToAmount($transferCents),
+                ]),
+            ]);
+        }
+
+        $this->getConnection()->transaction(function () use ($normalizedRealizations, $userId): void {
+            $activeRealizationIds = [];
+
+            foreach ($normalizedRealizations as $realizationData) {
+                $realization = null;
+
+                if ($realizationData['id']) {
+                    $realization = $this->realizations()
+                        ->whereKey($realizationData['id'])
+                        ->first();
+
+                    if (! $realization instanceof TransferRequestRealization) {
+                        throw ValidationException::withMessages([
+                            'realizations' => __('form-transfer::filament/resources/transfer-request/validation.realization_not_found'),
+                        ]);
+                    }
+                }
+
+                if (! $realization instanceof TransferRequestRealization) {
+                    $realization = $this->realizations()->make([
+                        'user_id' => $userId,
+                    ]);
+                }
+
+                $realization->fill([
+                    'amount'      => $realizationData['amount'],
+                    'realized_at' => $realizationData['realized_at'],
+                    'proof_path'  => $realizationData['proof_path'],
+                    'notes'       => $realizationData['notes'],
+                ]);
+
+                if (! $realization->user_id && $userId) {
+                    $realization->user_id = $userId;
+                }
+
+                $realization->save();
+
+                $activeRealizationIds[] = $realization->getKey();
+            }
+
+            $realizationsToDelete = $this->realizations();
+
+            if ($activeRealizationIds !== []) {
+                $realizationsToDelete->whereNotIn('id', $activeRealizationIds);
+            }
+
+            $realizationsToDelete
+                ->get()
+                ->each(fn (TransferRequestRealization $realization): ?bool => $realization->delete());
+
+            $this->refreshRealizationSummary();
+        });
+    }
+
     public function cancelRealization(?string $notes = null): void
     {
         $this->forceFill([
