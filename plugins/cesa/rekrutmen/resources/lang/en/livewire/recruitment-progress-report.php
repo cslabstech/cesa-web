@@ -47,6 +47,7 @@ return [
         'est_join'         => 'Est. Join',
         'open'             => 'Open',
         'closed'           => 'Closed',
+        'hired_candidates' => 'Hired Employees',
         'pipeline_funnel'  => 'Pipeline Funnel',
         'activity_history' => 'Activity History',
         'total'            => 'Total',

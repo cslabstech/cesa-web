@@ -229,6 +229,23 @@
                                             @endif
                                         </div>
                                     @endif
+                                    @if($positionData['hired_candidates']->isNotEmpty())
+                                        <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                                            <span class="font-semibold text-emerald-700 dark:text-emerald-400">
+                                                {{ __('rekrutmen::livewire/recruitment-progress-report.labels.hired_candidates') }}:
+                                            </span>
+                                            @foreach($positionData['hired_candidates'] as $candidate)
+                                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                                    {{ $candidate['full_name'] }}
+                                                    @if($candidate['hired_at_label'] !== '-')
+                                                        <span class="text-emerald-500 dark:text-emerald-400">
+                                                            ({{ $candidate['hired_at_label'] }})
+                                                        </span>
+                                                    @endif
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    @endif
                                 </div>
 
                                 {{-- Stats Mini --}}
@@ -413,9 +430,19 @@
                                         </span>
                                     </td>
                                     <td class="px-4 py-4 text-center">
+                                        @php $hiredCandidates = collect($item['hired_candidates'] ?? []); @endphp
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $item['hired'] > 0 ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500' }}">
                                             {{ $item['hired'] }}
                                         </span>
+                                        @if($hiredCandidates->isNotEmpty())
+                                            <div class="mt-1 space-y-0.5 text-[11px] font-medium leading-tight text-emerald-700 dark:text-emerald-400">
+                                                @foreach($hiredCandidates as $candidate)
+                                                    <div title="{{ $candidate['hired_at_label'] }}">
+                                                        {{ $candidate['full_name'] }}
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endif
                                     </td>
                                     <td class="px-4 py-4 text-center">
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400">

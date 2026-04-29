@@ -443,7 +443,7 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
                     'company'          => $this->uppercase($request?->company?->name),
                     'request_date'     => $this->formatDate($requestDate),
                     'snapshot_date'    => $this->formatDate($snapshotDate),
-                    'days'             => $requestDate->diffInDays($snapshotDate),
+                    'days'             => $this->fulfillmentDays($requestDate, $snapshotDate),
                     'quantity'         => $outstanding,
                     'position'         => $this->uppercase($position['posting']?->title),
                     'location'         => $this->uppercase($position['posting']?->location),
@@ -500,7 +500,7 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
                     'company'          => $this->uppercase($request?->company?->name),
                     'request_date'     => $this->formatDate($requestDate),
                     'join_date'        => $this->formatDate($joinDate),
-                    'days'             => $requestDate->diffInDays($joinDate),
+                    'days'             => $this->fulfillmentDays($requestDate, $joinDate),
                     'quantity'         => 1,
                     'position'         => $this->uppercase($position['posting']?->title),
                     'location'         => $this->uppercase($position['posting']?->location),
@@ -511,6 +511,7 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
                     'is_on_hold'       => $isOnHold,
                     'replacement_note' => $this->replacementNote($request),
                     'update_date'      => $this->formatDate($joinDate),
+                    'candidate_name'   => $this->uppercase($history->jobApplication?->full_name),
                 ];
             })
             ->filter()
@@ -751,7 +752,7 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
                 return [
                     'company'        => $request?->company?->name ?? '-',
                     'request_date'   => $this->formatDate($requestDate),
-                    'age_days'       => $requestDate->diffInDays($snapshotDate),
+                    'age_days'       => $this->fulfillmentDays($requestDate, $snapshotDate),
                     'position'       => $position['posting']?->title ?? '-',
                     'location'       => $position['posting']?->location ?? '-',
                     'needed'         => $needed,
@@ -775,7 +776,7 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
 
     protected function positionPriorityLabel(int $outstanding, int $inProgress, Carbon $requestDate, Carbon $snapshotDate, bool $isOnHold): string
     {
-        $ageDays = $requestDate->diffInDays($snapshotDate);
+        $ageDays = $this->fulfillmentDays($requestDate, $snapshotDate);
 
         if ($isOnHold) {
             return 'Hold - menunggu keputusan user';
@@ -795,6 +796,11 @@ class RecruitmentProgressReportExport implements WithMultipleSheets
 
         return 'Pipeline belum cukup, perlu percepatan';
     }
+
+    protected function fulfillmentDays(Carbon $from, Carbon $to): int
+    {
+        return (int) $from->copy()->startOfDay()->diffInDays($to->copy()->startOfDay());
+    }
 }
 
 class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWidths, WithStyles, WithTitle
@@ -805,17 +811,17 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
     protected Collection $sections;
 
     /**
-     * @var array<int, int>
+     * @var array<int, string>
      */
     protected array $titleRows = [];
 
     /**
-     * @var array<int, int>
+     * @var array<int, string>
      */
     protected array $headerRows = [];
 
     /**
-     * @var array<int, int>
+     * @var array<int, string>
      */
     protected array $totalRows = [];
 
@@ -839,12 +845,12 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
         $currentRow = 1;
 
         foreach ($this->sections as $section) {
-            $this->titleRows[] = $currentRow;
+            $this->titleRows[$currentRow] = 'M';
             $rows[] = ['MPP BULAN '.$section['month_label']];
             $currentRow++;
 
-            $this->headerRows[] = $currentRow;
-            $rows[] = $this->headers('TANGGAL SAAT INI');
+            $this->headerRows[$currentRow] = 'M';
+            $rows[] = $this->mppHeaders();
             $currentRow++;
 
             $openRows = collect($section['open_rows']);
@@ -873,24 +879,24 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
                 }
             }
 
-            $this->totalRows[] = $currentRow;
+            $this->totalRows[$currentRow] = 'M';
             $rows[] = ['TOTAL', null, null, null, $section['open_total'], null, null, null, null, null, null, null, null];
             $currentRow++;
             $rows[] = [null];
             $currentRow++;
 
-            $this->titleRows[] = $currentRow;
+            $this->titleRows[$currentRow] = 'N';
             $rows[] = ['KARYAWAN JOIN BULAN '.$section['month_label']];
             $currentRow++;
 
-            $this->headerRows[] = $currentRow;
-            $rows[] = $this->headers('JOIN DATE');
+            $this->headerRows[$currentRow] = 'N';
+            $rows[] = $this->joinHeaders();
             $currentRow++;
 
             $joinRows = collect($section['join_rows']);
 
             if ($joinRows->isEmpty()) {
-                $rows[] = ['Belum ada karyawan join pada bulan ini.', null, null, null, 0, null, null, null, null, null, null, null, null];
+                $rows[] = ['Belum ada karyawan join pada bulan ini.', null, null, null, 0, null, null, null, null, null, null, null, null, null];
                 $currentRow++;
             } else {
                 foreach ($joinRows as $row) {
@@ -908,19 +914,39 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
                         $row['request_status'],
                         $row['replacement_note'],
                         $row['update_date'],
+                        $row['candidate_name'],
                     ];
                     $currentRow++;
                 }
             }
 
-            $this->totalRows[] = $currentRow;
-            $rows[] = ['TOTAL', null, null, null, $section['join_total'], null, null, null, null, null, null, null, null];
+            $this->totalRows[$currentRow] = 'N';
+            $rows[] = ['TOTAL', null, null, null, $section['join_total'], null, null, null, null, null, null, null, null, null];
             $currentRow++;
             $rows[] = [null];
             $currentRow++;
         }
 
         return $rows;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function mppHeaders(): array
+    {
+        return $this->headers('TANGGAL SAAT INI');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function joinHeaders(): array
+    {
+        return [
+            ...$this->headers('JOIN DATE'),
+            'NAMA KARYAWAN JOIN',
+        ];
     }
 
     /**
@@ -961,6 +987,7 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
             'K' => 18,
             'L' => 28,
             'M' => 18,
+            'N' => 24,
         ];
     }
 
@@ -976,9 +1003,9 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
     {
         $lastRow = $sheet->getHighestRow();
 
-        foreach ($this->titleRows as $row) {
-            $sheet->mergeCells("A{$row}:M{$row}");
-            $sheet->getStyle("A{$row}:M{$row}")->applyFromArray([
+        foreach ($this->titleRows as $row => $lastColumn) {
+            $sheet->mergeCells("A{$row}:{$lastColumn}{$row}");
+            $sheet->getStyle("A{$row}:{$lastColumn}{$row}")->applyFromArray([
                 'font' => [
                     'bold'  => true,
                     'size'  => 16,
@@ -991,8 +1018,8 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
             ]);
         }
 
-        foreach ($this->headerRows as $row) {
-            $sheet->getStyle("A{$row}:M{$row}")->applyFromArray([
+        foreach ($this->headerRows as $row => $lastColumn) {
+            $sheet->getStyle("A{$row}:{$lastColumn}{$row}")->applyFromArray([
                 'font' => [
                     'bold'  => true,
                     'color' => ['rgb' => '0F172A'],
@@ -1015,8 +1042,8 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
             ]);
         }
 
-        foreach ($this->totalRows as $row) {
-            $sheet->getStyle("A{$row}:M{$row}")->applyFromArray([
+        foreach ($this->totalRows as $row => $lastColumn) {
+            $sheet->getStyle("A{$row}:{$lastColumn}{$row}")->applyFromArray([
                 'font' => [
                     'bold' => true,
                 ],
@@ -1033,14 +1060,14 @@ class RecruitmentProgressMonthlyOverviewSheet implements FromArray, WithColumnWi
             ]);
         }
 
-        $sheet->getStyle("A1:M{$lastRow}")->applyFromArray([
+        $sheet->getStyle("A1:N{$lastRow}")->applyFromArray([
             'alignment' => [
                 'vertical' => Alignment::VERTICAL_TOP,
                 'wrapText' => true,
             ],
         ]);
 
-        $sheet->getStyle("A1:M{$lastRow}")
+        $sheet->getStyle("A1:N{$lastRow}")
             ->getBorders()
             ->getAllBorders()
             ->setBorderStyle(Border::BORDER_THIN);

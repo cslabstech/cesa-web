@@ -37,6 +37,7 @@ class RecruitmentProgressReportService
         $postings = $this->loadPostings($postingIds);
         $statsByPosting = $this->loadApplicationStats($postingIds);
         $decisionCounts = $this->loadDecisionCounts($postingIds, $filters);
+        $hiredCandidatesByPosting = $this->loadHiredCandidates($postingIds, $filters);
         $stageCountsByPosting = $this->loadCurrentStageCounts($postingIds);
         $historyEntries = $this->loadHistoryEntries($filters, $postingIds);
         $entriesByGroup = $historyEntries->groupBy('activity_group_id');
@@ -53,7 +54,8 @@ class RecruitmentProgressReportService
             $statsByPosting,
             $stageCountsByPosting,
             $passedCountsByPostingStage,
-            $formattedActivities
+            $formattedActivities,
+            $hiredCandidatesByPosting,
         );
 
         return [
@@ -173,6 +175,54 @@ class RecruitmentProgressReportService
                 ->distinct()
                 ->count('job_application_id'),
         ];
+    }
+
+    /**
+     * @param  int[]  $postingIds
+     * @param  array{
+     *     date_from?: ?string,
+     *     date_to?: ?string
+     * }  $filters
+     * @return Collection<int, Collection<int, array{id:int,job_posting_id:int,full_name:string,hired_at:?string,hired_at_label:string,performed_by:?string,notes:?string}>>
+     */
+    protected function loadHiredCandidates(array $postingIds, array $filters): Collection
+    {
+        if ($postingIds === []) {
+            return collect();
+        }
+
+        $query = JobApplicationHistory::query()
+            ->where('status', JobApplicationStatus::HIRED->value)
+            ->whereIn('job_application_id', function ($query) use ($postingIds): void {
+                $query->select('id')
+                    ->from('rekrutmen_job_applications')
+                    ->whereIn('job_posting_id', $postingIds)
+                    ->whereNull('deleted_at');
+            })
+            ->with(['jobApplication', 'performer'])
+            ->orderByDesc('activity_date')
+            ->orderByDesc('created_at');
+
+        $this->applyDecisionDateFilters($query, $filters);
+
+        return $query
+            ->get()
+            ->unique('job_application_id')
+            ->filter(fn (JobApplicationHistory $history): bool => filled($history->jobApplication?->job_posting_id))
+            ->map(function (JobApplicationHistory $history): array {
+                $eventDate = $this->historyEventDate($history);
+
+                return [
+                    'id'             => (int) $history->job_application_id,
+                    'job_posting_id' => (int) $history->jobApplication->job_posting_id,
+                    'full_name'      => $history->jobApplication->full_name ?? '-',
+                    'hired_at'       => $eventDate?->toDateString(),
+                    'hired_at_label' => $this->formatDate($eventDate),
+                    'performed_by'   => $history->performer?->name,
+                    'notes'          => $history->notes,
+                ];
+            })
+            ->groupBy('job_posting_id');
     }
 
     /**
@@ -351,6 +401,7 @@ class RecruitmentProgressReportService
      * @param  array<int, array<int, int>>  $stageCountsByPosting
      * @param  array<int, array<int, int>>  $passedCountsByPostingStage
      * @param  Collection<int, array<string, mixed>>  $formattedActivities
+     * @param  Collection<int, Collection<int, array{id:int,job_posting_id:int,full_name:string,hired_at:?string,hired_at_label:string,performed_by:?string,notes:?string}>>  $hiredCandidatesByPosting
      * @return Collection<int, array<string, mixed>>
      */
     protected function buildPositions(
@@ -359,16 +410,18 @@ class RecruitmentProgressReportService
         array $stageCountsByPosting,
         array $passedCountsByPostingStage,
         Collection $formattedActivities,
+        Collection $hiredCandidatesByPosting,
     ): Collection {
         $activitiesByPosting = $formattedActivities
             ->filter(fn (array $activity): bool => filled($activity['job_posting_id']))
             ->groupBy('job_posting_id');
 
-        return $postings->map(function (JobPosting $posting) use ($statsByPosting, $stageCountsByPosting, $passedCountsByPostingStage, $activitiesByPosting): array {
+        return $postings->map(function (JobPosting $posting) use ($statsByPosting, $stageCountsByPosting, $passedCountsByPostingStage, $activitiesByPosting, $hiredCandidatesByPosting): array {
             $stats = $statsByPosting->get($posting->id);
             $request = $posting->requestManPower;
             $needed = (int) ($posting->requestManPower?->jumlah_karyawan_dibutuhkan ?? 1);
             $hired = (int) ($stats->hired ?? 0);
+            $hiredCandidates = $hiredCandidatesByPosting->get($posting->id, collect());
             $postingActivities = $activitiesByPosting->get($posting->id, collect())->values();
             $isOnHold = $request?->status === RequestManPowerStatus::HOLD;
 
@@ -393,6 +446,7 @@ class RecruitmentProgressReportService
                     'rejected'         => (int) ($stats->rejected ?? 0),
                 ],
                 'activities'             => $postingActivities,
+                'hired_candidates'       => $hiredCandidates->values(),
                 'pipeline_stages'        => $pipelineStages,
                 'latest_activity'        => $postingActivities->first(),
                 'needed'                 => $needed,
@@ -463,6 +517,7 @@ class RecruitmentProgressReportService
                 'needed'                 => $position['needed'],
                 'total_applicants'       => $position['statistics']['total_applicants'],
                 'hired'                  => $position['statistics']['hired'],
+                'hired_candidates'       => $position['hired_candidates'],
                 'in_progress'            => $position['statistics']['in_progress'],
                 'rejected'               => $position['statistics']['rejected'],
                 'latest_activity'        => $position['latest_activity'],
@@ -494,5 +549,27 @@ class RecruitmentProgressReportService
         }
 
         return implode(' ', $parts);
+    }
+
+    protected function historyEventDate(?JobApplicationHistory $history): ?Carbon
+    {
+        if (! $history instanceof JobApplicationHistory) {
+            return null;
+        }
+
+        if ($history->activity_date instanceof Carbon) {
+            return $history->activity_date->copy()->endOfDay();
+        }
+
+        return $history->created_at?->copy();
+    }
+
+    protected function formatDate(mixed $date): string
+    {
+        if ($date instanceof Carbon) {
+            return $date->format('d M Y');
+        }
+
+        return '-';
     }
 }

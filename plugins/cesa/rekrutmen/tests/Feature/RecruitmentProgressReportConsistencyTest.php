@@ -63,6 +63,14 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
             $this->user->id,
         );
 
+        Carbon::setTestNow('2026-04-08 09:00:00');
+
+        try {
+            $passedCandidate->markAsHired('Accepted', $this->user->id);
+        } finally {
+            Carbon::setTestNow();
+        }
+
         $otherCandidate->update([
             'status' => JobApplicationStatus::IN_PROGRESS,
         ]);
@@ -71,15 +79,17 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
         $reportResponse
             ->assertOk()
             ->assertJsonPath('summary.total_positions_active', 1)
-            ->assertJsonPath('summary.total_candidates_in_process', 1)
+            ->assertJsonPath('summary.total_candidates_in_process', 0)
             ->assertJsonPath('summary.total_activities_this_period', 1)
-            ->assertJsonPath('summary.total_hired_this_period', 0)
+            ->assertJsonPath('summary.total_hired_this_period', 1)
             ->assertJsonPath('summary.total_rejected_this_period', 1)
             ->assertJsonPath('activities.0.counts.total', 2)
             ->assertJsonPath('activities.0.counts.passed', 1)
             ->assertJsonPath('activities.0.counts.failed', 1)
             ->assertJsonPath('positions.0.total_applicants', 2)
-            ->assertJsonPath('positions.0.in_progress', 1)
+            ->assertJsonPath('positions.0.in_progress', 0)
+            ->assertJsonPath('positions.0.hired', 1)
+            ->assertJsonPath('positions.0.hired_candidates.0.full_name', 'PASSED CANDIDATE')
             ->assertJsonPath('positions.0.rejected', 1);
 
         $timelineResponse = $this->getJson('/api/recruitment/progress-report/timeline?job_posting_id='.$jobPosting->id.'&date_from=2026-04-01&date_to=2026-04-30');
@@ -93,7 +103,9 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
         $overviewResponse
             ->assertOk()
             ->assertJsonPath('overview.0.total_applicants', 2)
-            ->assertJsonPath('overview.0.in_progress', 1)
+            ->assertJsonPath('overview.0.in_progress', 0)
+            ->assertJsonPath('overview.0.hired', 1)
+            ->assertJsonPath('overview.0.hired_candidates.0.full_name', 'PASSED CANDIDATE')
             ->assertJsonPath('overview.0.rejected', 1)
             ->assertJsonPath('overview.0.latest_activity.summary', '2 Orang 1 Lolos 1 Tidak Lolos');
     }
@@ -153,6 +165,14 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
             $this->user->id,
         );
 
+        Carbon::setTestNow('2026-04-08 09:00:00');
+
+        try {
+            $secondCandidate->markAsHired('Accepted', $this->user->id);
+        } finally {
+            Carbon::setTestNow();
+        }
+
         $activityTitle = JobApplication::generateBatchActivityTitle($firstStage->name, '2026-04-07');
 
         $component = Livewire::test(RecruitmentProgressReport::class)
@@ -165,7 +185,8 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
 
         $component
             ->set('activeTab', 'per-position')
-            ->assertSee('PT IT Core');
+            ->assertSee('PT IT Core')
+            ->assertSee('LIVEWIRE TWO');
     }
 
     public function test_livewire_export_downloads_a_monthly_mpp_workbook_that_is_easy_to_read(): void
@@ -232,6 +253,22 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
 
                 $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'MPP BULAN APRIL 2026'));
                 $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'KARYAWAN JOIN BULAN APRIL 2026'));
+                $this->assertSame([
+                    'BADAN USAHA',
+                    'TANGGAL REQ',
+                    'TANGGAL SAAT INI',
+                    'LAMA PEMENUHAN/DAY',
+                    'JUMLAH',
+                    'POSISI',
+                    'PENEMPATAN',
+                    'USER',
+                    'PIC',
+                    'REPLACEMENT/NEW HIRING',
+                    'STATUS REQUEST',
+                    'KETERANGAN REPLACEMENT',
+                    'TANGGAL UPDATE PROGRES',
+                ], $overviewRows->first(fn (array $row): bool => ($row[2] ?? null) === 'TANGGAL SAAT INI'));
+                $this->assertSame('NAMA KARYAWAN JOIN', $overviewRows->first(fn (array $row): bool => ($row[2] ?? null) === 'JOIN DATE')[13] ?? null);
 
                 $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'PT FINANCE CORE'
                     && ($row[4] ?? null) === 1
@@ -239,13 +276,16 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
                     && ($row[10] ?? null) === 'HOLD'));
 
                 $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'PT IT CORE'
+                    && ($row[3] ?? null) === 28
                     && ($row[4] ?? null) === 1
                     && ($row[5] ?? null) === mb_strtoupper($aprilPosting->title)));
 
                 $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'PT IT CORE'
                     && ($row[2] ?? null) === '07 Apr 2026'
+                    && ($row[3] ?? null) === 5
                     && ($row[4] ?? null) === 1
-                    && ($row[5] ?? null) === mb_strtoupper($aprilPosting->title)));
+                    && ($row[5] ?? null) === mb_strtoupper($aprilPosting->title)
+                    && ($row[13] ?? null) === 'APRIL HIRED'));
 
                 $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'TOTAL' && ($row[4] ?? null) === 2));
                 $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'TOTAL' && ($row[4] ?? null) === 1));

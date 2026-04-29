@@ -49,6 +49,7 @@ return [
         'est_join'         => 'Est. Join',
         'open'             => 'Dibuka',
         'closed'           => 'Ditutup',
+        'hired_candidates' => 'Karyawan Hired',
         'pipeline_funnel'  => 'Funnel Pipeline',
         'activity_history' => 'Riwayat Aktivitas',
         'total'            => 'Total',

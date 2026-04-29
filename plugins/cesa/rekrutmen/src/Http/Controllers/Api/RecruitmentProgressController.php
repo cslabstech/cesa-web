@@ -39,6 +39,7 @@ class RecruitmentProgressController extends Controller
                 'needed'                 => $position['needed'],
                 'total_applicants'       => $position['statistics']['total_applicants'],
                 'hired'                  => $position['statistics']['hired'],
+                'hired_candidates'       => $position['hired_candidates']->values(),
                 'in_progress'            => $position['statistics']['in_progress'],
                 'rejected'               => $position['statistics']['rejected'],
                 'request_status'         => $position['request_status'],
@@ -95,7 +96,8 @@ class RecruitmentProgressController extends Controller
             ],
             'overview' => $report['overview']->map(fn (array $overview): array => [
                 ...$overview,
-                'latest_activity' => $overview['latest_activity']
+                'hired_candidates' => collect($overview['hired_candidates'])->values(),
+                'latest_activity'  => $overview['latest_activity']
                     ? [
                         'date'    => $overview['latest_activity']['activity_date']?->format('Y-m-d'),
                         'type'    => $overview['latest_activity']['activity_type'],
