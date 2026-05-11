@@ -3,6 +3,7 @@
 namespace Cesa\Rekrutmen\Filament\Resources;
 
 use Cesa\Rekrutmen\Enums\RequestManPowerApprovalStatus;
+use Cesa\Rekrutmen\Enums\RequestManPowerFulfillmentStatus;
 use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Enums\StatusKebutuhan;
 use Cesa\Rekrutmen\Filament\Resources\RequestManPowerResource\Pages;
@@ -341,6 +342,12 @@ class RequestManPowerResource extends Resource
                             ->collapsible(),
                         Section::make(__('rekrutmen::filament/resources/request-man-power.form.sections.approval_flow'))
                             ->schema([
+                                TextEntry::make('approval_configuration_status')
+                                    ->label(__('rekrutmen::filament/resources/request-man-power.form.fields.approval_configuration'))
+                                    ->state(fn (): string => __('rekrutmen::filament/resources/request-man-power.table.descriptions.approval_workflow_missing'))
+                                    ->badge()
+                                    ->color('warning')
+                                    ->visible(fn (RequestManPower $record): bool => $record->hasMissingApprovalWorkflow()),
                                 RepeatableEntry::make('approvals')
                                     ->label(__('rekrutmen::filament/resources/request-man-power.form.sections.approval_flow'))
                                     ->visible(fn (RequestManPower $record): bool => $record->approvals()->exists())
@@ -390,51 +397,89 @@ class RequestManPowerResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with(['approver', 'jobPosting', 'currentPendingApproval']))
+            ->modifyQueryUsing(fn ($query) => $query->with([
+                'approver',
+                'currentPendingApproval',
+                'division',
+                'jobPosting.applications:id,job_posting_id,status',
+                'jobPosting.requestManPowers',
+                'jobPosting.rekrutmenPipeline',
+            ])->withCount('approvals'))
             ->defaultSort('created_at', 'desc')
+            ->striped()
             ->columns([
-                Tables\Columns\TextColumn::make('nama_pengaju')
-                    ->label(__('rekrutmen::filament/resources/request-man-power.table.columns.nama_pengaju'))
-                    ->searchable()
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('posisi_dibutuhkan')
                     ->label(__('rekrutmen::filament/resources/request-man-power.table.columns.posisi_dibutuhkan'))
+                    ->description(fn (RequestManPower $record): string => self::formatTablePositionDescription($record))
                     ->searchable()
+                    ->wrap()
+                    ->lineClamp(2)
                     ->sortable(),
                 Tables\Columns\TextColumn::make('jobPosting.title')
                     ->label(__('rekrutmen::filament/resources/request-man-power.table.columns.job_posting'))
+                    ->description(fn (RequestManPower $record): ?string => $record->jobPosting
+                        ? JobPostingResource::formatJobPostingContext($record->jobPosting)
+                        : null)
                     ->placeholder(__('rekrutmen::filament/resources/request-man-power.table.placeholders.job_posting'))
+                    ->wrap()
+                    ->lineClamp(2)
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('division.name')
                     ->label(__('rekrutmen::filament/resources/request-man-power.table.columns.division_id'))
                     ->placeholder(__('rekrutmen::filament/resources/request-man-power.table.placeholders.division_id'))
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('status_kebutuhan')
                     ->label(__('rekrutmen::filament/resources/request-man-power.table.columns.status_kebutuhan'))
                     ->badge()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('nama_karyawan_replacement')
-                    ->label(__('rekrutmen::filament/resources/request-man-power.table.columns.nama_karyawan_replacement'))
-                    ->placeholder(__('rekrutmen::filament/resources/request-man-power.table.placeholders.nama_karyawan_replacement'))
-                    ->searchable()
-                    ->toggleable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('jumlah_karyawan_dibutuhkan')
                     ->label(__('rekrutmen::filament/resources/request-man-power.table.columns.jumlah_karyawan_dibutuhkan'))
                     ->numeric()
+                    ->suffix(' orang')
+                    ->badge()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('fulfillment_status')
+                    ->label(__('rekrutmen::filament/resources/request-man-power.table.columns.fulfillment_status'))
+                    ->state(fn (RequestManPower $record): RequestManPowerFulfillmentStatus => $record->fulfillmentStatus())
+                    ->formatStateUsing(fn (RequestManPowerFulfillmentStatus|string|null $state): string => $state instanceof RequestManPowerFulfillmentStatus
+                        ? (string) $state->getLabel()
+                        : (string) ($state ?? '-'))
+                    ->description(fn (RequestManPower $record): string => $record->fulfillmentSummary())
+                    ->badge()
+                    ->color(fn (RequestManPowerFulfillmentStatus|string|null $state): string|array|null => $state instanceof RequestManPowerFulfillmentStatus
+                        ? $state->getColor()
+                        : null),
                 Tables\Columns\TextColumn::make('tanggal_pengajuan')
                     ->label(__('rekrutmen::filament/resources/request-man-power.table.columns.tanggal_pengajuan'))
                     ->date('d/m/Y')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
                     ->label(__('rekrutmen::filament/resources/request-man-power.table.columns.status'))
+                    ->description(fn (RequestManPower $record): ?string => self::formatApprovalDescription($record))
                     ->badge()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('id')
+                    ->label(__('rekrutmen::filament/resources/request-man-power.table.columns.id'))
+                    ->formatStateUsing(fn (int|string|null $state): string => filled($state) ? 'MPP #'.$state : '-')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('nama_pengaju')
+                    ->label(__('rekrutmen::filament/resources/request-man-power.table.columns.nama_pengaju'))
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('nama_karyawan_replacement')
+                    ->label(__('rekrutmen::filament/resources/request-man-power.table.columns.nama_karyawan_replacement'))
+                    ->placeholder(__('rekrutmen::filament/resources/request-man-power.table.placeholders.nama_karyawan_replacement'))
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('currentPendingApproval.approver_name')
                     ->label(__('rekrutmen::filament/resources/request-man-power.table.columns.current_pending_approval'))
                     ->placeholder(__('rekrutmen::filament/resources/request-man-power.table.placeholders.current_pending_approval'))
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('approver.name')
                     ->label(__('rekrutmen::filament/resources/request-man-power.table.columns.approved_by'))
                     ->placeholder(__('rekrutmen::filament/resources/request-man-power.table.placeholders.approved_by'))
@@ -459,6 +504,11 @@ class RequestManPowerResource extends Resource
                 Tables\Filters\SelectFilter::make('status_kebutuhan')
                     ->label(__('rekrutmen::filament/resources/request-man-power.table.filters.status_kebutuhan'))
                     ->options(StatusKebutuhan::class),
+                Tables\Filters\SelectFilter::make('fulfillment_status')
+                    ->label(__('rekrutmen::filament/resources/request-man-power.table.filters.fulfillment_status'))
+                    ->options(RequestManPowerFulfillmentStatus::class)
+                    ->query(fn (Builder $query, array $data): Builder => $query
+                        ->whereFulfillmentStatus($data['value'] ?? null)),
                 Tables\Filters\SelectFilter::make('division_id')
                     ->relationship('division', 'name')
                     ->label(__('rekrutmen::filament/resources/request-man-power.table.filters.division_id'))
@@ -476,6 +526,12 @@ class RequestManPowerResource extends Resource
                         blank: fn ($query) => $query,
                     ),
             ])
+            ->persistFiltersInSession()
+            ->persistSearchInSession()
+            ->persistSortInSession()
+            ->columnToggleFormColumns(2)
+            ->paginated([10, 25, 50, 100])
+            ->defaultPaginationPageOption(25)
             ->recordActions([
                 ActionGroup::make([
                     Action::make('view_progress')
@@ -486,6 +542,28 @@ class RequestManPowerResource extends Resource
                         ->openUrlInNewTab(),
                     ViewAction::make(),
                     EditAction::make(),
+                    Action::make('start_pending_approval')
+                        ->label(__('rekrutmen::filament/resources/request-man-power.table.actions.start_pending_approval'))
+                        ->icon('heroicon-o-paper-airplane')
+                        ->color('warning')
+                        ->visible(fn (RequestManPower $record): bool => self::canStartPendingApproval($record))
+                        ->action(function (RequestManPower $record): void {
+                            $approval = $record->initializeAndNotifyApprovalWorkflow(replaceExisting: true, rotateToken: true);
+
+                            if (! $approval) {
+                                Notification::make()
+                                    ->title(__('rekrutmen::filament/resources/request-man-power.notifications.pending_approval_not_configured'))
+                                    ->warning()
+                                    ->send();
+
+                                return;
+                            }
+
+                            Notification::make()
+                                ->title(__('rekrutmen::filament/resources/request-man-power.notifications.pending_approval_started'))
+                                ->success()
+                                ->send();
+                        }),
                     Action::make('approve')
                         ->label(__('rekrutmen::filament/resources/request-man-power.table.actions.approve'))
                         ->icon('heroicon-o-check-circle')
@@ -597,7 +675,8 @@ class RequestManPowerResource extends Resource
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->recordUrl(fn (RequestManPower $record): string => static::getUrl('view', ['record' => $record]));
     }
 
     public static function getRelations(): array
@@ -630,6 +709,35 @@ class RequestManPowerResource extends Resource
         return in_array($statusKebutuhan, [StatusKebutuhan::REPLACEMENT->value, StatusKebutuhan::REPLACEMENT->name], true);
     }
 
+    public static function formatTablePositionDescription(RequestManPower $requestManPower): string
+    {
+        return implode(' | ', array_filter([
+            'MPP #'.$requestManPower->getKey(),
+            trim((string) $requestManPower->lokasi_penempatan) ?: null,
+            $requestManPower->division?->name ?: null,
+            $requestManPower->status_kebutuhan?->getLabel() ?? null,
+            trim((string) $requestManPower->nama_pengaju) ?: null,
+            is_numeric($requestManPower->job_posting_id) ? 'Lowongan #'.$requestManPower->job_posting_id : null,
+        ]));
+    }
+
+    public static function formatApprovalDescription(RequestManPower $requestManPower): ?string
+    {
+        if ($requestManPower->hasMissingApprovalWorkflow()) {
+            return __('rekrutmen::filament/resources/request-man-power.table.descriptions.approval_workflow_missing');
+        }
+
+        if ($requestManPower->currentPendingApproval?->approver_name) {
+            return __('rekrutmen::filament/resources/request-man-power.table.columns.current_pending_approval').': '.$requestManPower->currentPendingApproval->approver_name;
+        }
+
+        if ($requestManPower->approver?->name) {
+            return __('rekrutmen::filament/resources/request-man-power.table.columns.approved_by').': '.$requestManPower->approver->name;
+        }
+
+        return null;
+    }
+
     public static function canApproveOrReject(RequestManPower $record): bool
     {
         return self::statusIsPending($record->status) && self::currentUserCanManageApproval($record);
@@ -638,6 +746,11 @@ class RequestManPowerResource extends Resource
     public static function canManualApproveOrReject(RequestManPower $record): bool
     {
         return self::canApproveOrReject($record) && ! $record->approvals()->exists();
+    }
+
+    public static function canStartPendingApproval(RequestManPower $record): bool
+    {
+        return self::canApproveOrReject($record) && $record->hasMissingApprovalWorkflow();
     }
 
     public static function canSetPending(RequestManPower $record): bool

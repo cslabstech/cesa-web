@@ -2,7 +2,7 @@
 
 return [
     'navigation' => [
-        'label' => 'Catat Aktivitas Rekrutmen',
+        'label' => 'Catat Aktivitas',
     ],
     'model' => [
         'singular' => 'Aktivitas Rekrutmen',
@@ -36,12 +36,13 @@ return [
     ],
     'table' => [
         'columns' => [
-            'activity_date' => 'Tanggal',
-            'job_posting'   => 'Lowongan',
-            'title'         => 'Judul',
-            'stage'         => 'Tahapan',
-            'performed_by'  => 'Pelaksana',
-            'summary'       => 'Ringkasan',
+            'activity_date'     => 'Tanggal',
+            'job_posting'       => 'Lowongan',
+            'title'             => 'Judul',
+            'stage'             => 'Tahapan',
+            'performed_by'      => 'Pelaksana',
+            'summary'           => 'Ringkasan',
+            'recent_activities' => 'Aktivitas Terbaru',
         ],
         'filters' => [
             'job_posting_id'     => 'Lowongan Kerja',
@@ -66,6 +67,7 @@ return [
     'errors' => [
         'invalid_stage'      => 'Tahapan yang dipilih tidak sesuai dengan pipeline lowongan kerja.',
         'invalid_candidates' => 'Kandidat yang dipilih harus berasal dari lowongan dan tahapan yang sedang aktif.',
+        'invalid_result'     => 'Hasil aktivitas hanya boleh Lolos, Tidak Lolos, atau Menunggu.',
     ],
     'relation-managers' => [
         'entries' => [

@@ -11,6 +11,11 @@ class EditJobPosting extends EditRecord
 {
     protected static string $resource = JobPostingResource::class;
 
+    /**
+     * @var array<int, int>
+     */
+    protected array $linkedRequestManPowerIds = [];
+
     protected function getHeaderActions(): array
     {
         return [
@@ -21,5 +26,27 @@ class EditJobPosting extends EditRecord
                 ->url(fn (): string => JobApplicationResource::getUrl('board', ['job_posting_id' => $this->record->id])),
             Actions\DeleteAction::make(),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        $this->linkedRequestManPowerIds = JobPostingResource::normalizeLinkedRequestManPowerIds(
+            $data[JobPostingResource::LINKED_REQUEST_MAN_POWER_IDS_FIELD] ?? []
+        );
+
+        unset($data[JobPostingResource::LINKED_REQUEST_MAN_POWER_IDS_FIELD]);
+
+        JobPostingResource::validateLinkedRequestManPowerSelection($this->record, $this->linkedRequestManPowerIds);
+
+        return $data;
+    }
+
+    protected function afterSave(): void
+    {
+        JobPostingResource::syncLinkedRequestManPowers($this->record, $this->linkedRequestManPowerIds);
     }
 }

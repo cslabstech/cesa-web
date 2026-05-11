@@ -130,13 +130,14 @@ class RecaptchaValidator
     /**
      * Get reCAPTCHA configuration.
      *
-     * @return array{enabled: bool, site_key: string, min_score: float}
+     * @return array{enabled: bool, site_key: string, action: string, min_score: float}
      */
     public function getConfig(): array
     {
         return [
             'enabled'   => config('form-transfer.security.recaptcha.enabled', false),
             'site_key'  => config('form-transfer.security.recaptcha.site_key', ''),
+            'action'    => config('form-transfer.security.recaptcha.action', 'form_transfer_request'),
             'min_score' => config('form-transfer.security.recaptcha.score_threshold', 0.5),
         ];
     }

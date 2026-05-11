@@ -110,11 +110,14 @@ class ActivityLogPageTest extends RekrutmenTestCase
         $candidate->refresh();
 
         $this->assertSame($secondStage->id, $candidate->current_stage_id);
-        $this->assertDatabaseCount('rekrutmen_job_application_histories', 3);
+        $this->assertDatabaseCount('rekrutmen_job_application_histories', 2);
         $this->assertDatabaseHas('rekrutmen_job_application_histories', [
             'job_application_id' => $candidate->id,
+            'from_stage_id'      => $firstStage->id,
+            'to_stage_id'        => $secondStage->id,
             'activity_type'      => $firstStage->activityKey(),
             'activity_title'     => JobApplication::generateBatchActivityTitle($firstStage->name, '2026-04-05'),
+            'result'             => 'passed',
         ]);
     }
 

@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use Cesa\Rekrutmen\Enums\JobApplicationGender;
 use Cesa\Rekrutmen\Enums\JobApplicationMaritalStatus;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
-use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Http\Requests\CareerJobIndexRequest;
 use Cesa\Rekrutmen\Models\JobApplication;
 use Cesa\Rekrutmen\Models\JobPosting;
@@ -189,20 +188,15 @@ class CareerController extends Controller
             ]);
         }
 
+        if (is_string($request->input('source'))) {
+            $request->merge([
+                'source' => trim($request->input('source')),
+            ]);
+        }
+
         $job = JobPosting::query()
+            ->openForCandidateIntake()
             ->where('slug', $slug)
-            ->where('is_published', true)
-            ->where(function (Builder $query): void {
-                $query->whereDoesntHave('requestManPower')
-                    ->orWhereHas(
-                        'requestManPower',
-                        fn (Builder $requestQuery): Builder => $requestQuery->where('status', '!=', RequestManPowerStatus::HOLD->value)
-                    );
-            })
-            ->where(function ($q) {
-                $q->whereNull('closing_date')
-                    ->orWhere('closing_date', '>=', today()->toDateString());
-            })
             ->first();
 
         if (! $job) {
@@ -245,7 +239,7 @@ class CareerController extends Controller
             $application = JobApplication::query()->create([
                 'job_posting_id'             => $job->getKey(),
                 'current_stage_id'           => $firstStageId,
-                'source'                     => $request->input('source', 'oceanspace.co.id'),
+                'source'                     => $validated['source'] ?? 'oceanspace.co.id',
                 'full_name'                  => $validated['full_name'] ?? null,
                 'email'                      => $validated['email'] ?? null,
                 'gender'                     => $validated['gender'] ?? null,
@@ -404,7 +398,7 @@ class CareerController extends Controller
                 'required' => array_key_exists('required', $field)
                     ? (bool) $field['required']
                     : $existingField['required'],
-                'options'  => array_key_exists('options', $field) && is_array($field['options'])
+                'options' => array_key_exists('options', $field) && is_array($field['options'])
                     ? $field['options']
                     : $existingField['options'],
             ];
@@ -446,24 +440,14 @@ class CareerController extends Controller
                 ->where(fn ($query) => $query->where('job_posting_id', $job->getKey()));
         }
 
+        $rules['source'] = ['nullable', 'string', 'max:255'];
+
         return $rules;
     }
 
     private function publicJobPostingsQuery(): Builder
     {
         return JobPosting::query()
-            ->where('is_published', true)
-            ->where(function (Builder $query): void {
-                $query->whereDoesntHave('requestManPower')
-                    ->orWhereHas(
-                        'requestManPower',
-                        fn (Builder $requestQuery): Builder => $requestQuery->where('status', '!=', RequestManPowerStatus::HOLD->value)
-                    );
-            })
-            ->where(function ($q) {
-                $q->whereNull('closing_date')
-                    ->orWhere('closing_date', '>=', today()->toDateString());
-            })
-            ->whereHas('rekrutmenPipeline.activeStages');
+            ->acceptingApplications();
     }
 }

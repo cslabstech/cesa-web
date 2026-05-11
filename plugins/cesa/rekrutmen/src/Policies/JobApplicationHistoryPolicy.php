@@ -14,6 +14,7 @@ class JobApplicationHistoryPolicy
     {
         return $this->hasAnyPermission($user, [
             'view_any_cesa::rekrutmen::models::job::application::history',
+            'view_any_rekrutmen_activity::log',
         ]);
     }
 
@@ -28,6 +29,7 @@ class JobApplicationHistoryPolicy
     {
         return $this->hasAnyPermission($user, [
             'create_cesa::rekrutmen::models::job::application::history',
+            'create_rekrutmen_activity::log',
         ]);
     }
 
@@ -43,6 +45,7 @@ class JobApplicationHistoryPolicy
     {
         return $this->hasAnyPermission($user, [
             'delete_cesa::rekrutmen::models::job::application::history',
+            'delete_rekrutmen_activity::log',
         ]);
     }
 

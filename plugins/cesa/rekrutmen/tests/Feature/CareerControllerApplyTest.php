@@ -149,6 +149,56 @@ class CareerControllerApplyTest extends RekrutmenTestCase
             ]);
     }
 
+    public function test_public_apply_validates_source_before_persisting_application(): void
+    {
+        Storage::fake('local');
+
+        config()->set('filesystems.default', 'local');
+        config()->set('filament.default_filesystem_disk', 'local');
+
+        $pipeline = RekrutmenPipeline::query()->create([
+            'name' => 'Source Validation Pipeline',
+        ]);
+
+        RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => 'Screening CV',
+            'order_column'          => 1,
+        ]);
+
+        $jobPosting = JobPosting::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'title'                 => 'Backend Developer Source',
+            'slug'                  => 'backend-developer-source',
+            'description'           => 'Build APIs',
+            'requirements'          => 'Laravel',
+            'location'              => 'Jakarta',
+            'is_published'          => true,
+        ]);
+
+        $response = $this->postJson("/api/jobs/{$jobPosting->slug}/apply", [
+            'source'                     => str_repeat('a', 256),
+            'full_name'                  => 'Budi Santoso',
+            'email'                      => 'budi-source@example.com',
+            'gender'                     => 'male',
+            'birth_date'                 => '1995-01-10',
+            'marital_status'             => 'single',
+            'address_ktp'                => 'Jl. KTP No. 1, Jakarta',
+            'address_domicile'           => 'Jl. Domisili No. 2, Bekasi',
+            'whatsapp_number'            => '081200000011',
+            'active_phone'               => '081200000012',
+            'emergency_contact_name'     => 'Bunga',
+            'emergency_contact_relation' => 'Adik Kandung',
+            'emergency_contact_phone'    => '081200000013',
+            'photo'                      => UploadedFile::fake()->image('photo.jpg'),
+            'resume'                     => UploadedFile::fake()->create('resume.pdf', 120, 'application/pdf'),
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['source']);
+        $this->assertSame(0, JobApplication::query()->count());
+    }
+
     public function test_public_apply_still_succeeds_when_submission_notification_fails(): void
     {
         Storage::fake('local');

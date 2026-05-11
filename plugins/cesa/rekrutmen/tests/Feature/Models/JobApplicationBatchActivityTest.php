@@ -2,6 +2,7 @@
 
 namespace Cesa\Rekrutmen\Tests\Feature\Models;
 
+use Cesa\Rekrutmen\Enums\ActivityEntryResult;
 use Cesa\Rekrutmen\Enums\JobApplicationGender;
 use Cesa\Rekrutmen\Enums\JobApplicationMaritalStatus;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
@@ -59,9 +60,30 @@ class JobApplicationBatchActivityTest extends RekrutmenTestCase
         $this->assertSame($secondStage->id, $app1->current_stage_id);
         $this->assertSame(JobApplicationStatus::IN_PROGRESS, $app1->status);
 
+        $passedHistory = JobApplicationHistory::query()
+            ->where('activity_group_id', $groupId)
+            ->where('job_application_id', $app1->id)
+            ->first();
+
+        $this->assertNotNull($passedHistory);
+        $this->assertSame($firstStage->id, $passedHistory->from_stage_id);
+        $this->assertSame($secondStage->id, $passedHistory->to_stage_id);
+        $this->assertSame(ActivityEntryResult::PASSED->getLabel(), $passedHistory->activityStatusLabel());
+        $this->assertSame(2, JobApplicationHistory::where('job_application_id', $app1->id)->count());
+
         // Failed candidate should be rejected
         $app2->refresh();
         $this->assertSame(JobApplicationStatus::REJECTED, $app2->status);
+
+        $failedHistory = JobApplicationHistory::query()
+            ->where('activity_group_id', $groupId)
+            ->where('job_application_id', $app2->id)
+            ->first();
+
+        $this->assertNotNull($failedHistory);
+        $this->assertSame(JobApplicationStatus::REJECTED, $failedHistory->status);
+        $this->assertSame(ActivityEntryResult::FAILED->getLabel(), $failedHistory->activityStatusLabel());
+        $this->assertSame(2, JobApplicationHistory::where('job_application_id', $app2->id)->count());
 
         // Pending candidate should stay in same stage
         $app3->refresh();
@@ -182,6 +204,39 @@ class JobApplicationBatchActivityTest extends RekrutmenTestCase
         );
     }
 
+    public function test_batch_activity_rejects_terminal_decision_results(): void
+    {
+        foreach ([ActivityEntryResult::ACCEPTED, ActivityEntryResult::REJECTED] as $result) {
+            [$jobPosting, $firstStage] = $this->createPipelineFixture('Terminal Result '.$result->value);
+            $application = $this->makeJobApplication($jobPosting, $firstStage, "terminal-result-{$result->value}@example.com");
+
+            try {
+                JobApplication::recordBatchActivity(
+                    $jobPosting->id,
+                    $firstStage->id,
+                    '2026-04-06',
+                    [
+                        ['job_application_id' => $application->id, 'result' => $result->value, 'notes' => 'Terminal decision'],
+                    ],
+                    $this->performedBy->id,
+                );
+
+                $this->fail("Batch activity accepted terminal result [{$result->value}].");
+            } catch (InvalidArgumentException $exception) {
+                $this->assertSame(__('rekrutmen::filament/resources/activity-log.errors.invalid_result'), $exception->getMessage());
+            }
+
+            $application->refresh();
+
+            $this->assertSame($firstStage->id, $application->current_stage_id);
+            $this->assertSame(JobApplicationStatus::IN_PROGRESS, $application->status);
+            $this->assertDatabaseMissing('rekrutmen_job_application_histories', [
+                'job_application_id' => $application->id,
+                'result'             => $result->value,
+            ]);
+        }
+    }
+
     public function test_rejected_candidate_can_reapply_to_different_job_posting(): void
     {
         [$postingA, $stageA] = $this->createPipelineFixture('Reapply A');
@@ -198,10 +253,10 @@ class JobApplicationBatchActivityTest extends RekrutmenTestCase
 
         $this->assertSame(JobApplicationStatus::IN_PROGRESS, $newApplication->status);
         $this->assertDatabaseHas('rekrutmen_job_applications', [
-            'id'                => $newApplication->id,
-            'job_posting_id'    => $postingB->id,
-            'email'             => 'reapply@example.com',
-            'status'            => JobApplicationStatus::IN_PROGRESS->value,
+            'id'             => $newApplication->id,
+            'job_posting_id' => $postingB->id,
+            'email'          => 'reapply@example.com',
+            'status'         => JobApplicationStatus::IN_PROGRESS->value,
         ]);
     }
 
@@ -283,6 +338,8 @@ class JobApplicationBatchActivityTest extends RekrutmenTestCase
 
     private function makeJobApplication(JobPosting $jobPosting, RekrutmenStage $stage, string $email = 'candidate@example.com'): JobApplication
     {
+        $defaultWhatsappNumber = '08'.str_pad((string) (abs(crc32($email)) % 1000000000), 9, '0', STR_PAD_LEFT);
+
         return JobApplication::query()->create([
             'job_posting_id'             => $jobPosting->id,
             'current_stage_id'           => $stage->id,
@@ -293,7 +350,7 @@ class JobApplicationBatchActivityTest extends RekrutmenTestCase
             'marital_status'             => JobApplicationMaritalStatus::Single,
             'address_ktp'                => 'Alamat KTP',
             'address_domicile'           => 'Alamat Domisili',
-            'whatsapp_number'            => '081234567890',
+            'whatsapp_number'            => $defaultWhatsappNumber,
             'active_phone'               => '081234567891',
             'emergency_contact_name'     => 'Bunga',
             'emergency_contact_relation' => 'Saudara',

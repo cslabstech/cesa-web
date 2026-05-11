@@ -2,9 +2,11 @@
 
 namespace Cesa\Rekrutmen\Tests\Feature;
 
+use Cesa\Rekrutmen\Enums\ActivityEntryResult;
 use Cesa\Rekrutmen\Enums\JobApplicationGender;
 use Cesa\Rekrutmen\Enums\JobApplicationMaritalStatus;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
+use Cesa\Rekrutmen\Filament\Resources\JobApplicationResource;
 use Cesa\Rekrutmen\Filament\Resources\JobApplicationResource\Pages\PipelineBoard;
 use Cesa\Rekrutmen\Models\JobApplication;
 use Cesa\Rekrutmen\Models\JobApplicationHistory;
@@ -71,6 +73,69 @@ class PipelineBoardStatusTest extends RekrutmenTestCase
             ]));
     }
 
+    public function test_pipeline_board_lists_terminal_candidates_below_active_candidates(): void
+    {
+        $pipeline = $this->createPipeline('Pipeline Board Active First');
+        $stage = RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => 'Interview HR',
+            'order_column'          => 1,
+        ]);
+
+        $jobPosting = $this->createJobPosting($pipeline, 'Frontend Engineer', 'frontend-engineer-active-first');
+
+        $rejectedCandidate = $this->createJobApplication(
+            $jobPosting,
+            $stage,
+            'active-first-rejected@example.com',
+            'Candidate Rejected First',
+        );
+        $activeCandidate = $this->createJobApplication(
+            $jobPosting,
+            $stage,
+            'active-first-active@example.com',
+            'Candidate Active Last',
+        );
+
+        $rejectedCandidate->forceFill(['position' => '0001'])->save();
+        $activeCandidate->forceFill(['position' => '9999'])->save();
+        $rejectedCandidate->markAsRejected('Belum sesuai kebutuhan', $this->user->id);
+
+        Livewire::test(PipelineBoard::class, ['activeJobPostingId' => $jobPosting->id])
+            ->assertSeeInOrder([
+                'CANDIDATE ACTIVE LAST',
+                'CANDIDATE REJECTED FIRST',
+            ]);
+    }
+
+    public function test_pipeline_board_card_view_action_opens_view_page_in_new_tab(): void
+    {
+        $pipeline = $this->createPipeline('Pipeline Board View Action');
+        $stage = RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => 'Screening CV',
+            'order_column'          => 1,
+        ]);
+
+        $jobPosting = $this->createJobPosting($pipeline, 'Mobile Engineer', 'mobile-engineer-view-action');
+        $candidate = $this->createJobApplication(
+            $jobPosting,
+            $stage,
+            'board-view-action@example.com',
+            'Candidate Board View Action',
+        );
+
+        $component = Livewire::test(PipelineBoard::class, ['activeJobPostingId' => $jobPosting->id]);
+        $board = $component->instance()->getBoard();
+        $actions = collect($board->getBoardRecordActions($board->formatBoardRecord($candidate)));
+        $viewAction = $actions->first(fn ($action): bool => $action->getName() === 'view_candidate');
+
+        $this->assertNotNull($viewAction);
+        $this->assertSame(__('rekrutmen::filament/resources/job-application.table.actions.view'), $viewAction->getLabel());
+        $this->assertSame(JobApplicationResource::getUrl('view', ['record' => $candidate]), $viewAction->getUrl());
+        $this->assertTrue($viewAction->shouldOpenUrlInNewTab());
+    }
+
     public function test_pipeline_board_can_record_activity_inline_and_move_candidate(): void
     {
         $pipeline = $this->createPipeline('Pipeline Board Activity');
@@ -111,7 +176,22 @@ class PipelineBoardStatusTest extends RekrutmenTestCase
 
         $this->assertNotNull($batchHistory);
         $this->assertSame($firstStage->activityKey(), $batchHistory->activity_type);
+        $this->assertSame($firstStage->id, $batchHistory->from_stage_id);
+        $this->assertSame($secondStage->id, $batchHistory->to_stage_id);
         $this->assertSame('passed', $batchHistory->result?->value);
+    }
+
+    public function test_pipeline_board_activity_result_options_exclude_terminal_decisions(): void
+    {
+        $options = ActivityEntryResult::activityOptions();
+
+        $this->assertSame([
+            ActivityEntryResult::PASSED->value  => ActivityEntryResult::PASSED->getLabel(),
+            ActivityEntryResult::FAILED->value  => ActivityEntryResult::FAILED->getLabel(),
+            ActivityEntryResult::PENDING->value => ActivityEntryResult::PENDING->getLabel(),
+        ], $options);
+        $this->assertArrayNotHasKey(ActivityEntryResult::ACCEPTED->value, $options);
+        $this->assertArrayNotHasKey(ActivityEntryResult::REJECTED->value, $options);
     }
 
     public function test_pipeline_board_blocks_cross_stage_drag_without_activity(): void
@@ -187,6 +267,8 @@ class PipelineBoardStatusTest extends RekrutmenTestCase
 
         $this->assertNotNull($batchHistory);
         $this->assertSame($firstStage->activityKey(), $batchHistory->activity_type);
+        $this->assertSame($firstStage->id, $batchHistory->from_stage_id);
+        $this->assertSame($secondStage->id, $batchHistory->to_stage_id);
         $this->assertSame('passed', $batchHistory->result?->value);
     }
 
@@ -212,6 +294,8 @@ class PipelineBoardStatusTest extends RekrutmenTestCase
             'Candidate Hired Stage',
         );
 
+        $this->assertFalse($candidate->canMarkAsHired());
+
         Livewire::test(PipelineBoard::class, ['activeJobPostingId' => $jobPosting->id])
             ->call('moveCard', (string) $candidate->id, (string) $hiredStage->id, null, null);
 
@@ -219,6 +303,7 @@ class PipelineBoardStatusTest extends RekrutmenTestCase
 
         $this->assertSame($hiredStage->id, $candidate->current_stage_id);
         $this->assertSame(JobApplicationStatus::IN_PROGRESS, $candidate->status);
+        $this->assertTrue($candidate->canMarkAsHired());
     }
 
     public function test_stage_activity_key_is_derived_from_stage_name(): void
@@ -312,6 +397,11 @@ class PipelineBoardStatusTest extends RekrutmenTestCase
         if (! Route::has('filament.admin.resources.job-applications.edit')) {
             Route::get('/testing/filament/admin/resources/job-applications/{record}/edit', fn () => 'ok')
                 ->name('filament.admin.resources.job-applications.edit');
+        }
+
+        if (! Route::has('filament.admin.resources.job-applications.view')) {
+            Route::get('/testing/filament/admin/resources/job-applications/{record}', fn () => 'ok')
+                ->name('filament.admin.resources.job-applications.view');
         }
     }
 }

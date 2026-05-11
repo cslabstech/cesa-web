@@ -81,7 +81,9 @@ class HistoriesRelationManager extends RelationManager
                     ->placeholder(__('rekrutmen::filament/resources/job-application/relation-managers/histories.placeholders.to_stage')),
                 Tables\Columns\TextColumn::make('status')
                     ->label(__('rekrutmen::filament/resources/job-application/relation-managers/histories.columns.status'))
-                    ->badge(),
+                    ->state(fn (JobApplicationHistory $record): ?string => $record->activityStatusLabel())
+                    ->badge()
+                    ->color(fn (JobApplicationHistory $record): string|array|null => $record->activityStatusColor()),
                 Tables\Columns\TextColumn::make('notes')
                     ->label(__('rekrutmen::filament/resources/job-application/relation-managers/histories.columns.notes'))
                     ->limit(50),

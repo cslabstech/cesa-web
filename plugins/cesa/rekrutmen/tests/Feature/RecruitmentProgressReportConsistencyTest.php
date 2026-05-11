@@ -14,6 +14,7 @@ use Cesa\Rekrutmen\Models\RekrutmenPipeline;
 use Cesa\Rekrutmen\Models\RekrutmenStage;
 use Cesa\Rekrutmen\Models\RequestManPower;
 use Cesa\Rekrutmen\Services\RecruitmentProgressReportExport;
+use Cesa\Rekrutmen\Services\RecruitmentProgressReportService;
 use Cesa\Rekrutmen\Tests\RekrutmenTestCase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -41,6 +42,16 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
         $this->actingAs($this->user);
     }
 
+    public function test_activity_summary_uses_compact_text_when_all_entries_have_same_result(): void
+    {
+        app()->setLocale('id');
+
+        $this->assertSame('12 Orang Lolos', RecruitmentProgressReportService::activitySummaryText(12, 12, 0, 0));
+        $this->assertSame('3 Orang Tidak Lolos', RecruitmentProgressReportService::activitySummaryText(3, 0, 3, 0));
+        $this->assertSame('2 Orang Menunggu', RecruitmentProgressReportService::activitySummaryText(2, 0, 0, 2));
+        $this->assertSame('12 Orang 10 Lolos 2 Menunggu', RecruitmentProgressReportService::activitySummaryText(12, 10, 0, 2));
+    }
+
     public function test_report_endpoints_use_consistent_pipeline_based_counts(): void
     {
         [$jobPosting, $firstStage] = $this->createFixtureForDivision('IT', 'backend-engineer-report');
@@ -62,6 +73,8 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
             ],
             $this->user->id,
         );
+
+        $passedCandidate->refresh();
 
         Carbon::setTestNow('2026-04-08 09:00:00');
 
@@ -110,6 +123,42 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
             ->assertJsonPath('overview.0.latest_activity.summary', '2 Orang 1 Lolos 1 Tidak Lolos');
     }
 
+    public function test_hired_candidate_withdrawn_before_onboarding_does_not_fulfill_manpower_need(): void
+    {
+        [$jobPosting, $firstStage] = $this->createFixtureForDivision('IT', 'withdrawn-hired-report');
+
+        $jobPosting->requestManPower()->update([
+            'tanggal_pengajuan'          => '2026-04-01',
+            'jumlah_karyawan_dibutuhkan' => 1,
+        ]);
+
+        $candidate = $this->makeJobApplication($jobPosting, $firstStage, 'withdrawn-hired-report@example.com', 'Withdrawn Hired');
+        $finalStage = $candidate->nextStageAfterCurrentStage();
+        $this->assertNotNull($finalStage);
+        $candidate->transitionToStage($finalStage->id, 'Move to final decision.');
+        $candidate->refresh();
+        $candidate->markAsHired('Accepted', $this->user->id, '2026-04-08');
+        $candidate->markAsWithdrawn('Candidate resigned before onboarding.', $this->user->id, '2026-04-10');
+
+        $response = $this->getJson('/api/recruitment/progress-report?job_posting_id='.$jobPosting->id.'&date_from=2026-04-01&date_to=2026-04-30');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('summary.total_hired_this_period', 0)
+            ->assertJsonPath('positions.0.needed', 1)
+            ->assertJsonPath('positions.0.hired', 0)
+            ->assertJsonPath('positions.0.fulfillment_percentage', 0)
+            ->assertJsonCount(0, 'positions.0.hired_candidates');
+
+        $overviewResponse = $this->getJson('/api/recruitment/progress-report/overview?job_posting_id='.$jobPosting->id.'&date_from=2026-04-01&date_to=2026-04-30');
+
+        $overviewResponse
+            ->assertOk()
+            ->assertJsonPath('overview.0.hired', 0)
+            ->assertJsonPath('overview.0.fulfillment_percentage', 0)
+            ->assertJsonCount(0, 'overview.0.hired_candidates');
+    }
+
     public function test_timeline_endpoint_keeps_multiple_activities_on_the_same_day(): void
     {
         [$firstPosting, $firstStage] = $this->createFixtureForDivision('IT', 'timeline-first');
@@ -147,6 +196,249 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
         $this->assertCount(2, $timelineResponse->json('timeline.0.activities'));
     }
 
+    public function test_report_timeline_groups_duplicate_stage_updates_for_the_same_position(): void
+    {
+        [$jobPosting, $firstStage] = $this->createFixtureForDivision('IT', 'duplicate-stage-digest-report');
+
+        $firstCandidate = $this->makeJobApplication($jobPosting, $firstStage, 'digest-first@example.com', 'Digest First');
+        $secondCandidate = $this->makeJobApplication($jobPosting, $firstStage, 'digest-second@example.com', 'Digest Second');
+
+        JobApplication::recordBatchActivity(
+            $jobPosting->id,
+            $firstStage->id,
+            '2026-04-07',
+            [
+                ['job_application_id' => $firstCandidate->id, 'result' => 'passed', 'notes' => 'Proceed'],
+            ],
+            $this->user->id,
+        );
+
+        JobApplication::recordBatchActivity(
+            $jobPosting->id,
+            $firstStage->id,
+            '2026-04-07',
+            [
+                ['job_application_id' => $secondCandidate->id, 'result' => 'passed', 'notes' => 'Proceed'],
+            ],
+            $this->user->id,
+        );
+
+        $report = app(RecruitmentProgressReportService::class)->build([
+            'date_from'      => '2026-04-01',
+            'date_to'        => '2026-04-30',
+            'job_posting_id' => $jobPosting->id,
+        ]);
+
+        $this->assertSame(1, $report['summary']['total_activities_this_period']);
+        $this->assertSame(1, $report['timeline']->first()['count']);
+        $this->assertSame(2, $report['timeline']->first()['candidate_count']);
+        $this->assertSame(2, $report['timeline']->first()['activities']->first()['activity_count']);
+        $this->assertSame('2 Orang Lolos', $report['timeline']->first()['activities']->first()['summary']);
+        $this->assertCount(2, $report['timeline']->first()['activities']->first()['entries']);
+    }
+
+    public function test_report_page_omits_stage_filter_and_ignores_legacy_stage_query(): void
+    {
+        [$itPosting, $itStage] = $this->createFixtureForDivision('IT', 'stage-option-it-report');
+        [$financePosting] = $this->createFixtureForDivision('Finance', 'stage-option-finance-report');
+
+        $component = Livewire::withQueryParams(['stage' => (string) $itStage->id])
+            ->test(RecruitmentProgressReport::class)
+            ->assertSee('Antrian MPP')
+            ->assertSeeInOrder([
+                'Aktivitas dari',
+                'Snapshot MPP sampai',
+                'Perusahaan',
+                'Posisi / Lowongan',
+            ])
+            ->assertSee('Cari atau pilih perusahaan')
+            ->assertSee('Cari posisi atau lowongan')
+            ->assertDontSee('Tahap Aktivitas')
+            ->assertSee($itPosting->title)
+            ->assertSee($financePosting->title);
+
+        $component
+            ->set('jobPostingId', $itPosting->id)
+            ->set('companyId', $financePosting->requestManPower?->company_id)
+            ->assertSet('jobPostingId', null);
+    }
+
+    public function test_company_report_filter_ignores_soft_deleted_linked_manpower_requests(): void
+    {
+        $deletedCompany = Company::query()->create([
+            'name' => 'PT Deleted Report Company',
+        ]);
+        $activeCompany = Company::query()->create([
+            'name' => 'PT Active Report Company',
+        ]);
+        $pipeline = RekrutmenPipeline::query()->create([
+            'name' => 'Shared Report Pipeline',
+        ]);
+
+        $deletedRequest = RequestManPower::query()->create([
+            'company_id'                 => $deletedCompany->id,
+            'email_address'              => 'deleted-report-company@example.com',
+            'nama_pengaju'               => 'Deleted Requester',
+            'posisi_pengaju'             => 'Manager',
+            'tanggal_pengajuan'          => '2026-04-01',
+            'posisi_dibutuhkan'          => 'Shared Advisor',
+            'lokasi_penempatan'          => 'Jakarta',
+            'status_kebutuhan'           => StatusKebutuhan::NEW_HIRING,
+            'divisi'                     => 'Sales',
+            'level_pekerjaan'            => 'Staff',
+            'jumlah_karyawan_dibutuhkan' => 1,
+            'estimasi_tanggal_join'      => '2026-05-01',
+            'requirements_kualifikasi'   => 'Requirement',
+            'job_description'            => 'Job description',
+            'status'                     => RequestManPowerStatus::APPROVED,
+        ]);
+        $activeRequest = RequestManPower::query()->create([
+            'company_id'                 => $activeCompany->id,
+            'email_address'              => 'active-report-company@example.com',
+            'nama_pengaju'               => 'Active Requester',
+            'posisi_pengaju'             => 'Manager',
+            'tanggal_pengajuan'          => '2026-04-01',
+            'posisi_dibutuhkan'          => 'Shared Advisor',
+            'lokasi_penempatan'          => 'Jakarta',
+            'status_kebutuhan'           => StatusKebutuhan::NEW_HIRING,
+            'divisi'                     => 'Sales',
+            'level_pekerjaan'            => 'Staff',
+            'jumlah_karyawan_dibutuhkan' => 2,
+            'estimasi_tanggal_join'      => '2026-05-01',
+            'requirements_kualifikasi'   => 'Requirement',
+            'job_description'            => 'Job description',
+            'status'                     => RequestManPowerStatus::APPROVED,
+        ]);
+
+        $jobPosting = JobPosting::query()->create([
+            'request_man_power_id'  => $deletedRequest->id,
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'title'                 => 'Shared Advisor Jakarta',
+            'slug'                  => 'shared-advisor-jakarta',
+            'description'           => 'Serve customers',
+            'requirements'          => 'Retail experience',
+            'location'              => 'Jakarta',
+            'is_published'          => true,
+        ]);
+
+        $activeRequest->forceFill([
+            'job_posting_id' => $jobPosting->id,
+        ])->saveQuietly();
+        $deletedRequest->delete();
+
+        $deletedCompanyResponse = $this->getJson('/api/recruitment/progress-report?company_id='.$deletedCompany->id);
+        $deletedCompanyResponse
+            ->assertOk()
+            ->assertJsonPath('summary.total_positions_active', 0)
+            ->assertJsonCount(0, 'positions');
+
+        $activeCompanyResponse = $this->getJson('/api/recruitment/progress-report?company_id='.$activeCompany->id);
+        $activeCompanyResponse
+            ->assertOk()
+            ->assertJsonPath('summary.total_positions_active', 1)
+            ->assertJsonPath('positions.0.needed', 2);
+    }
+
+    public function test_report_is_mpp_cycle_based_and_surfaces_cycle_health_risks(): void
+    {
+        [$jobPosting] = $this->createFixtureForDivision('IT', 'cycle-health-report');
+
+        $jobPosting->requestManPower()->update([
+            'status'                     => RequestManPowerStatus::APPROVED,
+            'tanggal_pengajuan'          => '2026-04-01',
+            'jumlah_karyawan_dibutuhkan' => 1,
+        ]);
+        $jobPosting->update([
+            'is_published' => false,
+        ]);
+
+        $orphanPipeline = RekrutmenPipeline::query()->create([
+            'name' => 'Orphan Cycle Pipeline',
+        ]);
+
+        JobPosting::query()->create([
+            'rekrutmen_pipeline_id' => $orphanPipeline->id,
+            'title'                 => 'Orphan KPI Posting',
+            'slug'                  => 'orphan-kpi-posting',
+            'description'           => 'Should not be counted as MPP KPI.',
+            'requirements'          => 'No MPP link.',
+            'location'              => 'Jakarta',
+            'is_published'          => true,
+        ]);
+
+        $response = $this->getJson('/api/recruitment/progress-report?date_from=2026-04-01&date_to=2026-04-30');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('summary.total_positions_active', 1)
+            ->assertJsonPath('summary.total_cycle_health_issues', 1)
+            ->assertJsonPath('positions.0.job_posting_id', $jobPosting->id)
+            ->assertJsonPath('positions.0.cycle_health.status', 'risk')
+            ->assertJsonPath('positions.0.cycle_health.issues.0.key', 'posting_unpublished');
+
+        $this->assertSame(
+            [$jobPosting->id],
+            collect($response->json('positions'))->pluck('job_posting_id')->all(),
+        );
+
+        Livewire::test(RecruitmentProgressReport::class)
+            ->set('dateFrom', '2026-04-01')
+            ->set('dateTo', '2026-04-30')
+            ->call('setFocus', 'data-risk')
+            ->assertSee($jobPosting->title)
+            ->assertSee('Lowongan belum publish');
+    }
+
+    public function test_hr_kpi_counts_hired_headcount_and_mpp_fulfillment_from_closing_hire_pic(): void
+    {
+        [$jobPosting, $firstStage] = $this->createFixtureForDivision('IT', 'hr-kpi-fulfillment-report');
+        $firstHr = $this->user;
+        $closingHr = User::factory()->create([
+            'name'      => 'Closing HR',
+            'is_active' => true,
+        ]);
+
+        $jobPosting->requestManPower()->update([
+            'tanggal_pengajuan'          => '2026-04-01',
+            'jumlah_karyawan_dibutuhkan' => 2,
+            'status'                     => RequestManPowerStatus::APPROVED,
+        ]);
+
+        $firstCandidate = $this->makeJobApplication($jobPosting, $firstStage, 'hr-kpi-first@example.com', 'HR KPI First');
+        $secondCandidate = $this->makeJobApplication($jobPosting, $firstStage, 'hr-kpi-second@example.com', 'HR KPI Second');
+
+        foreach ([$firstCandidate, $secondCandidate] as $candidate) {
+            $finalStage = $candidate->nextStageAfterCurrentStage();
+            $this->assertNotNull($finalStage);
+            $candidate->transitionToStage($finalStage->id, 'Move to final decision.');
+            $candidate->refresh();
+        }
+
+        $firstCandidate->markAsHired('Accepted first.', $firstHr->id, '2026-04-05');
+        $secondCandidate->markAsHired('Accepted second.', $closingHr->id, '2026-04-08');
+
+        $response = $this->getJson('/api/recruitment/progress-report?job_posting_id='.$jobPosting->id.'&date_from=2026-04-01&date_to=2026-04-30');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('summary.total_hr_kpi_people', 2)
+            ->assertJsonPath('summary.total_hr_kpi_hired_headcount', 2)
+            ->assertJsonPath('summary.total_hr_kpi_fulfilled_mpp', 1)
+            ->assertJsonPath('hr_kpis.0.performer_name', 'Closing HR')
+            ->assertJsonPath('hr_kpis.0.hired_headcount', 1)
+            ->assertJsonPath('hr_kpis.0.fulfilled_mpp', 1)
+            ->assertJsonPath('hr_kpis.0.fulfilled_requests.0.request_id', $jobPosting->requestManPower->id)
+            ->assertJsonPath('hr_kpis.1.performer_name', $firstHr->name)
+            ->assertJsonPath('hr_kpis.1.hired_headcount', 1)
+            ->assertJsonPath('hr_kpis.1.fulfilled_mpp', 0);
+
+        Livewire::test(RecruitmentProgressReport::class)
+            ->set('jobPostingId', $jobPosting->id)
+            ->set('dateFrom', '2026-04-01')
+            ->set('dateTo', '2026-04-30')
+            ->assertDontSee('KPI HR Fulfillment MPP');
+    }
+
     public function test_livewire_report_renders_same_activity_summary_without_querying_extra_state(): void
     {
         [$jobPosting, $firstStage] = $this->createFixtureForDivision('IT', 'qa-engineer-report');
@@ -165,6 +457,8 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
             $this->user->id,
         );
 
+        $secondCandidate->refresh();
+
         Carbon::setTestNow('2026-04-08 09:00:00');
 
         try {
@@ -173,20 +467,150 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
             Carbon::setTestNow();
         }
 
-        $activityTitle = JobApplication::generateBatchActivityTitle($firstStage->name, '2026-04-07');
-
         $component = Livewire::test(RecruitmentProgressReport::class)
             ->set('jobPostingId', $jobPosting->id)
             ->set('dateFrom', '2026-04-01')
             ->set('dateTo', '2026-04-30')
             ->assertSee($jobPosting->title)
-            ->assertSee($activityTitle)
-            ->assertSee('2 Orang 1 Lolos 1 Menunggu');
-
-        $component
-            ->set('activeTab', 'per-position')
+            ->assertSee('Antrian MPP')
+            ->assertSee('Monitor kandidat aktif')
             ->assertSee('PT IT Core')
             ->assertSee('LIVEWIRE TWO');
+
+        $component
+            ->call('setFocus', 'updated')
+            ->assertSee($firstStage->name)
+            ->assertSee('2 Orang 1 Lolos 1 Menunggu');
+    }
+
+    public function test_current_hired_candidates_stay_visible_when_the_selected_period_has_no_updates(): void
+    {
+        [$jobPosting, $firstStage] = $this->createFixtureForDivision('IT', 'outside-period-hired-report');
+
+        $jobPosting->requestManPower()->update([
+            'tanggal_pengajuan'          => '2026-04-01',
+            'jumlah_karyawan_dibutuhkan' => 1,
+        ]);
+
+        $candidate = $this->makeJobApplication($jobPosting, $firstStage, 'outside-period-hired@example.com', 'Outside Period Hired');
+        $finalStage = $candidate->nextStageAfterCurrentStage();
+        $this->assertNotNull($finalStage);
+        $candidate->transitionToStage($finalStage->id, 'Move to final decision.');
+        $candidate->refresh();
+        $candidate->markAsHired('Accepted', $this->user->id, '2026-04-08');
+
+        $response = $this->getJson('/api/recruitment/progress-report?job_posting_id='.$jobPosting->id.'&date_from=2026-05-01&date_to=2026-05-31');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('summary.total_activities_this_period', 0)
+            ->assertJsonPath('summary.total_hired_this_period', 0)
+            ->assertJsonPath('summary.total_hr_kpi_hired_headcount', 0)
+            ->assertJsonPath('summary.total_hr_kpi_fulfilled_mpp', 0)
+            ->assertJsonCount(0, 'hr_kpis')
+            ->assertJsonPath('positions.0.needed', 1)
+            ->assertJsonPath('positions.0.hired', 1)
+            ->assertJsonPath('positions.0.fulfillment_percentage', 100)
+            ->assertJsonPath('positions.0.hired_candidates.0.full_name', 'OUTSIDE PERIOD HIRED');
+
+        Livewire::test(RecruitmentProgressReport::class)
+            ->set('jobPostingId', $jobPosting->id)
+            ->set('dateFrom', '2026-05-01')
+            ->set('dateTo', '2026-05-31')
+            ->call('setFocus', 'fulfilled')
+            ->assertSee($jobPosting->title)
+            ->assertSee('Hired saat ini')
+            ->assertSee('OUTSIDE PERIOD HIRED')
+            ->assertSee('Hired 08 Apr 2026')
+            ->assertSee('Update periode ini')
+            ->assertSee('Tidak ada update aktivitas pada periode ini.');
+    }
+
+    public function test_mpp_snapshot_excludes_future_requests_and_future_hires(): void
+    {
+        [$snapshotPosting, $snapshotStage] = $this->createFixtureForDivision('IT', 'snapshot-mpp-report');
+        [$futurePosting] = $this->createFixtureForDivision('Finance', 'future-mpp-report');
+
+        $snapshotPosting->requestManPower()->update([
+            'tanggal_pengajuan'          => '2025-04-01',
+            'estimasi_tanggal_join'      => '2025-04-20',
+            'jumlah_karyawan_dibutuhkan' => 2,
+            'status'                     => RequestManPowerStatus::APPROVED,
+        ]);
+
+        $futurePosting->requestManPower()->update([
+            'tanggal_pengajuan'          => '2026-04-01',
+            'estimasi_tanggal_join'      => '2026-04-20',
+            'jumlah_karyawan_dibutuhkan' => 1,
+            'status'                     => RequestManPowerStatus::APPROVED,
+        ]);
+
+        $futureHiredCandidate = $this->makeJobApplication($snapshotPosting, $snapshotStage, 'snapshot-future-hired@example.com', 'Snapshot Future Hired');
+        $finalStage = $futureHiredCandidate->nextStageAfterCurrentStage();
+        $this->assertNotNull($finalStage);
+        $futureHiredCandidate->transitionToStage($finalStage->id, 'Move to final decision.');
+        $futureHiredCandidate->refresh();
+        $futureHiredCandidate->markAsHired('Accepted after snapshot.', $this->user->id, '2026-05-05');
+
+        $response = $this->getJson('/api/recruitment/progress-report?date_from=2025-01-01&date_to=2025-05-09');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('summary.total_positions_active', 1)
+            ->assertJsonCount(1, 'positions')
+            ->assertJsonPath('positions.0.job_posting_id', $snapshotPosting->id)
+            ->assertJsonPath('positions.0.needed', 2)
+            ->assertJsonPath('positions.0.hired', 0)
+            ->assertJsonPath('positions.0.request_fulfillments.0.snapshot_date', '2025-05-09')
+            ->assertJsonPath('positions.0.request_fulfillments.0.remaining', 2)
+            ->assertJsonPath('positions.0.request_fulfillments.0.estimate_missed', true);
+
+        Livewire::test(RecruitmentProgressReport::class)
+            ->set('dateFrom', '2025-01-01')
+            ->set('dateTo', '2025-05-09')
+            ->assertSee($snapshotPosting->title)
+            ->assertDontSee($futurePosting->title)
+            ->assertSee('0/2');
+    }
+
+    public function test_missed_estimated_join_request_stays_visible_as_outstanding_mpp_snapshot(): void
+    {
+        [$jobPosting] = $this->createFixtureForDivision('IT', 'missed-estimate-mpp-report');
+
+        $jobPosting->requestManPower()->update([
+            'tanggal_pengajuan'          => '2026-03-01',
+            'estimasi_tanggal_join'      => '2026-03-15',
+            'jumlah_karyawan_dibutuhkan' => 2,
+            'status'                     => RequestManPowerStatus::APPROVED,
+        ]);
+
+        $response = $this->getJson('/api/recruitment/progress-report?job_posting_id='.$jobPosting->id.'&date_from=2026-04-01&date_to=2026-04-30');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('summary.total_activities_this_period', 0)
+            ->assertJsonPath('positions.0.needed', 2)
+            ->assertJsonPath('positions.0.hired', 0)
+            ->assertJsonPath('positions.0.request_fulfillments.0.request_id', $jobPosting->requestManPower->id)
+            ->assertJsonPath('positions.0.request_fulfillments.0.request_date', '2026-03-01')
+            ->assertJsonPath('positions.0.request_fulfillments.0.estimated_join', '2026-03-15')
+            ->assertJsonPath('positions.0.request_fulfillments.0.snapshot_date', '2026-04-30')
+            ->assertJsonPath('positions.0.request_fulfillments.0.needed', 2)
+            ->assertJsonPath('positions.0.request_fulfillments.0.fulfilled', 0)
+            ->assertJsonPath('positions.0.request_fulfillments.0.remaining', 2)
+            ->assertJsonPath('positions.0.request_fulfillments.0.age_days', 60)
+            ->assertJsonPath('positions.0.request_fulfillments.0.estimate_missed', true)
+            ->assertJsonPath('positions.0.request_fulfillments.0.fulfillment_status', 'open');
+
+        Livewire::test(RecruitmentProgressReport::class)
+            ->set('jobPostingId', $jobPosting->id)
+            ->set('dateFrom', '2026-04-01')
+            ->set('dateTo', '2026-04-30')
+            ->assertSee('MPP dari Request Man Power')
+            ->assertSee('Snapshot s/d 30 Apr 2026')
+            ->assertSee('60 hari')
+            ->assertSee('2 / 0 / 2')
+            ->assertSee('Est. join lewat, sisa 2 orang tetap dihitung.');
     }
 
     public function test_livewire_export_downloads_a_monthly_mpp_workbook_that_is_easy_to_read(): void
@@ -201,14 +625,38 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
             $aprilPosting->requestManPower()->update([
                 'tanggal_pengajuan'          => '2026-04-02',
                 'estimasi_tanggal_join'      => '2026-04-15',
+                'posisi_dibutuhkan'          => 'Backend Engineer',
                 'jumlah_karyawan_dibutuhkan' => 2,
+                'status'                     => RequestManPowerStatus::APPROVED,
             ]);
 
             $mayPosting->requestManPower()->update([
                 'tanggal_pengajuan'          => '2026-04-05',
                 'estimasi_tanggal_join'      => '2026-05-15',
+                'posisi_dibutuhkan'          => 'Finance Analyst',
                 'jumlah_karyawan_dibutuhkan' => 1,
                 'status'                     => RequestManPowerStatus::HOLD,
+            ]);
+
+            $aprilRequest = $aprilPosting->requestManPower()->firstOrFail();
+            $linkedAprilRequest = RequestManPower::query()->create([
+                'company_id'                 => $aprilRequest->company_id,
+                'email_address'              => 'backend-engineer-linked-export@example.com',
+                'nama_pengaju'               => 'Requester IT Linked',
+                'posisi_pengaju'             => 'Manager',
+                'tanggal_pengajuan'          => '2026-04-03',
+                'posisi_dibutuhkan'          => 'Backend Engineer Batch 2',
+                'lokasi_penempatan'          => 'Jakarta',
+                'status_kebutuhan'           => StatusKebutuhan::NEW_HIRING,
+                'divisi'                     => 'IT',
+                'level_pekerjaan'            => 'Staff',
+                'jumlah_karyawan_dibutuhkan' => 1,
+                'estimasi_tanggal_join'      => '2026-04-20',
+                'requirements_kualifikasi'   => 'Requirement',
+                'job_description'            => 'Job description',
+                'keterangan'                 => 'Testing',
+                'status'                     => RequestManPowerStatus::APPROVED,
+                'job_posting_id'             => $aprilPosting->id,
             ]);
 
             $aprilHiredCandidate = $this->makeJobApplication($aprilPosting, $aprilStage, 'april-hired@example.com', 'April Hired');
@@ -226,6 +674,7 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
                 $this->user->id,
             );
 
+            $aprilHiredCandidate->refresh();
             $aprilHiredCandidate->markAsHired('Accepted', $this->user->id);
             $aprilHiredCandidate->refresh();
             $mayCandidate->refresh();
@@ -236,73 +685,101 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
                 ->call('exportExcel')
                 ->assertFileDownloaded();
 
-            Excel::assertDownloaded('recruitment-progress-mpp-20260401-to-20260430.xlsx', function (RecruitmentProgressReportExport $export) use ($aprilPosting, $mayPosting): bool {
+            Excel::assertDownloaded('recruitment-progress-mpp-20260401-to-20260430.xlsx', function (RecruitmentProgressReportExport $export) use ($aprilPosting, $linkedAprilRequest): bool {
                 $sheets = $export->sheets();
 
                 $this->assertCount(4, $sheets);
                 $this->assertSame('Overview MPP', $sheets[0]->title());
                 $this->assertSame('Ringkasan Bulanan', $sheets[1]->title());
                 $this->assertSame('Detail Posisi', $sheets[2]->title());
-                $this->assertWorkbookSheetMatchesOverviewMppLayout($sheets[1], 'I');
-                $this->assertWorkbookSheetMatchesOverviewMppLayout($sheets[2], 'O');
-                $this->assertWorkbookSheetMatchesOverviewMppLayout($sheets[3], 'L');
+                $this->assertSame('Aktivitas Rekrutmen', $sheets[3]->title());
+                $this->assertWorkbookSheetMatchesOverviewMppLayout($sheets[1], 'K');
+                $this->assertWorkbookSheetMatchesOverviewMppLayout($sheets[2], 'S');
+                $this->assertWorkbookSheetMatchesOverviewMppLayout($sheets[3], 'M');
 
                 $overviewRows = collect($sheets[0]->array())->values();
                 $summaryRows = collect($sheets[1]->array())->slice(5)->values();
                 $detailRows = collect($sheets[2]->array())->slice(5)->values();
+                $activityRows = collect($sheets[3]->array())->slice(5)->values();
 
-                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'MPP BULAN APRIL 2026'));
-                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'KARYAWAN JOIN BULAN APRIL 2026'));
+                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'OVERVIEW MPP BULAN APRIL 2026'));
+                $this->assertFalse($overviewRows->contains(fn (array $row): bool => str_starts_with((string) ($row[0] ?? ''), 'KARYAWAN JOIN BULAN')));
                 $this->assertSame([
+                    'BULAN',
                     'BADAN USAHA',
                     'TANGGAL REQ',
-                    'TANGGAL SAAT INI',
-                    'LAMA PEMENUHAN/DAY',
-                    'JUMLAH',
+                    'SNAPSHOT',
+                    'UMUR MPP/DAY',
+                    'KEBUTUHAN MPP',
+                    'JOIN BULAN INI',
+                    'JOIN S/D SNAPSHOT',
+                    'SISA MPP',
                     'POSISI',
                     'PENEMPATAN',
                     'USER',
-                    'PIC',
+                    'PIC TERAKHIR / JOIN',
                     'REPLACEMENT/NEW HIRING',
                     'STATUS REQUEST',
+                    'STATUS PEMENUHAN',
                     'KETERANGAN REPLACEMENT',
                     'TANGGAL UPDATE PROGRES',
-                ], $overviewRows->first(fn (array $row): bool => ($row[2] ?? null) === 'TANGGAL SAAT INI'));
-                $this->assertSame('NAMA KARYAWAN JOIN', $overviewRows->first(fn (array $row): bool => ($row[2] ?? null) === 'JOIN DATE')[13] ?? null);
+                    'KARYAWAN JOIN BULAN INI',
+                ], $overviewRows->first(fn (array $row): bool => ($row[0] ?? null) === 'BULAN'));
 
-                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'PT FINANCE CORE'
-                    && ($row[4] ?? null) === 1
-                    && ($row[5] ?? null) === mb_strtoupper($mayPosting->title)
-                    && ($row[10] ?? null) === 'HOLD'));
+                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[1] ?? null) === 'PT FINANCE CORE'
+                    && ($row[5] ?? null) === 1
+                    && ($row[8] ?? null) === 1
+                    && ($row[9] ?? null) === 'FINANCE ANALYST'
+                    && ($row[14] ?? null) === 'HOLD'
+                    && ($row[15] ?? null) === 'HOLD'));
 
-                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'PT IT CORE'
-                    && ($row[3] ?? null) === 28
-                    && ($row[4] ?? null) === 1
-                    && ($row[5] ?? null) === mb_strtoupper($aprilPosting->title)));
+                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[1] ?? null) === 'PT IT CORE'
+                    && ($row[2] ?? null) === '02 Apr 2026'
+                    && ($row[4] ?? null) === 28
+                    && ($row[5] ?? null) === 2
+                    && ($row[6] ?? null) === 1
+                    && ($row[7] ?? null) === 1
+                    && ($row[8] ?? null) === 1
+                    && ($row[9] ?? null) === 'BACKEND ENGINEER'
+                    && ($row[18] ?? null) === 'APRIL HIRED'));
 
-                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'PT IT CORE'
-                    && ($row[2] ?? null) === '07 Apr 2026'
-                    && ($row[3] ?? null) === 5
-                    && ($row[4] ?? null) === 1
-                    && ($row[5] ?? null) === mb_strtoupper($aprilPosting->title)
-                    && ($row[13] ?? null) === 'APRIL HIRED'));
+                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[1] ?? null) === 'PT IT CORE'
+                    && ($row[2] ?? null) === '03 Apr 2026'
+                    && ($row[5] ?? null) === 1
+                    && ($row[6] ?? null) === 0
+                    && ($row[8] ?? null) === 1
+                    && ($row[9] ?? null) === mb_strtoupper($linkedAprilRequest->posisi_dibutuhkan)));
 
-                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'TOTAL' && ($row[4] ?? null) === 2));
-                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'TOTAL' && ($row[4] ?? null) === 1));
+                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'TOTAL'
+                    && ($row[5] ?? null) === 4
+                    && ($row[6] ?? null) === 1
+                    && ($row[7] ?? null) === 1
+                    && ($row[8] ?? null) === 3));
 
                 $this->assertTrue($summaryRows->contains(fn (array $row): bool => $row[0] === 'APRIL 2026'
-                    && $row[3] === 2
+                    && $row[2] === 3
+                    && $row[3] === 4
                     && $row[4] === 1
-                    && $row[5] === 1));
+                    && $row[5] === 1
+                    && $row[6] === 3
+                    && $row[7] === 1));
 
-                $this->assertTrue($detailRows->contains(fn (array $row): bool => in_array('PT IT Core', $row, true)
-                    && in_array($aprilPosting->title, $row, true)
-                    && in_array('Pipeline cukup, lanjut monitor', $row, true)));
+                $this->assertTrue($detailRows->contains(fn (array $row): bool => in_array('PT IT CORE', $row, true)
+                    && in_array('BACKEND ENGINEER', $row, true)
+                    && in_array('Pipeline belum cukup, perlu percepatan', $row, true)));
 
-                $this->assertTrue($detailRows->contains(fn (array $row): bool => in_array('PT Finance Core', $row, true)
-                    && in_array($mayPosting->title, $row, true)
+                $this->assertTrue($detailRows->contains(fn (array $row): bool => in_array('PT FINANCE CORE', $row, true)
+                    && in_array('FINANCE ANALYST', $row, true)
                     && in_array('HOLD', $row, true)
                     && in_array('Hold - menunggu keputusan user', $row, true)));
+
+                $this->assertTrue($activityRows->contains(fn (array $row): bool => ($row[2] ?? null) === 'PT IT CORE'
+                    && ($row[3] ?? null) === $aprilPosting->title
+                    && str_contains((string) ($row[4] ?? ''), 'BACKEND ENGINEER')
+                    && str_contains((string) ($row[4] ?? ''), 'BACKEND ENGINEER BATCH 2')
+                    && ($row[8] ?? null) === 2
+                    && ($row[9] ?? null) === 1
+                    && ($row[11] ?? null) === 1));
 
                 return true;
             });
@@ -325,14 +802,14 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
             'email_address'              => "{$slug}@example.com",
             'nama_pengaju'               => "Requester {$division}",
             'posisi_pengaju'             => 'Manager',
-            'tanggal_pengajuan'          => now()->toDateString(),
+            'tanggal_pengajuan'          => '2026-04-01',
             'posisi_dibutuhkan'          => "Role {$division}",
             'lokasi_penempatan'          => 'Jakarta',
             'status_kebutuhan'           => StatusKebutuhan::NEW_HIRING,
             'divisi'                     => $division,
             'level_pekerjaan'            => 'Staff',
             'jumlah_karyawan_dibutuhkan' => 2,
-            'estimasi_tanggal_join'      => now()->addMonth()->toDateString(),
+            'estimasi_tanggal_join'      => '2026-05-01',
             'requirements_kualifikasi'   => 'Requirement',
             'job_description'            => 'Job description',
             'keterangan'                 => 'Testing',
@@ -373,7 +850,7 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
     {
         $phoneNumber = '081'.str_pad((string) (abs(crc32($email)) % 1000000000), 9, '0', STR_PAD_LEFT);
 
-        return JobApplication::query()->create([
+        $application = JobApplication::query()->create([
             'job_posting_id'             => $jobPosting->id,
             'current_stage_id'           => $stage->id,
             'full_name'                  => $fullName,
@@ -390,6 +867,13 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
             'emergency_contact_phone'    => $phoneNumber,
             'status'                     => JobApplicationStatus::IN_PROGRESS,
         ]);
+
+        $application->forceFill([
+            'created_at' => '2026-04-05 09:00:00',
+            'updated_at' => '2026-04-05 09:00:00',
+        ])->saveQuietly();
+
+        return $application->refresh();
     }
 
     private function assertWorkbookSheetMatchesOverviewMppLayout(object $sheetExport, string $lastColumn): void

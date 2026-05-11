@@ -36,12 +36,13 @@ return [
     ],
     'table' => [
         'columns' => [
-            'activity_date' => 'Date',
-            'job_posting'   => 'Job Posting',
-            'title'         => 'Title',
-            'stage'         => 'Stage',
-            'performed_by'  => 'Performed By',
-            'summary'       => 'Summary',
+            'activity_date'     => 'Date',
+            'job_posting'       => 'Job Posting',
+            'title'             => 'Title',
+            'stage'             => 'Stage',
+            'performed_by'      => 'Performed By',
+            'summary'           => 'Summary',
+            'recent_activities' => 'Recent Activities',
         ],
         'filters' => [
             'job_posting_id'     => 'Job Posting',
@@ -66,6 +67,7 @@ return [
     'errors' => [
         'invalid_stage'      => 'The selected stage does not belong to the selected job posting pipeline.',
         'invalid_candidates' => 'Selected candidates must belong to the active job posting and stage.',
+        'invalid_result'     => 'Activity result must be Passed, Failed, or Pending.',
     ],
     'relation-managers' => [
         'entries' => [

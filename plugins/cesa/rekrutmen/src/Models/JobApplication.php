@@ -340,6 +340,56 @@ class JobApplication extends Model
         return $this->nextStageAfterCurrentStage() instanceof RekrutmenStage;
     }
 
+    public function canMarkAsHired(): bool
+    {
+        return $this->status === JobApplicationStatus::IN_PROGRESS
+            && $this->isAtFinalHiringDecisionStage();
+    }
+
+    public function canMarkAsWithdrawn(): bool
+    {
+        return $this->status === JobApplicationStatus::HIRED;
+    }
+
+    public function isAtFinalPipelineStage(): bool
+    {
+        return $this->isAtFinalHiringDecisionStage();
+    }
+
+    public function isAtFinalHiringDecisionStage(): bool
+    {
+        if (! is_numeric($this->current_stage_id)) {
+            return false;
+        }
+
+        $currentStageId = (int) $this->current_stage_id;
+        $pipelineId = $this->resolvePipelineIdForCurrentJobPosting();
+
+        if (! $pipelineId) {
+            return false;
+        }
+
+        $hiredStageId = $this->resolveTerminalStageIdForStatus(JobApplicationStatus::HIRED);
+
+        if ($hiredStageId !== null) {
+            return $currentStageId === $hiredStageId;
+        }
+
+        $currentStageOrder = RekrutmenStage::query()
+            ->whereKey($currentStageId)
+            ->where('rekrutmen_pipeline_id', $pipelineId)
+            ->value('order_column');
+
+        if ($currentStageOrder === null) {
+            return false;
+        }
+
+        return ! RekrutmenStage::query()
+            ->where('rekrutmen_pipeline_id', $pipelineId)
+            ->where('order_column', '>', $currentStageOrder)
+            ->exists();
+    }
+
     public function passCurrentStage(string $activityDate, ?string $notes = null, ?int $performedBy = null): RekrutmenStage
     {
         if ($this->isTerminalStatus()) {
@@ -373,19 +423,26 @@ class JobApplication extends Model
         return $nextStage;
     }
 
-    public function markAsHired(?string $notes = null, ?int $performedBy = null): void
+    public function markAsHired(?string $notes = null, ?int $performedBy = null, ?string $activityDate = null): void
     {
         $this->assertDecisionNotesProvided($notes);
+
+        if (! $this->canMarkAsHired()) {
+            throw new InvalidArgumentException(__('rekrutmen::filament/resources/job-application.workflow_errors.terminal_stage_locked'));
+        }
 
         $this->changeStatus(
             JobApplicationStatus::HIRED,
             $notes,
             $performedBy,
             $this->resolveTerminalStageIdForStatus(JobApplicationStatus::HIRED),
+            ActivityEntryResult::ACCEPTED,
+            $activityDate ?? now()->toDateString(),
+            __('rekrutmen::filament/resources/job-application.table.actions.mark_hired'),
         );
     }
 
-    public function markAsRejected(?string $notes = null, ?int $performedBy = null): void
+    public function markAsRejected(?string $notes = null, ?int $performedBy = null, ?string $activityDate = null): void
     {
         $this->assertDecisionNotesProvided($notes);
 
@@ -393,6 +450,29 @@ class JobApplication extends Model
             JobApplicationStatus::REJECTED,
             $notes,
             $performedBy,
+            null,
+            ActivityEntryResult::REJECTED,
+            $activityDate ?? now()->toDateString(),
+            __('rekrutmen::filament/resources/job-application.table.actions.mark_rejected'),
+        );
+    }
+
+    public function markAsWithdrawn(?string $notes = null, ?int $performedBy = null, ?string $activityDate = null): void
+    {
+        $this->assertDecisionNotesProvided($notes);
+
+        if (! $this->canMarkAsWithdrawn()) {
+            throw new InvalidArgumentException(__('rekrutmen::filament/resources/job-application.workflow_errors.terminal_stage_locked'));
+        }
+
+        $this->changeStatus(
+            JobApplicationStatus::WITHDRAWN,
+            $notes,
+            $performedBy,
+            null,
+            null,
+            $activityDate ?? now()->toDateString(),
+            __('rekrutmen::filament/resources/job-application.table.actions.mark_withdrawn'),
         );
     }
 
@@ -401,6 +481,9 @@ class JobApplication extends Model
         ?string $notes = null,
         ?int $performedBy = null,
         ?int $toStageId = null,
+        ?ActivityEntryResult $result = null,
+        ?string $activityDate = null,
+        ?string $activityLabel = null,
     ): void {
         if ($toStageId !== null && ! $this->stageBelongsToCurrentPipeline($toStageId)) {
             $toStageId = null;
@@ -431,6 +514,9 @@ class JobApplication extends Model
             $status,
             $notes,
             $performedBy,
+            $result,
+            $activityDate,
+            $activityLabel,
         );
     }
 
@@ -507,7 +593,15 @@ class JobApplication extends Model
         $activityType = $stage->activityKey();
         $activityTitle = self::generateBatchActivityTitle($stage->activityLabel(), $activityDate);
 
-        DB::transaction(function () use ($activityGroupId, $stageId, $activityType, $activityDate, $activityTitle, $entries, $performedBy, $applications): void {
+        $nextStageId = RekrutmenStage::query()
+            ->where('rekrutmen_pipeline_id', $stage->rekrutmen_pipeline_id)
+            ->where('order_column', '>', $stage->order_column)
+            ->orderBy('order_column')
+            ->value('id');
+
+        $nextStageId = is_numeric($nextStageId) ? (int) $nextStageId : null;
+
+        DB::transaction(function () use ($activityGroupId, $stageId, $nextStageId, $activityType, $activityDate, $activityTitle, $entries, $performedBy, $applications): void {
             foreach ($entries as $entry) {
                 $application = $applications->get((int) $entry['job_application_id']);
 
@@ -528,24 +622,41 @@ class JobApplication extends Model
                 $result = $resultValue instanceof ActivityEntryResult
                     ? $resultValue
                     : ActivityEntryResult::tryFrom($resultValue) ?? ActivityEntryResult::PENDING;
+
+                if (! $result->isActivityOutcome()) {
+                    throw new InvalidArgumentException(__('rekrutmen::filament/resources/activity-log.errors.invalid_result'));
+                }
+
                 $entryNotes = $entry['notes'] ?? null;
+                $historyStatus = match ($result) {
+                    ActivityEntryResult::FAILED => JobApplicationStatus::REJECTED,
+                    default                     => $application->status ?? JobApplicationStatus::IN_PROGRESS,
+                };
+                $toStageId = match ($result) {
+                    ActivityEntryResult::PASSED => $nextStageId ?? $stageId,
+                    default                     => $stageId,
+                };
+
+                if ($result === ActivityEntryResult::FAILED) {
+                    $application->assertDecisionNotesProvided($entryNotes);
+                }
 
                 $application->histories()->create([
                     'from_stage_id'     => $fromStageId,
-                    'to_stage_id'       => $stageId,
+                    'to_stage_id'       => $toStageId,
                     'activity_type'     => $activityType,
                     'activity_date'     => $activityDate,
                     'result'            => $result,
                     'activity_title'    => $activityTitle,
                     'activity_group_id' => $activityGroupId,
-                    'status'            => $application->status,
+                    'status'            => $historyStatus,
                     'notes'             => $entryNotes,
                     'performed_by'      => $performedBy,
                 ]);
 
                 match ($result) {
-                    ActivityEntryResult::PASSED  => $application->transitionToNextStage($stageId, $entryNotes, $performedBy),
-                    ActivityEntryResult::FAILED  => $application->markAsRejected($entryNotes, $performedBy),
+                    ActivityEntryResult::PASSED  => $application->advanceToStageWithoutHistory($toStageId),
+                    ActivityEntryResult::FAILED  => $application->update(['status' => JobApplicationStatus::REJECTED]),
                     ActivityEntryResult::PENDING => null,
                 };
             }
@@ -590,6 +701,18 @@ class JobApplication extends Model
         if ($nextStage) {
             $this->transitionToStage($nextStage->id, $notes ?? __('rekrutmen::filament/resources/job-application.workflow_notes.stage_changed'), $performedBy);
         }
+    }
+
+    protected function advanceToStageWithoutHistory(int $toStageId): void
+    {
+        if ($toStageId === $this->current_stage_id) {
+            return;
+        }
+
+        $this->update([
+            'current_stage_id' => $toStageId,
+            'position'         => $this->nextPositionForStage($toStageId),
+        ]);
     }
 
     protected function normalizeTransactionalInput(): void
@@ -1195,11 +1318,12 @@ class JobApplication extends Model
 
     protected function nextPositionForStage(?int $stageId): string
     {
-        if ($stageId === null) {
+        if ($stageId === null || ! is_numeric($this->job_posting_id)) {
             return DecimalPosition::forEmptyColumn();
         }
 
         $lastPosition = static::query()
+            ->where('job_posting_id', (int) $this->job_posting_id)
             ->where('current_stage_id', $stageId)
             ->whereKeyNot($this->getKey())
             ->whereNotNull('position')
@@ -1336,14 +1460,23 @@ class JobApplication extends Model
         ?int $toStageId,
         JobApplicationStatus $status,
         ?string $notes,
-        ?int $performedBy
+        ?int $performedBy,
+        ?ActivityEntryResult $result = null,
+        ?string $activityDate = null,
+        ?string $activityLabel = null,
     ): void {
         $this->histories()->create([
-            'from_stage_id' => $fromStageId,
-            'to_stage_id'   => $toStageId,
-            'status'        => $status,
-            'notes'         => $notes,
-            'performed_by'  => $performedBy,
+            'from_stage_id'  => $fromStageId,
+            'to_stage_id'    => $toStageId,
+            'activity_type'  => $activityLabel !== null ? Str::slug($activityLabel, '_') : null,
+            'activity_date'  => $activityDate,
+            'result'         => $result,
+            'activity_title' => $activityLabel !== null && $activityDate !== null
+                ? self::generateBatchActivityTitle($activityLabel, $activityDate)
+                : null,
+            'status'       => $status,
+            'notes'        => $notes,
+            'performed_by' => $performedBy,
         ]);
     }
 

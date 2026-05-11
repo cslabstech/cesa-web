@@ -65,12 +65,8 @@ class JobApplicationHistory extends Model
 
     public function activityKey(): ?string
     {
-        if ($this->toStage) {
-            return $this->toStage->activityKey();
-        }
-
         if (! is_string($this->activity_type) || $this->activity_type === '') {
-            return null;
+            return $this->activityStage()?->activityKey();
         }
 
         return $this->activity_type;
@@ -78,12 +74,12 @@ class JobApplicationHistory extends Model
 
     public function activityLabel(): string
     {
-        if ($this->toStage) {
-            return $this->toStage->activityLabel();
+        if ($this->isBatchActivity() && $this->fromStage) {
+            return $this->fromStage->activityLabel();
         }
 
         if (! is_string($this->activity_type) || $this->activity_type === '') {
-            return '-';
+            return $this->activityStage()?->activityLabel() ?? '-';
         }
 
         return Str::headline($this->activity_type);
@@ -91,10 +87,25 @@ class JobApplicationHistory extends Model
 
     public function activityColor(): string|array|null
     {
-        if ($this->toStage) {
-            return $this->toStage->activityColor();
+        return $this->activityStage()?->activityColor() ?? 'gray';
+    }
+
+    public function activityStatusLabel(): ?string
+    {
+        return $this->result?->getLabel() ?? $this->status?->getLabel();
+    }
+
+    public function activityStatusColor(): string|array|null
+    {
+        return $this->result?->getColor() ?? $this->status?->getColor();
+    }
+
+    public function activityStage(): ?RekrutmenStage
+    {
+        if ($this->isBatchActivity() && $this->fromStage) {
+            return $this->fromStage;
         }
 
-        return 'gray';
+        return $this->toStage;
     }
 }

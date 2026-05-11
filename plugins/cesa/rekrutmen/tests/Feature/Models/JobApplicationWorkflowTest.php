@@ -2,9 +2,11 @@
 
 namespace Cesa\Rekrutmen\Tests\Feature\Models;
 
+use Cesa\Rekrutmen\Enums\ActivityEntryResult;
 use Cesa\Rekrutmen\Enums\JobApplicationGender;
 use Cesa\Rekrutmen\Enums\JobApplicationMaritalStatus;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
+use Cesa\Rekrutmen\Filament\Resources\JobApplicationResource\Pages\CreateJobApplication;
 use Cesa\Rekrutmen\Models\JobApplication;
 use Cesa\Rekrutmen\Models\JobPosting;
 use Cesa\Rekrutmen\Models\RekrutmenPipeline;
@@ -58,40 +60,77 @@ class JobApplicationWorkflowTest extends RekrutmenTestCase
         $this->assertDatabaseHas('rekrutmen_job_application_histories', [
             'job_application_id' => $application->id,
             'from_stage_id'      => $firstStage->id,
-            'to_stage_id'        => $firstStage->id,
+            'to_stage_id'        => $secondStage->id,
             'activity_type'      => $firstStage->activityKey(),
             'result'             => 'passed',
             'activity_date'      => '2026-04-16 00:00:00',
+            'status'             => JobApplicationStatus::IN_PROGRESS->value,
             'notes'              => 'Lolos interview awal.',
         ]);
-        $this->assertDatabaseHas('rekrutmen_job_application_histories', [
+        $this->assertDatabaseMissing('rekrutmen_job_application_histories', [
             'job_application_id' => $application->id,
             'from_stage_id'      => $firstStage->id,
             'to_stage_id'        => $secondStage->id,
             'status'             => JobApplicationStatus::IN_PROGRESS->value,
             'notes'              => 'Lolos interview awal.',
+            'activity_type'      => null,
         ]);
+        $this->assertSame(2, $application->histories()->count());
+    }
+
+    public function test_candidate_can_only_be_marked_hired_from_final_pipeline_stage(): void
+    {
+        [$jobPosting, $firstStage, $secondStage] = $this->createPipelineFixture('Final Stage Accept');
+
+        $application = $this->makeJobApplication($jobPosting, $firstStage, 'final-stage-accept@example.com');
+
+        $this->assertFalse($application->canMarkAsHired());
+
+        try {
+            $application->markAsHired('Accepted before final stage.');
+            $this->fail('Candidate was marked hired before reaching the final decision stage.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertSame(
+                __('rekrutmen::filament/resources/job-application.workflow_errors.terminal_stage_locked'),
+                $exception->getMessage(),
+            );
+        }
+
+        $application->transitionToStage($secondStage->id, 'Move to final evaluation.');
+        $application->refresh();
+
+        $this->assertTrue($application->canMarkAsHired());
+
+        $application->markAsRejected('Rejected at final stage.');
+        $application->refresh();
+
+        $this->assertFalse($application->canMarkAsHired());
     }
 
     public function test_marking_candidate_as_hired_and_rejected_records_history(): void
     {
-        [$jobPosting, $firstStage] = $this->createPipelineFixture('Decision');
+        [$jobPosting, $firstStage, $secondStage] = $this->createPipelineFixture('Decision');
 
         $hiredApplication = $this->makeJobApplication($jobPosting, $firstStage, 'hired@example.com');
-        $hiredApplication->markAsHired('Accepted');
+        $hiredApplication->transitionToStage($secondStage->id, 'Move to final decision.');
+        $hiredApplication->refresh();
+        $hiredApplication->markAsHired('Accepted', activityDate: '2026-04-17');
         $hiredApplication->refresh();
 
         $this->assertSame(JobApplicationStatus::HIRED, $hiredApplication->status);
         $this->assertDatabaseHas('rekrutmen_job_application_histories', [
             'job_application_id' => $hiredApplication->id,
-            'from_stage_id'      => $firstStage->id,
-            'to_stage_id'        => $firstStage->id,
+            'from_stage_id'      => $secondStage->id,
+            'to_stage_id'        => $secondStage->id,
+            'result'             => ActivityEntryResult::ACCEPTED->value,
+            'activity_date'      => '2026-04-17 00:00:00',
+            'activity_title'     => JobApplication::generateBatchActivityTitle(__('rekrutmen::filament/resources/job-application.table.actions.mark_hired'), '2026-04-17'),
             'status'             => JobApplicationStatus::HIRED->value,
             'notes'              => 'Accepted',
         ]);
 
         $rejectedApplication = $this->makeJobApplication($jobPosting, $firstStage, 'rejected@example.com');
-        $rejectedApplication->markAsRejected('Rejected');
+        $rejectedApplication->markAsRejected('Rejected', activityDate: '2026-04-18');
         $rejectedApplication->refresh();
 
         $this->assertSame(JobApplicationStatus::REJECTED, $rejectedApplication->status);
@@ -99,14 +138,80 @@ class JobApplicationWorkflowTest extends RekrutmenTestCase
             'job_application_id' => $rejectedApplication->id,
             'from_stage_id'      => $firstStage->id,
             'to_stage_id'        => $firstStage->id,
+            'result'             => ActivityEntryResult::REJECTED->value,
+            'activity_date'      => '2026-04-18 00:00:00',
+            'activity_title'     => JobApplication::generateBatchActivityTitle(__('rekrutmen::filament/resources/job-application.table.actions.mark_rejected'), '2026-04-18'),
             'status'             => JobApplicationStatus::REJECTED->value,
             'notes'              => 'Rejected',
         ]);
     }
 
-    public function test_marking_candidate_as_hired_moves_to_hired_stage_when_available(): void
+    public function test_admin_candidate_creation_uses_job_posting_acceptance_contract(): void
     {
-        [$jobPosting, $firstStage] = $this->createPipelineFixture('Decision Hired Stage');
+        [$jobPosting, $firstStage] = $this->createPipelineFixture('Admin Create Contract');
+
+        $page = new class extends CreateJobApplication
+        {
+            public function exposeMutateFormDataBeforeCreate(array $data): array
+            {
+                return $this->mutateFormDataBeforeCreate($data);
+            }
+        };
+
+        $mutated = $page->exposeMutateFormDataBeforeCreate([
+            'job_posting_id' => $jobPosting->id,
+        ]);
+
+        $this->assertSame($firstStage->id, $mutated['current_stage_id']);
+        $this->assertSame(JobApplicationStatus::IN_PROGRESS, $mutated['status']);
+
+        $this->makeJobApplication($jobPosting, $firstStage, 'fulfilled-admin-create@example.com', [
+            'status' => JobApplicationStatus::HIRED,
+        ]);
+
+        try {
+            $page->exposeMutateFormDataBeforeCreate([
+                'job_posting_id' => $jobPosting->id,
+            ]);
+
+            $this->fail('Admin candidate creation accepted a fulfilled job posting.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('job_posting_id', $exception->errors());
+        }
+    }
+
+    public function test_hired_candidate_can_be_marked_withdrawn_before_onboarding(): void
+    {
+        [$jobPosting, $firstStage, $secondStage] = $this->createPipelineFixture('Hired Withdrawn');
+
+        $application = $this->makeJobApplication($jobPosting, $firstStage, 'hired-withdrawn@example.com');
+        $application->transitionToStage($secondStage->id, 'Move to final decision.');
+        $application->refresh();
+        $application->markAsHired('Accepted', activityDate: '2026-04-17');
+        $application->refresh();
+
+        $this->assertSame(JobApplicationStatus::HIRED, $application->status);
+        $this->assertTrue($application->canMarkAsWithdrawn());
+
+        $application->markAsWithdrawn('Candidate resigned before onboarding.', activityDate: '2026-04-19');
+        $application->refresh();
+
+        $this->assertSame(JobApplicationStatus::WITHDRAWN, $application->status);
+        $this->assertFalse($application->canMarkAsWithdrawn());
+        $this->assertDatabaseHas('rekrutmen_job_application_histories', [
+            'job_application_id' => $application->id,
+            'from_stage_id'      => $secondStage->id,
+            'to_stage_id'        => $secondStage->id,
+            'result'             => null,
+            'activity_date'      => '2026-04-19 00:00:00',
+            'status'             => JobApplicationStatus::WITHDRAWN->value,
+            'notes'              => 'Candidate resigned before onboarding.',
+        ]);
+    }
+
+    public function test_candidate_can_be_marked_hired_after_reaching_hired_stage_when_available(): void
+    {
+        [$jobPosting, $firstStage, $secondStage] = $this->createPipelineFixture('Decision Hired Stage');
 
         $hiredStage = RekrutmenStage::query()->create([
             'rekrutmen_pipeline_id' => $jobPosting->rekrutmen_pipeline_id,
@@ -115,6 +220,16 @@ class JobApplicationWorkflowTest extends RekrutmenTestCase
         ]);
 
         $application = $this->makeJobApplication($jobPosting, $firstStage, 'hired-stage@example.com');
+        $application->transitionToStage($secondStage->id, 'Move to final decision.');
+        $application->refresh();
+
+        $this->assertFalse($application->canMarkAsHired());
+
+        $application->transitionToStage($hiredStage->id, 'Move to hired stage.');
+        $application->refresh();
+
+        $this->assertTrue($application->canMarkAsHired());
+
         $application->markAsHired('Accepted');
         $application->refresh();
 
@@ -122,7 +237,7 @@ class JobApplicationWorkflowTest extends RekrutmenTestCase
         $this->assertSame($hiredStage->id, $application->current_stage_id);
         $this->assertDatabaseHas('rekrutmen_job_application_histories', [
             'job_application_id' => $application->id,
-            'from_stage_id'      => $firstStage->id,
+            'from_stage_id'      => $hiredStage->id,
             'to_stage_id'        => $hiredStage->id,
             'status'             => JobApplicationStatus::HIRED->value,
             'notes'              => 'Accepted',
@@ -228,6 +343,28 @@ class JobApplicationWorkflowTest extends RekrutmenTestCase
 
         $this->assertNotNull($firstApplication->position);
         $this->assertNotNull($secondApplication->position);
+        $this->assertTrue((float) $secondApplication->position > (float) $firstApplication->position);
+    }
+
+    public function test_board_position_ordering_is_scoped_to_job_posting(): void
+    {
+        [$jobPosting, $firstStage] = $this->createPipelineFixture('Position Scope');
+
+        $otherJobPosting = JobPosting::query()->create([
+            'rekrutmen_pipeline_id' => $jobPosting->rekrutmen_pipeline_id,
+            'title'                 => 'Other Developer Position Scope',
+            'slug'                  => 'other-developer-position-scope-'.str()->lower(str()->random(4)),
+            'description'           => 'Build APIs',
+            'requirements'          => 'Laravel',
+            'location'              => 'Jakarta',
+            'is_published'          => true,
+        ]);
+
+        $firstApplication = $this->makeJobApplication($jobPosting, $firstStage, 'first-scoped-position@example.com');
+        $otherPostingApplication = $this->makeJobApplication($otherJobPosting, $firstStage, 'other-scoped-position@example.com');
+        $secondApplication = $this->makeJobApplication($jobPosting, $firstStage, 'second-scoped-position@example.com');
+
+        $this->assertSame((string) $firstApplication->position, (string) $otherPostingApplication->position);
         $this->assertTrue((float) $secondApplication->position > (float) $firstApplication->position);
     }
 

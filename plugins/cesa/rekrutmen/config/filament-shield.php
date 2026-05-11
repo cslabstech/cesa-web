@@ -1,6 +1,7 @@
 <?php
 
 use Cesa\Rekrutmen\Filament\Clusters\Configurations;
+use Cesa\Rekrutmen\Filament\Resources\ActivityLogResource;
 use Cesa\Rekrutmen\Filament\Resources\ApproverResource;
 use Cesa\Rekrutmen\Filament\Resources\DivisionResource;
 use Cesa\Rekrutmen\Filament\Resources\JobApplicationResource;
@@ -16,6 +17,7 @@ return [
             RekrutmenPipelineResource::class  => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
             JobPostingResource::class         => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
             JobApplicationResource::class     => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
+            ActivityLogResource::class        => ['view_any', 'create', 'delete'],
             RequestManPowerResource::class    => ['view_any', 'view', 'create', 'update', 'delete', 'delete_any', 'force_delete', 'force_delete_any', 'restore', 'restore_any'],
         ],
         'exclude' => [],

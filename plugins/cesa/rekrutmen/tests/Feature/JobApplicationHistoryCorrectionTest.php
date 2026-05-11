@@ -16,6 +16,7 @@ use Cesa\Rekrutmen\Models\RekrutmenStage;
 use Cesa\Rekrutmen\Tests\RekrutmenTestCase;
 use Filament\Facades\Filament;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
 use Webkul\Security\Models\User;
@@ -34,15 +35,19 @@ class JobApplicationHistoryCorrectionTest extends RekrutmenTestCase
             'is_active' => true,
         ]);
 
+        Permission::findOrCreate('view_any_rekrutmen_job::application', 'web');
         Permission::findOrCreate('view_rekrutmen_job::application', 'web');
         Permission::findOrCreate('update_rekrutmen_job::application', 'web');
 
         $this->user->givePermissionTo([
+            'view_any_rekrutmen_job::application',
             'view_rekrutmen_job::application',
             'update_rekrutmen_job::application',
         ]);
 
         $this->actingAs($this->user);
+
+        $this->registerJobApplicationRoutes();
     }
 
     public function test_job_application_view_registers_pass_current_stage_action(): void
@@ -55,8 +60,47 @@ class JobApplicationHistoryCorrectionTest extends RekrutmenTestCase
 
         $this->assertTrue(
             collect($actions)->contains(fn (mixed $action): bool => method_exists($action, 'getName')
+                && $action->getName() === 'record_activity')
+        );
+
+        $this->assertTrue(
+            collect($actions)->contains(fn (mixed $action): bool => method_exists($action, 'getName')
                 && $action->getName() === 'pass_current_stage')
         );
+    }
+
+    public function test_job_application_view_can_record_activity_inline(): void
+    {
+        [$jobPosting, $screeningStage, $hiredStage] = $this->createPipelineFixture();
+        $candidate = $this->createJobApplication(
+            $jobPosting,
+            $screeningStage,
+            'detail-activity@example.com',
+            'Candidate Detail Activity',
+        );
+
+        Livewire::test(ViewJobApplication::class, ['record' => $candidate->id])
+            ->callAction('record_activity', [
+                'activity_date' => '2026-04-15',
+                'result'        => ActivityEntryResult::PASSED->value,
+                'notes'         => 'Lolos screening dari halaman detail kandidat.',
+            ]);
+
+        $candidate->refresh();
+
+        $this->assertSame($hiredStage->id, $candidate->current_stage_id);
+
+        $history = JobApplicationHistory::query()
+            ->where('job_application_id', $candidate->id)
+            ->whereNotNull('activity_group_id')
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($history);
+        $this->assertSame($screeningStage->id, $history->from_stage_id);
+        $this->assertSame($hiredStage->id, $history->to_stage_id);
+        $this->assertSame(ActivityEntryResult::PASSED, $history->result);
+        $this->assertSame('Lolos screening dari halaman detail kandidat.', $history->notes);
     }
 
     public function test_job_application_history_activity_date_can_be_corrected_from_relation_manager(): void
@@ -202,5 +246,23 @@ class JobApplicationHistoryCorrectionTest extends RekrutmenTestCase
             'created_at'        => Carbon::parse('2026-04-27 09:00:00'),
             'updated_at'        => Carbon::parse('2026-04-27 09:00:00'),
         ]);
+    }
+
+    private function registerJobApplicationRoutes(): void
+    {
+        if (! Route::has('filament.admin.resources.job-applications.index')) {
+            Route::get('/testing/filament/admin/resources/job-applications', fn () => 'ok')
+                ->name('filament.admin.resources.job-applications.index');
+        }
+
+        if (! Route::has('filament.admin.resources.job-applications.edit')) {
+            Route::get('/testing/filament/admin/resources/job-applications/{record}/edit', fn () => 'ok')
+                ->name('filament.admin.resources.job-applications.edit');
+        }
+
+        if (! Route::has('filament.admin.resources.job-applications.view')) {
+            Route::get('/testing/filament/admin/resources/job-applications/{record}', fn () => 'ok')
+                ->name('filament.admin.resources.job-applications.view');
+        }
     }
 }

@@ -30,22 +30,25 @@ class RecruitmentProgressController extends Controller
                 ],
             ],
             'summary'    => $report['summary'],
+            'hr_kpis'    => $report['hr_kpis']->values(),
             'activities' => $report['activities']->map(fn (array $activity): array => $this->formatActivity($activity))->values(),
             'positions'  => $report['positions']->map(fn (array $position): array => [
-                'job_posting_id'         => $position['posting']->id,
-                'position'               => $position['posting']->title,
-                'company'                => $position['request']?->company?->name,
-                'location'               => $position['posting']->location,
-                'needed'                 => $position['needed'],
-                'total_applicants'       => $position['statistics']['total_applicants'],
-                'hired'                  => $position['statistics']['hired'],
-                'hired_candidates'       => $position['hired_candidates']->values(),
-                'in_progress'            => $position['statistics']['in_progress'],
-                'rejected'               => $position['statistics']['rejected'],
-                'request_status'         => $position['request_status'],
-                'request_status_label'   => $position['request_status_label'],
-                'is_on_hold'             => $position['is_on_hold'],
-                'latest_activity'        => $position['latest_activity']
+                'job_posting_id'       => $position['posting']->id,
+                'position'             => $position['posting']->title,
+                'company'              => $position['request']?->company?->name,
+                'location'             => $position['posting']->location,
+                'needed'               => $position['needed'],
+                'total_applicants'     => $position['statistics']['total_applicants'],
+                'hired'                => $position['statistics']['hired'],
+                'hired_candidates'     => $position['hired_candidates']->values(),
+                'in_progress'          => $position['statistics']['in_progress'],
+                'rejected'             => $position['statistics']['rejected'],
+                'request_status'       => $position['request_status'],
+                'request_status_label' => $position['request_status_label'],
+                'is_on_hold'           => $position['is_on_hold'],
+                'cycle_health'         => $position['cycle_health'],
+                'request_fulfillments' => collect($position['request_fulfillments'] ?? [])->values(),
+                'latest_activity'      => $position['latest_activity']
                     ? [
                         'date'    => $position['latest_activity']['activity_date']?->format('Y-m-d'),
                         'type'    => $position['latest_activity']['activity_type'],
@@ -78,7 +81,7 @@ class RecruitmentProgressController extends Controller
                 'activities' => collect($timeline['activities'])
                     ->map(fn (array $activity): array => $this->formatActivity($activity))
                     ->values(),
-                'activity'   => $this->formatActivity($timeline['activity']),
+                'activity' => $this->formatActivity($timeline['activity']),
             ])->values(),
         ]);
     }
@@ -116,6 +119,7 @@ class RecruitmentProgressController extends Controller
      *     date_to: ?string,
      *     job_posting_id: ?int,
      *     stage_id: ?int,
+     *     stage_name: ?string,
      *     company_id: ?int
      * }
      */
@@ -126,6 +130,7 @@ class RecruitmentProgressController extends Controller
             'date_to'        => $request->input('date_to'),
             'job_posting_id' => $request->integer('job_posting_id') ?: null,
             'stage_id'       => $request->integer('stage_id') ?: null,
+            'stage_name'     => $request->string('stage_name')->trim()->toString() ?: null,
             'company_id'     => $request->integer('company_id') ?: null,
         ];
     }
@@ -145,7 +150,7 @@ class RecruitmentProgressController extends Controller
             'position'            => $activity['job_posting']?->title,
             'job_posting_id'      => $activity['job_posting_id'],
             'stage_name'          => $activity['to_stage']?->name,
-            'performer'           => $activity['performer']?->name,
+            'performer'           => $activity['performer_label'] ?? $activity['performer']?->name,
             'summary'             => $activity['summary'],
             'counts'              => [
                 'total'   => $activity['total_candidates'],

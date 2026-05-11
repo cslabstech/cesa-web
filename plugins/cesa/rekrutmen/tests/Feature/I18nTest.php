@@ -6,9 +6,11 @@ use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Enums\StatusKebutuhan;
 use Cesa\Rekrutmen\Filament\Clusters\Configurations;
+use Cesa\Rekrutmen\Filament\Pages\RecruitmentProgressReportPage;
 use Cesa\Rekrutmen\Filament\Resources\ActivityLogResource;
 use Cesa\Rekrutmen\Filament\Resources\ApproverResource;
 use Cesa\Rekrutmen\Filament\Resources\DivisionResource;
+use Cesa\Rekrutmen\Filament\Resources\JobApplicationResource;
 use Cesa\Rekrutmen\Filament\Resources\JobPostingResource;
 use Cesa\Rekrutmen\Filament\Resources\RekrutmenPipelineResource;
 use Cesa\Rekrutmen\Filament\Resources\RequestManPowerResource;
@@ -33,7 +35,10 @@ class I18nTest extends RekrutmenTestCase
             $this->assertSame($expected['pipeline_navigation_label'], RekrutmenPipelineResource::getNavigationLabel());
             $this->assertSame($expected['approver_navigation_label'], ApproverResource::getNavigationLabel());
             $this->assertSame($expected['job_posting_navigation_label'], JobPostingResource::getNavigationLabel());
+            $this->assertSame($expected['job_application_navigation_label'], JobApplicationResource::getNavigationLabel());
             $this->assertSame($expected['activity_log_navigation_label'], ActivityLogResource::getNavigationLabel());
+            $this->assertSame($expected['progress_report_navigation_label'], RecruitmentProgressReportPage::getNavigationLabel());
+            $this->assertSame($expected['activity_log_recent_activities'], __('rekrutmen::filament/resources/activity-log.table.columns.recent_activities'));
             $this->assertSame($expected['status_kebutuhan'], StatusKebutuhan::NEW_HIRING->getLabel());
             $this->assertSame($expected['request_status'], RequestManPowerStatus::PENDING->getLabel());
             $this->assertSame($expected['application_status'], JobApplicationStatus::IN_PROGRESS->getLabel());
@@ -97,44 +102,50 @@ class I18nTest extends RekrutmenTestCase
     {
         return [
             'en' => [
-                'navigation_label'             => 'Manpower Requests',
-                'configurations_label'         => 'Configurations',
-                'division_navigation_label'    => 'Recruitment Divisions',
-                'pipeline_navigation_label'    => 'Recruitment Pipelines',
-                'approver_navigation_label'    => 'Recruitment Approvers',
-                'job_posting_navigation_label' => 'Job Postings',
-                'activity_log_navigation_label'=> 'Record Recruitment Activity',
-                'status_kebutuhan'             => 'New Hiring',
-                'request_status'               => 'Pending',
-                'application_status'           => 'In Progress',
-                'job_level'                    => 'Staff',
-                'public_progress_heading'      => 'Manpower Request Progress',
-                'mail_progress_action'         => 'View Submission Progress',
-                'flowforge_empty_column'       => 'No data in this column',
-                'job_detail_message'           => 'Job detail retrieved successfully.',
-                'application_form_full_name'   => 'Full Name (As Per ID Card)',
-                'application_form_gender'      => 'Gender',
-                'application_form_photo'       => 'Latest Personal Photo',
+                'navigation_label'                 => 'Manpower Requests',
+                'configurations_label'             => 'Configurations',
+                'division_navigation_label'        => 'Recruitment Divisions',
+                'pipeline_navigation_label'        => 'Recruitment Pipelines',
+                'approver_navigation_label'        => 'Recruitment Approvers',
+                'job_posting_navigation_label'     => 'Job Postings',
+                'job_application_navigation_label' => 'Job Applications',
+                'activity_log_navigation_label'    => 'Record Recruitment Activity',
+                'progress_report_navigation_label' => 'Recruitment Progress',
+                'activity_log_recent_activities'   => 'Recent Activities',
+                'status_kebutuhan'                 => 'New Hiring',
+                'request_status'                   => 'Pending',
+                'application_status'               => 'In Progress',
+                'job_level'                        => 'Staff',
+                'public_progress_heading'          => 'Manpower Request Progress',
+                'mail_progress_action'             => 'View Submission Progress',
+                'flowforge_empty_column'           => 'No data in this column',
+                'job_detail_message'               => 'Job detail retrieved successfully.',
+                'application_form_full_name'       => 'Full Name (As Per ID Card)',
+                'application_form_gender'          => 'Gender',
+                'application_form_photo'           => 'Latest Personal Photo',
             ],
             'id' => [
-                'navigation_label'             => 'Permintaan Tenaga Kerja',
-                'configurations_label'         => 'Konfigurasi',
-                'division_navigation_label'    => 'Divisi',
-                'pipeline_navigation_label'    => 'Pipeline',
-                'approver_navigation_label'    => 'Approver',
-                'job_posting_navigation_label' => 'Lowongan Kerja',
-                'activity_log_navigation_label'=> 'Catat Aktivitas',
-                'status_kebutuhan'             => 'Karyawan Baru',
-                'request_status'               => 'Pending',
-                'application_status'           => 'Dalam Proses',
-                'job_level'                    => 'Staf',
-                'public_progress_heading'      => 'Progress Permintaan Tenaga Kerja',
-                'mail_progress_action'         => 'Lihat Progress Pengajuan',
-                'flowforge_empty_column'       => 'Belum ada data di kolom ini',
-                'job_detail_message'           => 'Detail lowongan berhasil diambil.',
-                'application_form_full_name'   => 'Nama Lengkap (Sesuai KTP)',
-                'application_form_gender'      => 'Jenis Kelamin',
-                'application_form_photo'       => 'Photo Diri Terbaru',
+                'navigation_label'                 => 'Permintaan MPP',
+                'configurations_label'             => 'Konfigurasi',
+                'division_navigation_label'        => 'Divisi',
+                'pipeline_navigation_label'        => 'Pipeline',
+                'approver_navigation_label'        => 'Approver',
+                'job_posting_navigation_label'     => 'Lowongan',
+                'job_application_navigation_label' => 'Lamaran',
+                'activity_log_navigation_label'    => 'Catat Aktivitas',
+                'progress_report_navigation_label' => 'Progres',
+                'activity_log_recent_activities'   => 'Aktivitas Terbaru',
+                'status_kebutuhan'                 => 'Karyawan Baru',
+                'request_status'                   => 'Menunggu',
+                'application_status'               => 'Dalam Proses',
+                'job_level'                        => 'Staf',
+                'public_progress_heading'          => 'Progress Permintaan Tenaga Kerja',
+                'mail_progress_action'             => 'Lihat Progress Pengajuan',
+                'flowforge_empty_column'           => 'Belum ada data di kolom ini',
+                'job_detail_message'               => 'Detail lowongan berhasil diambil.',
+                'application_form_full_name'       => 'Nama Lengkap (Sesuai KTP)',
+                'application_form_gender'          => 'Jenis Kelamin',
+                'application_form_photo'           => 'Photo Diri Terbaru',
             ],
         ];
     }

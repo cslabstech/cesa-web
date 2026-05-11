@@ -11,7 +11,6 @@ use Cesa\Rekrutmen\Models\JobPosting;
 use Cesa\Rekrutmen\Models\RekrutmenStage;
 use Filament\Actions\Action;
 use Filament\Actions\Contracts\HasActions;
-use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -44,7 +43,7 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
 
     protected static ?string $navigationLabel = null;
 
-    protected string $view = 'flowforge::filament.pages.board-page';
+    protected string $view = 'rekrutmen::filament.pages.pipeline-board';
 
     public ?int $activeJobPostingId = null;
 
@@ -130,6 +129,11 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
                 JobApplication::query()
                     ->with('currentStage')
                     ->when($this->activeJobPostingId, fn (Builder $query) => $query->where('job_posting_id', $this->activeJobPostingId))
+                    ->orderByRaw('CASE WHEN status IN (?, ?, ?) THEN 1 ELSE 0 END', [
+                        JobApplicationStatus::REJECTED->value,
+                        JobApplicationStatus::WITHDRAWN->value,
+                        JobApplicationStatus::HIRED->value,
+                    ])
             )
             ->recordTitleAttribute('full_name')
             ->columnIdentifier('current_stage_id')
@@ -171,7 +175,7 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
                             ->default(now()->toDateString()),
                         Select::make('result')
                             ->label(__('rekrutmen::filament/resources/activity-log.form.fields.result'))
-                            ->options(ActivityEntryResult::class)
+                            ->options(ActivityEntryResult::activityOptions())
                             ->required()
                             ->default(ActivityEntryResult::PENDING->value)
                             ->live(),
@@ -208,45 +212,63 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
                             ->success()
                             ->send();
                     }),
-                EditAction::make()
-                    ->url(fn (JobApplication $record): string => JobApplicationResource::getUrl('edit', ['record' => $record])),
+                Action::make('view_candidate')
+                    ->label(__('rekrutmen::filament/resources/job-application.table.actions.view'))
+                    ->icon('heroicon-o-eye')
+                    ->color('gray')
+                    ->url(fn (JobApplication $record): string => JobApplicationResource::getUrl('view', ['record' => $record]))
+                    ->openUrlInNewTab(),
                 Action::make('mark_hired')
                     ->label(__('rekrutmen::filament/resources/job-application.table.actions.mark_hired'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn (JobApplication $record): bool => $record->status === JobApplicationStatus::IN_PROGRESS)
+                    ->visible(fn (JobApplication $record): bool => $record->canMarkAsHired())
                     ->form([
+                        DatePicker::make('activity_date')
+                            ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
+                            ->required()
+                            ->default(now()->toDateString())
+                            ->maxDate(today()),
                         Textarea::make('notes')
                             ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
                             ->required()
                             ->maxLength(65535),
                     ])
                     ->action(function (JobApplication $record, array $data): void {
-                        $record->markAsHired($data['notes'] ?? null, auth()->id());
+                        $record->markAsHired($data['notes'] ?? null, auth()->id(), (string) $data['activity_date']);
 
                         Notification::make()
                             ->title(__('rekrutmen::filament/resources/job-application.notifications.marked_hired'))
                             ->success()
                             ->send();
+
+                        $this->redirect(static::getUrl(['job_posting_id' => $this->activeJobPostingId]));
                     }),
-                Action::make('mark_rejected')
-                    ->label(__('rekrutmen::filament/resources/job-application.table.actions.mark_rejected'))
-                    ->icon('heroicon-o-x-circle')
-                    ->color('danger')
-                    ->visible(fn (JobApplication $record): bool => $record->status === JobApplicationStatus::IN_PROGRESS)
+                Action::make('mark_withdrawn')
+                    ->label(__('rekrutmen::filament/resources/job-application.table.actions.mark_withdrawn'))
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->color('warning')
+                    ->visible(fn (JobApplication $record): bool => $record->canMarkAsWithdrawn())
                     ->form([
+                        DatePicker::make('activity_date')
+                            ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
+                            ->required()
+                            ->default(now()->toDateString())
+                            ->maxDate(today()),
                         Textarea::make('notes')
                             ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
                             ->required()
                             ->maxLength(65535),
                     ])
                     ->action(function (JobApplication $record, array $data): void {
-                        $record->markAsRejected($data['notes'] ?? null, auth()->id());
+                        $record->markAsWithdrawn($data['notes'] ?? null, auth()->id(), (string) $data['activity_date']);
 
                         Notification::make()
-                            ->title(__('rekrutmen::filament/resources/job-application.notifications.marked_rejected'))
+                            ->title(__('rekrutmen::filament/resources/job-application.notifications.marked_withdrawn'))
                             ->success()
                             ->send();
+
+                        $this->redirect(static::getUrl(['job_posting_id' => $this->activeJobPostingId]));
                     }),
             ])
             ->columns($this->getDynamicColumns());

@@ -2,6 +2,9 @@
 
 namespace Cesa\Rekrutmen\Models;
 
+use Cesa\Rekrutmen\Enums\JobApplicationStatus;
+use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -38,9 +41,31 @@ class JobPosting extends Model
         'deleted_at'   => 'datetime',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(function (self $jobPosting): void {
+            if (! is_numeric($jobPosting->request_man_power_id)) {
+                return;
+            }
+
+            RequestManPower::query()
+                ->whereKey((int) $jobPosting->request_man_power_id)
+                ->whereNull('job_posting_id')
+                ->update([
+                    'job_posting_id' => $jobPosting->getKey(),
+                    'updated_at'     => now(),
+                ]);
+        });
+    }
+
     public function requestManPower(): BelongsTo
     {
         return $this->belongsTo(RequestManPower::class, 'request_man_power_id')->withTrashed();
+    }
+
+    public function requestManPowers(): HasMany
+    {
+        return $this->hasMany(RequestManPower::class, 'job_posting_id')->withTrashed();
     }
 
     public function rekrutmenPipeline(): BelongsTo
@@ -51,6 +76,28 @@ class JobPosting extends Model
     public function applications(): HasMany
     {
         return $this->hasMany(JobApplication::class, 'job_posting_id');
+    }
+
+    public function scopeAcceptingApplications(Builder $query): Builder
+    {
+        return $query
+            ->openForCandidateIntake()
+            ->whereHas('rekrutmenPipeline.activeStages');
+    }
+
+    public function scopeOpenForCandidateIntake(Builder $query): Builder
+    {
+        return $query
+            ->where($this->qualifyColumn('is_published'), true)
+            ->where(function (Builder $query): void {
+                $query
+                    ->whereNull($this->qualifyColumn('closing_date'))
+                    ->orWhereDate($this->qualifyColumn('closing_date'), '>=', today());
+            })
+            ->whereRaw($this->hiredApplicationsCountSql().' < '.$this->activeOpeningHeadcountSql(), [
+                JobApplicationStatus::HIRED->value,
+                ...$this->activeOpeningHeadcountSqlBindings(),
+            ]);
     }
 
     public static function thumbnailDisk(): string
@@ -69,5 +116,209 @@ class JobPosting extends Model
         }
 
         return Storage::disk(self::thumbnailDisk())->url($this->thumbnail_path);
+    }
+
+    public function isAcceptingApplications(): bool
+    {
+        if (! $this->isOpenForCandidateIntake()) {
+            return false;
+        }
+
+        if (! $this->hasActivePipelineStages()) {
+            return false;
+        }
+
+        return $this->remainingHeadcount() > 0;
+    }
+
+    public function isOpenForCandidateIntake(): bool
+    {
+        if (! $this->is_published) {
+            return false;
+        }
+
+        if ($this->closing_date?->lt(today())) {
+            return false;
+        }
+
+        return $this->remainingHeadcount() > 0;
+    }
+
+    public function remainingHeadcount(): int
+    {
+        return max(0, $this->activeOpeningHeadcount() - $this->hiredApplicationsCount());
+    }
+
+    public function activeOpeningHeadcount(): int
+    {
+        $linkedRequests = $this->relationLoaded('requestManPowers')
+            ? $this->requestManPowers
+            : $this->requestManPowers()->get();
+
+        $activeLinkedRequests = $linkedRequests
+            ->filter(fn (RequestManPower $requestManPower): bool => $requestManPower->deleted_at === null);
+
+        if ($activeLinkedRequests->isNotEmpty()) {
+            return (int) $activeLinkedRequests
+                ->filter(fn (RequestManPower $requestManPower): bool => $requestManPower->status === RequestManPowerStatus::APPROVED)
+                ->sum('jumlah_karyawan_dibutuhkan');
+        }
+
+        $sourceRequest = $this->requestManPower;
+
+        if (
+            $sourceRequest
+            && ! $sourceRequest->trashed()
+            && $sourceRequest->status === RequestManPowerStatus::APPROVED
+            && (
+                ! is_numeric($sourceRequest->job_posting_id)
+                || (int) $sourceRequest->job_posting_id === (int) $this->getKey()
+            )
+        ) {
+            return max(1, (int) ($sourceRequest->jumlah_karyawan_dibutuhkan ?? 1));
+        }
+
+        if ($sourceRequest) {
+            return 0;
+        }
+
+        return 1;
+    }
+
+    public function hiredApplicationsCount(): int
+    {
+        if ($this->relationLoaded('applications')) {
+            return $this->applications
+                ->filter(function (JobApplication $application): bool {
+                    if ($application->status instanceof JobApplicationStatus) {
+                        return $application->status === JobApplicationStatus::HIRED;
+                    }
+
+                    return $application->status === JobApplicationStatus::HIRED->value;
+                })
+                ->count();
+        }
+
+        return $this->applications()
+            ->where('status', JobApplicationStatus::HIRED->value)
+            ->count();
+    }
+
+    private function hasActivePipelineStages(): bool
+    {
+        if (! is_numeric($this->rekrutmen_pipeline_id)) {
+            return false;
+        }
+
+        if ($this->relationLoaded('rekrutmenPipeline') && $this->rekrutmenPipeline?->relationLoaded('activeStages')) {
+            return $this->rekrutmenPipeline->activeStages->isNotEmpty();
+        }
+
+        return RekrutmenStage::query()
+            ->where('rekrutmen_pipeline_id', (int) $this->rekrutmen_pipeline_id)
+            ->exists();
+    }
+
+    public function totalNeeded(): int
+    {
+        $totalNeeded = $this->requestManPowers()
+            ->whereNull((new RequestManPower)->qualifyColumn('deleted_at'))
+            ->whereIn('status', [
+                RequestManPowerStatus::APPROVED->value,
+                RequestManPowerStatus::HOLD->value,
+            ])
+            ->sum('jumlah_karyawan_dibutuhkan');
+
+        if ((int) $totalNeeded > 0) {
+            return (int) $totalNeeded;
+        }
+
+        $sourceRequest = $this->requestManPower;
+
+        if (! $sourceRequest) {
+            return 1;
+        }
+
+        if (
+            $sourceRequest->trashed()
+            || ! in_array($sourceRequest->status, [
+                RequestManPowerStatus::PENDING,
+                RequestManPowerStatus::APPROVED,
+                RequestManPowerStatus::HOLD,
+            ], true)
+        ) {
+            return 0;
+        }
+
+        if (
+            is_numeric($sourceRequest->job_posting_id)
+            && (int) $sourceRequest->job_posting_id !== (int) $this->getKey()
+        ) {
+            return 0;
+        }
+
+        return (int) ($sourceRequest->jumlah_karyawan_dibutuhkan ?? 1);
+    }
+
+    private function hiredApplicationsCountSql(): string
+    {
+        $applicationsTable = (new JobApplication)->getTable();
+
+        return implode(' ', [
+            '(select count(*)',
+            'from '.$applicationsTable,
+            'where '.$applicationsTable.'.job_posting_id = '.$this->qualifyColumn('id'),
+            'and '.$applicationsTable.'.deleted_at is null',
+            'and '.$applicationsTable.'.status = ?)',
+        ]);
+    }
+
+    private function activeOpeningHeadcountSql(): string
+    {
+        $requestTable = (new RequestManPower)->getTable();
+
+        $linkedRequestExistsSql = implode(' ', [
+            '(select count(*)',
+            'from '.$requestTable,
+            'where '.$requestTable.'.job_posting_id = '.$this->qualifyColumn('id'),
+            'and '.$requestTable.'.deleted_at is null)',
+        ]);
+
+        $linkedApprovedHeadcountSql = implode(' ', [
+            '(select sum('.$requestTable.'.jumlah_karyawan_dibutuhkan)',
+            'from '.$requestTable,
+            'where '.$requestTable.'.job_posting_id = '.$this->qualifyColumn('id'),
+            'and '.$requestTable.'.deleted_at is null',
+            'and '.$requestTable.'.status = ?)',
+        ]);
+
+        $sourceApprovedHeadcountSql = implode(' ', [
+            '(select COALESCE(NULLIF('.$requestTable.'.jumlah_karyawan_dibutuhkan, 0), 1)',
+            'from '.$requestTable,
+            'where '.$requestTable.'.id = '.$this->qualifyColumn('request_man_power_id'),
+            'and '.$requestTable.'.deleted_at is null',
+            'and '.$requestTable.'.status = ?',
+            'and ('.$requestTable.'.job_posting_id is null or '.$requestTable.'.job_posting_id = '.$this->qualifyColumn('id').')',
+            'limit 1)',
+        ]);
+
+        return implode(' ', [
+            '(case',
+            'when '.$linkedRequestExistsSql.' > 0 then COALESCE('.$linkedApprovedHeadcountSql.', 0)',
+            'when '.$this->qualifyColumn('request_man_power_id').' is null then 1',
+            'else COALESCE('.$sourceApprovedHeadcountSql.', 0)',
+            'end)',
+        ]);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function activeOpeningHeadcountSqlBindings(): array
+    {
+        return [
+            RequestManPowerStatus::APPROVED->value,
+            RequestManPowerStatus::APPROVED->value,
+        ];
     }
 }

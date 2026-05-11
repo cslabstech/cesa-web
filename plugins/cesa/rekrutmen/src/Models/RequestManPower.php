@@ -2,7 +2,9 @@
 
 namespace Cesa\Rekrutmen\Models;
 
+use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Cesa\Rekrutmen\Enums\RequestManPowerApprovalStatus;
+use Cesa\Rekrutmen\Enums\RequestManPowerFulfillmentStatus;
 use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Enums\StatusKebutuhan;
 use Cesa\Rekrutmen\Services\MailThrottleService;
@@ -62,6 +64,7 @@ class RequestManPower extends Model
         'keterangan',
         'status',
         'approved_by',
+        'job_posting_id',
         'hold_reason',
         'held_at',
         'held_by',
@@ -81,6 +84,7 @@ class RequestManPower extends Model
             'estimasi_tanggal_join'          => 'date',
             'jumlah_karyawan_dibutuhkan'     => 'integer',
             'status_response_id'             => 'string',
+            'job_posting_id'                 => 'integer',
             'held_at'                        => 'datetime',
             'resumed_at'                     => 'datetime',
             'hold_job_posting_was_published' => 'boolean',
@@ -163,7 +167,12 @@ class RequestManPower extends Model
         return $this->belongsTo(Division::class, 'division_id')->withTrashed();
     }
 
-    public function jobPosting(): HasOne
+    public function jobPosting(): BelongsTo
+    {
+        return $this->belongsTo(JobPosting::class, 'job_posting_id')->withTrashed();
+    }
+
+    public function sourceJobPosting(): HasOne
     {
         return $this->hasOne(JobPosting::class, 'request_man_power_id')->withTrashed();
     }
@@ -255,9 +264,131 @@ class RequestManPower extends Model
         return $query->where('status', $status);
     }
 
+    public function scopeWhereFulfillmentStatus(Builder $query, RequestManPowerFulfillmentStatus|string|null $status): Builder
+    {
+        if (is_string($status)) {
+            $status = RequestManPowerFulfillmentStatus::tryFrom($status);
+        }
+
+        if (! $status instanceof RequestManPowerFulfillmentStatus) {
+            return $query;
+        }
+
+        return match ($status) {
+            RequestManPowerFulfillmentStatus::FULFILLED        => $this->applyFulfilledScope($query),
+            RequestManPowerFulfillmentStatus::CLOSED           => $this->applyClosedFulfillmentScope($query),
+            RequestManPowerFulfillmentStatus::PENDING_APPROVAL => $query
+                ->where($this->qualifyColumn('status'), RequestManPowerStatus::PENDING->value),
+            RequestManPowerFulfillmentStatus::ON_HOLD => $query
+                ->where($this->qualifyColumn('status'), RequestManPowerStatus::HOLD->value),
+            RequestManPowerFulfillmentStatus::IN_PROCESS => $this->applyNotFulfilledScope($query)
+                ->where(fn (Builder $query): Builder => $this->applyOpenScope($query))
+                ->whereRaw($this->applicationCountSql(JobApplicationStatus::IN_PROGRESS).' > 0', [
+                    JobApplicationStatus::IN_PROGRESS->value,
+                ]),
+            RequestManPowerFulfillmentStatus::NO_CANDIDATE => $this->applyNotFulfilledScope($query)
+                ->where(fn (Builder $query): Builder => $this->applyOpenScope($query))
+                ->whereRaw($this->applicationCountSql().' = 0'),
+            RequestManPowerFulfillmentStatus::UNFULFILLED => $this->applyNotFulfilledScope($query)
+                ->where(fn (Builder $query): Builder => $this->applyOpenScope($query))
+                ->whereRaw($this->applicationCountSql(JobApplicationStatus::IN_PROGRESS).' = 0', [
+                    JobApplicationStatus::IN_PROGRESS->value,
+                ])
+                ->whereRaw($this->applicationCountSql().' > 0'),
+        };
+    }
+
     public function scopeByTanggal(Builder $query, string $from, string $to): Builder
     {
         return $query->whereBetween('tanggal_pengajuan', [$from, $to]);
+    }
+
+    public function neededHeadcount(): int
+    {
+        $jobPosting = $this->jobPosting;
+
+        if ($jobPosting) {
+            return max(1, $jobPosting->totalNeeded());
+        }
+
+        return max(1, (int) ($this->jumlah_karyawan_dibutuhkan ?? 1));
+    }
+
+    public function totalCandidatesCount(): int
+    {
+        return $this->applicationStatusCount();
+    }
+
+    public function hiredCandidatesCount(): int
+    {
+        return $this->applicationStatusCount(JobApplicationStatus::HIRED);
+    }
+
+    public function inProcessCandidatesCount(): int
+    {
+        return $this->applicationStatusCount(JobApplicationStatus::IN_PROGRESS);
+    }
+
+    public function fulfillmentStatus(): RequestManPowerFulfillmentStatus
+    {
+        if ($this->status === RequestManPowerStatus::PENDING) {
+            return RequestManPowerFulfillmentStatus::PENDING_APPROVAL;
+        }
+
+        if ($this->status === RequestManPowerStatus::HOLD) {
+            return RequestManPowerFulfillmentStatus::ON_HOLD;
+        }
+
+        if ($this->status === RequestManPowerStatus::REJECTED || $this->jobPosting?->trashed()) {
+            return RequestManPowerFulfillmentStatus::CLOSED;
+        }
+
+        if ($this->hiredCandidatesCount() >= $this->neededHeadcount()) {
+            return RequestManPowerFulfillmentStatus::FULFILLED;
+        }
+
+        if ($this->isFulfillmentClosed()) {
+            return RequestManPowerFulfillmentStatus::CLOSED;
+        }
+
+        if ($this->inProcessCandidatesCount() > 0) {
+            return RequestManPowerFulfillmentStatus::IN_PROCESS;
+        }
+
+        if ($this->totalCandidatesCount() === 0) {
+            return RequestManPowerFulfillmentStatus::NO_CANDIDATE;
+        }
+
+        return RequestManPowerFulfillmentStatus::UNFULFILLED;
+    }
+
+    public function fulfillmentSummary(): string
+    {
+        return __('rekrutmen::filament/resources/request-man-power.table.fulfillment_summary', [
+            'hired'      => $this->hiredCandidatesCount(),
+            'needed'     => $this->neededHeadcount(),
+            'in_process' => $this->inProcessCandidatesCount(),
+            'total'      => $this->totalCandidatesCount(),
+        ]);
+    }
+
+    public function isFulfillmentClosed(): bool
+    {
+        if ($this->status === RequestManPowerStatus::REJECTED) {
+            return true;
+        }
+
+        $jobPosting = $this->jobPosting;
+
+        if (! $jobPosting) {
+            return false;
+        }
+
+        if ($jobPosting->trashed()) {
+            return true;
+        }
+
+        return (bool) $jobPosting->closing_date?->lt(today());
     }
 
     public function normalizedDivision(): ?string
@@ -271,6 +402,142 @@ class RequestManPower extends Model
         $normalizedDivision = mb_strtolower(trim($divisionName));
 
         return $normalizedDivision !== '' ? $normalizedDivision : null;
+    }
+
+    private function applicationStatusCount(?JobApplicationStatus $status = null): int
+    {
+        $jobPosting = $this->jobPosting;
+
+        if (! $jobPosting) {
+            return 0;
+        }
+
+        if ($jobPosting->relationLoaded('applications')) {
+            $applications = $jobPosting->applications;
+
+            if (! $status) {
+                return $applications->count();
+            }
+
+            return $applications
+                ->filter(function (JobApplication $application) use ($status): bool {
+                    if ($application->status instanceof JobApplicationStatus) {
+                        return $application->status === $status;
+                    }
+
+                    return $application->status === $status->value;
+                })
+                ->count();
+        }
+
+        $query = $jobPosting->applications();
+
+        if ($status) {
+            $query->where('status', $status->value);
+        }
+
+        return $query->count();
+    }
+
+    private function applyFulfilledScope(Builder $query): Builder
+    {
+        return $query
+            ->where($this->qualifyColumn('status'), RequestManPowerStatus::APPROVED->value)
+            ->whereDoesntHave('jobPosting', fn (Builder $query): Builder => $query
+                ->whereNotNull((new JobPosting)->qualifyColumn('deleted_at')))
+            ->whereRaw($this->applicationCountSql(JobApplicationStatus::HIRED).' >= '.$this->neededHeadcountSql(), [
+                JobApplicationStatus::HIRED->value,
+                ...$this->neededHeadcountSqlBindings(),
+            ]);
+    }
+
+    private function applyNotFulfilledScope(Builder $query): Builder
+    {
+        return $query->whereRaw($this->applicationCountSql(JobApplicationStatus::HIRED).' < '.$this->neededHeadcountSql(), [
+            JobApplicationStatus::HIRED->value,
+            ...$this->neededHeadcountSqlBindings(),
+        ]);
+    }
+
+    private function applyClosedFulfillmentScope(Builder $query): Builder
+    {
+        $jobPosting = new JobPosting;
+
+        return $query->where(function (Builder $query) use ($jobPosting): void {
+            $query
+                ->where($this->qualifyColumn('status'), RequestManPowerStatus::REJECTED->value)
+                ->orWhereHas('jobPosting', fn (Builder $query): Builder => $query
+                    ->whereNotNull($jobPosting->qualifyColumn('deleted_at')))
+                ->orWhere(function (Builder $query) use ($jobPosting): void {
+                    $this->applyNotFulfilledScope($query)
+                        ->whereHas('jobPosting', fn (Builder $query): Builder => $query
+                            ->whereDate($jobPosting->qualifyColumn('closing_date'), '<', today()));
+                });
+        });
+    }
+
+    private function applyOpenScope(Builder $query): Builder
+    {
+        $jobPosting = new JobPosting;
+
+        return $query
+            ->where($this->qualifyColumn('status'), RequestManPowerStatus::APPROVED->value)
+            ->where(function (Builder $query) use ($jobPosting): void {
+                $query
+                    ->whereDoesntHave('jobPosting')
+                    ->orWhereHas('jobPosting', function (Builder $query) use ($jobPosting): void {
+                        $query
+                            ->whereNull($jobPosting->qualifyColumn('deleted_at'))
+                            ->where(function (Builder $query) use ($jobPosting): void {
+                                $query
+                                    ->whereNull($jobPosting->qualifyColumn('closing_date'))
+                                    ->orWhereDate($jobPosting->qualifyColumn('closing_date'), '>=', today());
+                            });
+                    });
+            });
+    }
+
+    private function applicationCountSql(?JobApplicationStatus $status = null): string
+    {
+        $application = new JobApplication;
+        $applicationTable = $application->getTable();
+
+        $conditions = [
+            "{$applicationTable}.job_posting_id = {$this->qualifyColumn('job_posting_id')}",
+            "{$applicationTable}.deleted_at is null",
+        ];
+
+        if ($status) {
+            $conditions[] = "{$applicationTable}.status = ?";
+        }
+
+        return "(select count(*) from {$applicationTable} where ".implode(' and ', $conditions).')';
+    }
+
+    private function neededHeadcountSql(): string
+    {
+        $linkedRequestManPowers = 'linked_request_man_powers';
+        $linkedHeadcountSql = implode(' ', [
+            '(select sum('.$linkedRequestManPowers.'.jumlah_karyawan_dibutuhkan)',
+            'from '.$this->getTable().' as '.$linkedRequestManPowers,
+            'where '.$linkedRequestManPowers.'.job_posting_id = '.$this->qualifyColumn('job_posting_id'),
+            'and '.$linkedRequestManPowers.'.deleted_at is null',
+            'and '.$linkedRequestManPowers.'.status in (?, ?))',
+        ]);
+        $fallbackHeadcountSql = 'COALESCE(NULLIF('.$this->qualifyColumn('jumlah_karyawan_dibutuhkan').', 0), 1)';
+
+        return 'COALESCE(NULLIF('.$linkedHeadcountSql.', 0), '.$fallbackHeadcountSql.')';
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function neededHeadcountSqlBindings(): array
+    {
+        return [
+            RequestManPowerStatus::APPROVED->value,
+            RequestManPowerStatus::HOLD->value,
+        ];
     }
 
     /**
@@ -323,14 +590,14 @@ class RequestManPower extends Model
                         'status'               => $isFirstStep
                             ? RequestManPowerApprovalStatus::PENDING->value
                             : RequestManPowerApprovalStatus::WAITING->value,
-                        'action_token'         => $isFirstStep ? (string) Str::uuid() : null,
-                        'action_expires_at'    => null,
-                        'notified_at'          => null,
-                        'acted_at'             => null,
-                        'notes'                => null,
-                        'acted_by_user_id'     => null,
-                        'created_at'           => $timestamp,
-                        'updated_at'           => $timestamp,
+                        'action_token'      => $isFirstStep ? (string) Str::uuid() : null,
+                        'action_expires_at' => null,
+                        'notified_at'       => null,
+                        'acted_at'          => null,
+                        'notes'             => null,
+                        'acted_by_user_id'  => null,
+                        'created_at'        => $timestamp,
+                        'updated_at'        => $timestamp,
                     ];
                 })
                 ->all();
@@ -404,10 +671,41 @@ class RequestManPower extends Model
         }
     }
 
-    public function sendApprovalRequestNotifications(): void
+    public function sendApprovalRequestNotifications(): ?RequestManPowerApproval
     {
-        $this->initializeApprovalWorkflow();
-        $this->notifyCurrentPendingApproval();
+        return $this->initializeAndNotifyApprovalWorkflow();
+    }
+
+    public function initializeAndNotifyApprovalWorkflow(bool $replaceExisting = false, bool $rotateToken = false): ?RequestManPowerApproval
+    {
+        $approvals = $this->initializeApprovalWorkflow($replaceExisting);
+
+        if ($approvals->isEmpty()) {
+            $this->logMissingApprovalWorkflow();
+
+            return null;
+        }
+
+        return $this->notifyCurrentPendingApproval($rotateToken);
+    }
+
+    public function hasMissingApprovalWorkflow(): bool
+    {
+        if ($this->normalizeStatus($this->status) !== RequestManPowerStatus::PENDING) {
+            return false;
+        }
+
+        $approvalsCount = $this->getAttribute('approvals_count');
+
+        if (is_numeric($approvalsCount)) {
+            return (int) $approvalsCount === 0;
+        }
+
+        if ($this->relationLoaded('approvals')) {
+            return $this->approvals->isEmpty();
+        }
+
+        return ! $this->approvals()->exists();
     }
 
     public function notifyCurrentPendingApproval(bool $rotateToken = false): ?RequestManPowerApproval
@@ -423,13 +721,13 @@ class RequestManPower extends Model
         }
 
         $approval->forceFill([
-            'action_token'      => $rotateToken || blank($approval->action_token)
+            'action_token' => $rotateToken || blank($approval->action_token)
                 ? (string) Str::uuid()
             : $approval->action_token,
             'action_expires_at' => now()->addMinutes(
                 (int) config('rekrutmen.security.approval_link_expiration_minutes', 10080)
             ),
-            'notified_at'       => now(),
+            'notified_at' => now(),
         ])->save();
 
         try {
@@ -518,7 +816,7 @@ class RequestManPower extends Model
         });
 
         $this->sendStatusChangedNotification($previousStatus, RequestManPowerStatus::PENDING);
-        $this->notifyCurrentPendingApproval(true);
+        $this->initializeAndNotifyApprovalWorkflow(replaceExisting: false, rotateToken: true);
     }
 
     public function markOnHold(?int $actorId = null, string $holdReason = ''): void
@@ -552,7 +850,7 @@ class RequestManPower extends Model
                 'hold_job_posting_was_published' => $wasPublished,
             ]);
 
-            if ($jobPosting) {
+            if ($jobPosting && ! $this->jobPostingHasOtherApprovedRequests($jobPosting)) {
                 $jobPosting->update([
                     'is_published' => false,
                 ]);
@@ -615,12 +913,17 @@ class RequestManPower extends Model
             );
         }
 
-        $previousStatus = $this->status;
-        $actedByUserId = $this->resolveMatchedUserIdByEmail($approval->approver_email);
+        $previousStatus = null;
+        $actedByUserId = null;
         $nextApprovalId = null;
 
-        DB::transaction(function () use ($approval, $notes, $actedByUserId, $previousStatus, &$nextApprovalId): void {
-            $approval->forceFill([
+        DB::transaction(function () use ($approval, $notes, &$actedByUserId, &$previousStatus, &$nextApprovalId): void {
+            [$lockedRequest, $lockedApproval] = $this->lockProcessableApprovalStep($approval);
+
+            $previousStatus = $lockedRequest->status;
+            $actedByUserId = $lockedRequest->resolveMatchedUserIdByEmail($lockedApproval->approver_email);
+
+            $lockedApproval->forceFill([
                 'status'            => RequestManPowerApprovalStatus::APPROVED,
                 'notes'             => $notes,
                 'acted_at'          => now(),
@@ -628,16 +931,17 @@ class RequestManPower extends Model
                 'action_expires_at' => now(),
             ])->save();
 
-            $nextApproval = $this->approvals()
-                ->where('step_order', '>', $approval->step_order)
+            $nextApproval = $lockedRequest->approvals()
+                ->where('step_order', '>', $lockedApproval->step_order)
                 ->orderBy('step_order')
+                ->lockForUpdate()
                 ->first();
 
             if ($nextApproval) {
                 $nextApproval->forceFill([
-                    'status'        => RequestManPowerApprovalStatus::PENDING,
-                    'action_token'  => (string) Str::uuid(),
-                    'notified_at'   => null,
+                    'status'       => RequestManPowerApprovalStatus::PENDING,
+                    'action_token' => (string) Str::uuid(),
+                    'notified_at'  => null,
                 ])->save();
 
                 $nextApprovalId = $nextApproval->getKey();
@@ -645,15 +949,17 @@ class RequestManPower extends Model
                 return;
             }
 
-            $this->createJobPostingIfMissing();
+            $lockedRequest->createJobPostingIfMissing();
 
-            $this->update([
+            $lockedRequest->update([
                 'status'      => RequestManPowerStatus::APPROVED,
                 'approved_by' => $actedByUserId,
             ]);
 
-            $this->recordStatusHistory($previousStatus, RequestManPowerStatus::APPROVED, $actedByUserId, $notes);
+            $lockedRequest->recordStatusHistory($previousStatus, RequestManPowerStatus::APPROVED, $actedByUserId, $notes);
         });
+
+        $this->refresh();
 
         if ($nextApprovalId) {
             $this->notifyCurrentPendingApproval();
@@ -672,11 +978,16 @@ class RequestManPower extends Model
             );
         }
 
-        $previousStatus = $this->status;
-        $actedByUserId = $this->resolveMatchedUserIdByEmail($approval->approver_email);
+        $previousStatus = null;
+        $actedByUserId = null;
 
-        DB::transaction(function () use ($approval, $notes, $actedByUserId, $previousStatus): void {
-            $approval->forceFill([
+        DB::transaction(function () use ($approval, $notes, &$actedByUserId, &$previousStatus): void {
+            [$lockedRequest, $lockedApproval] = $this->lockProcessableApprovalStep($approval);
+
+            $previousStatus = $lockedRequest->status;
+            $actedByUserId = $lockedRequest->resolveMatchedUserIdByEmail($lockedApproval->approver_email);
+
+            $lockedApproval->forceFill([
                 'status'            => RequestManPowerApprovalStatus::REJECTED,
                 'notes'             => $notes,
                 'acted_at'          => now(),
@@ -684,8 +995,8 @@ class RequestManPower extends Model
                 'action_expires_at' => now(),
             ])->save();
 
-            $this->approvals()
-                ->where('step_order', '>', $approval->step_order)
+            $lockedRequest->approvals()
+                ->where('step_order', '>', $lockedApproval->step_order)
                 ->update([
                     'status'            => RequestManPowerApprovalStatus::WAITING->value,
                     'action_token'      => null,
@@ -697,29 +1008,53 @@ class RequestManPower extends Model
                     'updated_at'        => now(),
                 ]);
 
-            $this->update([
+            $lockedRequest->update([
                 'status'      => RequestManPowerStatus::REJECTED,
                 'approved_by' => $actedByUserId,
             ]);
 
-            $this->unpublishLinkedJobPosting();
-            $this->recordStatusHistory($previousStatus, RequestManPowerStatus::REJECTED, $actedByUserId, $notes);
+            $lockedRequest->unpublishLinkedJobPosting();
+            $lockedRequest->recordStatusHistory($previousStatus, RequestManPowerStatus::REJECTED, $actedByUserId, $notes);
         });
 
+        $this->refresh();
         $this->sendStatusChangedNotification($previousStatus, RequestManPowerStatus::REJECTED);
+    }
+
+    /**
+     * @return array{0: self, 1: RequestManPowerApproval}
+     */
+    private function lockProcessableApprovalStep(RequestManPowerApproval $approval): array
+    {
+        $requestManPower = self::query()
+            ->whereKey($this->getKey())
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        $lockedApproval = RequestManPowerApproval::query()
+            ->whereKey($approval->getKey())
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        if (! $requestManPower->isCurrentPendingApproval($lockedApproval)) {
+            throw new RuntimeException(
+                __('rekrutmen::livewire/public-request-man-power-approval-page.notifications.already_processed')
+            );
+        }
+
+        if ($lockedApproval->hasExpiredActionLink()) {
+            throw new RuntimeException(
+                __('rekrutmen::livewire/public-request-man-power-approval-page.notifications.link_expired')
+            );
+        }
+
+        return [$requestManPower, $lockedApproval];
     }
 
     public function createJobPostingIfMissing(): JobPosting
     {
-        $existingPosting = JobPosting::query()
-            ->withTrashed()
-            ->where('request_man_power_id', $this->getKey())
-            ->first();
-
-        $title = trim(implode(' ', array_filter([
-            $this->posisi_dibutuhkan,
-            $this->lokasi_penempatan,
-        ])));
+        $existingPosting = $this->resolveLinkedJobPosting();
+        $title = $this->buildJobPostingTitle();
 
         if ($title === '') {
             $title = __('rekrutmen::filament/resources/job-posting.generated.title', ['id' => $this->getKey()]);
@@ -727,38 +1062,221 @@ class RequestManPower extends Model
 
         $baseSlug = Str::slug($title);
         $baseSlug = $baseSlug !== '' ? $baseSlug : 'job-posting-'.$this->getKey();
-        $pipelineId = $existingPosting?->rekrutmen_pipeline_id ?? $this->resolveDefaultPipelineId();
-        $slug = $this->resolveAvailableJobPostingSlug($baseSlug, $existingPosting?->getKey());
 
         if ($existingPosting) {
             if ($existingPosting->trashed()) {
                 $existingPosting->restore();
             }
 
-            $existingPosting->update([
-                'rekrutmen_pipeline_id' => $pipelineId,
-                'title'                 => $title,
-                'slug'                  => $slug,
-                'description'           => $this->job_description,
-                'requirements'          => $this->requirements_kualifikasi,
-                'location'              => $this->lokasi_penempatan,
-                'closing_date'          => $this->estimasi_tanggal_join,
-            ]);
+            if ((int) $existingPosting->request_man_power_id === (int) $this->getKey()) {
+                $pipelineId = $existingPosting->rekrutmen_pipeline_id ?? $this->resolveDefaultPipelineId();
+                $slug = $this->resolveAvailableJobPostingSlug($baseSlug, $existingPosting->getKey());
+
+                $existingPosting->update([
+                    'rekrutmen_pipeline_id' => $pipelineId,
+                    'title'                 => $title,
+                    'slug'                  => $slug,
+                    'description'           => $this->job_description,
+                    'requirements'          => $this->requirements_kualifikasi,
+                    'location'              => $this->lokasi_penempatan,
+                    'closing_date'          => $this->resolveJobPostingClosingDate($existingPosting),
+                ]);
+            } else {
+                $this->extendJobPostingClosingDate($existingPosting);
+            }
+
+            $this->associateWithJobPosting($existingPosting);
 
             return $existingPosting->fresh();
         }
 
-        return JobPosting::query()->create([
+        $compatiblePosting = $this->findCompatibleJobPosting();
+
+        if ($compatiblePosting) {
+            $this->associateWithJobPosting($compatiblePosting);
+            $this->extendJobPostingClosingDate($compatiblePosting);
+
+            return $compatiblePosting->fresh();
+        }
+
+        $jobPosting = JobPosting::query()->create([
             'request_man_power_id'  => $this->getKey(),
-            'rekrutmen_pipeline_id' => $pipelineId,
+            'rekrutmen_pipeline_id' => $this->resolveDefaultPipelineId(),
             'title'                 => $title,
-            'slug'                  => $slug,
+            'slug'                  => $this->resolveAvailableJobPostingSlug($baseSlug),
             'description'           => $this->job_description,
             'requirements'          => $this->requirements_kualifikasi,
             'location'              => $this->lokasi_penempatan,
             'is_published'          => false,
             'closing_date'          => $this->estimasi_tanggal_join,
         ]);
+
+        $this->associateWithJobPosting($jobPosting);
+
+        return $jobPosting->fresh();
+    }
+
+    private function resolveLinkedJobPosting(): ?JobPosting
+    {
+        if (is_numeric($this->job_posting_id)) {
+            $jobPosting = JobPosting::query()
+                ->withTrashed()
+                ->whereKey((int) $this->job_posting_id)
+                ->first();
+
+            if ($jobPosting) {
+                return $jobPosting;
+            }
+        }
+
+        return JobPosting::query()
+            ->withTrashed()
+            ->where('request_man_power_id', $this->getKey())
+            ->first();
+    }
+
+    private function findCompatibleJobPosting(): ?JobPosting
+    {
+        $position = $this->normalizedJobPostingMatchValue($this->posisi_dibutuhkan);
+        $location = $this->normalizedJobPostingMatchValue($this->lokasi_penempatan);
+
+        if ($position === null || $location === null) {
+            return null;
+        }
+
+        return JobPosting::query()
+            ->where(function (Builder $query): void {
+                $query->whereNull('closing_date')
+                    ->orWhereDate('closing_date', '>=', today());
+            })
+            ->where(function (Builder $query) use ($position, $location): void {
+                $query->whereHas(
+                    'requestManPowers',
+                    fn (Builder $requestQuery): Builder => $this->applyCompatibleRequestScope(
+                        $requestQuery,
+                        $position,
+                        $location,
+                    )
+                )->orWhereHas(
+                    'requestManPower',
+                    fn (Builder $requestQuery): Builder => $this
+                        ->applyCompatibleRequestScope($requestQuery, $position, $location)
+                        ->where(function (Builder $query): void {
+                            $query->whereNull($this->qualifyColumn('job_posting_id'))
+                                ->orWhereColumn(
+                                    $this->qualifyColumn('job_posting_id'),
+                                    (new JobPosting)->qualifyColumn('id'),
+                                );
+                        })
+                );
+            })
+            ->orderByDesc('is_published')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    private function applyCompatibleRequestScope(Builder $query, string $position, string $location): Builder
+    {
+        $query
+            ->whereRaw('LOWER(TRIM(posisi_dibutuhkan)) = ?', [$position])
+            ->whereRaw('LOWER(TRIM(lokasi_penempatan)) = ?', [$location])
+            ->whereNull($this->qualifyColumn('deleted_at'))
+            ->where('status', RequestManPowerStatus::APPROVED->value);
+
+        if (is_numeric($this->company_id)) {
+            $query->where('company_id', (int) $this->company_id);
+        }
+
+        if (is_numeric($this->division_id)) {
+            return $query->where('division_id', (int) $this->division_id);
+        }
+
+        $division = $this->normalizedDivision();
+
+        if ($division !== null) {
+            $query->whereRaw('LOWER(TRIM(divisi)) = ?', [$division]);
+        }
+
+        return $query;
+    }
+
+    private function associateWithJobPosting(JobPosting $jobPosting): void
+    {
+        if ((int) $this->job_posting_id === (int) $jobPosting->getKey()) {
+            $this->setRelation('jobPosting', $jobPosting);
+
+            return;
+        }
+
+        $this->forceFill([
+            'job_posting_id' => $jobPosting->getKey(),
+        ])->save();
+
+        $this->setRelation('jobPosting', $jobPosting);
+    }
+
+    private function extendJobPostingClosingDate(JobPosting $jobPosting): void
+    {
+        if (! $this->estimasi_tanggal_join) {
+            return;
+        }
+
+        if ($jobPosting->closing_date && $jobPosting->closing_date->greaterThanOrEqualTo($this->estimasi_tanggal_join)) {
+            return;
+        }
+
+        $jobPosting->update([
+            'closing_date' => $this->estimasi_tanggal_join,
+        ]);
+    }
+
+    private function resolveJobPostingClosingDate(JobPosting $jobPosting): ?string
+    {
+        $linkedClosingDate = $jobPosting->requestManPowers()
+            ->whereKeyNot($this->getKey())
+            ->whereNull($this->qualifyColumn('deleted_at'))
+            ->whereIn('status', [
+                RequestManPowerStatus::APPROVED->value,
+                RequestManPowerStatus::HOLD->value,
+            ])
+            ->max('estimasi_tanggal_join');
+
+        return collect([
+            $this->estimasi_tanggal_join?->toDateString(),
+            is_string($linkedClosingDate) ? $linkedClosingDate : null,
+        ])
+            ->filter()
+            ->max();
+    }
+
+    private function buildJobPostingTitle(): string
+    {
+        return trim(implode(' ', array_filter([
+            is_string($this->posisi_dibutuhkan) ? trim($this->posisi_dibutuhkan) : $this->posisi_dibutuhkan,
+            is_string($this->lokasi_penempatan) ? trim($this->lokasi_penempatan) : $this->lokasi_penempatan,
+        ])));
+    }
+
+    private function logMissingApprovalWorkflow(): void
+    {
+        Log::info('Request man power approval workflow skipped because no active approver matched the request scope; request remains pending for manual handling.', [
+            'request_man_power_id' => $this->getKey(),
+            'company_id'           => $this->company_id,
+            'division_id'          => $this->division_id,
+            'division_snapshot'    => $this->divisi,
+            'status'               => $this->normalizeStatus($this->status)?->value,
+        ]);
+    }
+
+    private function normalizedJobPostingMatchValue(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $normalizedValue = mb_strtolower(trim($value));
+
+        return $normalizedValue !== '' ? $normalizedValue : null;
     }
 
     private function normalizeStatus(mixed $status): ?RequestManPowerStatus
@@ -787,10 +1305,10 @@ class RequestManPower extends Model
         }
 
         $this->statusHistories()->create([
-            'from_status'       => $from?->value,
-            'to_status'         => $toStatus->value,
-            'reason'            => filled($reason) ? trim((string) $reason) : null,
-            'acted_by_user_id'  => $actorId,
+            'from_status'      => $from?->value,
+            'to_status'        => $toStatus->value,
+            'reason'           => filled($reason) ? trim((string) $reason) : null,
+            'acted_by_user_id' => $actorId,
         ]);
     }
 
@@ -933,9 +1451,22 @@ class RequestManPower extends Model
             return;
         }
 
+        if ($this->jobPostingHasOtherApprovedRequests($jobPosting)) {
+            return;
+        }
+
         $jobPosting->update([
             'is_published' => false,
         ]);
+    }
+
+    private function jobPostingHasOtherApprovedRequests(JobPosting $jobPosting): bool
+    {
+        return $jobPosting->requestManPowers()
+            ->whereKeyNot($this->getKey())
+            ->whereNull($this->qualifyColumn('deleted_at'))
+            ->where('status', RequestManPowerStatus::APPROVED->value)
+            ->exists();
     }
 }
 

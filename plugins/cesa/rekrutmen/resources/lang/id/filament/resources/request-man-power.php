@@ -2,7 +2,7 @@
 
 return [
     'navigation' => [
-        'label' => 'Permintaan Tenaga Kerja',
+        'label' => 'Permintaan MPP',
     ],
     'model' => [
         'singular' => 'Permintaan Tenaga Kerja',
@@ -41,6 +41,7 @@ return [
             'approver_name'              => 'Nama Pengesah',
             'approver_status'            => 'Status Pengesah',
             'approval_link'              => 'Link Approval',
+            'approval_configuration'     => 'Konfigurasi Approval',
             'hold_reason'                => 'Alasan Hold',
             'held_by'                    => 'Di-hold Oleh',
             'held_at'                    => 'Tanggal Hold',
@@ -58,6 +59,7 @@ return [
     ],
     'table' => [
         'columns' => [
+            'id'                         => 'Kode MPP',
             'nama_pengaju'               => 'Nama Pengaju',
             'posisi_dibutuhkan'          => 'Posisi Dibutuhkan',
             'job_posting'                => 'Lowongan Kerja',
@@ -66,6 +68,7 @@ return [
             'status_kebutuhan'           => 'Status Kebutuhan',
             'nama_karyawan_replacement'  => 'Karyawan Pengganti',
             'jumlah_karyawan_dibutuhkan' => 'Jumlah',
+            'fulfillment_status'         => 'Progress Pemenuhan',
             'tanggal_pengajuan'          => 'Tanggal Pengajuan',
             'status'                     => 'Status Persetujuan',
             'current_pending_approval'   => 'Approver Aktif',
@@ -80,15 +83,21 @@ return [
             'division_id'               => '-',
         ],
         'filters' => [
-            'status'           => 'Status Persetujuan',
-            'status_kebutuhan' => 'Status Kebutuhan',
-            'division_id'      => 'Divisi',
-            'approved_by'      => 'Disetujui Oleh',
-            'has_job_posting'  => 'Lowongan Sudah Dibuat',
+            'status'             => 'Status Persetujuan',
+            'status_kebutuhan'   => 'Status Kebutuhan',
+            'division_id'        => 'Divisi',
+            'approved_by'        => 'Disetujui Oleh',
+            'has_job_posting'    => 'Lowongan Sudah Dibuat',
+            'fulfillment_status' => 'Progress Pemenuhan',
         ],
-        'actions' => [
+        'fulfillment_summary' => ':hired/:needed diterima | :in_process proses | :total kandidat',
+        'descriptions'        => [
+            'approval_workflow_missing' => 'Request tetap valid dan menunggu proses manual karena belum ada approver aktif yang cocok dengan perusahaan/divisi ini. Admin dapat setujui/tolak manual, atau tambahkan approver lalu mulai ulang alur approval.',
+        ],
+        'actions'             => [
             'view_progress'           => 'Buka Halaman Progres',
             'open_approval_page'      => 'Buka Halaman Approval',
+            'start_pending_approval'  => 'Mulai Ulang Alur Approval',
             'approve'                 => 'Setujui',
             'reject'                  => 'Tolak',
             'hold'                    => 'Hold Rekrutmen',
@@ -102,12 +111,14 @@ return [
         ],
     ],
     'notifications' => [
-        'approved'                => 'Permintaan tenaga kerja berhasil disetujui.',
-        'rejected'                => 'Permintaan tenaga kerja berhasil ditolak.',
-        'hold'                    => 'Permintaan tenaga kerja berhasil di-hold dan lowongan terkait ditutup.',
-        'resume_hold'             => 'Permintaan tenaga kerja berhasil dilanjutkan kembali.',
-        'pending_approval_resent' => 'Notifikasi persetujuan untuk approver aktif berhasil dijadwalkan ulang.',
-        'set_pending'             => 'Permintaan tenaga kerja berhasil dikembalikan ke status pending.',
+        'approved'                        => 'Permintaan tenaga kerja berhasil disetujui.',
+        'rejected'                        => 'Permintaan tenaga kerja berhasil ditolak.',
+        'hold'                            => 'Permintaan tenaga kerja berhasil di-hold dan lowongan terkait ditutup.',
+        'resume_hold'                     => 'Permintaan tenaga kerja berhasil dilanjutkan kembali.',
+        'pending_approval_resent'         => 'Notifikasi persetujuan untuk approver aktif berhasil dijadwalkan ulang.',
+        'pending_approval_started'        => 'Alur approval berhasil dimulai dan notifikasi approver aktif sudah dijadwalkan.',
+        'pending_approval_not_configured' => 'Request tetap pending. Belum ada approver aktif yang cocok, jadi proses masih bisa ditangani manual atau dicoba lagi setelah approver ditambahkan.',
+        'set_pending'                     => 'Permintaan tenaga kerja berhasil dikembalikan ke status pending.',
     ],
     'errors' => [
         'default_pipeline_not_configured' => 'Pipeline default belum dikonfigurasi.',

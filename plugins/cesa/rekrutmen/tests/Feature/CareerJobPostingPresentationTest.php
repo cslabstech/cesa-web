@@ -2,9 +2,13 @@
 
 namespace Cesa\Rekrutmen\Tests\Feature;
 
+use Cesa\Rekrutmen\Enums\JobApplicationGender;
+use Cesa\Rekrutmen\Enums\JobApplicationMaritalStatus;
+use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Enums\StatusKebutuhan;
 use Cesa\Rekrutmen\Http\Controllers\Api\CareerController;
+use Cesa\Rekrutmen\Models\JobApplication;
 use Cesa\Rekrutmen\Models\JobPosting;
 use Cesa\Rekrutmen\Models\RekrutmenPipeline;
 use Cesa\Rekrutmen\Models\RekrutmenStage;
@@ -215,6 +219,10 @@ class CareerJobPostingPresentationTest extends RekrutmenTestCase
             'slug'                 => 'held-backend-developer',
         ]);
 
+        $requestManPower->forceFill([
+            'job_posting_id' => null,
+        ])->saveQuietly();
+
         $indexPayload = $this->getJobIndexPayload();
         $detailResponse = app(CareerController::class)->show($jobPosting->slug);
 
@@ -222,6 +230,109 @@ class CareerJobPostingPresentationTest extends RekrutmenTestCase
             fn (array $job): bool => ($job['slug'] ?? null) === $jobPosting->slug
         ));
         $this->assertSame(404, $detailResponse->getStatusCode());
+    }
+
+    public function test_fulfilled_job_posting_is_hidden_from_public_listing_and_apply(): void
+    {
+        $jobPosting = $this->createReadyJobPosting([
+            'title' => 'Fulfilled Backend Developer',
+            'slug'  => 'fulfilled-backend-developer',
+        ]);
+
+        $stage = RekrutmenStage::query()
+            ->where('rekrutmen_pipeline_id', $jobPosting->rekrutmen_pipeline_id)
+            ->firstOrFail();
+
+        $this->createJobApplication(
+            $jobPosting,
+            $stage,
+            JobApplicationStatus::HIRED,
+            'fulfilled-candidate@example.com',
+        );
+
+        $indexPayload = $this->getJobIndexPayload();
+        $detailResponse = app(CareerController::class)->show($jobPosting->slug);
+
+        $this->assertFalse(collect($indexPayload['data'])->contains(
+            fn (array $job): bool => ($job['slug'] ?? null) === $jobPosting->slug
+        ));
+        $this->assertSame(404, $detailResponse->getStatusCode());
+
+        $this->postJson("/api/jobs/{$jobPosting->slug}/apply")
+            ->assertNotFound();
+    }
+
+    public function test_shared_job_posting_stays_public_when_another_linked_mpp_is_approved(): void
+    {
+        $company = Company::query()->create([
+            'name' => 'PT Shared Public Vacancy',
+        ]);
+
+        $pipeline = RekrutmenPipeline::query()->create([
+            'name' => 'Shared Public Pipeline',
+        ]);
+
+        RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => 'Screening',
+            'order_column'          => 1,
+        ]);
+
+        $sourceRequest = RequestManPower::query()->create([
+            'company_id'                 => $company->id,
+            'email_address'              => 'source-hold-public@example.com',
+            'nama_pengaju'               => 'Requester Hold',
+            'posisi_pengaju'             => 'HR Manager',
+            'tanggal_pengajuan'          => today()->toDateString(),
+            'posisi_dibutuhkan'          => 'Backend Developer',
+            'lokasi_penempatan'          => 'Jakarta',
+            'status_kebutuhan'           => StatusKebutuhan::NEW_HIRING,
+            'divisi'                     => 'IT',
+            'level_pekerjaan'            => 'Staff',
+            'jumlah_karyawan_dibutuhkan' => 1,
+            'estimasi_tanggal_join'      => today()->addMonth()->toDateString(),
+            'requirements_kualifikasi'   => 'Laravel',
+            'job_description'            => 'Build APIs',
+            'status'                     => RequestManPowerStatus::HOLD,
+        ]);
+
+        $jobPosting = JobPosting::query()->create([
+            'request_man_power_id'  => $sourceRequest->id,
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'title'                 => 'Shared Backend Developer',
+            'slug'                  => 'shared-backend-developer',
+            'description'           => 'Build APIs',
+            'requirements'          => 'Laravel',
+            'location'              => 'Jakarta',
+            'is_published'          => true,
+        ]);
+
+        RequestManPower::query()->create([
+            'company_id'                 => $company->id,
+            'email_address'              => 'approved-public@example.com',
+            'nama_pengaju'               => 'Requester Approved',
+            'posisi_pengaju'             => 'HR Manager',
+            'tanggal_pengajuan'          => today()->toDateString(),
+            'posisi_dibutuhkan'          => 'Backend Developer',
+            'lokasi_penempatan'          => 'Jakarta',
+            'status_kebutuhan'           => StatusKebutuhan::NEW_HIRING,
+            'divisi'                     => 'IT',
+            'level_pekerjaan'            => 'Staff',
+            'jumlah_karyawan_dibutuhkan' => 1,
+            'estimasi_tanggal_join'      => today()->addMonth()->toDateString(),
+            'requirements_kualifikasi'   => 'Laravel',
+            'job_description'            => 'Build APIs',
+            'status'                     => RequestManPowerStatus::APPROVED,
+            'job_posting_id'             => $jobPosting->id,
+        ]);
+
+        $indexPayload = $this->getJobIndexPayload();
+        $detailResponse = app(CareerController::class)->show($jobPosting->slug);
+
+        $this->assertTrue(collect($indexPayload['data'])->contains(
+            fn (array $job): bool => ($job['slug'] ?? null) === $jobPosting->slug
+        ));
+        $this->assertSame(200, $detailResponse->getStatusCode());
     }
 
     /**
@@ -262,6 +373,33 @@ class CareerJobPostingPresentationTest extends RekrutmenTestCase
             'location'              => 'Jakarta',
             'is_published'          => true,
             ...$attributes,
+        ]);
+    }
+
+    private function createJobApplication(
+        JobPosting $jobPosting,
+        RekrutmenStage $stage,
+        JobApplicationStatus $status,
+        string $email,
+    ): JobApplication {
+        $phoneNumber = '081'.str_pad((string) (abs(crc32($email)) % 1000000000), 9, '0', STR_PAD_LEFT);
+
+        return JobApplication::query()->create([
+            'job_posting_id'             => $jobPosting->id,
+            'current_stage_id'           => $stage->id,
+            'full_name'                  => 'Fulfilled Candidate',
+            'email'                      => $email,
+            'gender'                     => JobApplicationGender::Male,
+            'birth_date'                 => '1995-01-10',
+            'marital_status'             => JobApplicationMaritalStatus::Single,
+            'address_ktp'                => 'Alamat KTP',
+            'address_domicile'           => 'Alamat Domisili',
+            'whatsapp_number'            => $phoneNumber,
+            'active_phone'               => $phoneNumber,
+            'emergency_contact_name'     => 'Bunga',
+            'emergency_contact_relation' => 'Saudara',
+            'emergency_contact_phone'    => $phoneNumber,
+            'status'                     => $status,
         ]);
     }
 }

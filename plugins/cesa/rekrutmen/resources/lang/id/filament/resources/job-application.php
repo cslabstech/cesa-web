@@ -2,7 +2,7 @@
 
 return [
     'navigation' => [
-        'label' => 'Lamaran Kerja',
+        'label' => 'Lamaran',
     ],
     'model' => [
         'singular' => 'Lamaran Kerja',
@@ -58,8 +58,10 @@ return [
             'pass_current_stage'         => 'Lolos :stage',
             'pass_current_stage_heading' => 'Catat aktivitas :stage',
             'next_stage'                 => 'Tahap Berikutnya',
+            'view'                       => 'Lihat',
             'mark_hired'                 => 'Terima Kandidat',
             'mark_rejected'              => 'Tolak Kandidat',
+            'mark_withdrawn'             => 'Tandai Mengundurkan Diri',
             'notes'                      => 'Catatan',
             'download_resume'            => 'Unduh CV',
             'download_photo'             => 'Unduh Foto',
@@ -74,6 +76,7 @@ return [
         'hired_stage_reached_help' => 'Klik Terima Kandidat untuk finalisasi penerimaan.',
         'marked_hired'             => 'Kandidat berhasil ditandai diterima.',
         'marked_rejected'          => 'Kandidat berhasil ditandai ditolak.',
+        'marked_withdrawn'         => 'Kandidat berhasil ditandai mengundurkan diri.',
     ],
     'board' => [
         'heading'             => 'Pipeline Lamaran Kandidat',
@@ -102,15 +105,17 @@ return [
         'submitted'     => 'Kandidat masuk ke tahap awal.',
         'hired'         => 'Kandidat ditandai diterima.',
         'rejected'      => 'Kandidat ditandai ditolak.',
+        'withdrawn'     => 'Kandidat ditandai mengundurkan diri.',
         'drag_passed'   => 'Lolos ke tahap :stage lewat board.',
     ],
     'workflow_errors' => [
-        'invalid_stage'                 => 'Tahap tujuan tidak sesuai dengan pipeline lowongan.',
-        'terminal_stage_locked'         => 'Kandidat yang sudah diputuskan tidak bisa dipindah tahap.',
-        'cross_stage_requires_activity' => 'Perpindahan lintas tahap harus melalui Catat Aktivitas Rekrutmen agar histori proses tetap konsisten.',
-        'drag_only_next_stage'          => 'Drag & drop hanya bisa ke tahap berikutnya.',
-        'decision_note_required'        => 'Catatan keputusan kandidat wajib diisi.',
-        'job_posting_has_no_stage'      => 'Lowongan yang dipilih belum memiliki tahap awal.',
-        'no_next_stage'                 => 'Tidak ada tahap berikutnya untuk diloloskan.',
+        'invalid_stage'                          => 'Tahap tujuan tidak sesuai dengan pipeline lowongan.',
+        'terminal_stage_locked'                  => 'Kandidat yang sudah diputuskan tidak bisa dipindah tahap.',
+        'cross_stage_requires_activity'          => 'Perpindahan lintas tahap harus melalui Catat Aktivitas Rekrutmen agar histori proses tetap konsisten.',
+        'drag_only_next_stage'                   => 'Drag & drop hanya bisa ke tahap berikutnya.',
+        'decision_note_required'                 => 'Catatan keputusan kandidat wajib diisi.',
+        'job_posting_has_no_stage'               => 'Lowongan yang dipilih belum memiliki tahap awal.',
+        'job_posting_not_accepting_applications' => 'Lowongan yang dipilih sudah ditutup, terpenuhi, ditahan, atau belum siap menerima kandidat.',
+        'no_next_stage'                          => 'Tidak ada tahap berikutnya untuk diloloskan.',
     ],
 ];

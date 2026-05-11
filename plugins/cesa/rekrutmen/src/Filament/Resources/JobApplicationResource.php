@@ -323,8 +323,13 @@ class JobApplicationResource extends Resource
                         ->label(__('rekrutmen::filament/resources/job-application.table.actions.mark_hired'))
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->visible(fn (JobApplication $record): bool => $record->status === JobApplicationStatus::IN_PROGRESS)
+                        ->visible(fn (JobApplication $record): bool => $record->canMarkAsHired())
                         ->form([
+                            Forms\Components\DatePicker::make('activity_date')
+                                ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
+                                ->required()
+                                ->default(now()->toDateString())
+                                ->maxDate(today()),
                             Forms\Components\Textarea::make('notes')
                                 ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
                                 ->required()
@@ -334,6 +339,7 @@ class JobApplicationResource extends Resource
                             $record->markAsHired(
                                 $data['notes'] ?? null,
                                 auth()->id(),
+                                (string) $data['activity_date'],
                             );
 
                             Notification::make()
@@ -347,6 +353,11 @@ class JobApplicationResource extends Resource
                         ->color('danger')
                         ->visible(fn (JobApplication $record): bool => $record->status === JobApplicationStatus::IN_PROGRESS)
                         ->form([
+                            Forms\Components\DatePicker::make('activity_date')
+                                ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
+                                ->required()
+                                ->default(now()->toDateString())
+                                ->maxDate(today()),
                             Forms\Components\Textarea::make('notes')
                                 ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
                                 ->required()
@@ -356,10 +367,39 @@ class JobApplicationResource extends Resource
                             $record->markAsRejected(
                                 $data['notes'] ?? null,
                                 auth()->id(),
+                                (string) $data['activity_date'],
                             );
 
                             Notification::make()
                                 ->title(__('rekrutmen::filament/resources/job-application.notifications.marked_rejected'))
+                                ->success()
+                                ->send();
+                        }),
+                    Action::make('mark_withdrawn')
+                        ->label(__('rekrutmen::filament/resources/job-application.table.actions.mark_withdrawn'))
+                        ->icon('heroicon-o-arrow-uturn-left')
+                        ->color('warning')
+                        ->visible(fn (JobApplication $record): bool => $record->canMarkAsWithdrawn())
+                        ->form([
+                            Forms\Components\DatePicker::make('activity_date')
+                                ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
+                                ->required()
+                                ->default(now()->toDateString())
+                                ->maxDate(today()),
+                            Forms\Components\Textarea::make('notes')
+                                ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
+                                ->required()
+                                ->maxLength(65535),
+                        ])
+                        ->action(function (JobApplication $record, array $data): void {
+                            $record->markAsWithdrawn(
+                                $data['notes'] ?? null,
+                                auth()->id(),
+                                (string) $data['activity_date'],
+                            );
+
+                            Notification::make()
+                                ->title(__('rekrutmen::filament/resources/job-application.notifications.marked_withdrawn'))
                                 ->success()
                                 ->send();
                         }),

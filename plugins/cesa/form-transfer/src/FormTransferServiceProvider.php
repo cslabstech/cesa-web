@@ -53,6 +53,7 @@ class FormTransferServiceProvider extends PackageServiceProvider
             ->hasTranslations()
             ->hasViews()
             ->hasRoute('web')
+            ->hasRoute('api')
             ->hasMigrations([
                 '2025_10_22_043040_form_transfer_create_tables',
                 '2026_02_05_000001_create_form_transfer_user_accesses_table',

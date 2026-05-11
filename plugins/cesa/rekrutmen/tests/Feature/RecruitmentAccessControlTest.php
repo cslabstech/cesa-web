@@ -67,4 +67,9 @@ class RecruitmentAccessControlTest extends RekrutmenTestCase
         $this->assertTrue(ActivityLogResource::canCreate());
         $this->assertTrue(RecruitmentProgressReportPage::canAccess());
     }
+
+    public function test_activity_log_resource_is_hidden_from_navigation(): void
+    {
+        $this->assertFalse(ActivityLogResource::shouldRegisterNavigation());
+    }
 }

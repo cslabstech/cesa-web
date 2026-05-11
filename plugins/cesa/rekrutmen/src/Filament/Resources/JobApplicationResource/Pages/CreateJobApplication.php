@@ -5,6 +5,7 @@ namespace Cesa\Rekrutmen\Filament\Resources\JobApplicationResource\Pages;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Cesa\Rekrutmen\Filament\Resources\JobApplicationResource;
 use Cesa\Rekrutmen\Models\JobApplication;
+use Cesa\Rekrutmen\Models\JobPosting;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Validation\ValidationException;
 
@@ -14,6 +15,16 @@ class CreateJobApplication extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $jobPosting = is_numeric($data['job_posting_id'] ?? null)
+            ? JobPosting::query()->find((int) $data['job_posting_id'])
+            : null;
+
+        if (! $jobPosting?->isOpenForCandidateIntake()) {
+            throw ValidationException::withMessages([
+                'job_posting_id' => __('rekrutmen::filament/resources/job-application.workflow_errors.job_posting_not_accepting_applications'),
+            ]);
+        }
+
         $data['current_stage_id'] = JobApplication::resolveInitialStageIdForJobPostingId($data['job_posting_id'] ?? null);
         $data['status'] = JobApplicationStatus::IN_PROGRESS;
 
