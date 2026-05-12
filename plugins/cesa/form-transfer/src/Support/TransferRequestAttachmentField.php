@@ -11,6 +11,7 @@ class TransferRequestAttachmentField
     {
         return FileUpload::make($name)
             ->label(__('form-transfer::filament/resources/transfer-request/fields.invoice'))
+            ->disk('local')
             ->directory('form-transfer/invoices')
             ->visibility('private')
             ->multiple()
@@ -39,6 +40,7 @@ class TransferRequestAttachmentField
     {
         return FileUpload::make($name)
             ->label(__('form-transfer::filament/resources/transfer-request/fields.account_attachment'))
+            ->disk('local')
             ->directory('form-transfer/account-attachments')
             ->visibility('private')
             ->multiple()
@@ -65,6 +67,7 @@ class TransferRequestAttachmentField
     {
         return FileUpload::make($name)
             ->label(__('form-transfer::filament/resources/transfer-request/fields.realization_proof'))
+            ->disk('local')
             ->directory('form-transfer/realizations')
             ->visibility('private')
             ->downloadable()

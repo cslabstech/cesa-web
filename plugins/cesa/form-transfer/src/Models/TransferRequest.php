@@ -780,7 +780,7 @@ class TransferRequest extends Model
                 $realization->fill([
                     'amount'      => $realizationData['amount'],
                     'realized_at' => $realizationData['realized_at'],
-                    'proof_path'  => $realizationData['proof_path'],
+                    'proof_path'  => $this->resolveReplacementProofPath($realization, $realizationData['proof_path']),
                     'notes'       => $realizationData['notes'],
                 ]);
 
@@ -805,6 +805,17 @@ class TransferRequest extends Model
 
             $this->refreshRealizationSummary();
         });
+    }
+
+    protected function resolveReplacementProofPath(TransferRequestRealization $realization, mixed $submittedProofPath): mixed
+    {
+        if (! $realization->exists || filled($submittedProofPath)) {
+            return $submittedProofPath;
+        }
+
+        $currentProofPath = $realization->getRawOriginal('proof_path') ?? $realization->proof_path;
+
+        return filled($currentProofPath) ? $currentProofPath : $submittedProofPath;
     }
 
     public function cancelRealization(?string $notes = null): void

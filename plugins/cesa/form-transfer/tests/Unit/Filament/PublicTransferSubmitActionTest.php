@@ -35,4 +35,11 @@ class PublicTransferSubmitActionTest extends FormTransferTestCase
         $this->assertNotContains('application/octet-stream', $invoiceTypes);
         $this->assertNotContains('application/octet-stream', $accountAttachmentTypes);
     }
+
+    public function test_transfer_request_attachment_fields_use_local_disk(): void
+    {
+        $this->assertSame('local', TransferRequestAttachmentField::makeInvoice()->getDiskName());
+        $this->assertSame('local', TransferRequestAttachmentField::makeAccountAttachment()->getDiskName());
+        $this->assertSame('local', TransferRequestAttachmentField::makeRealizationProof()->getDiskName());
+    }
 }

@@ -39,7 +39,12 @@ class TransferRequestRealization extends Model
 
         static::saved(function (TransferRequestRealization $realization): void {
             $realization->syncProofStorageName();
-            $realization->deleteRemovedProofFile();
+            /*
+             * Penghapusan fisik otomatis dimatikan untuk mencegah kasus tidak terduga
+             * di mana value menjadi null dari form dan menghapus file secara permanen
+             * (demi keamanan dan retensi data).
+             */
+            // $realization->deleteRemovedProofFile();
             $realization->transferRequest?->refreshRealizationSummary();
         });
 
@@ -48,7 +53,12 @@ class TransferRequestRealization extends Model
         });
 
         static::forceDeleted(function (TransferRequestRealization $realization): void {
-            $realization->deleteProofFile($realization->getRawOriginal('proof_path') ?? $realization->proof_path);
+            /*
+             * Penghapusan fisik otomatis dimatikan untuk mencegah kasus tidak terduga
+             * di mana value menjadi null dari form dan menghapus file secara permanen
+             * (demi keamanan dan retensi data).
+             */
+            // $realization->deleteProofFile($realization->getRawOriginal('proof_path') ?? $realization->proof_path);
         });
     }
 

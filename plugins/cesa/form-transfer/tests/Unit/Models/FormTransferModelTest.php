@@ -599,6 +599,108 @@ class FormTransferModelTest extends FormTransferTestCase
         Storage::disk('local')->assertMissing((string) $realization->proof_path);
     }
 
+    public function test_transfer_request_realization_adjustment_keeps_existing_proof_when_submitted_null(): void
+    {
+        Storage::fake('local');
+        config()->set('filesystems.default', 'local');
+        config()->set('filament.default_filesystem_disk', 'local');
+
+        Storage::disk('local')->put('form-transfer/realizations/tmp-installment.png', 'proof');
+
+        $user = User::factory()->create();
+        $bank = TransferBank::factory()->create();
+        $formTransfer = FormTransfer::factory()->create([
+            'uid_prefix'   => 'CSN',
+            'uid_padding'  => 5,
+            'uid_sequence' => 112,
+            'creator_id'   => $user->id,
+        ]);
+
+        $request = TransferRequest::query()->create([
+            'form_transfer_id' => $formTransfer->id,
+            'user_id'          => $user->id,
+            'creator_id'       => $user->id,
+            'requester_name'   => 'Budi',
+            'email'            => 'budi@example.com',
+            'account_number'   => '123456789',
+            'account_name'     => 'Budi Santoso',
+            'bank_id'          => $bank->id,
+            'transfer_amount'  => 1000000,
+            'purpose'          => 'Operational transfer',
+        ]);
+
+        $realization = $request->recordRealization([
+            'amount'      => 1000000,
+            'realized_at' => '2026-04-20',
+            'proof_path'  => 'form-transfer/realizations/tmp-installment.png',
+            'user_id'     => $user->id,
+        ])->refresh();
+
+        $storedProofPath = (string) $realization->proof_path;
+
+        $request->replaceRealizations([
+            [
+                'id'          => $realization->id,
+                'amount'      => 400000,
+                'realized_at' => '2026-04-20',
+                'proof_path'  => null,
+                'notes'       => 'Koreksi cicilan pertama',
+            ],
+        ], $user->id);
+
+        $request->refresh();
+        $realization->refresh();
+
+        $this->assertSame($storedProofPath, $realization->proof_path);
+        $this->assertSame($storedProofPath, $request->realization_proof_path);
+        Storage::disk('local')->assertExists($storedProofPath);
+    }
+
+    public function test_transfer_request_realization_force_delete_keeps_proof_file(): void
+    {
+        Storage::fake('local');
+        config()->set('filesystems.default', 'local');
+        config()->set('filament.default_filesystem_disk', 'local');
+
+        Storage::disk('local')->put('form-transfer/realizations/tmp-installment.png', 'proof');
+
+        $user = User::factory()->create();
+        $bank = TransferBank::factory()->create();
+        $formTransfer = FormTransfer::factory()->create([
+            'uid_prefix'   => 'CSN',
+            'uid_padding'  => 5,
+            'uid_sequence' => 112,
+            'creator_id'   => $user->id,
+        ]);
+
+        $request = TransferRequest::query()->create([
+            'form_transfer_id' => $formTransfer->id,
+            'user_id'          => $user->id,
+            'creator_id'       => $user->id,
+            'requester_name'   => 'Budi',
+            'email'            => 'budi@example.com',
+            'account_number'   => '123456789',
+            'account_name'     => 'Budi Santoso',
+            'bank_id'          => $bank->id,
+            'transfer_amount'  => 1000000,
+            'purpose'          => 'Operational transfer',
+        ]);
+
+        $realization = $request->recordRealization([
+            'amount'      => 1000000,
+            'realized_at' => '2026-04-20',
+            'proof_path'  => 'form-transfer/realizations/tmp-installment.png',
+            'user_id'     => $user->id,
+        ])->refresh();
+
+        $storedProofPath = (string) $realization->proof_path;
+
+        $realization->delete();
+        $realization->forceDelete();
+
+        Storage::disk('local')->assertExists($storedProofPath);
+    }
+
     public function test_transfer_request_update_deletes_replaced_attachment_and_keeps_added_invoice(): void
     {
         Storage::fake('local');

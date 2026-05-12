@@ -7,6 +7,7 @@ use Cesa\FormTransfer\Filament\Resources\TransferRequestResource\Pages\ViewTrans
 use Cesa\FormTransfer\Models\TransferRequest;
 use Cesa\FormTransfer\Tests\FormTransferTestCase;
 use Filament\Facades\Filament;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
@@ -86,6 +87,13 @@ class ViewTransferRequestRealizationAdjustmentTest extends FormTransferTestCase
             'notes'       => 'Koreksi cicilan pertama',
         ];
 
+        Log::shouldReceive('info')
+            ->once()
+            ->with(
+                'Transfer request realizations replace submitted.',
+                \Mockery::type('array'),
+            );
+
         $component
             ->setActionData(['realizations' => $realizations])
             ->callMountedAction()
@@ -97,5 +105,35 @@ class ViewTransferRequestRealizationAdjustmentTest extends FormTransferTestCase
         $this->assertSame('400000.00', $request->realized_amount);
         $this->assertSame('600000.00', $request->remaining_realization_amount);
         $this->assertTrue($request->canRecordAdditionalRealization());
+    }
+
+    public function test_done_realization_requires_proof_on_view_action(): void
+    {
+        $request = TransferRequest::factory()->create([
+            'transfer_amount'         => 1000000,
+            'realized_amount'         => 0,
+            'realization_proof_path'  => null,
+            'realization_notes'       => null,
+            'realization_status'      => TransferRequestRealizationStatus::PENDING->value,
+            'invoice_path'            => null,
+            'account_attachment_path' => null,
+        ]);
+
+        Livewire::test(ViewTransferRequest::class, ['record' => $request->getKey()])
+            ->assertActionExists('realize-transfer')
+            ->mountAction('realize-transfer')
+            ->setActionData([
+                'amount'                 => 1000000,
+                'realization_status'     => TransferRequestRealizationStatus::DONE->value,
+                'realized_at'            => '2026-04-20',
+                'realization_notes'      => null,
+                'realization_proof_path' => null,
+            ])
+            ->callMountedAction()
+            ->assertHasActionErrors([
+                'realization_proof_path' => 'required',
+            ]);
+
+        $this->assertSame(0, $request->realizations()->count());
     }
 }

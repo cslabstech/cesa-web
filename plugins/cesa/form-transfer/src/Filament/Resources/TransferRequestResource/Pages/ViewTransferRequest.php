@@ -24,6 +24,7 @@ use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 
 class ViewTransferRequest extends ViewRecord
 {
@@ -137,6 +138,7 @@ class ViewTransferRequest extends ViewRecord
                         ->rows(3)
                         ->required(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::CANCELLED->value),
                     TransferRequestAttachmentField::makeRealizationProof()
+                        ->required(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::DONE->value)
                         ->visible(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::DONE->value),
                 ])
                 ->fillForm(fn (TransferRequest $record): array => [
@@ -215,6 +217,12 @@ class ViewTransferRequest extends ViewRecord
                 ])
                 ->action(function (TransferRequest $record, array $data): void {
                     Gate::authorize('update', $record);
+
+                    Log::info('Transfer request realizations replace submitted.', [
+                        'transfer_request_id' => $record->getKey(),
+                        'user_id'             => Auth::id(),
+                        'realizations'        => $data['realizations'] ?? null,
+                    ]);
 
                     $record->replaceRealizations(
                         is_array($data['realizations'] ?? null) ? $data['realizations'] : [],

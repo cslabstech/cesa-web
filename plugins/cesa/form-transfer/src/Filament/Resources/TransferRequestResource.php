@@ -800,6 +800,7 @@ class TransferRequestResource extends FormTransferResource
                             ->required(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::CANCELLED->value)
                             ->nullable(),
                         TransferRequestAttachmentField::makeRealizationProof()
+                            ->required(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::DONE->value)
                             ->visible(fn (Get $get): bool => $get('realization_status') === TransferRequestRealizationStatus::DONE->value),
                     ])
                     ->fillForm(fn (TransferRequest $record): array => [
