@@ -198,9 +198,9 @@ class PublicTransferRequestForm extends SimplePage
                 ->inputMode('numeric')
                 ->placeholder(__('form-transfer::public.form.placeholders.transfer_amount'))
                 ->extraAlpineAttributes([
-                    'x-on:input' => '$el.value = ($el.value || \'\').replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
-                    'x-on:blur'  => '$el.value = ($el.value || \'\').replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
-                    'x-init'     => '$el.value = ($el.value || \'\').replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
+                    'x-on:input' => '$el.value = String($el.value).split(\'.\')[0].replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
+                    'x-on:blur'  => '$el.value = String($el.value).split(\'.\')[0].replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
+                    'x-init'     => '$el.value = String($el.value).split(\'.\')[0].replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
                 ])
                 ->stripCharacters('.')
                 ->prefix('Rp')

@@ -37,8 +37,8 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
 
         $year = now()->format('Y');
 
-        $this->assertSame("BOOK-{$year}-00001", $firstReservation->id_reff);
-        $this->assertSame("BOOK-{$year}-00002", $secondReservation->id_reff);
+        $this->assertSame("UID0001", $firstReservation->id_reff);
+        $this->assertSame("UID0002", $secondReservation->id_reff);
     }
 
     public function test_reservation_model_retries_duplicate_generated_reference_id(): void
@@ -46,7 +46,7 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
         $year = now()->format('Y');
 
         Reservation::factory()->create([
-            'id_reff'          => "BOOK-{$year}-00001",
+            'id_reff'          => "UID0001",
             'reservation_date' => '2026-06-01',
             'court'            => 'Padel Court VIP Blue 1',
             'reservation_time' => '06:00 - 07:00',
@@ -62,14 +62,14 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
             public function __construct(string $year)
             {
                 $this->references = [
-                    "BOOK-{$year}-00001",
-                    "BOOK-{$year}-00002",
+                    "UID0001",
+                    "UID0002",
                 ];
             }
 
             public function generate(?Carbon $date = null): string
             {
-                return array_shift($this->references) ?? 'BOOK-'.now()->format('Y').'-99999';
+                return array_shift($this->references) ?? 'UID9999';
             }
         });
 
@@ -79,7 +79,7 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
             'reservation_time' => '06:00 - 07:00',
         ]);
 
-        $this->assertSame("BOOK-{$year}-00002", $reservation->id_reff);
+        $this->assertSame("UID0002", $reservation->id_reff);
     }
 
     public function test_reservation_model_normalizes_text_casing_and_spacing(): void
@@ -98,7 +98,7 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
     public function test_reservation_model_normalizes_legacy_database_time_values(): void
     {
         DB::table('padelnis_reservations')->insert([
-            'id_reff'          => 'BOOK-2026-00099',
+            'id_reff'          => 'UID0099',
             'customer_name'    => 'Budi Santoso',
             'reservation_date' => '2026-06-01',
             'court'            => 'Padel Court VIP Blue 1',
@@ -108,7 +108,7 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
             'updated_at'       => now(),
         ]);
 
-        $reservation = Reservation::query()->where('id_reff', 'BOOK-2026-00099')->firstOrFail();
+        $reservation = Reservation::query()->where('id_reff', 'UID0099')->firstOrFail();
 
         $this->assertSame('06:00 - 07:00', $reservation->reservation_time);
     }
@@ -121,7 +121,7 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
 
         DB::table('padelnis_reservations')->insert([
             [
-                'id_reff'          => 'BOOK-2026-00091',
+                'id_reff'          => 'UID0091',
                 'customer_name'    => 'First Customer',
                 'reservation_date' => '2026-06-01',
                 'court'            => 'Padel Court VIP Blue 1',
@@ -132,7 +132,7 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
                 'deleted_at'       => null,
             ],
             [
-                'id_reff'          => 'BOOK-2026-00092',
+                'id_reff'          => 'UID0092',
                 'customer_name'    => 'Duplicate Customer',
                 'reservation_date' => '2026-06-01',
                 'court'            => 'Padel Court VIP Blue 1',
@@ -143,7 +143,7 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
                 'deleted_at'       => null,
             ],
             [
-                'id_reff'          => 'BOOK-2026-00093',
+                'id_reff'          => 'UID0093',
                 'customer_name'    => 'Deleted Customer',
                 'reservation_date' => '2026-06-01',
                 'court'            => 'Padel Court VIP Blue 1',
@@ -260,12 +260,12 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
             ->call('submit')
             ->assertHasNoErrors()
             ->assertRedirect(URL::signedRoute('padelnis.public.success', [
-                'idReff' => 'BOOK-'.now()->format('Y').'-00001',
+                'idReff' => 'UID0001',
             ]));
 
         $reservation = Reservation::query()->firstOrFail();
 
-        $this->assertSame('BOOK-'.now()->format('Y').'-00001', $reservation->id_reff);
+        $this->assertSame('UID0001', $reservation->id_reff);
         $this->assertSame('Budi Santoso', $reservation->customer_name);
         $this->assertSame('2026-06-01', $reservation->reservation_date->format('Y-m-d'));
         $this->assertSame('Padel Court VIP Blue 1', $reservation->court);

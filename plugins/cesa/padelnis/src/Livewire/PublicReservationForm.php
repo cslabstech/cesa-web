@@ -81,9 +81,9 @@ class PublicReservationForm extends SimplePage
                     ->rule('min:0')
                     ->placeholder(__('padelnis::views/public-reservation-form.placeholders.transfer_amount'))
                     ->extraAlpineAttributes([
-                        'x-on:input' => '$el.value = ($el.value || \'\').replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
-                        'x-on:blur'  => '$el.value = ($el.value || \'\').replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
-                        'x-init'     => '$el.value = ($el.value || \'\').replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
+                        'x-on:input' => '$el.value = String($el.value).split(\'.\')[0].replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
+                        'x-on:blur'  => '$el.value = String($el.value).split(\'.\')[0].replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
+                        'x-init'     => '$el.value = String($el.value).split(\'.\')[0].replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
                     ]),
             ])
             ->statePath('data');

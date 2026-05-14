@@ -10,24 +10,22 @@ class ReservationReferenceService
 {
     public function generate(?Carbon $date = null): string
     {
-        return DB::transaction(function () use ($date): string {
-            $year = (int) ($date ?? now())->format('Y');
-            $prefix = "BOOK-{$year}-";
+        return DB::transaction(function (): string {
+            $prefix = "UID";
 
             $lastReference = Reservation::query()
                 ->withTrashed()
-                ->where('id_reff', 'like', $prefix.'%')
                 ->lockForUpdate()
-                ->orderByDesc('id_reff')
+                ->latest('id')
                 ->value('id_reff');
 
             $nextNumber = 1;
 
-            if (is_string($lastReference) && preg_match('/^BOOK-'.$year.'-(\d{5})$/', $lastReference, $matches) === 1) {
+            if (is_string($lastReference) && preg_match('/(\d+)$/', $lastReference, $matches) === 1) {
                 $nextNumber = ((int) $matches[1]) + 1;
             }
 
-            return sprintf('%s%05d', $prefix, $nextNumber);
+            return sprintf('%s%04d', $prefix, $nextNumber);
         });
     }
 }

@@ -105,10 +105,11 @@ class ReservationResource extends Resource
                             ->rule('numeric')
                             ->rule('min:0')
                             ->placeholder(__('padelnis::filament/resources/reservation.form.placeholders.transfer_amount'))
+                            ->formatStateUsing(fn ($state) => $state !== null ? (int) $state : null)
                             ->extraAlpineAttributes([
-                                'x-on:input' => '$el.value = ($el.value || \'\').replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
-                                'x-on:blur'  => '$el.value = ($el.value || \'\').replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
-                                'x-init'     => '$el.value = ($el.value || \'\').replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
+                                'x-on:input' => '$el.value = String($el.value).split(\'.\')[0].replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
+                                'x-on:blur'  => '$el.value = String($el.value).split(\'.\')[0].replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
+                                'x-init'     => '$el.value = String($el.value).split(\'.\')[0].replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
                             ]),
                     ])
                     ->columns(2),
