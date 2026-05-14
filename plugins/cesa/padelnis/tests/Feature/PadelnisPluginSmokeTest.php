@@ -59,6 +59,17 @@ class PadelnisPluginSmokeTest extends PadelnisTestCase
         }
     }
 
+    public function test_reservation_resource_keeps_transfer_amount_thousand_separator_mask(): void
+    {
+        $resourceSource = file_get_contents(base_path('plugins/cesa/padelnis/src/Filament/Resources/ReservationResource.php'));
+
+        $this->assertIsString($resourceSource);
+        $this->assertStringContainsString('TextInput::make(\'transfer_amount\')', $resourceSource);
+        $this->assertStringContainsString('extraAlpineAttributes', $resourceSource);
+        $this->assertStringContainsString('replace(/,\d{0,2}$/, \'\')', $resourceSource);
+        $this->assertStringContainsString('replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')', $resourceSource);
+    }
+
     public function test_reservation_exporter_defines_reservation_columns(): void
     {
         $this->assertCount(7, ReservationExporter::getColumns());

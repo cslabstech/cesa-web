@@ -148,6 +148,11 @@ class Reservation extends Model
         $this->attributes['court'] = $this->normalizeToConfiguredOption($value, static::courtOptions());
     }
 
+    public function setTransferAmountAttribute(mixed $value): void
+    {
+        $this->attributes['transfer_amount'] = static::normalizeTransferAmount($value);
+    }
+
     public function setReservationTimeAttribute(mixed $value): void
     {
         $this->attributes['reservation_time'] = static::normalizeReservationTime($value);
@@ -188,6 +193,47 @@ class Reservation extends Model
         }
 
         return $endTime === null ? $startTime : "{$startTime} - {$endTime}";
+    }
+
+    public static function formatTransferAmountForForm(mixed $value): ?string
+    {
+        $normalized = static::normalizeTransferAmount($value);
+
+        if ($normalized === null || $normalized === '') {
+            return null;
+        }
+
+        if (! is_numeric($normalized)) {
+            return (string) $value;
+        }
+
+        $amount = (float) $normalized;
+        $decimalPlaces = floor($amount) === $amount ? 0 : 2;
+
+        return number_format($amount, $decimalPlaces, ',', '.');
+    }
+
+    public static function normalizeTransferAmount(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return number_format((float) $value, 2, '.', '');
+        }
+
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        $normalized = static::normalizeLocalizedNumber($value);
+
+        return is_numeric($normalized)
+            ? number_format((float) $normalized, 2, '.', '')
+            : $normalized;
     }
 
     public static function makeActiveSlotKey(mixed $court, mixed $reservationDate, mixed $reservationTime): ?string
@@ -294,6 +340,45 @@ class Reservation extends Model
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    protected static function normalizeLocalizedNumber(string $value): string
+    {
+        $value = preg_replace('/[^\d,.\-]/', '', $value) ?? '';
+
+        if ($value === '') {
+            return '';
+        }
+
+        $isNegative = str_starts_with($value, '-');
+        $value = str_replace('-', '', $value);
+
+        $lastCommaPosition = strrpos($value, ',');
+        $lastDotPosition = strrpos($value, '.');
+        $decimalSeparator = null;
+
+        if ($lastCommaPosition !== false && $lastDotPosition !== false) {
+            $decimalSeparator = $lastCommaPosition > $lastDotPosition ? ',' : '.';
+        } elseif ($lastCommaPosition !== false) {
+            $fractionLength = strlen($value) - $lastCommaPosition - 1;
+            $decimalSeparator = $fractionLength > 0 && $fractionLength <= 2 ? ',' : null;
+        } elseif ($lastDotPosition !== false) {
+            $fractionLength = strlen($value) - $lastDotPosition - 1;
+            $decimalSeparator = $fractionLength > 0 && $fractionLength <= 2 ? '.' : null;
+        }
+
+        if ($decimalSeparator === null) {
+            $normalized = preg_replace('/\D/', '', $value) ?? '';
+
+            return $isNegative && $normalized !== '' ? "-{$normalized}" : $normalized;
+        }
+
+        $separatorPosition = strrpos($value, $decimalSeparator);
+        $integer = preg_replace('/\D/', '', substr($value, 0, $separatorPosition)) ?: '0';
+        $fraction = preg_replace('/\D/', '', substr($value, $separatorPosition + 1)) ?? '';
+        $normalized = "{$integer}.{$fraction}";
+
+        return $isNegative ? "-{$normalized}" : $normalized;
     }
 
     protected function normalizeName(mixed $value): string

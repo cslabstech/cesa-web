@@ -22,6 +22,15 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
             ->assertSee(__('padelnis::views/public-reservation-form.title'));
     }
 
+    public function test_public_reservation_form_keeps_transfer_amount_thousand_separator_mask(): void
+    {
+        $this->get('/padelnis')
+            ->assertOk()
+            ->assertSee('x-on:input', false)
+            ->assertSee('replace(/,\\d{0,2}$/, \'\')', false)
+            ->assertSee('replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')', false);
+    }
+
     public function test_reservation_model_generates_yearly_reference_id(): void
     {
         $firstReservation = Reservation::factory()->create([
@@ -37,8 +46,8 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
 
         $year = now()->format('Y');
 
-        $this->assertSame("UID0001", $firstReservation->id_reff);
-        $this->assertSame("UID0002", $secondReservation->id_reff);
+        $this->assertSame('UID0001', $firstReservation->id_reff);
+        $this->assertSame('UID0002', $secondReservation->id_reff);
     }
 
     public function test_reservation_model_retries_duplicate_generated_reference_id(): void
@@ -46,7 +55,7 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
         $year = now()->format('Y');
 
         Reservation::factory()->create([
-            'id_reff'          => "UID0001",
+            'id_reff'          => 'UID0001',
             'reservation_date' => '2026-06-01',
             'court'            => 'Padel Court VIP Blue 1',
             'reservation_time' => '06:00 - 07:00',
@@ -62,8 +71,8 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
             public function __construct(string $year)
             {
                 $this->references = [
-                    "UID0001",
-                    "UID0002",
+                    'UID0001',
+                    'UID0002',
                 ];
             }
 
@@ -79,7 +88,7 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
             'reservation_time' => '06:00 - 07:00',
         ]);
 
-        $this->assertSame("UID0002", $reservation->id_reff);
+        $this->assertSame('UID0002', $reservation->id_reff);
     }
 
     public function test_reservation_model_normalizes_text_casing_and_spacing(): void
@@ -93,6 +102,14 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
         $this->assertSame('Budi Santoso', $reservation->customer_name);
         $this->assertSame('Padel Court VIP Blue 1', $reservation->court);
         $this->assertSame('10:00 - 11:00', $reservation->reservation_time);
+    }
+
+    public function test_reservation_transfer_amount_normalizes_local_decimal_formats(): void
+    {
+        $this->assertSame('186.818', Reservation::formatTransferAmountForForm('186818.00'));
+        $this->assertSame('186818.00', Reservation::normalizeTransferAmount('186818,00'));
+        $this->assertSame('186818.00', Reservation::normalizeTransferAmount('186.818,00'));
+        $this->assertSame('150000.00', Reservation::normalizeTransferAmount('150.000'));
     }
 
     public function test_reservation_model_normalizes_legacy_database_time_values(): void
@@ -273,6 +290,22 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
         $this->assertSame('150000.00', $reservation->transfer_amount);
         $this->assertNotNull($reservation->created_at);
         $this->assertFalse(session()->has('filament.notifications'));
+    }
+
+    public function test_can_submit_public_reservation_form_with_local_decimal_transfer_amount(): void
+    {
+        Livewire::test(PublicReservationForm::class)
+            ->set('data.customer_name', 'Budi Santoso')
+            ->set('data.reservation_date', '2026-06-01')
+            ->set('data.court', 'Padel Court VIP Blue 1')
+            ->set('data.reservation_time', '10:00 - 11:00')
+            ->set('data.transfer_amount', '186818,00')
+            ->call('submit')
+            ->assertHasNoErrors();
+
+        $reservation = Reservation::query()->firstOrFail();
+
+        $this->assertSame('186818.00', $reservation->transfer_amount);
     }
 
     public function test_public_reservation_form_blocks_duplicate_active_slots(): void

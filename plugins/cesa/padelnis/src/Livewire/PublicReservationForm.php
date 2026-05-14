@@ -75,15 +75,17 @@ class PublicReservationForm extends SimplePage
                     ->label(__('padelnis::filament/resources/reservation.fields.transfer_amount'))
                     ->inputMode('numeric')
                     ->prefix('Rp')
-                    ->stripCharacters('.')
                     ->required()
                     ->rule('numeric')
                     ->rule('min:0')
                     ->placeholder(__('padelnis::views/public-reservation-form.placeholders.transfer_amount'))
+                    ->formatStateUsing(fn (mixed $state): ?string => Reservation::formatTransferAmountForForm($state))
+                    ->mutateStateForValidationUsing(fn (mixed $state): ?string => Reservation::normalizeTransferAmount($state))
+                    ->dehydrateStateUsing(fn (mixed $state): ?string => Reservation::normalizeTransferAmount($state))
                     ->extraAlpineAttributes([
-                        'x-on:input' => '$el.value = String($el.value).split(\'.\')[0].replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
-                        'x-on:blur'  => '$el.value = String($el.value).split(\'.\')[0].replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
-                        'x-init'     => '$el.value = String($el.value).split(\'.\')[0].replace(/\\D/g, \'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')',
+                        'x-on:input' => static::transferAmountMaskAlpineExpression(),
+                        'x-on:blur'  => static::transferAmountMaskAlpineExpression(),
+                        'x-init'     => static::transferAmountMaskAlpineExpression(),
                     ]),
             ])
             ->statePath('data');
@@ -130,6 +132,15 @@ class PublicReservationForm extends SimplePage
                 ], merge: true)
                 ->submit('submit'),
         ];
+    }
+
+    protected static function transferAmountMaskAlpineExpression(): string
+    {
+        return <<<'JS'
+const value = String($el.value);
+const integer = value.replace(/,\d{0,2}$/, '').replace(/\D/g, '');
+$el.value = integer.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+JS;
     }
 
     protected function resetFormAfterSubmission(): void
