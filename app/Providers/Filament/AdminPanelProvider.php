@@ -116,6 +116,9 @@ class AdminPanelProvider extends PanelProvider
                     ->label(__('admin.navigation.rekrutmen'))
                     ->icon('icon-rekrutmen'),
                 NavigationGroup::make()
+                    ->label(__('admin.navigation.padelnis'))
+                    ->icon('icon-padelnis'),
+                NavigationGroup::make()
                     ->label(__('admin.navigation.shelf'))
                     ->icon('icon-shelf'),
                 NavigationGroup::make()

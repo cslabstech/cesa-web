@@ -1,0 +1,31 @@
+{
+    "name": "cesa/padelnis",
+    "description": "Padelnis court reservation form for CESA",
+    "type": "library",
+    "authors": [
+        {
+            "name": "apriansyahrs",
+            "email": "developer@rizqis.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Cesa\\Padelnis\\PadelnisServiceProvider"
+            ],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Cesa\\Padelnis\\": "src/",
+            "Cesa\\Padelnis\\Database\\Factories\\": "database/factories/",
+            "Cesa\\Padelnis\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Cesa\\Padelnis\\Tests\\": "tests/"
+        }
+    }
+}

@@ -10,6 +10,7 @@ use Cesa\Helpdesk\HelpdeskServiceProvider;
 use Cesa\Kepegawaian\KepegawaianServiceProvider;
 use Cesa\Lead\LeadServiceProvider;
 use Cesa\LegacySync\LegacySyncServiceProvider;
+use Cesa\Padelnis\PadelnisServiceProvider;
 use Cesa\Payroll\PayrollServiceProvider;
 use Cesa\Presensi\PresensiServiceProvider;
 use Cesa\Rekrutmen\RekrutmenServiceProvider;
@@ -82,6 +83,7 @@ return [
     HelpdeskServiceProvider::class,
     KepegawaianServiceProvider::class,
     LeadServiceProvider::class,
+    PadelnisServiceProvider::class,
     PayrollServiceProvider::class,
     PresensiServiceProvider::class,
     RekrutmenServiceProvider::class,

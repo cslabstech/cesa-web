@@ -26,5 +26,6 @@ return [
         'document'       => 'Documents',
         'plugin'         => 'Plugins',
         'setting'        => 'Settings',
+        'padelnis'       => 'Padelnis',
     ],
 ];

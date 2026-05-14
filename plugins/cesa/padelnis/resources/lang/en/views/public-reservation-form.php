@@ -1,0 +1,44 @@
+<?php
+
+return [
+    'title'       => 'Padelnis Reservation Form',
+    'description' => 'Please complete the reservation details below.',
+    'required'    => '* Required questions',
+
+    'placeholders' => [
+        'customer_name'    => 'Enter customer name',
+        'reservation_date' => 'Select reservation date',
+        'court'            => 'Select court',
+        'reservation_time' => 'Select time',
+        'transfer_amount'  => 'Example: 150,000',
+    ],
+
+    'actions' => [
+        'submit'         => 'Submit Reservation',
+        'submit_another' => 'Submit another reservation',
+    ],
+
+    'pagination' => [
+        'single_page' => 'Page :current of :total',
+    ],
+
+    'summary' => [
+        'title'       => 'Reservation Submitted',
+        'description' => 'The reservation data has been saved to Reservations.',
+    ],
+
+    'messages' => [
+        'generic' => 'Something went wrong while submitting the reservation. Please try again.',
+    ],
+
+    'notifications' => [
+        'submitted' => [
+            'title' => 'Reservation submitted',
+            'body'  => 'Reservation was saved with Reference ID :id_reff.',
+        ],
+        'failed' => [
+            'title' => 'Reservation submission failed',
+            'body'  => 'The reservation could not be saved. Please try again.',
+        ],
+    ],
+];
