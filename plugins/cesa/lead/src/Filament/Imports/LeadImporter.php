@@ -191,7 +191,7 @@ class LeadImporter extends Importer
         }
 
         if (! $record->exists) {
-            $record->created_by = Auth::id();
+            $record->creator_id = Auth::id();
         }
     }
 }

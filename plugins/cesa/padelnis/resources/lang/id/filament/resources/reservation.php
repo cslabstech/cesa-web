@@ -17,6 +17,8 @@ return [
         'reservation_time' => 'Jam',
         'blocked_slots'    => 'Detail Blok',
         'transfer_amount'  => 'Nominal Transfer',
+        'transfer_date'    => 'Tanggal Transfer',
+        'notes'            => 'Keterangan',
         'created_at'       => 'Dibuat Pada',
     ],
 
@@ -33,6 +35,8 @@ return [
             'court'            => 'Pilih lapangan',
             'reservation_time' => 'Pilih jam mulai - jam berakhir',
             'transfer_amount'  => 'Masukkan nominal transfer',
+            'transfer_date'    => 'Pilih tanggal transfer',
+            'notes'            => 'Tambahkan keterangan jika diperlukan',
         ],
     ],
 
@@ -45,6 +49,8 @@ return [
             'blocked_slots'    => 'Detail Blok',
             'court'            => 'Lapangan',
             'transfer_amount'  => 'Nominal Transfer',
+            'transfer_date'    => 'Tanggal Transfer',
+            'notes'            => 'Keterangan',
             'created_at'       => 'Dibuat Pada',
         ],
     ],

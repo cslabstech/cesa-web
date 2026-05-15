@@ -10,10 +10,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class Attendance extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasNullableCreator, SoftDeletes;
 
     public const CHECK_IN_STATUS_ON_TIME = 'on_time';
 

@@ -8,7 +8,7 @@ use Webkul\Security\Models\User;
 class Bouncer
 {
     /**
-     * Cached authorized user IDs.
+     * Last computed authorized user IDs.
      */
     protected static ?array $authorizedUserIdsCache = null;
 
@@ -17,11 +17,13 @@ class Bouncer
      */
     public function getAuthorizedUserIds(): ?array
     {
-        if (static::$authorizedUserIdsCache !== null) {
-            return static::$authorizedUserIdsCache;
-        }
-
         $user = filament()->auth()->user();
+
+        if (! $user) {
+            static::$authorizedUserIdsCache = null;
+
+            return null;
+        }
 
         if ($user->resource_permission == PermissionType::GLOBAL) {
             static::$authorizedUserIdsCache = null;

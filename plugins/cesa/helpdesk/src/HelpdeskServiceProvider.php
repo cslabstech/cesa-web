@@ -36,6 +36,7 @@ class HelpdeskServiceProvider extends PackageServiceProvider
             ->hasMigrations([
                 '2026_03_16_000000_create_helpdesk_tables',
                 '2026_03_17_000001_add_mobile_workflow_columns_to_helpdesk_tables',
+                '2026_05_15_010200_add_creator_id_to_helpdesk_tables',
             ])
             ->runsMigrations()
             ->runsSeeders()

@@ -9,10 +9,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Auth;
 use Webkul\Field\Traits\HasCustomFields;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class EmployeeCategory extends Model
 {
-    use HasCustomFields, HasFactory;
+    use HasCustomFields, HasFactory, HasNullableCreator;
 
     protected $table = 'employees_categories';
 

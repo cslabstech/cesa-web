@@ -11,10 +11,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class Comment extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasNullableCreator, SoftDeletes;
 
     public const VISIBILITY_PUBLIC = 'public';
 

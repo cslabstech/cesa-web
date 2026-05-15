@@ -18,7 +18,8 @@ class AttendancePolicy
 
     public function view(User $user, Attendance $attendance): bool
     {
-        return $user->can('view_presensi_attendance');
+        return $user->can('view_presensi_attendance')
+            && $this->hasAccess($user, $attendance);
     }
 
     public function create(User $user): bool

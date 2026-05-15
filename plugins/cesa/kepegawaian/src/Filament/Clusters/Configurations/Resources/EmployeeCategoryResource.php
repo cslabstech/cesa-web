@@ -27,9 +27,12 @@ use Filament\Tables\Filters\QueryBuilder\Constraints\RelationshipConstraint\Oper
 use Filament\Tables\Filters\QueryBuilder\Constraints\TextConstraint;
 use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class EmployeeCategoryResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = EmployeeCategory::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-tag';

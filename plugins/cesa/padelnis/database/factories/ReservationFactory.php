@@ -23,6 +23,8 @@ class ReservationFactory extends Factory
             'court'            => $this->faker->randomElement(array_values(config('padelnis.courts', ['Padel Court VIP Blue 1']))),
             'reservation_time' => $this->faker->randomElement(array_values(config('padelnis.slots', ['10:00 - 11:00']))),
             'transfer_amount'  => $this->faker->numberBetween(100000, 500000),
+            'transfer_date'    => $this->faker->dateTimeBetween('-7 days', 'today')->format('Y-m-d'),
+            'notes'            => null,
         ];
     }
 }

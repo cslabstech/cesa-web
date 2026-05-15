@@ -10,10 +10,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class ProblemCategory extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasNullableCreator, SoftDeletes;
 
     protected $table = 'helpdesk_problem_categories';
 

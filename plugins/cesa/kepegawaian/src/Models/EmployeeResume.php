@@ -6,9 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Auth;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class EmployeeResume extends Model
 {
+    use HasNullableCreator;
+
     protected $table = 'employees_employee_resumes';
 
     protected $fillable = [

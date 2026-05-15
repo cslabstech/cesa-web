@@ -13,6 +13,8 @@
                 __('padelnis::filament/resources/reservation.fields.reservation_time') => $recentSubmission['reservation_time'] ?? '-',
                 __('padelnis::filament/resources/reservation.fields.blocked_slots') => $recentSubmission['blocked_slots'] ?? '-',
                 __('padelnis::filament/resources/reservation.fields.transfer_amount') => $formattedTransferAmount,
+                __('padelnis::filament/resources/reservation.fields.transfer_date') => $recentSubmission['transfer_date'] ?? '-',
+                __('padelnis::filament/resources/reservation.fields.notes') => $recentSubmission['notes'] ?? '-',
             ];
         @endphp
 

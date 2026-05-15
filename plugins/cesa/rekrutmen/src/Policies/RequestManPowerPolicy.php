@@ -5,10 +5,11 @@ namespace Cesa\Rekrutmen\Policies;
 use Cesa\Rekrutmen\Models\RequestManPower;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasScopedPermissions;
 
 class RequestManPowerPolicy
 {
-    use HandlesAuthorization;
+    use HandlesAuthorization, HasScopedPermissions;
 
     public function viewAny(User $user): bool
     {
@@ -17,7 +18,8 @@ class RequestManPowerPolicy
 
     public function view(User $user, RequestManPower $requestManPower): bool
     {
-        return $user->can('view_rekrutmen_request::man::power');
+        return $user->can('view_rekrutmen_request::man::power')
+            && $this->hasAccess($user, $requestManPower, 'creator');
     }
 
     public function create(User $user): bool
@@ -27,12 +29,14 @@ class RequestManPowerPolicy
 
     public function update(User $user, RequestManPower $requestManPower): bool
     {
-        return $user->can('update_rekrutmen_request::man::power');
+        return $user->can('update_rekrutmen_request::man::power')
+            && $this->hasAccess($user, $requestManPower, 'creator');
     }
 
     public function delete(User $user, RequestManPower $requestManPower): bool
     {
-        return $user->can('delete_rekrutmen_request::man::power');
+        return $user->can('delete_rekrutmen_request::man::power')
+            && $this->hasAccess($user, $requestManPower, 'creator');
     }
 
     public function deleteAny(User $user): bool
@@ -42,7 +46,8 @@ class RequestManPowerPolicy
 
     public function forceDelete(User $user, RequestManPower $requestManPower): bool
     {
-        return $user->can('force_delete_rekrutmen_request::man::power');
+        return $user->can('force_delete_rekrutmen_request::man::power')
+            && $this->hasAccess($user, $requestManPower, 'creator');
     }
 
     public function forceDeleteAny(User $user): bool
@@ -52,7 +57,8 @@ class RequestManPowerPolicy
 
     public function restore(User $user, RequestManPower $requestManPower): bool
     {
-        return $user->can('restore_rekrutmen_request::man::power');
+        return $user->can('restore_rekrutmen_request::man::power')
+            && $this->hasAccess($user, $requestManPower, 'creator');
     }
 
     public function restoreAny(User $user): bool

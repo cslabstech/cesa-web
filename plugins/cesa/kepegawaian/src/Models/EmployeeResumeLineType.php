@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class EmployeeResumeLineType extends Model implements Sortable
 {
-    use SortableTrait;
+    use HasNullableCreator, SortableTrait;
 
     protected $table = 'employees_employee_resume_line_types';
 

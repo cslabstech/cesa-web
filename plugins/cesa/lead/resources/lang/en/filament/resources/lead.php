@@ -53,7 +53,7 @@ return [
         'store_team_position'     => 'Store Team Position',
         'store_branch'            => 'Store Branch',
         'phone_transaction_range' => 'Phone Transaction Range',
-        'created_by'              => 'Created By',
+        'creator_id'              => 'Created By',
         'created_at'              => 'Created At',
     ],
 

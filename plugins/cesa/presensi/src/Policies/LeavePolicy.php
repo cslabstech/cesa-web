@@ -18,7 +18,8 @@ class LeavePolicy
 
     public function view(User $user, Leave $leave): bool
     {
-        return $user->can('view_presensi_leave');
+        return $user->can('view_presensi_leave')
+            && $this->hasAccess($user, $leave);
     }
 
     public function create(User $user): bool

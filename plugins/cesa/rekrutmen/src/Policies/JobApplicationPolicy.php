@@ -5,10 +5,11 @@ namespace Cesa\Rekrutmen\Policies;
 use Cesa\Rekrutmen\Models\JobApplication;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasScopedPermissions;
 
 class JobApplicationPolicy
 {
-    use HandlesAuthorization;
+    use HandlesAuthorization, HasScopedPermissions;
 
     public function viewAny(User $user): bool
     {
@@ -17,7 +18,8 @@ class JobApplicationPolicy
 
     public function view(User $user, JobApplication $jobApplication): bool
     {
-        return $user->can('view_rekrutmen_job::application');
+        return $user->can('view_rekrutmen_job::application')
+            && $this->hasAccess($user, $jobApplication, 'creator');
     }
 
     public function create(User $user): bool
@@ -27,12 +29,14 @@ class JobApplicationPolicy
 
     public function update(User $user, JobApplication $jobApplication): bool
     {
-        return $user->can('update_rekrutmen_job::application');
+        return $user->can('update_rekrutmen_job::application')
+            && $this->hasAccess($user, $jobApplication, 'creator');
     }
 
     public function delete(User $user, JobApplication $jobApplication): bool
     {
-        return $user->can('delete_rekrutmen_job::application');
+        return $user->can('delete_rekrutmen_job::application')
+            && $this->hasAccess($user, $jobApplication, 'creator');
     }
 
     public function deleteAny(User $user): bool
@@ -42,7 +46,8 @@ class JobApplicationPolicy
 
     public function forceDelete(User $user, JobApplication $jobApplication): bool
     {
-        return $user->can('force_delete_rekrutmen_job::application');
+        return $user->can('force_delete_rekrutmen_job::application')
+            && $this->hasAccess($user, $jobApplication, 'creator');
     }
 
     public function forceDeleteAny(User $user): bool
@@ -52,7 +57,8 @@ class JobApplicationPolicy
 
     public function restore(User $user, JobApplication $jobApplication): bool
     {
-        return $user->can('restore_rekrutmen_job::application');
+        return $user->can('restore_rekrutmen_job::application')
+            && $this->hasAccess($user, $jobApplication, 'creator');
     }
 
     public function restoreAny(User $user): bool

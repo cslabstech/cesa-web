@@ -36,9 +36,12 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class RequestManPowerResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = RequestManPower::class;
 
     protected static \BackedEnum|string|null $navigationIcon = null;

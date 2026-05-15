@@ -18,7 +18,8 @@ class OvertimePolicy
 
     public function view(User $user, Overtime $overtime): bool
     {
-        return $user->can('view_presensi_overtime');
+        return $user->can('view_presensi_overtime')
+            && $this->hasAccess($user, $overtime);
     }
 
     public function create(User $user): bool

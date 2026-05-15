@@ -276,7 +276,7 @@ $department = Cesa\\ExitClearance\\Models\\Department::query()->updateOrCreate(
     [
         'name' => $name,
         'description' => $description ?: null,
-        'created_by' => $creatorId,
+        'creator_id' => $creatorId,
         'deleted_at' => null,
     ],
 );
@@ -330,7 +330,7 @@ $approver = Cesa\\ExitClearance\\Models\\Approver::query()->updateOrCreate(
         'name' => $name,
         'phone' => $phone ?: null,
         'title' => $title,
-        'created_by' => $creatorId,
+        'creator_id' => $creatorId,
         'deleted_at' => null,
     ],
 );

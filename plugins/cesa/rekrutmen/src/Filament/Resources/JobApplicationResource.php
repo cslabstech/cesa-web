@@ -29,9 +29,12 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\URL;
 use League\Flysystem\UnableToCheckFileExistence;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class JobApplicationResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = JobApplication::class;
 
     protected static \BackedEnum|string|null $navigationIcon = null;

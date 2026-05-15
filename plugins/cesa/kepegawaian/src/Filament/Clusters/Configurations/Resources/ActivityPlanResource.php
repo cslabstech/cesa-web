@@ -41,9 +41,12 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Webkul\Security\Filament\Resources\CompanyResource;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class ActivityPlanResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = ActivityPlan::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-briefcase';

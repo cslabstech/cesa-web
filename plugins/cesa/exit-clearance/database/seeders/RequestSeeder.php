@@ -59,7 +59,7 @@ class RequestSeeder extends Seeder
                     'form_uid'          => $requestData['form_uid'],
                     'form_status'       => $requestData['form_status'],
                     'form_response_id'  => $requestData['form_response_id'],
-                    'created_by'        => null,
+                    'creator_id'        => null,
                 ]
             );
         }

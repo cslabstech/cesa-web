@@ -11,6 +11,8 @@ return [
         'court'            => 'Pilih lapangan',
         'reservation_time' => 'Pilih jam mulai - jam berakhir',
         'transfer_amount'  => 'Contoh: 150.000',
+        'transfer_date'    => 'Pilih tanggal transfer',
+        'notes'            => 'Contoh: Transfer dari BCA atas nama Budi',
     ],
 
     'actions' => [

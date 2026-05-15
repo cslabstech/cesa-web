@@ -52,7 +52,7 @@ class DepartmentSeeder extends Seeder
                 [
                     'name'        => $department['name'],
                     'description' => $department['description'],
-                    'created_by'  => null,
+                    'creator_id'  => null,
                 ]
             );
         }

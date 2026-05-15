@@ -460,7 +460,7 @@ class HelpdeskTicketLifecycleTest extends HelpdeskTestCase
         $this->assertSame($bindings, $scopedQuery->getBindings());
     }
 
-    public function test_outgoing_scope_only_returns_tickets_created_by_current_user(): void
+    public function test_outgoing_scope_only_returns_tickets_for_current_creator(): void
     {
         $currentUser = User::factory()->create();
         $otherUser = User::factory()->create();

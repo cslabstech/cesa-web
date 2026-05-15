@@ -189,7 +189,7 @@ class LeadResourceTest extends TestCase
             ->assertHasFormErrors(['store_team_position']);
     }
 
-    public function test_create_lead_sets_created_by_to_authenticated_user(): void
+    public function test_create_lead_sets_creator_id_to_authenticated_user(): void
     {
         $leadData = [
             'name'                         => 'Test Lead',
@@ -208,7 +208,7 @@ class LeadResourceTest extends TestCase
 
         $this->assertDatabaseHas('leads', [
             'name'       => 'TEST LEAD',
-            'created_by' => $this->user->id,
+            'creator_id' => $this->user->id,
         ]);
     }
 

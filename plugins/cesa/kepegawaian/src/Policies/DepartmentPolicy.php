@@ -5,10 +5,11 @@ namespace Cesa\Kepegawaian\Policies;
 use Cesa\Kepegawaian\Models\Department;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasScopedPermissions;
 
 class DepartmentPolicy
 {
-    use HandlesAuthorization;
+    use HandlesAuthorization, HasScopedPermissions;
 
     /**
      * Determine whether the user can view any models.
@@ -23,7 +24,8 @@ class DepartmentPolicy
      */
     public function view(User $user, Department $department): bool
     {
-        return $user->can('view_kepegawaian_department');
+        return $user->can('view_kepegawaian_department')
+            && $this->hasAccess($user, $department, 'creator');
     }
 
     /**
@@ -39,7 +41,8 @@ class DepartmentPolicy
      */
     public function update(User $user, Department $department): bool
     {
-        return $user->can('update_kepegawaian_department');
+        return $user->can('update_kepegawaian_department')
+            && $this->hasAccess($user, $department, 'creator');
     }
 
     /**
@@ -47,7 +50,8 @@ class DepartmentPolicy
      */
     public function delete(User $user, Department $department): bool
     {
-        return $user->can('delete_kepegawaian_department');
+        return $user->can('delete_kepegawaian_department')
+            && $this->hasAccess($user, $department, 'creator');
     }
 
     /**
@@ -63,7 +67,8 @@ class DepartmentPolicy
      */
     public function forceDelete(User $user, Department $department): bool
     {
-        return $user->can('force_delete_kepegawaian_department');
+        return $user->can('force_delete_kepegawaian_department')
+            && $this->hasAccess($user, $department, 'creator');
     }
 
     /**
@@ -79,7 +84,8 @@ class DepartmentPolicy
      */
     public function restore(User $user, Department $department): bool
     {
-        return $user->can('restore_kepegawaian_department');
+        return $user->can('restore_kepegawaian_department')
+            && $this->hasAccess($user, $department, 'creator');
     }
 
     /**

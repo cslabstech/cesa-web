@@ -44,7 +44,7 @@ return new class extends Migration
             $table->string('form_uid')->nullable();
             $table->string('form_status')->nullable();
             $table->string('form_response_id')->nullable();
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('creator_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
 

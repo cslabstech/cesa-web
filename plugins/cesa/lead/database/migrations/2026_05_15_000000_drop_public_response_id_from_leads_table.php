@@ -51,11 +51,11 @@ return new class extends Migration
                 "store_team_position" varchar check ("store_team_position" in ('Kepala Toko', 'Promotor', 'Kasir', 'Frontliner')) not null,
                 "store_branch" varchar not null,
                 "phone_transaction_range" varchar check ("phone_transaction_range" in ('Harga di bawah 2 juta', 'Harga 2 - 3 juta', 'Harga 3 - 4 juta', 'Harga 4 - 7 juta', 'Harga di atas 7 juta')),
-                "created_by" integer,
+                "creator_id" integer,
                 "created_at" datetime,
                 "updated_at" datetime,
                 "deleted_at" datetime,
-                foreign key("created_by") references "users"("id") on delete set null on update no action
+                foreign key("creator_id") references "users"("id") on delete set null on update no action
             )
         SQL);
 
@@ -69,7 +69,7 @@ return new class extends Migration
                 "store_team_position",
                 "store_branch",
                 "phone_transaction_range",
-                "created_by",
+                "creator_id",
                 "created_at",
                 "updated_at",
                 "deleted_at"
@@ -83,7 +83,7 @@ return new class extends Migration
                 "store_team_position",
                 "store_branch",
                 "phone_transaction_range",
-                "created_by",
+                "creator_id",
                 "created_at",
                 "updated_at",
                 "deleted_at"

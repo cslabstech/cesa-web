@@ -24,9 +24,12 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class ReferenceNoteResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = TransferReferenceNote::class;
 
     protected static ?string $cluster = Configurations::class;

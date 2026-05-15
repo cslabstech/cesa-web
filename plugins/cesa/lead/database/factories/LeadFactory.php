@@ -36,7 +36,7 @@ class LeadFactory extends Factory
                 config('lead.store_branches', ['Default Branch'])
             ),
             'phone_transaction_range' => $this->faker->randomElement(PhoneTransactionRange::values()),
-            'created_by'              => null,
+            'creator_id'              => null,
         ];
     }
 }

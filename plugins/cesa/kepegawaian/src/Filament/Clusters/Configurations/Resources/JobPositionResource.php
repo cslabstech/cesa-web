@@ -46,9 +46,12 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Webkul\Security\Filament\Resources\CompanyResource;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class JobPositionResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = EmployeeJobPosition::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-briefcase';

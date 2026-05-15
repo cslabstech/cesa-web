@@ -28,9 +28,15 @@ abstract class RekrutmenConfigurationResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
+        $query = parent::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+
+        if (method_exists($query->getModel(), 'scopeApplyPermissionScope')) {
+            return $query->applyPermissionScope();
+        }
+
+        return $query;
     }
 }

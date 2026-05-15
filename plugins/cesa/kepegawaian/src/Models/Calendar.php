@@ -10,11 +10,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Webkul\Field\Traits\HasCustomFields;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 use Webkul\Support\Models\Company;
 
 class Calendar extends Model
 {
-    use HasCustomFields, HasFactory, SoftDeletes;
+    use HasCustomFields, HasFactory, HasNullableCreator, SoftDeletes;
 
     protected $table = 'employees_calendars';
 

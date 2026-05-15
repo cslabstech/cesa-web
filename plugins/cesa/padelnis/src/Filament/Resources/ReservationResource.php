@@ -12,6 +12,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
@@ -26,9 +27,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Webkul\PluginManager\Package;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class ReservationResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = Reservation::class;
 
     protected static string|\BackedEnum|null $navigationIcon = null;
@@ -113,6 +117,19 @@ class ReservationResource extends Resource
                                 'x-on:blur'  => static::transferAmountMaskAlpineExpression(),
                                 'x-init'     => static::transferAmountMaskAlpineExpression(),
                             ]),
+                        DatePicker::make('transfer_date')
+                            ->label(__('padelnis::filament/resources/reservation.fields.transfer_date'))
+                            ->required()
+                            ->native(false)
+                            ->displayFormat('Y-m-d')
+                            ->placeholder(__('padelnis::filament/resources/reservation.form.placeholders.transfer_date')),
+                        Textarea::make('notes')
+                            ->label(__('padelnis::filament/resources/reservation.fields.notes'))
+                            ->nullable()
+                            ->maxLength(1000)
+                            ->rows(3)
+                            ->placeholder(__('padelnis::filament/resources/reservation.form.placeholders.notes'))
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
             ]);
@@ -144,6 +161,14 @@ class ReservationResource extends Resource
                         TextEntry::make('transfer_amount')
                             ->label(__('padelnis::filament/resources/reservation.fields.transfer_amount'))
                             ->money('IDR'),
+                        TextEntry::make('transfer_date')
+                            ->label(__('padelnis::filament/resources/reservation.fields.transfer_date'))
+                            ->date('d M Y')
+                            ->placeholder('-'),
+                        TextEntry::make('notes')
+                            ->label(__('padelnis::filament/resources/reservation.fields.notes'))
+                            ->placeholder('-')
+                            ->columnSpanFull(),
                         TextEntry::make('created_at')
                             ->label(__('padelnis::filament/resources/reservation.fields.created_at'))
                             ->dateTime('d M Y H:i'),
@@ -187,6 +212,15 @@ class ReservationResource extends Resource
                     ->label(__('padelnis::filament/resources/reservation.table.columns.transfer_amount'))
                     ->money('IDR')
                     ->sortable(),
+                TextColumn::make('transfer_date')
+                    ->label(__('padelnis::filament/resources/reservation.table.columns.transfer_date'))
+                    ->date('d M Y')
+                    ->sortable(),
+                TextColumn::make('notes')
+                    ->label(__('padelnis::filament/resources/reservation.table.columns.notes'))
+                    ->limit(60)
+                    ->wrap()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')
                     ->label(__('padelnis::filament/resources/reservation.table.columns.created_at'))
                     ->dateTime('d M Y H:i')

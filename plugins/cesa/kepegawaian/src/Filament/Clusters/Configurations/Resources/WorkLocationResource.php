@@ -34,9 +34,12 @@ use Filament\Tables\Filters\QueryBuilder\Constraints\TextConstraint;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class WorkLocationResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = WorkLocation::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-map-pin';

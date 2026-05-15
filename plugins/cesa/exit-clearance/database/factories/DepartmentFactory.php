@@ -15,7 +15,7 @@ class DepartmentFactory extends Factory
             'code'        => fake()->unique()->bothify('DEPT-####'),
             'name'        => fake()->word(),
             'description' => fake()->sentence(),
-            'created_by'  => null,
+            'creator_id'  => null,
         ];
     }
 }

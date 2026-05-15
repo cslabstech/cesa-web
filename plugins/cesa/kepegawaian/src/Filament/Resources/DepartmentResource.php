@@ -45,10 +45,12 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Webkul\Field\Filament\Traits\HasCustomFields;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class DepartmentResource extends Resource
 {
     use HasCustomFields;
+    use HasResourcePermissionQuery;
 
     protected static ?string $model = Department::class;
 

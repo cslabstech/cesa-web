@@ -6,6 +6,7 @@ use Cesa\FormTransfer\Database\Factories\TransferRequestFactory;
 use Cesa\FormTransfer\Enums\TransferRequestApprovalStatus;
 use Cesa\FormTransfer\Enums\TransferRequestRealizationStatus;
 use Cesa\FormTransfer\Enums\TransferRequestSubmissionStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -22,11 +24,12 @@ use RuntimeException;
 use Webkul\Chatter\Traits\HasChatter;
 use Webkul\Security\Models\Scopes\UserPermissionScope;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 use Webkul\Support\Models\Company;
 
 class TransferRequest extends Model
 {
-    use HasChatter, HasFactory, SoftDeletes;
+    use HasChatter, HasFactory, HasNullableCreator, SoftDeletes;
 
     protected $table = 'form_transfer_requests';
 
@@ -639,6 +642,39 @@ class TransferRequest extends Model
     public function formTransfer(): BelongsTo
     {
         return $this->belongsTo(FormTransfer::class)->withTrashed();
+    }
+
+    public function scopeApplyPermissionScope(Builder $query): Builder
+    {
+        $user = filament()->auth()->user();
+
+        if (! $user) {
+            return $query;
+        }
+
+        $userIds = bouncer()->getAuthorizedUserIds();
+
+        if (empty($userIds)) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $builder) use ($userIds): void {
+            $builder
+                ->whereIn('creator_id', $userIds)
+                ->orWhereIn('user_id', $userIds);
+
+            if (! Schema::hasTable('form_transfer_user_accesses')) {
+                return;
+            }
+
+            $builder->orWhereHas('formTransfer', function (Builder $formTransferQuery) use ($userIds): void {
+                $formTransferQuery
+                    ->whereDoesntHave('allowedUsers')
+                    ->orWhereHas('allowedUsers', function (Builder $userQuery) use ($userIds): void {
+                        $userQuery->whereIn('users.id', $userIds);
+                    });
+            });
+        });
     }
 
     public function company(): BelongsTo

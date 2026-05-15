@@ -4,16 +4,13 @@ namespace Cesa\ExitClearance\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Auth;
-use Webkul\Security\Models\User;
-use Webkul\Security\Traits\HasPermissionScope;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class Approver extends Model
 {
-    use HasFactory, HasPermissionScope, SoftDeletes;
+    use HasFactory, HasNullableCreator, SoftDeletes;
 
     protected $table = 'exit_clearance_approvers';
 
@@ -22,7 +19,7 @@ class Approver extends Model
         'email',
         'phone',
         'title',
-        'created_by',
+        'creator_id',
     ];
 
     protected $casts = [
@@ -31,28 +28,9 @@ class Approver extends Model
         'deleted_at' => 'datetime',
     ];
 
-    protected static function booted(): void
-    {
-        static::creating(function (Approver $approver): void {
-            if (empty($approver->created_by) && Auth::id()) {
-                $approver->created_by = Auth::id();
-            }
-        });
-    }
-
-    protected function getOwnerColumn(): string
-    {
-        return 'created_by';
-    }
-
     protected function getAssignmentColumn(): ?string
     {
         return null;
-    }
-
-    public function createdBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by')->withTrashed();
     }
 
     public function departments(): BelongsToMany

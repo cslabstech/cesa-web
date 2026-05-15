@@ -14,11 +14,12 @@ use Webkul\Chatter\Traits\HasChatter;
 use Webkul\Chatter\Traits\HasLogActivity;
 use Webkul\Field\Traits\HasCustomFields;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 use Webkul\Support\Models\Company;
 
 class Department extends Model
 {
-    use HasChatter, HasCustomFields, HasFactory, HasLogActivity, SoftDeletes;
+    use HasChatter, HasCustomFields, HasFactory, HasLogActivity, HasNullableCreator, SoftDeletes;
 
     protected $table = 'employees_departments';
 

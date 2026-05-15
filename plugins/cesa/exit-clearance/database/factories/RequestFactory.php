@@ -43,7 +43,7 @@ class RequestFactory extends Factory
             'form_uid'                       => fake()->bothify('EXC-#####'),
             'form_status'                    => fake()->randomElement(['Pending', 'Approved', 'Rejected']),
             'form_response_id'               => fake()->uuid(),
-            'created_by'                     => null,
+            'creator_id'                     => null,
         ];
     }
 }

@@ -3097,7 +3097,7 @@ class SyncLegacySqlData extends Command
                 return;
             }
 
-            $createdBy = $this->resolveUserId($this->nullableInt($row->created_by ?? null));
+            $creatorId = $this->resolveUserId($this->nullableInt($row->created_by ?? null));
 
             $targetId = $this->resolveTargetId(
                 'leads',
@@ -3149,7 +3149,7 @@ class SyncLegacySqlData extends Command
                     'store_team_position'     => $storeTeamPosition,
                     'store_branch'            => $storeBranch,
                     'phone_transaction_range' => $phoneTransactionRange,
-                    'created_by'              => $createdBy,
+                    'creator_id'              => $creatorId,
                     'created_at'              => $row->created_at ?? now(),
                     'updated_at'              => $row->updated_at ?? now(),
                     'deleted_at'              => $row->deleted_at ?? null,
@@ -3486,7 +3486,7 @@ class SyncLegacySqlData extends Command
         $query = DB::connection($this->legacyConnection)->table('ec_departments');
 
         $this->syncRows('Exit clearance departments', $query, function (object $row): void {
-            $createdBy = $this->resolveUserId($this->nullableInt($row->created_by));
+            $creatorId = $this->resolveUserId($this->nullableInt($row->created_by));
 
             $targetId = $this->resolveTargetId(
                 'ec_departments',
@@ -3510,7 +3510,7 @@ class SyncLegacySqlData extends Command
                     'name'                  => $this->nullableString($row->name) ?? '',
                     'description'           => $this->nullableString($row->description),
                     'head_of_department_id' => null,
-                    'created_by'            => $createdBy,
+                    'creator_id'            => $creatorId,
                     'created_at'            => $row->created_at,
                     'updated_at'            => $row->updated_at,
                     'deleted_at'            => $row->deleted_at,
@@ -3544,7 +3544,7 @@ class SyncLegacySqlData extends Command
         $query = DB::connection($this->legacyConnection)->table('ec_approvers');
 
         $this->syncRows('Exit clearance approvers', $query, function (object $row): void {
-            $createdBy = $this->resolveUserId($this->nullableInt($row->created_by));
+            $creatorId = $this->resolveUserId($this->nullableInt($row->created_by));
 
             $targetId = $this->resolveTargetId(
                 'ec_approvers',
@@ -3568,7 +3568,7 @@ class SyncLegacySqlData extends Command
                     'email'      => $this->nullableString($row->email) ?? '',
                     'phone'      => $this->nullableString($row->phone),
                     'title'      => $this->nullableString($row->title) ?? '',
-                    'created_by' => $createdBy,
+                    'creator_id' => $creatorId,
                     'created_at' => $row->created_at,
                     'updated_at' => $row->updated_at,
                     'deleted_at' => $row->deleted_at,
@@ -3617,7 +3617,7 @@ class SyncLegacySqlData extends Command
             $departmentId = $this->nullableInt($row->department_id) !== null
                 ? $this->mappedTargetId('ec_departments', $row->department_id, 'exit_clearance_departments')
                 : null;
-            $createdBy = $this->resolveUserId($this->nullableInt($row->created_by));
+            $creatorId = $this->resolveUserId($this->nullableInt($row->created_by));
 
             $targetId = $this->resolveTargetId(
                 'ec_requests',
@@ -3667,7 +3667,7 @@ class SyncLegacySqlData extends Command
                     'form_uid'                       => $this->nullableString($row->form_uid),
                     'form_status'                    => $requestService->formatFormStatus($this->nullableString($row->form_status)),
                     'form_response_id'               => $this->nullableString($row->form_response_id),
-                    'created_by'                     => $createdBy,
+                    'creator_id'                     => $creatorId,
                     'created_at'                     => $row->created_at,
                     'updated_at'                     => $row->updated_at,
                     'deleted_at'                     => $row->deleted_at,

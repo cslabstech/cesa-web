@@ -42,6 +42,7 @@ class PresensiServiceProvider extends PackageServiceProvider
                 '2024_07_25_044208_presensi_create_leaves_table',
                 '2024_10_05_000000_presensi_create_overtimes_table',
                 '2026_03_12_020000_presensi_drop_user_presensi_image_column',
+                '2026_05_15_010500_add_creator_id_to_presensi_tables',
             ])
             ->hasCommand(MigratePresensiData::class)
             ->runsMigrations()

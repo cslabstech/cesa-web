@@ -11,10 +11,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class TransferRequestRealization extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasNullableCreator, SoftDeletes;
 
     protected $table = 'form_transfer_request_realizations';
 

@@ -9,10 +9,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class Schedule extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasNullableCreator, SoftDeletes;
 
     protected $table = 'presensi_schedules';
 

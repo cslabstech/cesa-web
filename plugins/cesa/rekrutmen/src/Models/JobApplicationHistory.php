@@ -9,10 +9,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class JobApplicationHistory extends Model
 {
-    use HasFactory;
+    use HasFactory, HasNullableCreator;
 
     protected $table = 'rekrutmen_job_application_histories';
 

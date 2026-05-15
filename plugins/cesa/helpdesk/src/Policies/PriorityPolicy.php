@@ -5,10 +5,11 @@ namespace Cesa\Helpdesk\Policies;
 use Cesa\Helpdesk\Models\Priority;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasScopedPermissions;
 
 class PriorityPolicy
 {
-    use HandlesAuthorization;
+    use HandlesAuthorization, HasScopedPermissions;
 
     public function viewAny(User $user): bool
     {
@@ -17,7 +18,8 @@ class PriorityPolicy
 
     public function view(User $user, Priority $priority): bool
     {
-        return $user->can('view_helpdesk_priority');
+        return $user->can('view_helpdesk_priority')
+            && $this->hasAccess($user, $priority, 'creator');
     }
 
     public function create(User $user): bool
@@ -27,12 +29,14 @@ class PriorityPolicy
 
     public function update(User $user, Priority $priority): bool
     {
-        return $user->can('update_helpdesk_priority');
+        return $user->can('update_helpdesk_priority')
+            && $this->hasAccess($user, $priority, 'creator');
     }
 
     public function delete(User $user, Priority $priority): bool
     {
-        return $user->can('delete_helpdesk_priority');
+        return $user->can('delete_helpdesk_priority')
+            && $this->hasAccess($user, $priority, 'creator');
     }
 
     public function deleteAny(User $user): bool
@@ -42,7 +46,8 @@ class PriorityPolicy
 
     public function forceDelete(User $user, Priority $priority): bool
     {
-        return $user->can('force_delete_helpdesk_priority');
+        return $user->can('force_delete_helpdesk_priority')
+            && $this->hasAccess($user, $priority, 'creator');
     }
 
     public function forceDeleteAny(User $user): bool
@@ -52,7 +57,8 @@ class PriorityPolicy
 
     public function restore(User $user, Priority $priority): bool
     {
-        return $user->can('restore_helpdesk_priority');
+        return $user->can('restore_helpdesk_priority')
+            && $this->hasAccess($user, $priority, 'creator');
     }
 
     public function restoreAny(User $user): bool

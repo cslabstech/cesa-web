@@ -22,7 +22,7 @@ class LeadIntegrationTest extends TestCase
             'store_team_position'          => 'Kepala Toko',
             'store_branch'                 => 'Complete Selular Babakan',
             'phone_transaction_range'      => 'Harga di bawah 2 juta',
-            'created_by'                   => $user->id,
+            'creator_id'                   => $user->id,
         ]);
 
         $this->assertNotNull($lead->id);
@@ -33,7 +33,7 @@ class LeadIntegrationTest extends TestCase
         $this->assertEquals('Kepala Toko', $lead->store_team_position->value);
         $this->assertEquals('Complete Selular Babakan', $lead->store_branch);
         $this->assertEquals('Harga di bawah 2 juta', $lead->phone_transaction_range->value);
-        $this->assertEquals($user->id, $lead->created_by);
+        $this->assertEquals($user->id, $lead->creator_id);
     }
 
     public function test_concurrent_phone_normalization_creates_unique_records(): void
@@ -90,16 +90,16 @@ class LeadIntegrationTest extends TestCase
         );
 
         $user = User::factory()->create();
-        $lead = Lead::factory()->create(['created_by' => $user->id]);
+        $lead = Lead::factory()->create(['creator_id' => $user->id]);
 
-        $this->assertEquals($user->id, $lead->createdBy->id);
+        $this->assertEquals($user->id, $lead->creator->id);
 
         $user->delete();
         $lead->refresh();
 
-        // Migration uses nullOnDelete(), so created_by should be set to null
-        $this->assertNull($lead->created_by);
-        $this->assertNull($lead->createdBy);
+        // Migration uses nullOnDelete(), so creator_id should be set to null
+        $this->assertNull($lead->creator_id);
+        $this->assertNull($lead->creator);
     }
 
     public function test_multiple_leads_same_store_branch(): void
@@ -143,7 +143,7 @@ class LeadIntegrationTest extends TestCase
         $indexNames = collect($indexes)->pluck('Key_name')->unique();
 
         $this->assertTrue($indexNames->contains('leads_phone_unique'));
-        $this->assertTrue($indexNames->contains('leads_created_by_foreign'));
+        $this->assertTrue($indexNames->contains('leads_creator_id_foreign'));
     }
 
     public function test_soft_delete_maintains_data_integrity(): void
@@ -243,22 +243,22 @@ class LeadIntegrationTest extends TestCase
     public function test_lead_relationship_eager_loading(): void
     {
         $user = User::factory()->create();
-        Lead::factory()->count(3)->create(['created_by' => $user->id]);
+        Lead::factory()->count(3)->create(['creator_id' => $user->id]);
 
-        $leads = Lead::with('createdBy')->get();
+        $leads = Lead::with('creator')->get();
 
         $this->assertCount(3, $leads);
         foreach ($leads as $lead) {
-            $this->assertNotNull($lead->createdBy);
-            $this->assertEquals($user->id, $lead->createdBy->id);
+            $this->assertNotNull($lead->creator);
+            $this->assertEquals($user->id, $lead->creator->id);
         }
     }
 
-    public function test_lead_without_created_by_relationship(): void
+    public function test_lead_without_creator_id_relationship(): void
     {
-        $lead = Lead::factory()->create(['created_by' => null]);
+        $lead = Lead::factory()->create(['creator_id' => null]);
 
-        $this->assertNull($lead->createdBy);
+        $this->assertNull($lead->creator);
     }
 
     public function test_complex_query_with_multiple_conditions(): void

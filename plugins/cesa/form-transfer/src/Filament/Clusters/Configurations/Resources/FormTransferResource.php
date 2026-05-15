@@ -40,9 +40,12 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class FormTransferResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = FormTransfer::class;
 
     protected static ?string $cluster = Configurations::class;

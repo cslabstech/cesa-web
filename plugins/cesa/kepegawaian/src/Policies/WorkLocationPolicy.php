@@ -5,10 +5,11 @@ namespace Cesa\Kepegawaian\Policies;
 use Cesa\Kepegawaian\Models\WorkLocation;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasScopedPermissions;
 
 class WorkLocationPolicy
 {
-    use HandlesAuthorization;
+    use HandlesAuthorization, HasScopedPermissions;
 
     /**
      * Determine whether the user can view any models.
@@ -23,7 +24,8 @@ class WorkLocationPolicy
      */
     public function view(User $user, WorkLocation $workLocation): bool
     {
-        return $user->can('view_kepegawaian_work::location');
+        return $user->can('view_kepegawaian_work::location')
+            && $this->hasAccess($user, $workLocation, 'creator');
     }
 
     /**
@@ -39,7 +41,8 @@ class WorkLocationPolicy
      */
     public function update(User $user, WorkLocation $workLocation): bool
     {
-        return $user->can('update_kepegawaian_work::location');
+        return $user->can('update_kepegawaian_work::location')
+            && $this->hasAccess($user, $workLocation, 'creator');
     }
 
     /**
@@ -47,7 +50,8 @@ class WorkLocationPolicy
      */
     public function delete(User $user, WorkLocation $workLocation): bool
     {
-        return $user->can('delete_kepegawaian_work::location');
+        return $user->can('delete_kepegawaian_work::location')
+            && $this->hasAccess($user, $workLocation, 'creator');
     }
 
     /**
@@ -63,7 +67,8 @@ class WorkLocationPolicy
      */
     public function forceDelete(User $user, WorkLocation $workLocation): bool
     {
-        return $user->can('force_delete_kepegawaian_work::location');
+        return $user->can('force_delete_kepegawaian_work::location')
+            && $this->hasAccess($user, $workLocation, 'creator');
     }
 
     /**
@@ -79,7 +84,8 @@ class WorkLocationPolicy
      */
     public function restore(User $user, WorkLocation $workLocation): bool
     {
-        return $user->can('restore_kepegawaian_work::location');
+        return $user->can('restore_kepegawaian_work::location')
+            && $this->hasAccess($user, $workLocation, 'creator');
     }
 
     /**

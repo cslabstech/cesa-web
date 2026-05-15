@@ -75,6 +75,8 @@ class RekrutmenServiceProvider extends PackageServiceProvider
                 '2026_04_24_073401_rekrutmen_create_request_man_power_status_histories_table',
                 '2026_04_27_000000_rekrutmen_add_public_job_listing_indexes',
                 '2026_05_02_115102_rekrutmen_add_job_posting_id_to_request_man_powers_table',
+                '2026_05_15_010600_add_creator_id_to_rekrutmen_tables',
+                '2026_05_15_011200_rekrutmen_rename_legacy_creator_columns',
             ])
             ->runsMigrations()
             ->runsSeeders()

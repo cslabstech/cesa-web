@@ -5,9 +5,12 @@ namespace Cesa\Rekrutmen\Filament\Resources;
 use Cesa\Rekrutmen\Filament\Resources\ActivityLogResource\Pages;
 use Cesa\Rekrutmen\Models\JobApplicationHistory;
 use Filament\Resources\Resource;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class ActivityLogResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = JobApplicationHistory::class;
 
     protected static \BackedEnum|string|null $navigationIcon = null;

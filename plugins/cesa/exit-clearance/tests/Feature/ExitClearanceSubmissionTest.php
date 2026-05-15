@@ -72,7 +72,7 @@ class ExitClearanceSubmissionTest extends ExitClearanceTestCase
         ]);
     }
 
-    public function test_create_public_request_keeps_created_by_null_for_guest_submission(): void
+    public function test_create_public_request_keeps_creator_id_null_for_guest_submission(): void
     {
         $service = app(ExitClearanceRequestService::class);
         $department = Department::factory()->create();
@@ -83,7 +83,7 @@ class ExitClearanceSubmissionTest extends ExitClearanceTestCase
             'email'         => 'guest.submitter@example.com',
         ]);
 
-        $this->assertNull($request->created_by);
+        $this->assertNull($request->creator_id);
     }
 
     public function test_sync_overall_status_updates_request_status_from_approver_pivots(): void

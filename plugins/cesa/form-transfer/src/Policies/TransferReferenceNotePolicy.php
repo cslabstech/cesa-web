@@ -18,7 +18,8 @@ class TransferReferenceNotePolicy
 
     public function view(User $user, TransferReferenceNote $note): bool
     {
-        return $user->can('view_form_transfer_reference::note');
+        return $user->can('view_form_transfer_reference::note')
+            && $this->hasAccess($user, $note, 'creator');
     }
 
     public function create(User $user): bool
@@ -32,7 +33,7 @@ class TransferReferenceNotePolicy
             return false;
         }
 
-        return $this->hasAccess($user, $note);
+        return $this->hasAccess($user, $note, 'creator');
     }
 
     public function delete(User $user, TransferReferenceNote $note): bool
@@ -41,7 +42,7 @@ class TransferReferenceNotePolicy
             return false;
         }
 
-        return $this->hasAccess($user, $note);
+        return $this->hasAccess($user, $note, 'creator');
     }
 
     public function deleteAny(User $user): bool
@@ -55,7 +56,7 @@ class TransferReferenceNotePolicy
             return false;
         }
 
-        return $this->hasAccess($user, $note);
+        return $this->hasAccess($user, $note, 'creator');
     }
 
     public function forceDeleteAny(User $user): bool
@@ -69,7 +70,7 @@ class TransferReferenceNotePolicy
             return false;
         }
 
-        return $this->hasAccess($user, $note);
+        return $this->hasAccess($user, $note, 'creator');
     }
 
     public function restoreAny(User $user): bool

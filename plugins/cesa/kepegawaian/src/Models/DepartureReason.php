@@ -11,10 +11,11 @@ use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
 use Webkul\Field\Traits\HasCustomFields;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class DepartureReason extends Model implements Sortable
 {
-    use HasCustomFields, HasFactory, SortableTrait;
+    use HasCustomFields, HasFactory, HasNullableCreator, SortableTrait;
 
     protected $table = 'employees_departure_reasons';
 

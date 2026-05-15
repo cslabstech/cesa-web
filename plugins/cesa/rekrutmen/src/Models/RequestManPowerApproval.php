@@ -7,9 +7,12 @@ use Cesa\Rekrutmen\Enums\RequestManPowerApprovalStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class RequestManPowerApproval extends Model
 {
+    use HasNullableCreator;
+
     protected $table = 'rekrutmen_request_man_power_approvals';
 
     protected $fillable = [

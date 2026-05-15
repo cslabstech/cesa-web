@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('company_id')->nullable()->constrained('companies')->nullOnDelete();
             $table->string('divisi')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('creator_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
 

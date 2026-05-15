@@ -264,7 +264,7 @@ class PublicLeadForm extends SimplePage
             $lead = Lead::create([
                 ...$dataToSave,
                 'phone'      => $phone,
-                'created_by' => null,
+                'creator_id' => null,
             ]);
 
             Notification::make()

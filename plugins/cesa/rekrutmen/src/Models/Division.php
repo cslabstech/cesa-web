@@ -7,13 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Auth;
-use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 use Webkul\Support\Models\Company;
 
 class Division extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasNullableCreator, SoftDeletes;
 
     protected $table = 'rekrutmen_divisions';
 
@@ -21,7 +20,7 @@ class Division extends Model
         'company_id',
         'name',
         'is_active',
-        'created_by',
+        'creator_id',
     ];
 
     protected function casts(): array
@@ -35,23 +34,9 @@ class Division extends Model
         ];
     }
 
-    protected static function booted(): void
-    {
-        static::creating(function (self $division): void {
-            if (blank($division->created_by) && Auth::id()) {
-                $division->created_by = Auth::id();
-            }
-        });
-    }
-
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id')->withTrashed();
-    }
-
-    public function createdBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by')->withTrashed();
     }
 
     public function scopeActive(Builder $query): Builder

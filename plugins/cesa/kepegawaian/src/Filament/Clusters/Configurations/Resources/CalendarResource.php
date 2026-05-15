@@ -43,9 +43,12 @@ use Filament\Tables\Filters\QueryBuilder\Constraints\TextConstraint;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class CalendarResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = Calendar::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clock';

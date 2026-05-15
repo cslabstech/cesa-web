@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Auth;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 use Webkul\Support\Models\Company;
 
 class CalendarLeaves extends Model
 {
-    use HasFactory;
+    use HasFactory, HasNullableCreator;
 
     protected $table = 'employees_calendar_leaves';
 

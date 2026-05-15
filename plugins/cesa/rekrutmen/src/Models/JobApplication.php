@@ -27,10 +27,11 @@ use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Relaticle\Flowforge\Services\DecimalPosition;
 use Throwable;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class JobApplication extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasNullableCreator, SoftDeletes;
 
     public const RESUME_DIRECTORY = 'rekrutmen/cv';
 

@@ -104,6 +104,19 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
         $this->assertSame('10:00 - 11:00', $reservation->reservation_time);
     }
 
+    public function test_reservation_model_trims_optional_notes(): void
+    {
+        $reservation = Reservation::factory()->create([
+            'notes' => '  Transfer dari BCA  ',
+        ]);
+
+        $this->assertSame('Transfer dari BCA', $reservation->notes);
+
+        $reservation->update(['notes' => '']);
+
+        $this->assertNull($reservation->notes);
+    }
+
     public function test_reservation_transfer_amount_normalizes_local_decimal_formats(): void
     {
         $this->assertSame('186.818', Reservation::formatTransferAmountForForm('186818.00'));
@@ -375,6 +388,8 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
             ->set('data.court', 'Padel Court VIP Blue 1')
             ->set('data.reservation_time', '10:00 - 11:00')
             ->set('data.transfer_amount', '150000')
+            ->set('data.transfer_date', '2026-05-31')
+            ->set('data.notes', 'Transfer dari BCA atas nama Budi')
             ->call('submit')
             ->assertHasNoErrors()
             ->assertRedirect(URL::signedRoute('padelnis.public.success', [
@@ -389,6 +404,8 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
         $this->assertSame('Padel Court VIP Blue 1', $reservation->court);
         $this->assertSame('10:00 - 11:00', $reservation->reservation_time);
         $this->assertSame('150000.00', $reservation->transfer_amount);
+        $this->assertSame('2026-05-31', $reservation->transfer_date->format('Y-m-d'));
+        $this->assertSame('Transfer dari BCA atas nama Budi', $reservation->notes);
         $this->assertNotNull($reservation->created_at);
         $this->assertFalse(session()->has('filament.notifications'));
     }
@@ -401,6 +418,7 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
             ->set('data.court', 'Padel Court VIP Blue 1')
             ->set('data.reservation_time', '10:00 - 13:00')
             ->set('data.transfer_amount', '450000')
+            ->set('data.transfer_date', '2026-05-31')
             ->call('submit')
             ->assertHasNoErrors();
 
@@ -436,6 +454,7 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
             ->set('data.court', 'Padel Court VIP Blue 1')
             ->set('data.reservation_time', '10:00 - 11:00')
             ->set('data.transfer_amount', '186818,00')
+            ->set('data.transfer_date', '2026-05-31')
             ->call('submit')
             ->assertHasNoErrors();
 
@@ -458,6 +477,7 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
             ->set('data.court', 'Padel Court VIP Blue 1')
             ->set('data.reservation_time', '10:00 - 11:00')
             ->set('data.transfer_amount', '150000')
+            ->set('data.transfer_date', '2026-05-31')
             ->call('submit')
             ->assertHasErrors(['data.reservation_time']);
 
@@ -472,6 +492,8 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
             'court'            => 'Padel Court VIP Blue 1',
             'reservation_time' => '06:00 - 07:00',
             'transfer_amount'  => 10000,
+            'transfer_date'    => '2026-05-16',
+            'notes'            => 'Transfer dari BCA',
         ]);
 
         $this->get(URL::signedRoute('padelnis.public.success', ['idReff' => $reservation->id_reff]))
@@ -479,7 +501,9 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
             ->assertSee(__('padelnis::views/public-reservation-form.summary.title'))
             ->assertSee($reservation->id_reff)
             ->assertSee('Uji Coba')
-            ->assertSee('Rp 10.000');
+            ->assertSee('Rp 10.000')
+            ->assertSee('2026-05-16')
+            ->assertSee('Transfer dari BCA');
     }
 
     public function test_public_reservation_success_page_requires_signed_url(): void
@@ -500,6 +524,7 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
                 'data.court',
                 'data.reservation_time',
                 'data.transfer_amount',
+                'data.transfer_date',
             ]);
     }
 }

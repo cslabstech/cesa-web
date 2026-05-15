@@ -11,9 +11,12 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class ShiftResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = Shift::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clock';

@@ -306,7 +306,7 @@ class RekrutmenCrosscheckSeeder extends Seeder
                         'approval_order' => $index + 1,
                         'divisi'         => $divisionName,
                         'is_active'      => true,
-                        'created_by'     => null,
+                        'creator_id'     => null,
                         'created_at'     => $timestamp,
                         'updated_at'     => $timestamp,
                         'deleted_at'     => null,

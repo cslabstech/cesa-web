@@ -46,7 +46,7 @@ class PublicLeadSubmissionTest extends TestCase
             'sales_person'        => 'Jane Doe',
             'store_team_position' => 'Kepala Toko',
             'store_branch'        => 'Complete Selular Babakan',
-            'created_by'          => null,
+            'creator_id'          => null,
         ]);
     }
 

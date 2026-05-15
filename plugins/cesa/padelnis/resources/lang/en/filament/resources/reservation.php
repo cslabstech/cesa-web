@@ -17,6 +17,8 @@ return [
         'reservation_time' => 'Time',
         'blocked_slots'    => 'Blocked Slot Details',
         'transfer_amount'  => 'Transfer Amount',
+        'transfer_date'    => 'Transfer Date',
+        'notes'            => 'Notes',
         'created_at'       => 'Created At',
     ],
 
@@ -33,6 +35,8 @@ return [
             'court'            => 'Select court',
             'reservation_time' => 'Select start time - end time',
             'transfer_amount'  => 'Enter transfer amount',
+            'transfer_date'    => 'Select transfer date',
+            'notes'            => 'Add notes if needed',
         ],
     ],
 
@@ -45,6 +49,8 @@ return [
             'blocked_slots'    => 'Blocked Slot Details',
             'court'            => 'Court',
             'transfer_amount'  => 'Transfer Amount',
+            'transfer_date'    => 'Transfer Date',
+            'notes'            => 'Notes',
             'created_at'       => 'Created At',
         ],
     ],

@@ -12,11 +12,12 @@ use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
 use Webkul\Field\Traits\HasCustomFields;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 use Webkul\Support\Models\Company;
 
 class EmployeeJobPosition extends Model implements Sortable
 {
-    use HasCustomFields, HasFactory, SoftDeletes, SortableTrait;
+    use HasCustomFields, HasFactory, HasNullableCreator, SoftDeletes, SortableTrait;
 
     protected $table = 'employees_job_positions';
 

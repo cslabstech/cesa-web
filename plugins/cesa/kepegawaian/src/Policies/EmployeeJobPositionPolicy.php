@@ -5,10 +5,11 @@ namespace Cesa\Kepegawaian\Policies;
 use Cesa\Kepegawaian\Models\EmployeeJobPosition;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasScopedPermissions;
 
 class EmployeeJobPositionPolicy
 {
-    use HandlesAuthorization;
+    use HandlesAuthorization, HasScopedPermissions;
 
     /**
      * Determine whether the user can view any models.
@@ -23,7 +24,8 @@ class EmployeeJobPositionPolicy
      */
     public function view(User $user, EmployeeJobPosition $employeeJobPosition): bool
     {
-        return $user->can('view_kepegawaian_job::position');
+        return $user->can('view_kepegawaian_job::position')
+            && $this->hasAccess($user, $employeeJobPosition, 'creator');
     }
 
     /**
@@ -39,7 +41,8 @@ class EmployeeJobPositionPolicy
      */
     public function update(User $user, EmployeeJobPosition $employeeJobPosition): bool
     {
-        return $user->can('update_kepegawaian_job::position');
+        return $user->can('update_kepegawaian_job::position')
+            && $this->hasAccess($user, $employeeJobPosition, 'creator');
     }
 
     /**
@@ -47,7 +50,8 @@ class EmployeeJobPositionPolicy
      */
     public function delete(User $user, EmployeeJobPosition $employeeJobPosition): bool
     {
-        return $user->can('delete_kepegawaian_job::position');
+        return $user->can('delete_kepegawaian_job::position')
+            && $this->hasAccess($user, $employeeJobPosition, 'creator');
     }
 
     /**
@@ -63,7 +67,8 @@ class EmployeeJobPositionPolicy
      */
     public function forceDelete(User $user, EmployeeJobPosition $employeeJobPosition): bool
     {
-        return $user->can('force_delete_kepegawaian_job::position');
+        return $user->can('force_delete_kepegawaian_job::position')
+            && $this->hasAccess($user, $employeeJobPosition, 'creator');
     }
 
     /**
@@ -79,7 +84,8 @@ class EmployeeJobPositionPolicy
      */
     public function restore(User $user, EmployeeJobPosition $employeeJobPosition): bool
     {
-        return $user->can('restore_kepegawaian_job::position');
+        return $user->can('restore_kepegawaian_job::position')
+            && $this->hasAccess($user, $employeeJobPosition, 'creator');
     }
 
     /**

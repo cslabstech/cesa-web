@@ -11,6 +11,8 @@ return [
         'court'            => 'Select court',
         'reservation_time' => 'Select start time - end time',
         'transfer_amount'  => 'Example: 150,000',
+        'transfer_date'    => 'Select transfer date',
+        'notes'            => 'Example: Transfer from BCA under Budi',
     ],
 
     'actions' => [

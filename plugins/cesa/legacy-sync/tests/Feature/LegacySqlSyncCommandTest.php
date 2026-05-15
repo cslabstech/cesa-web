@@ -66,7 +66,7 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
 
         $this->assertDatabaseHas('exit_clearance_requests', [
             'id'          => $requestId,
-            'created_by'  => $creator->id,
+            'creator_id'  => $creator->id,
             'form_uid'    => 'EXC-00001',
             'form_status' => 'Approved',
         ]);
@@ -359,7 +359,7 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
             'store_team_position'     => 'Promotor',
             'store_branch'            => 'Bandung',
             'phone_transaction_range' => 'Harga 2 - 3 juta',
-            'created_by'              => $creator->id,
+            'creator_id'              => $creator->id,
         ]);
 
         $this->assertDatabaseHas('legacy_sync_mappings', [
@@ -412,7 +412,7 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
             'store_team_position'     => 'Kasir',
             'store_branch'            => 'Jakarta',
             'phone_transaction_range' => 'Harga 4 - 7 juta',
-            'created_by'              => null,
+            'creator_id'              => null,
             'created_at'              => '2026-03-09 07:57:00',
             'updated_at'              => '2026-03-09 07:57:00',
             'deleted_at'              => null,
@@ -525,19 +525,19 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
         $this->assertDatabaseHas('exit_clearance_departments', [
             'id'         => $departmentId,
             'code'       => 'HR',
-            'created_by' => $creator->id,
+            'creator_id' => $creator->id,
         ]);
 
         $this->assertDatabaseHas('exit_clearance_approvers', [
             'id'         => $approverId,
             'email'      => 'approver@example.com',
-            'created_by' => $creator->id,
+            'creator_id' => $creator->id,
         ]);
 
         $this->assertDatabaseHas('exit_clearance_requests', [
             'id'            => $requestId,
             'department_id' => $departmentId,
-            'created_by'    => $creator->id,
+            'creator_id'    => $creator->id,
             'form_status'   => 'Approved',
         ]);
 
@@ -1154,14 +1154,14 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
         ]);
 
         $this->assertDatabaseHas('form_transfer_requests', [
-            'uid'       => 'CSN-00001',
-            'user_id'   => $requesterId,
-            'creator_id'=> $creatorId,
+            'uid'        => 'CSN-00001',
+            'user_id'    => $requesterId,
+            'creator_id' => $creatorId,
         ]);
 
         $this->assertDatabaseHas('exit_clearance_requests', [
-            'form_uid'    => 'EXC-00001',
-            'created_by'  => $creatorId,
+            'form_uid'   => 'EXC-00001',
+            'creator_id' => $creatorId,
         ]);
 
         $this->assertDatabaseHas('presensi_attendances', [

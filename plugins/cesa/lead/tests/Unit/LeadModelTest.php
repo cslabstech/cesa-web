@@ -175,37 +175,49 @@ class LeadModelTest extends TestCase
         $this->assertEquals('62123456', $lead->phone);
     }
 
-    public function test_lead_has_created_by_relationship(): void
+    public function test_lead_has_creator_id_relationship(): void
     {
         $user = User::factory()->create();
         $lead = Lead::factory()->create([
-            'created_by' => $user->id,
+            'creator_id' => $user->id,
         ]);
 
-        $this->assertInstanceOf(User::class, $lead->createdBy);
-        $this->assertEquals($user->id, $lead->createdBy->id);
+        $this->assertInstanceOf(User::class, $lead->creator);
+        $this->assertEquals($user->id, $lead->creator->id);
     }
 
-    public function test_lead_created_by_relationship_returns_null_when_no_creator(): void
+    public function test_lead_creator_id_relationship_returns_null_when_no_creator(): void
     {
         $lead = Lead::factory()->create([
-            'created_by' => null,
+            'creator_id' => null,
         ]);
 
-        $this->assertNull($lead->createdBy);
+        $this->assertNull($lead->creator);
     }
 
-    public function test_lead_created_by_relationship_returns_null_when_user_deleted(): void
+    public function test_lead_fills_creator_id_from_authenticated_user(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user);
+
+        $lead = Lead::factory()->create();
+
+        $this->assertSame($user->getKey(), $lead->refresh()->creator_id);
+    }
+
+    public function test_lead_creator_relationship_includes_soft_deleted_creator(): void
     {
         $user = User::factory()->create();
         $lead = Lead::factory()->create([
-            'created_by' => $user->id,
+            'creator_id' => $user->id,
         ]);
 
         $user->delete();
         $lead->refresh();
 
-        $this->assertNull($lead->createdBy);
+        $this->assertInstanceOf(User::class, $lead->creator);
+        $this->assertTrue($lead->creator->trashed());
     }
 
     public function test_lead_can_be_soft_deleted(): void
@@ -277,7 +289,7 @@ class LeadModelTest extends TestCase
             'store_team_position'          => 'Kepala Toko',
             'store_branch'                 => 'Complete Selular Babakan',
             'phone_transaction_range'      => 'Harga di bawah 2 juta',
-            'created_by'                   => $user->id,
+            'creator_id'                   => $user->id,
         ];
 
         $lead = Lead::create($attributes);

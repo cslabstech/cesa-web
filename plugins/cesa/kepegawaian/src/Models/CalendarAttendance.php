@@ -10,10 +10,11 @@ use Illuminate\Support\Facades\Auth;
 use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class CalendarAttendance extends Model implements Sortable
 {
-    use HasFactory, SortableTrait;
+    use HasFactory, HasNullableCreator, SortableTrait;
 
     protected $table = 'employees_calendar_attendances';
 

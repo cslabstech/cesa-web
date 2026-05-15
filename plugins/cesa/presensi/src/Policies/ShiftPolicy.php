@@ -5,10 +5,11 @@ namespace Cesa\Presensi\Policies;
 use Cesa\Presensi\Models\Shift;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasScopedPermissions;
 
 class ShiftPolicy
 {
-    use HandlesAuthorization;
+    use HandlesAuthorization, HasScopedPermissions;
 
     public function viewAny(User $user): bool
     {
@@ -17,7 +18,8 @@ class ShiftPolicy
 
     public function view(User $user, Shift $shift): bool
     {
-        return $user->can('view_presensi_shift');
+        return $user->can('view_presensi_shift')
+            && $this->hasAccess($user, $shift, 'creator');
     }
 
     public function create(User $user): bool
@@ -27,12 +29,14 @@ class ShiftPolicy
 
     public function update(User $user, Shift $shift): bool
     {
-        return $user->can('update_presensi_shift');
+        return $user->can('update_presensi_shift')
+            && $this->hasAccess($user, $shift, 'creator');
     }
 
     public function delete(User $user, Shift $shift): bool
     {
-        return $user->can('delete_presensi_shift');
+        return $user->can('delete_presensi_shift')
+            && $this->hasAccess($user, $shift, 'creator');
     }
 
     public function deleteAny(User $user): bool

@@ -5,10 +5,11 @@ namespace Cesa\Kepegawaian\Policies;
 use Cesa\Kepegawaian\Models\Calendar;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasScopedPermissions;
 
 class CalendarPolicy
 {
-    use HandlesAuthorization;
+    use HandlesAuthorization, HasScopedPermissions;
 
     /**
      * Determine whether the user can view any models.
@@ -23,7 +24,8 @@ class CalendarPolicy
      */
     public function view(User $user, Calendar $calendar): bool
     {
-        return $user->can('view_kepegawaian_calendar');
+        return $user->can('view_kepegawaian_calendar')
+            && $this->hasAccess($user, $calendar, 'creator');
     }
 
     /**
@@ -39,7 +41,8 @@ class CalendarPolicy
      */
     public function update(User $user, Calendar $calendar): bool
     {
-        return $user->can('update_kepegawaian_calendar');
+        return $user->can('update_kepegawaian_calendar')
+            && $this->hasAccess($user, $calendar, 'creator');
     }
 
     /**
@@ -47,7 +50,8 @@ class CalendarPolicy
      */
     public function delete(User $user, Calendar $calendar): bool
     {
-        return $user->can('delete_kepegawaian_calendar');
+        return $user->can('delete_kepegawaian_calendar')
+            && $this->hasAccess($user, $calendar, 'creator');
     }
 
     /**
@@ -63,7 +67,8 @@ class CalendarPolicy
      */
     public function forceDelete(User $user, Calendar $calendar): bool
     {
-        return $user->can('force_delete_kepegawaian_calendar');
+        return $user->can('force_delete_kepegawaian_calendar')
+            && $this->hasAccess($user, $calendar, 'creator');
     }
 
     /**
@@ -79,7 +84,8 @@ class CalendarPolicy
      */
     public function restore(User $user, Calendar $calendar): bool
     {
-        return $user->can('restore_kepegawaian_calendar');
+        return $user->can('restore_kepegawaian_calendar')
+            && $this->hasAccess($user, $calendar, 'creator');
     }
 
     /**

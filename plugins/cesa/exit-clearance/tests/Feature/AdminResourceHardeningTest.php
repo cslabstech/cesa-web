@@ -27,7 +27,7 @@ use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class AdminResourceHardeningTest extends ExitClearanceTestCase
 {
-    public function test_request_policy_uses_created_by_scope_for_view_and_update(): void
+    public function test_request_policy_uses_creator_id_scope_for_view_and_update(): void
     {
         $owner = $this->fakeScopedUser(
             id: 10,
@@ -48,7 +48,7 @@ class AdminResourceHardeningTest extends ExitClearanceTestCase
         );
 
         $request = new Request;
-        $request->setRelation('createdBy', $owner);
+        $request->setRelation('creator', $owner);
 
         $policy = new RequestPolicy;
 
@@ -58,7 +58,7 @@ class AdminResourceHardeningTest extends ExitClearanceTestCase
         $this->assertFalse($policy->update($otherUser, $request));
     }
 
-    public function test_public_request_without_created_by_is_only_accessible_to_global_user(): void
+    public function test_public_request_without_creator_id_is_only_accessible_to_global_user(): void
     {
         $globalUser = $this->fakeScopedUser(
             id: 40,
@@ -90,7 +90,7 @@ class AdminResourceHardeningTest extends ExitClearanceTestCase
         $this->assertFalse($policy->update($groupUser, $request));
     }
 
-    public function test_approver_policy_respects_group_scope_via_created_by(): void
+    public function test_approver_policy_respects_group_scope_via_creator_id(): void
     {
         $actor = $this->fakeScopedUser(
             id: 20,
@@ -116,16 +116,16 @@ class AdminResourceHardeningTest extends ExitClearanceTestCase
         $approver = new Approver;
         $policy = new ApproverPolicy;
 
-        $approver->setRelation('createdBy', $sameGroupCreator);
+        $approver->setRelation('creator', $sameGroupCreator);
         $this->assertTrue($policy->view($actor, $approver));
         $this->assertTrue($policy->update($actor, $approver));
 
-        $approver->setRelation('createdBy', $otherGroupCreator);
+        $approver->setRelation('creator', $otherGroupCreator);
         $this->assertFalse($policy->view($actor, $approver));
         $this->assertFalse($policy->update($actor, $approver));
     }
 
-    public function test_department_policy_respects_group_scope_via_created_by(): void
+    public function test_department_policy_respects_group_scope_via_creator_id(): void
     {
         $actor = $this->fakeScopedUser(
             id: 30,
@@ -151,11 +151,11 @@ class AdminResourceHardeningTest extends ExitClearanceTestCase
         $department = new Department;
         $policy = new DepartmentPolicy;
 
-        $department->setRelation('createdBy', $sameGroupCreator);
+        $department->setRelation('creator', $sameGroupCreator);
         $this->assertTrue($policy->view($actor, $department));
         $this->assertTrue($policy->delete($actor, $department));
 
-        $department->setRelation('createdBy', $otherGroupCreator);
+        $department->setRelation('creator', $otherGroupCreator);
         $this->assertFalse($policy->view($actor, $department));
         $this->assertFalse($policy->delete($actor, $department));
     }
@@ -186,7 +186,7 @@ class AdminResourceHardeningTest extends ExitClearanceTestCase
         $department = Department::query()->create([
             'code'       => 'HR-50',
             'name'       => 'HR 50',
-            'created_by' => $user->id,
+            'creator_id' => $user->id,
         ]);
 
         $this->fakeScopedUser(
@@ -199,14 +199,14 @@ class AdminResourceHardeningTest extends ExitClearanceTestCase
             'name'       => 'Scoped Approver',
             'email'      => 'scoped-approver@example.com',
             'title'      => 'Scoped',
-            'created_by' => $user->id,
+            'creator_id' => $user->id,
         ]);
 
         $outOfScopeApprover = Approver::query()->create([
             'name'       => 'Out Of Scope Approver',
             'email'      => 'out-of-scope-approver@example.com',
             'title'      => 'Hidden',
-            'created_by' => 51,
+            'creator_id' => 51,
         ]);
 
         $this->registerConfigurationClusterRoute();
@@ -244,13 +244,13 @@ class AdminResourceHardeningTest extends ExitClearanceTestCase
         $scopedDepartment = Department::query()->create([
             'code'       => 'FIN-60',
             'name'       => 'Finance 60',
-            'created_by' => $user->id,
+            'creator_id' => $user->id,
         ]);
 
         $outOfScopeDepartment = Department::query()->create([
             'code'       => 'IT-61',
             'name'       => 'IT 61',
-            'created_by' => 61,
+            'creator_id' => 61,
         ]);
 
         $this->registerConfigurationClusterRoute();
@@ -282,13 +282,13 @@ class AdminResourceHardeningTest extends ExitClearanceTestCase
         $activeDepartment = Department::query()->create([
             'code'       => 'ACT-70',
             'name'       => 'Active Department',
-            'created_by' => $user->id,
+            'creator_id' => $user->id,
         ]);
 
         $archivedDepartment = Department::query()->create([
             'code'       => 'ARC-70',
             'name'       => 'Archived Department',
-            'created_by' => $user->id,
+            'creator_id' => $user->id,
         ]);
 
         $archivedDepartment->delete();
@@ -324,13 +324,13 @@ class AdminResourceHardeningTest extends ExitClearanceTestCase
         $activeDepartment = Department::query()->create([
             'code'       => 'ACT-75',
             'name'       => 'Action Department',
-            'created_by' => $user->id,
+            'creator_id' => $user->id,
         ]);
 
         $archivedDepartment = Department::query()->create([
             'code'       => 'ARC-75',
             'name'       => 'Archived Action Department',
-            'created_by' => $user->id,
+            'creator_id' => $user->id,
         ]);
 
         $archivedDepartment->delete();
@@ -364,14 +364,14 @@ class AdminResourceHardeningTest extends ExitClearanceTestCase
             'name'       => 'Active Approver',
             'email'      => 'active-approver@example.com',
             'title'      => 'Active',
-            'created_by' => $user->id,
+            'creator_id' => $user->id,
         ]);
 
         $archivedApprover = Approver::query()->create([
             'name'       => 'Archived Approver',
             'email'      => 'archived-approver@example.com',
             'title'      => 'Archived',
-            'created_by' => $user->id,
+            'creator_id' => $user->id,
         ]);
 
         $archivedApprover->delete();
@@ -407,14 +407,14 @@ class AdminResourceHardeningTest extends ExitClearanceTestCase
             'name'       => 'Action Approver',
             'email'      => 'action-approver@example.com',
             'title'      => 'Action',
-            'created_by' => $user->id,
+            'creator_id' => $user->id,
         ]);
 
         $archivedApprover = Approver::query()->create([
             'name'       => 'Archived Action Approver',
             'email'      => 'archived-action-approver@example.com',
             'title'      => 'Archived',
-            'created_by' => $user->id,
+            'creator_id' => $user->id,
         ]);
 
         $archivedApprover->delete();

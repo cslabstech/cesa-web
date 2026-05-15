@@ -10,7 +10,7 @@ Plugin `lead` saat ini memiliki baseline regression coverage yang aktif untuk bo
    - Phone normalization (berbagai format: 08xx, +62, 620, 0062, dst)
    - Name transformation (uppercase, multibyte, special characters)
    - Soft deletes (delete, restore, query trashed)
-   - Relationships (createdBy)
+   - Relationships (creator)
    - Mass assignment & fillable attributes
    - Factory validation
    - Database casts

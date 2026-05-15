@@ -14,9 +14,12 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class PriorityResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = Priority::class;
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-flag';

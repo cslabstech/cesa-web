@@ -5,10 +5,11 @@ namespace Cesa\Kepegawaian\Policies;
 use Cesa\Kepegawaian\Models\DepartureReason;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasScopedPermissions;
 
 class DepartureReasonPolicy
 {
-    use HandlesAuthorization;
+    use HandlesAuthorization, HasScopedPermissions;
 
     /**
      * Determine whether the user can view any models.
@@ -23,7 +24,8 @@ class DepartureReasonPolicy
      */
     public function view(User $user, DepartureReason $departureReason): bool
     {
-        return $user->can('view_kepegawaian_departure::reason');
+        return $user->can('view_kepegawaian_departure::reason')
+            && $this->hasAccess($user, $departureReason, 'creator');
     }
 
     /**
@@ -39,7 +41,8 @@ class DepartureReasonPolicy
      */
     public function update(User $user, DepartureReason $departureReason): bool
     {
-        return $user->can('update_kepegawaian_departure::reason');
+        return $user->can('update_kepegawaian_departure::reason')
+            && $this->hasAccess($user, $departureReason, 'creator');
     }
 
     /**
@@ -47,7 +50,8 @@ class DepartureReasonPolicy
      */
     public function delete(User $user, DepartureReason $departureReason): bool
     {
-        return $user->can('delete_kepegawaian_departure::reason');
+        return $user->can('delete_kepegawaian_departure::reason')
+            && $this->hasAccess($user, $departureReason, 'creator');
     }
 
     /**

@@ -5,10 +5,11 @@ namespace Cesa\Kepegawaian\Policies;
 use Cesa\Kepegawaian\Models\EmploymentType;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasScopedPermissions;
 
 class EmploymentTypePolicy
 {
-    use HandlesAuthorization;
+    use HandlesAuthorization, HasScopedPermissions;
 
     /**
      * Determine whether the user can view any models.
@@ -23,7 +24,8 @@ class EmploymentTypePolicy
      */
     public function view(User $user, EmploymentType $employmentType): bool
     {
-        return $user->can('view_kepegawaian_employment::type');
+        return $user->can('view_kepegawaian_employment::type')
+            && $this->hasAccess($user, $employmentType, 'creator');
     }
 
     /**
@@ -39,7 +41,8 @@ class EmploymentTypePolicy
      */
     public function update(User $user, EmploymentType $employmentType): bool
     {
-        return $user->can('update_kepegawaian_employment::type');
+        return $user->can('update_kepegawaian_employment::type')
+            && $this->hasAccess($user, $employmentType, 'creator');
     }
 
     /**
@@ -47,7 +50,8 @@ class EmploymentTypePolicy
      */
     public function delete(User $user, EmploymentType $employmentType): bool
     {
-        return $user->can('delete_kepegawaian_employment::type');
+        return $user->can('delete_kepegawaian_employment::type')
+            && $this->hasAccess($user, $employmentType, 'creator');
     }
 
     /**

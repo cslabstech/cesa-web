@@ -5,10 +5,11 @@ namespace Cesa\Rekrutmen\Policies;
 use Cesa\Rekrutmen\Models\Approver;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasScopedPermissions;
 
 class ApproverPolicy
 {
-    use HandlesAuthorization;
+    use HandlesAuthorization, HasScopedPermissions;
 
     public function viewAny(User $user): bool
     {
@@ -17,7 +18,8 @@ class ApproverPolicy
 
     public function view(User $user, Approver $approver): bool
     {
-        return $this->canManageApprover($user, 'view_rekrutmen_approver', 'view_rekrutmen_request::man::power');
+        return $this->canManageApprover($user, 'view_rekrutmen_approver', 'view_rekrutmen_request::man::power')
+            && $this->hasAccess($user, $approver, 'creator');
     }
 
     public function create(User $user): bool
@@ -27,12 +29,14 @@ class ApproverPolicy
 
     public function update(User $user, Approver $approver): bool
     {
-        return $this->canManageApprover($user, 'update_rekrutmen_approver', 'update_rekrutmen_request::man::power');
+        return $this->canManageApprover($user, 'update_rekrutmen_approver', 'update_rekrutmen_request::man::power')
+            && $this->hasAccess($user, $approver, 'creator');
     }
 
     public function delete(User $user, Approver $approver): bool
     {
-        return $this->canManageApprover($user, 'delete_rekrutmen_approver', 'delete_rekrutmen_request::man::power');
+        return $this->canManageApprover($user, 'delete_rekrutmen_approver', 'delete_rekrutmen_request::man::power')
+            && $this->hasAccess($user, $approver, 'creator');
     }
 
     public function deleteAny(User $user): bool
@@ -42,7 +46,8 @@ class ApproverPolicy
 
     public function forceDelete(User $user, Approver $approver): bool
     {
-        return $this->canManageApprover($user, 'force_delete_rekrutmen_approver', 'force_delete_rekrutmen_request::man::power');
+        return $this->canManageApprover($user, 'force_delete_rekrutmen_approver', 'force_delete_rekrutmen_request::man::power')
+            && $this->hasAccess($user, $approver, 'creator');
     }
 
     public function forceDeleteAny(User $user): bool
@@ -52,7 +57,8 @@ class ApproverPolicy
 
     public function restore(User $user, Approver $approver): bool
     {
-        return $this->canManageApprover($user, 'restore_rekrutmen_approver', 'restore_rekrutmen_request::man::power');
+        return $this->canManageApprover($user, 'restore_rekrutmen_approver', 'restore_rekrutmen_request::man::power')
+            && $this->hasAccess($user, $approver, 'creator');
     }
 
     public function restoreAny(User $user): bool

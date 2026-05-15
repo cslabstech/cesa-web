@@ -31,6 +31,8 @@ class PadelnisServiceProvider extends PackageServiceProvider
                 '2026_05_14_000000_create_padelnis_reservations_table',
                 '2026_05_14_000001_add_active_slot_key_to_padelnis_reservations_table',
                 '2026_05_14_000002_create_padelnis_reservation_slots_table',
+                '2026_05_15_010300_add_creator_id_to_padelnis_tables',
+                '2026_05_16_000702_add_transfer_date_and_notes_to_padelnis_reservations_table',
             ])
             ->runsMigrations()
             ->hasInstallCommand(function (InstallCommand $command): void {

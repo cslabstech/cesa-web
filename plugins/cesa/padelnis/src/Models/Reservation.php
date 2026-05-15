@@ -12,10 +12,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class Reservation extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasNullableCreator, SoftDeletes;
 
     protected const int REFERENCE_GENERATION_MAX_ATTEMPTS = 5;
 
@@ -28,6 +29,8 @@ class Reservation extends Model
         'court',
         'reservation_time',
         'transfer_amount',
+        'transfer_date',
+        'notes',
     ];
 
     protected static function booted(): void
@@ -75,6 +78,7 @@ class Reservation extends Model
         return [
             'reservation_date' => 'date',
             'transfer_amount'  => 'decimal:2',
+            'transfer_date'    => 'date',
             'created_at'       => 'datetime',
             'updated_at'       => 'datetime',
             'deleted_at'       => 'datetime',
@@ -203,6 +207,11 @@ class Reservation extends Model
     public function setTransferAmountAttribute(mixed $value): void
     {
         $this->attributes['transfer_amount'] = static::normalizeTransferAmount($value);
+    }
+
+    public function setNotesAttribute(mixed $value): void
+    {
+        $this->attributes['notes'] = blank($value) ? null : trim((string) $value);
     }
 
     public function setReservationTimeAttribute(mixed $value): void

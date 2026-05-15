@@ -18,7 +18,8 @@ class TransferBankPolicy
 
     public function view(User $user, TransferBank $bank): bool
     {
-        return $user->can('view_form_transfer_bank');
+        return $user->can('view_form_transfer_bank')
+            && $this->hasAccess($user, $bank, 'creator');
     }
 
     public function create(User $user): bool
@@ -32,7 +33,7 @@ class TransferBankPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $bank);
+        return $this->hasAccess($user, $bank, 'creator');
     }
 
     public function delete(User $user, TransferBank $bank): bool
@@ -41,7 +42,7 @@ class TransferBankPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $bank);
+        return $this->hasAccess($user, $bank, 'creator');
     }
 
     public function deleteAny(User $user): bool
@@ -55,7 +56,7 @@ class TransferBankPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $bank);
+        return $this->hasAccess($user, $bank, 'creator');
     }
 
     public function forceDeleteAny(User $user): bool
@@ -69,7 +70,7 @@ class TransferBankPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $bank);
+        return $this->hasAccess($user, $bank, 'creator');
     }
 
     public function restoreAny(User $user): bool

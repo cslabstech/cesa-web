@@ -47,6 +47,8 @@ class PadelnisPluginSmokeTest extends PadelnisTestCase
             '2026_05_14_000000_create_padelnis_reservations_table',
             '2026_05_14_000001_add_active_slot_key_to_padelnis_reservations_table',
             '2026_05_14_000002_create_padelnis_reservation_slots_table',
+            '2026_05_15_010300_add_creator_id_to_padelnis_tables',
+            '2026_05_16_000702_add_transfer_date_and_notes_to_padelnis_reservations_table',
         ], $package->migrationFileNames);
     }
 
@@ -80,6 +82,17 @@ class PadelnisPluginSmokeTest extends PadelnisTestCase
         $this->assertStringContainsString('extraAlpineAttributes', $resourceSource);
         $this->assertStringContainsString('replace(/,\d{0,2}$/, \'\')', $resourceSource);
         $this->assertStringContainsString('replace(/\\B(?=(\\d{3})+(?!\\d))/g, \'.\')', $resourceSource);
+    }
+
+    public function test_reservation_resource_exposes_transfer_date_and_notes_fields(): void
+    {
+        $resourceSource = file_get_contents(base_path('plugins/cesa/padelnis/src/Filament/Resources/ReservationResource.php'));
+
+        $this->assertIsString($resourceSource);
+        $this->assertStringContainsString("DatePicker::make('transfer_date')", $resourceSource);
+        $this->assertStringContainsString("Textarea::make('notes')", $resourceSource);
+        $this->assertStringContainsString("TextEntry::make('transfer_date')", $resourceSource);
+        $this->assertStringContainsString("TextEntry::make('notes')", $resourceSource);
     }
 
     public function test_reservation_exporter_defines_reservation_columns(): void

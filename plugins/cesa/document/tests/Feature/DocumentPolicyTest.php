@@ -6,6 +6,7 @@ use Cesa\Document\Models\Document;
 use Cesa\Document\Policies\DocumentPolicy;
 use Mockery;
 use Tests\TestCase;
+use Webkul\Security\Enums\PermissionType;
 use Webkul\Security\Models\User;
 
 class DocumentPolicyTest extends TestCase
@@ -20,8 +21,15 @@ class DocumentPolicyTest extends TestCase
 
     public function test_view_uses_generated_document_permission_key(): void
     {
-        $user = Mockery::mock(User::class);
-        $user->shouldReceive('can')->once()->with('view_document_document')->andReturnTrue();
+        $user = new class extends User
+        {
+            public function can($ability, $arguments = []): bool
+            {
+                return $ability === 'view_document_document';
+            }
+        };
+
+        $user->resource_permission = PermissionType::GLOBAL;
 
         $document = Mockery::mock(Document::class);
 

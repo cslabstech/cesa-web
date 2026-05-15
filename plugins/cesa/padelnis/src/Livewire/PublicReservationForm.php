@@ -7,6 +7,7 @@ use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Pages\Concerns\InteractsWithFormActions;
@@ -87,6 +88,18 @@ class PublicReservationForm extends SimplePage
                         'x-on:blur'  => static::transferAmountMaskAlpineExpression(),
                         'x-init'     => static::transferAmountMaskAlpineExpression(),
                     ]),
+                DatePicker::make('transfer_date')
+                    ->label(__('padelnis::filament/resources/reservation.fields.transfer_date'))
+                    ->required()
+                    ->displayFormat('Y-m-d')
+                    ->native(false)
+                    ->placeholder(__('padelnis::views/public-reservation-form.placeholders.transfer_date')),
+                Textarea::make('notes')
+                    ->label(__('padelnis::filament/resources/reservation.fields.notes'))
+                    ->nullable()
+                    ->maxLength(1000)
+                    ->rows(3)
+                    ->placeholder(__('padelnis::views/public-reservation-form.placeholders.notes')),
             ])
             ->statePath('data');
     }
@@ -102,6 +115,8 @@ class PublicReservationForm extends SimplePage
                 'court'            => Arr::get($state, 'court'),
                 'reservation_time' => Arr::get($state, 'reservation_time'),
                 'transfer_amount'  => Arr::get($state, 'transfer_amount'),
+                'transfer_date'    => Arr::get($state, 'transfer_date'),
+                'notes'            => Arr::get($state, 'notes'),
             ]);
 
             $this->resetFormAfterSubmission();

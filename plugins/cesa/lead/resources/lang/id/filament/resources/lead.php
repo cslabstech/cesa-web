@@ -53,7 +53,7 @@ return [
         'store_team_position'     => 'Jabatan Tim Toko',
         'store_branch'            => 'Cabang Toko',
         'phone_transaction_range' => 'Rentang Transaksi Handphone',
-        'created_by'              => 'Dibuat Oleh',
+        'creator_id'              => 'Dibuat Oleh',
         'created_at'              => 'Dibuat Pada',
     ],
 

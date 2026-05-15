@@ -18,7 +18,8 @@ class TransferApprovalWorkflowPolicy
 
     public function view(User $user, TransferApprovalWorkflow $workflow): bool
     {
-        return $user->can('view_form_transfer_approval::workflow');
+        return $user->can('view_form_transfer_approval::workflow')
+            && $this->hasAccess($user, $workflow, 'creator');
     }
 
     public function create(User $user): bool
@@ -32,7 +33,7 @@ class TransferApprovalWorkflowPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $workflow);
+        return $this->hasAccess($user, $workflow, 'creator');
     }
 
     public function delete(User $user, TransferApprovalWorkflow $workflow): bool
@@ -41,7 +42,7 @@ class TransferApprovalWorkflowPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $workflow);
+        return $this->hasAccess($user, $workflow, 'creator');
     }
 
     public function deleteAny(User $user): bool
@@ -55,7 +56,7 @@ class TransferApprovalWorkflowPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $workflow);
+        return $this->hasAccess($user, $workflow, 'creator');
     }
 
     public function forceDeleteAny(User $user): bool
@@ -69,7 +70,7 @@ class TransferApprovalWorkflowPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $workflow);
+        return $this->hasAccess($user, $workflow, 'creator');
     }
 
     public function restoreAny(User $user): bool

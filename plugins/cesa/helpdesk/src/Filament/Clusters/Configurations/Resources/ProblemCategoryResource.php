@@ -17,9 +17,12 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class ProblemCategoryResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = ProblemCategory::class;
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-tag';

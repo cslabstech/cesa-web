@@ -7,14 +7,13 @@ use Cesa\Lead\Enums\PhoneTransactionRange;
 use Cesa\Lead\Enums\StoreTeamPosition;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\URL;
-use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class Lead extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasNullableCreator, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -24,7 +23,7 @@ class Lead extends Model
         'store_team_position',
         'store_branch',
         'phone_transaction_range',
-        'created_by',
+        'creator_id',
     ];
 
     /**
@@ -103,14 +102,6 @@ class Lead extends Model
     public function setNameAttribute($value): void
     {
         $this->attributes['name'] = mb_strtoupper($value);
-    }
-
-    /**
-     * Get the user who created this lead.
-     */
-    public function createdBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by');
     }
 
     /**

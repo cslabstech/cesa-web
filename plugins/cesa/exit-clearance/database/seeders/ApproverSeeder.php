@@ -44,7 +44,7 @@ class ApproverSeeder extends Seeder
                     'name'       => $approverData['name'],
                     'phone'      => null,
                     'title'      => $approverData['title'],
-                    'created_by' => null,
+                    'creator_id' => null,
                 ]
             );
         }

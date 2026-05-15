@@ -7,13 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Auth;
-use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 use Webkul\Support\Models\Company;
 
 class Approver extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasNullableCreator, SoftDeletes;
 
     protected $table = 'rekrutmen_approvers';
 
@@ -27,7 +26,7 @@ class Approver extends Model
         'approval_order',
         'divisi',
         'is_active',
-        'created_by',
+        'creator_id',
     ];
 
     protected function casts(): array
@@ -45,12 +44,6 @@ class Approver extends Model
 
     protected static function booted(): void
     {
-        static::creating(function (self $approver): void {
-            if (blank($approver->created_by) && Auth::id()) {
-                $approver->created_by = Auth::id();
-            }
-        });
-
         static::saving(function (self $approver): void {
             $approver->syncDepartmentScopeSnapshot();
         });
@@ -64,11 +57,6 @@ class Approver extends Model
     public function division(): BelongsTo
     {
         return $this->belongsTo(Division::class, 'division_id')->withTrashed();
-    }
-
-    public function createdBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by')->withTrashed();
     }
 
     public function scopeActive(Builder $query): Builder

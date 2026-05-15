@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class RekrutmenStage extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasNullableCreator, SoftDeletes;
 
     public const FINAL_HIRED_STAGE_NAME = 'Hired';
 

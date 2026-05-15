@@ -43,15 +43,15 @@ class ApproversTest extends ExitClearanceTestCase
     public function test_soft_deleted_relations_remain_readable(): void
     {
         $creator = User::factory()->create();
-        $headDepartment = Department::factory()->create(['created_by' => $creator->id]);
+        $headDepartment = Department::factory()->create(['creator_id' => $creator->id]);
         $childDepartment = Department::factory()->create([
-            'created_by'            => $creator->id,
+            'creator_id'            => $creator->id,
             'head_of_department_id' => $headDepartment->id,
         ]);
 
         $request = Request::factory()->create([
             'department_id' => $childDepartment->id,
-            'created_by'    => $creator->id,
+            'creator_id'    => $creator->id,
         ]);
 
         SecurityUser::query()->findOrFail($creator->id)->delete();
@@ -62,7 +62,7 @@ class ApproversTest extends ExitClearanceTestCase
         $freshHeadDepartment = Department::withTrashed()->findOrFail($headDepartment->id);
         $freshChildDepartment = Department::withTrashed()->findOrFail($childDepartment->id);
 
-        $this->assertSame($creator->id, $freshRequest->createdBy?->id);
+        $this->assertSame($creator->id, $freshRequest->creator?->id);
         $this->assertSame($childDepartment->id, $freshRequest->department?->id);
         $this->assertSame($headDepartment->id, $freshChildDepartment->headOfDepartment?->id);
         $this->assertTrue($freshHeadDepartment->subDepartments->contains('id', $childDepartment->id));

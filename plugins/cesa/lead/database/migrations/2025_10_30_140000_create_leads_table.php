@@ -26,7 +26,7 @@ return new class extends Migration
                 'Harga 4 - 7 juta',
                 'Harga di atas 7 juta',
             ])->nullable();
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('creator_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
 

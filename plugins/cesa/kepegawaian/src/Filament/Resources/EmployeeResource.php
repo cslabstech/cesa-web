@@ -75,11 +75,13 @@ use Webkul\Field\Filament\Traits\HasCustomFields;
 use Webkul\Security\Filament\Resources\CompanyResource;
 use Webkul\Security\Filament\Resources\UserResource;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 use Webkul\Support\Models\Country;
 
 class EmployeeResource extends Resource
 {
     use HasCustomFields;
+    use HasResourcePermissionQuery;
 
     protected static ?string $model = Employee::class;
 

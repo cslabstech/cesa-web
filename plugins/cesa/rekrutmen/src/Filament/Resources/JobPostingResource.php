@@ -26,9 +26,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class JobPostingResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     public const LINKED_REQUEST_MAN_POWER_IDS_FIELD = 'linked_request_man_power_ids';
 
     protected static ?string $model = JobPosting::class;

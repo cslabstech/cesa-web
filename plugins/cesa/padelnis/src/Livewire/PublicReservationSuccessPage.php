@@ -32,6 +32,8 @@ class PublicReservationSuccessPage extends SimplePage
             'reservation_time' => $reservation->reservation_time,
             'blocked_slots'    => $reservation->blockedSlotSummary(),
             'transfer_amount'  => $reservation->transfer_amount,
+            'transfer_date'    => $reservation->transfer_date?->format('Y-m-d'),
+            'notes'            => $reservation->notes,
         ];
     }
 }

@@ -11,9 +11,12 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Webkul\PluginManager\Package;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class DocumentResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = Document::class;
 
     protected static string|\BackedEnum|null $navigationIcon = null;

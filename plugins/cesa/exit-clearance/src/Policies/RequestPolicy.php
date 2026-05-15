@@ -19,7 +19,7 @@ class RequestPolicy
     public function view(User $user, Request $request): bool
     {
         return $user->can('view_exit_clearance_request')
-            && $this->hasAccess($user, $request, 'createdBy');
+            && $this->hasAccess($user, $request, 'creator');
     }
 
     public function create(User $user): bool
@@ -33,7 +33,7 @@ class RequestPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $request, 'createdBy');
+        return $this->hasAccess($user, $request, 'creator');
     }
 
     public function delete(User $user, Request $request): bool
@@ -42,7 +42,7 @@ class RequestPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $request, 'createdBy');
+        return $this->hasAccess($user, $request, 'creator');
     }
 
     public function deleteAny(User $user): bool
@@ -56,7 +56,7 @@ class RequestPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $request, 'createdBy');
+        return $this->hasAccess($user, $request, 'creator');
     }
 
     public function forceDeleteAny(User $user): bool
@@ -70,7 +70,7 @@ class RequestPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $request, 'createdBy');
+        return $this->hasAccess($user, $request, 'creator');
     }
 
     public function restoreAny(User $user): bool

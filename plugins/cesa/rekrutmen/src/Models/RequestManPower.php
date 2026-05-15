@@ -31,11 +31,12 @@ use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Throwable;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 use Webkul\Support\Models\Company;
 
 class RequestManPower extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasNullableCreator, SoftDeletes;
 
     protected $table = 'rekrutmen_request_man_powers';
 

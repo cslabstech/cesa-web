@@ -18,7 +18,8 @@ class TransferDivisionPolicy
 
     public function view(User $user, TransferDivision $division): bool
     {
-        return $user->can('view_form_transfer_division');
+        return $user->can('view_form_transfer_division')
+            && $this->hasAccess($user, $division, 'creator');
     }
 
     public function create(User $user): bool
@@ -32,7 +33,7 @@ class TransferDivisionPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $division);
+        return $this->hasAccess($user, $division, 'creator');
     }
 
     public function delete(User $user, TransferDivision $division): bool
@@ -41,7 +42,7 @@ class TransferDivisionPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $division);
+        return $this->hasAccess($user, $division, 'creator');
     }
 
     public function deleteAny(User $user): bool
@@ -55,7 +56,7 @@ class TransferDivisionPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $division);
+        return $this->hasAccess($user, $division, 'creator');
     }
 
     public function forceDeleteAny(User $user): bool
@@ -69,7 +70,7 @@ class TransferDivisionPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $division);
+        return $this->hasAccess($user, $division, 'creator');
     }
 
     public function restoreAny(User $user): bool

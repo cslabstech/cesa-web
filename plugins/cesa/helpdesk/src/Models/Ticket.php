@@ -13,11 +13,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 use Webkul\Support\Models\Company;
 
 class Ticket extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasNullableCreator, SoftDeletes;
 
     protected $table = 'helpdesk_tickets';
 
@@ -159,6 +160,28 @@ class Ticket extends Model
             $builder
                 ->outgoingFor($user)
                 ->orWhere(fn (Builder $incomingQuery): Builder => $incomingQuery->incomingFor($user));
+        });
+    }
+
+    public function scopeApplyPermissionScope(Builder $query): Builder
+    {
+        $user = filament()->auth()->user();
+
+        if (! $user) {
+            return $query;
+        }
+
+        $userIds = bouncer()->getAuthorizedUserIds();
+
+        if (empty($userIds)) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $builder) use ($userIds): void {
+            $builder
+                ->whereIn('creator_id', $userIds)
+                ->orWhereIn('owner_id', $userIds)
+                ->orWhereIn('responsible_id', $userIds);
         });
     }
 

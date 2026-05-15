@@ -15,6 +15,6 @@ class LeadSeeder extends Seeder
     {
         $userId = DB::table('users')->first()?->id ?? 1;
 
-        Lead::factory()->count(20)->create(['created_by' => $userId]);
+        Lead::factory()->count(20)->create(['creator_id' => $userId]);
     }
 }

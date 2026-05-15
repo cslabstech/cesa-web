@@ -6,10 +6,11 @@ use BackedEnum;
 use Cesa\Presensi\Traits\HasPresensiResourceAccess;
 use Filament\Resources\Resource;
 use Webkul\PluginManager\Package;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 abstract class PresensiResource extends Resource
 {
-    use HasPresensiResourceAccess;
+    use HasPresensiResourceAccess, HasResourcePermissionQuery;
 
     protected static BackedEnum|string|null $navigationIcon = null;
 

@@ -16,13 +16,13 @@ Request dibuat dari form publik:
 
 Karakteristik request dari alur publik:
 
-- `created_by` akan bernilai `null`
+- `creator_id` akan bernilai `null`
 - request otomatis meng-attach approver berdasarkan department
 - request ini memang dianggap sebagai data global
 
 Konsekuensi akses:
 
-- request dengan `created_by = null` hanya bisa dilihat oleh user dengan `resource_permission = global`
+- request dengan `creator_id = null` hanya bisa dilihat oleh user dengan `resource_permission = global`
 - user dengan scope `individual` atau `group` tidak akan melihat request publik ini di admin panel
 
 Catatan:
@@ -39,15 +39,15 @@ Request juga bisa dibuat dari admin panel:
 
 Karakteristik request dari alur admin:
 
-- `created_by` akan diisi otomatis dari user yang sedang login
+- `creator_id` akan diisi otomatis dari user yang sedang login
 - visibilitas record mengikuti resource permission scope yang berlaku
 
 ## Aturan Akses Request
 
 Ringkasnya:
 
-- `created_by = null`: hanya user global yang bisa lihat
-- `created_by = user_id`: mengikuti permission scope user pada plugin security
+- `creator_id = null`: hanya user global yang bisa lihat
+- `creator_id = user_id`: mengikuti permission scope user pada plugin security
 
 Aturan ini berlaku untuk:
 

@@ -38,7 +38,9 @@ class LeadPolicyTest extends TestCase
 
     public function test_view_allows_user_with_permission(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'resource_permission' => PermissionType::GLOBAL->value,
+        ]);
         $lead = Lead::factory()->create();
         Permission::create(['name' => 'view_lead_lead', 'guard_name' => 'web']);
         $user->givePermissionTo('view_lead_lead');
@@ -52,6 +54,32 @@ class LeadPolicyTest extends TestCase
         $lead = Lead::factory()->create();
 
         $this->assertFalse($this->policy->view($user, $lead));
+    }
+
+    public function test_view_denies_individual_user_with_permission_but_no_scope_access(): void
+    {
+        $user = User::factory()->create([
+            'resource_permission' => PermissionType::INDIVIDUAL->value,
+        ]);
+        $lead = Lead::factory()->create();
+        Permission::create(['name' => 'view_lead_lead', 'guard_name' => 'web']);
+        $user->givePermissionTo('view_lead_lead');
+
+        $this->assertFalse($this->policy->view($user, $lead));
+    }
+
+    public function test_view_allows_individual_creator_with_permission(): void
+    {
+        $user = User::factory()->create([
+            'resource_permission' => PermissionType::INDIVIDUAL->value,
+        ]);
+        $lead = Lead::factory()->create([
+            'creator_id' => $user->getKey(),
+        ]);
+        Permission::create(['name' => 'view_lead_lead', 'guard_name' => 'web']);
+        $user->givePermissionTo('view_lead_lead');
+
+        $this->assertTrue($this->policy->view($user, $lead));
     }
 
     public function test_create_allows_user_with_permission(): void

@@ -5,10 +5,11 @@ namespace Cesa\Kepegawaian\Policies;
 use Cesa\Kepegawaian\Models\ActivityPlan;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasScopedPermissions;
 
 class ActivityPlanPolicy
 {
-    use HandlesAuthorization;
+    use HandlesAuthorization, HasScopedPermissions;
 
     /**
      * Determine whether the user can view any models.
@@ -23,7 +24,8 @@ class ActivityPlanPolicy
      */
     public function view(User $user, ActivityPlan $activityPlan): bool
     {
-        return $user->can('view_kepegawaian_activity::plan');
+        return $user->can('view_kepegawaian_activity::plan')
+            && $this->hasAccess($user, $activityPlan, 'creator');
     }
 
     /**
@@ -39,7 +41,8 @@ class ActivityPlanPolicy
      */
     public function update(User $user, ActivityPlan $activityPlan): bool
     {
-        return $user->can('update_kepegawaian_activity::plan');
+        return $user->can('update_kepegawaian_activity::plan')
+            && $this->hasAccess($user, $activityPlan, 'creator');
     }
 
     /**
@@ -47,7 +50,8 @@ class ActivityPlanPolicy
      */
     public function delete(User $user, ActivityPlan $activityPlan): bool
     {
-        return $user->can('delete_kepegawaian_activity::plan');
+        return $user->can('delete_kepegawaian_activity::plan')
+            && $this->hasAccess($user, $activityPlan, 'creator');
     }
 
     /**
@@ -63,7 +67,8 @@ class ActivityPlanPolicy
      */
     public function forceDelete(User $user, ActivityPlan $activityPlan): bool
     {
-        return $user->can('force_delete_kepegawaian_activity::plan');
+        return $user->can('force_delete_kepegawaian_activity::plan')
+            && $this->hasAccess($user, $activityPlan, 'creator');
     }
 
     /**
@@ -79,7 +84,8 @@ class ActivityPlanPolicy
      */
     public function restore(User $user, ActivityPlan $activityPlan): bool
     {
-        return $user->can('restore_kepegawaian_activity::plan');
+        return $user->can('restore_kepegawaian_activity::plan')
+            && $this->hasAccess($user, $activityPlan, 'creator');
     }
 
     /**

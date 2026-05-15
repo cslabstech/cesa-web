@@ -21,9 +21,12 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class BankResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = TransferBank::class;
 
     protected static ?string $cluster = Configurations::class;

@@ -14,9 +14,12 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class TicketStatusResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = TicketStatus::class;
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-check-circle';

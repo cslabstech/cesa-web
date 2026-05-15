@@ -18,7 +18,8 @@ class SchedulePolicy
 
     public function view(User $user, Schedule $schedule): bool
     {
-        return $user->can('view_presensi_schedule');
+        return $user->can('view_presensi_schedule')
+            && $this->hasAccess($user, $schedule);
     }
 
     public function create(User $user): bool

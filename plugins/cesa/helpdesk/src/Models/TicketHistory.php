@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasNullableCreator;
 
 class TicketHistory extends Model
 {
-    use HasFactory;
+    use HasFactory, HasNullableCreator;
 
     protected $table = 'helpdesk_ticket_histories';
 

@@ -5,10 +5,11 @@ namespace Cesa\Kepegawaian\Policies;
 use Cesa\Kepegawaian\Models\EmployeeCategory;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasScopedPermissions;
 
 class EmployeeCategoryPolicy
 {
-    use HandlesAuthorization;
+    use HandlesAuthorization, HasScopedPermissions;
 
     /**
      * Determine whether the user can view any models.
@@ -23,7 +24,8 @@ class EmployeeCategoryPolicy
      */
     public function view(User $user, EmployeeCategory $employeeCategory): bool
     {
-        return $user->can('view_kepegawaian_employee::category');
+        return $user->can('view_kepegawaian_employee::category')
+            && $this->hasAccess($user, $employeeCategory, 'creator');
     }
 
     /**
@@ -39,7 +41,8 @@ class EmployeeCategoryPolicy
      */
     public function update(User $user, EmployeeCategory $employeeCategory): bool
     {
-        return $user->can('update_kepegawaian_employee::category');
+        return $user->can('update_kepegawaian_employee::category')
+            && $this->hasAccess($user, $employeeCategory, 'creator');
     }
 
     /**
@@ -47,7 +50,8 @@ class EmployeeCategoryPolicy
      */
     public function delete(User $user, EmployeeCategory $employeeCategory): bool
     {
-        return $user->can('delete_kepegawaian_employee::category');
+        return $user->can('delete_kepegawaian_employee::category')
+            && $this->hasAccess($user, $employeeCategory, 'creator');
     }
 
     /**

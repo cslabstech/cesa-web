@@ -18,7 +18,11 @@ class LeadPolicy
 
     public function view(User $user, Lead $lead): bool
     {
-        return $user->can('view_lead_lead');
+        if (! $user->can('view_lead_lead')) {
+            return false;
+        }
+
+        return $this->hasAccess($user, $lead, 'creator');
     }
 
     public function create(User $user): bool
@@ -32,7 +36,7 @@ class LeadPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $lead);
+        return $this->hasAccess($user, $lead, 'creator');
     }
 
     public function delete(User $user, Lead $lead): bool
@@ -41,7 +45,7 @@ class LeadPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $lead);
+        return $this->hasAccess($user, $lead, 'creator');
     }
 
     public function deleteAny(User $user): bool
@@ -55,7 +59,7 @@ class LeadPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $lead);
+        return $this->hasAccess($user, $lead, 'creator');
     }
 
     public function forceDeleteAny(User $user): bool
@@ -69,7 +73,7 @@ class LeadPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $lead);
+        return $this->hasAccess($user, $lead, 'creator');
     }
 
     public function restoreAny(User $user): bool

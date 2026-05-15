@@ -31,6 +31,7 @@ class PayrollServiceProvider extends PackageServiceProvider
                 '2026_02_09_000000_create_payroll_settings',
                 '2026_02_09_000001_payroll_create_periods_table',
                 '2026_02_09_000002_create_payroll_records_table',
+                '2026_05_15_010400_add_creator_id_to_payroll_tables',
             ])
             ->runsMigrations()
             ->hasInstallCommand(function (InstallCommand $command): void {

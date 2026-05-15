@@ -23,9 +23,12 @@ use Filament\Tables\Filters\QueryBuilder\Constraints\RelationshipConstraint;
 use Filament\Tables\Filters\QueryBuilder\Constraints\RelationshipConstraint\Operators\IsRelatedToOperator;
 use Filament\Tables\Filters\QueryBuilder\Constraints\TextConstraint;
 use Filament\Tables\Table;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class DepartureReasonResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = DepartureReason::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-fire';

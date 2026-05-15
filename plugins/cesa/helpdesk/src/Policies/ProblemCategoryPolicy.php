@@ -5,10 +5,11 @@ namespace Cesa\Helpdesk\Policies;
 use Cesa\Helpdesk\Models\ProblemCategory;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasScopedPermissions;
 
 class ProblemCategoryPolicy
 {
-    use HandlesAuthorization;
+    use HandlesAuthorization, HasScopedPermissions;
 
     public function viewAny(User $user): bool
     {
@@ -17,7 +18,8 @@ class ProblemCategoryPolicy
 
     public function view(User $user, ProblemCategory $problemCategory): bool
     {
-        return $user->can('view_helpdesk_problem::category');
+        return $user->can('view_helpdesk_problem::category')
+            && $this->hasAccess($user, $problemCategory, 'creator');
     }
 
     public function create(User $user): bool
@@ -27,12 +29,14 @@ class ProblemCategoryPolicy
 
     public function update(User $user, ProblemCategory $problemCategory): bool
     {
-        return $user->can('update_helpdesk_problem::category');
+        return $user->can('update_helpdesk_problem::category')
+            && $this->hasAccess($user, $problemCategory, 'creator');
     }
 
     public function delete(User $user, ProblemCategory $problemCategory): bool
     {
-        return $user->can('delete_helpdesk_problem::category');
+        return $user->can('delete_helpdesk_problem::category')
+            && $this->hasAccess($user, $problemCategory, 'creator');
     }
 
     public function deleteAny(User $user): bool
@@ -42,7 +46,8 @@ class ProblemCategoryPolicy
 
     public function forceDelete(User $user, ProblemCategory $problemCategory): bool
     {
-        return $user->can('force_delete_helpdesk_problem::category');
+        return $user->can('force_delete_helpdesk_problem::category')
+            && $this->hasAccess($user, $problemCategory, 'creator');
     }
 
     public function forceDeleteAny(User $user): bool
@@ -52,7 +57,8 @@ class ProblemCategoryPolicy
 
     public function restore(User $user, ProblemCategory $problemCategory): bool
     {
-        return $user->can('restore_helpdesk_problem::category');
+        return $user->can('restore_helpdesk_problem::category')
+            && $this->hasAccess($user, $problemCategory, 'creator');
     }
 
     public function restoreAny(User $user): bool

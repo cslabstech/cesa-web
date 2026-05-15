@@ -13,9 +13,12 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
 use Webkul\PluginManager\Package;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class LeadResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = Lead::class;
 
     protected static string|\BackedEnum|null $navigationIcon = null;
@@ -136,7 +139,7 @@ class LeadResource extends Resource
                             ])
                             ->nullable()
                             ->required(fn (string $operation): bool => $operation === 'create'),
-                        Forms\Components\Hidden::make('created_by')
+                        Forms\Components\Hidden::make('creator_id')
                             ->default(fn (): ?int => Auth::id()),
                     ]),
             ]);

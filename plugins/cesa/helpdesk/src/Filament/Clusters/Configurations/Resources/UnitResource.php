@@ -17,9 +17,12 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasResourcePermissionQuery;
 
 class UnitResource extends Resource
 {
+    use HasResourcePermissionQuery;
+
     protected static ?string $model = Unit::class;
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-building-office-2';

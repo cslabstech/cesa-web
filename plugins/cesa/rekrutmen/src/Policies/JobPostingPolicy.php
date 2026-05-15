@@ -5,10 +5,11 @@ namespace Cesa\Rekrutmen\Policies;
 use Cesa\Rekrutmen\Models\JobPosting;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Webkul\Security\Models\User;
+use Webkul\Security\Traits\HasScopedPermissions;
 
 class JobPostingPolicy
 {
-    use HandlesAuthorization;
+    use HandlesAuthorization, HasScopedPermissions;
 
     public function viewAny(User $user): bool
     {
@@ -17,7 +18,8 @@ class JobPostingPolicy
 
     public function view(User $user, JobPosting $jobPosting): bool
     {
-        return $user->can('view_rekrutmen_job::posting');
+        return $user->can('view_rekrutmen_job::posting')
+            && $this->hasAccess($user, $jobPosting, 'creator');
     }
 
     public function create(User $user): bool
@@ -27,12 +29,14 @@ class JobPostingPolicy
 
     public function update(User $user, JobPosting $jobPosting): bool
     {
-        return $user->can('update_rekrutmen_job::posting');
+        return $user->can('update_rekrutmen_job::posting')
+            && $this->hasAccess($user, $jobPosting, 'creator');
     }
 
     public function delete(User $user, JobPosting $jobPosting): bool
     {
-        return $user->can('delete_rekrutmen_job::posting');
+        return $user->can('delete_rekrutmen_job::posting')
+            && $this->hasAccess($user, $jobPosting, 'creator');
     }
 
     public function deleteAny(User $user): bool
@@ -42,7 +46,8 @@ class JobPostingPolicy
 
     public function forceDelete(User $user, JobPosting $jobPosting): bool
     {
-        return $user->can('force_delete_rekrutmen_job::posting');
+        return $user->can('force_delete_rekrutmen_job::posting')
+            && $this->hasAccess($user, $jobPosting, 'creator');
     }
 
     public function forceDeleteAny(User $user): bool
@@ -52,7 +57,8 @@ class JobPostingPolicy
 
     public function restore(User $user, JobPosting $jobPosting): bool
     {
-        return $user->can('restore_rekrutmen_job::posting');
+        return $user->can('restore_rekrutmen_job::posting')
+            && $this->hasAccess($user, $jobPosting, 'creator');
     }
 
     public function restoreAny(User $user): bool

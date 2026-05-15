@@ -18,7 +18,8 @@ class FormTransferPolicy
 
     public function view(User $user, FormTransfer $formTransfer): bool
     {
-        return $user->can('view_form_transfer_form::transfer');
+        return $user->can('view_form_transfer_form::transfer')
+            && $this->hasAccess($user, $formTransfer, 'creator');
     }
 
     public function create(User $user): bool
@@ -32,7 +33,7 @@ class FormTransferPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $formTransfer);
+        return $this->hasAccess($user, $formTransfer, 'creator');
     }
 
     public function delete(User $user, FormTransfer $formTransfer): bool
@@ -41,7 +42,7 @@ class FormTransferPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $formTransfer);
+        return $this->hasAccess($user, $formTransfer, 'creator');
     }
 
     public function deleteAny(User $user): bool
@@ -55,7 +56,7 @@ class FormTransferPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $formTransfer);
+        return $this->hasAccess($user, $formTransfer, 'creator');
     }
 
     public function forceDeleteAny(User $user): bool
@@ -69,7 +70,7 @@ class FormTransferPolicy
             return false;
         }
 
-        return $this->hasAccess($user, $formTransfer);
+        return $this->hasAccess($user, $formTransfer, 'creator');
     }
 
     public function restoreAny(User $user): bool
