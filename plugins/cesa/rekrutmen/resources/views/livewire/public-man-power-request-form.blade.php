@@ -62,9 +62,9 @@
                 x-on:form-errors-presented.window="handleErrorsPresented"
             >
                 <div class="mb-4 rounded-lg border-t-[10px] cesa-primary-border bg-white shadow-sm">
-                    <div class="px-6 pt-5 pb-6">
-                        <h1 class="text-[32px] font-normal text-gray-900 leading-tight">{{ __('rekrutmen::livewire/public-request-man-power-form.header.title') }}</h1>
-                        <p class="mt-2 text-sm text-gray-600">{{ __('rekrutmen::livewire/public-request-man-power-form.header.description') }}</p>
+                    <div class="px-6 pt-6 pb-5">
+                        <h1 class="text-[32px] font-normal leading-tight text-gray-900">{{ __('rekrutmen::livewire/public-request-man-power-form.header.title') }}</h1>
+                        <p class="mt-3 text-sm leading-relaxed text-gray-600">{{ __('rekrutmen::livewire/public-request-man-power-form.header.description') }}</p>
                     </div>
                     <div class="border-t border-gray-200 px-6 py-3">
                         <p class="text-xs text-[#D93025]">{{ __('rekrutmen::livewire/public-request-man-power-form.header.required') }}</p>

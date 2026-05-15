@@ -15,9 +15,9 @@
             x-on:submit.prevent="handleSubmit"
         >
             <div class="mb-4 rounded-lg border-t-[10px] cesa-primary-border bg-white shadow-sm">
-                <div class="px-6 pt-5 pb-6">
+                <div class="px-6 pt-6 pb-5">
                     <h1 class="text-[32px] font-normal leading-tight text-gray-900">{{ __('lead::views/public-lead-form.title') }}</h1>
-                    <p class="mt-2 text-sm text-gray-600">{{ __('lead::views/public-lead-form.description') }}</p>
+                    <p class="mt-3 text-sm leading-relaxed text-gray-600">{{ __('lead::views/public-lead-form.description') }}</p>
                 </div>
                 <div class="border-t border-gray-200 px-6 py-3">
                     <p class="text-xs text-[#D93025]">{{ __('lead::views/public-lead-form.required') }}</p>
