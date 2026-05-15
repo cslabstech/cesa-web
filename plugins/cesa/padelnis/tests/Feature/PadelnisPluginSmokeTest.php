@@ -47,6 +47,15 @@ class PadelnisPluginSmokeTest extends PadelnisTestCase
         ], $package->migrationFileNames);
     }
 
+    public function test_service_provider_keeps_padelnis_in_plugin_extra_tab(): void
+    {
+        $package = new Package;
+
+        (new PadelnisServiceProvider($this->app))->configureCustomPackage($package);
+
+        $this->assertNull($package->icon);
+    }
+
     public function test_reservation_resource_labels_are_localized(): void
     {
         foreach (['en', 'id'] as $locale) {

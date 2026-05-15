@@ -35,8 +35,7 @@ class PadelnisServiceProvider extends PackageServiceProvider
             ->hasInstallCommand(function (InstallCommand $command): void {
                 $command->runsMigrations();
             })
-            ->hasUninstallCommand(function (UninstallCommand $command): void {})
-            ->icon('padelnis');
+            ->hasUninstallCommand(function (UninstallCommand $command): void {});
     }
 
     public function packageRegistered(): void

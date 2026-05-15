@@ -1,9 +1,12 @@
 {
     "name": "cesa/exit-clearance",
-    "description": "Employee exit clearance and offboarding workflows for CESA",
+    "description": "Pengelolaan proses keluar karyawan.",
     "type": "library",
     "authors": [
-        {"name": "apriansyahrs", "email": "apriansyah@rizqis.com"}
+        {
+            "name": "apriansyahrs",
+            "email": "developer@rizqis.com"
+        }
     ],
     "extra": {
         "laravel": {

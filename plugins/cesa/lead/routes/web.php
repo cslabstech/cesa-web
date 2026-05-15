@@ -10,6 +10,7 @@ Route::middleware(['web'])->group(function (): void {
     Route::get('lead', PublicLeadForm::class)
         ->name('lead.public.form');
 
-    Route::get('lead/{response}', PublicLeadProgressPage::class)
+    Route::get('lead/{lead}', PublicLeadProgressPage::class)
+        ->middleware('signed')
         ->name('lead.public.show');
 });

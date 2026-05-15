@@ -1,9 +1,12 @@
 {
     "name": "cesa/presensi",
-    "description": "Attendance, leave, overtime, and shift management for CESA",
+    "description": "Pengelolaan presensi, cuti, lembur, dan shift.",
     "type": "library",
     "authors": [
-        {"name": "apriansyahrs", "email": "apriansyah@rizqis.com"}
+        {
+            "name": "apriansyahrs",
+            "email": "developer@rizqis.com"
+        }
     ],
     "extra": {
         "laravel": {
@@ -15,9 +18,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Cesa\\Presensi\\": "src/",
-            "Cesa\\Presensi\\Database\\Factories\\": "database/factories/",
-            "Cesa\\Presensi\\Database\\Seeders\\": "database/seeders/"
+            "Cesa\\Presensi\\": "src/"
         }
     },
     "autoload-dev": {

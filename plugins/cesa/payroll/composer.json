@@ -1,11 +1,11 @@
 {
     "name": "cesa/payroll",
-    "description": "Payroll processing with attendance integration for CESA",
+    "description": "Pengelolaan gaji dan periode bayar.",
     "type": "library",
     "authors": [
         {
             "name": "apriansyahrs",
-            "email": "apriansyah@rizqis.com"
+            "email": "developer@rizqis.com"
         }
     ],
     "extra": {
@@ -22,9 +22,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Cesa\\Payroll\\": "src/",
-            "Cesa\\Payroll\\Database\\Factories\\": "database/factories/",
-            "Cesa\\Payroll\\Database\\Seeders\\": "database/seeders/"
+            "Cesa\\Payroll\\": "src/"
         }
     },
     "autoload-dev": {

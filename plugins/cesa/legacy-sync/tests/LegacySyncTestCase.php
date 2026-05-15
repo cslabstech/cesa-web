@@ -83,6 +83,16 @@ abstract class LegacySyncTestCase extends TestCase
         ]);
 
         $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/support/database/migrations/2024_12_10_092651_create_countries_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/support/database/migrations/2024_12_10_092657_create_states_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
             '--path'     => 'plugins/webkul/support/database/migrations/2024_12_10_092657_create_companies_table.php',
             '--realpath' => false,
         ]);
@@ -93,6 +103,41 @@ abstract class LegacySyncTestCase extends TestCase
                 '--realpath' => false,
             ]);
         }
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/support/database/migrations/2025_04_04_061507_add_address_columns_in_companies_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/support/database/migrations/2025_04_04_062023_alter_companies_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/support/database/migrations/2025_01_07_125015_add_partner_id_to_companies_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/support/database/migrations/2024_12_10_100944_create_user_allowed_companies_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/security/database/migrations/2024_12_10_101127_add_default_company_id_column_to_users_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/security/database/migrations/2024_12_13_130906_add_partner_id_to_users_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/security/database/migrations/2025_08_01_073954_alter_users_table.php',
+            '--realpath' => false,
+        ]);
 
         $this->artisan('migrate', [
             '--path'     => 'plugins/cesa/document/database/migrations',
@@ -121,6 +166,51 @@ abstract class LegacySyncTestCase extends TestCase
 
         $this->artisan('migrate', [
             '--path'     => 'plugins/webkul/support/database/migrations/2024_12_12_114620_create_activity_plans_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/support/database/migrations/2024_12_12_115256_create_activity_types_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/support/database/migrations/2025_01_03_105625_create_unit_of_measure_categories_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/support/database/migrations/2025_01_03_105627_create_unit_of_measures_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/support/database/migrations/2025_01_09_111545_create_utm_mediums_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/support/database/migrations/2025_01_09_114324_create_utm_sources_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/support/database/migrations/2025_01_10_094256_create_utm_stages_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/support/database/migrations/2025_01_10_094325_create_utm_campaigns_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/support/database/migrations/2025_08_08_104317_alter_utm_stages_table.php',
+            '--realpath' => false,
+        ]);
+
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/support/database/migrations/2025_08_08_104814_alter_utm_campaigns_table.php',
             '--realpath' => false,
         ]);
 

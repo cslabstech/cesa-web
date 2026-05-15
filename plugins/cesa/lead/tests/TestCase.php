@@ -57,9 +57,14 @@ abstract class TestCase extends BaseTestCase
 
         $this->app->register(LeadServiceProvider::class);
 
-        if (! Route::has('lead.public.form')) {
+        config()->set('lead.whatsapp_validation.enabled', false);
+
+        if (! Route::has('lead.public.form') || ! Route::has('lead.public.show')) {
             require base_path('plugins/cesa/lead/routes/web.php');
         }
+
+        Route::getRoutes()->refreshNameLookups();
+        $this->app['url']->setRoutes(Route::getRoutes());
     }
 
     protected function tearDown(): void

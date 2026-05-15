@@ -5,6 +5,7 @@ namespace Cesa\Lead\Filament\Resources;
 use Cesa\Lead\Filament\Resources\Lead\Pages;
 use Cesa\Lead\Filament\Resources\Lead\Tables\LeadTable;
 use Cesa\Lead\Models\Lead;
+use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -17,7 +18,7 @@ class LeadResource extends Resource
 {
     protected static ?string $model = Lead::class;
 
-    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
+    protected static string|\BackedEnum|null $navigationIcon = null;
 
     protected static ?int $navigationSort = 1;
 
@@ -63,8 +64,22 @@ class LeadResource extends Resource
                             ->required()
                             ->maxLength(15)
                             ->placeholder(__('lead::filament/resources/lead.form.placeholders.phone'))
-                            ->afterStateUpdated(function ($state, callable $set) {
+                            ->live(onBlur: true)
+                            ->helperText(fn (?string $operation = null, mixed $livewire = null): ?string => static::getWhatsAppValidationHelperText($operation, $livewire))
+                            ->suffixAction(
+                                Action::make('check_whatsapp')
+                                    ->label(__('lead::views/public-lead-form.whatsapp_validation.action'))
+                                    ->icon('heroicon-m-magnifying-glass')
+                                    ->tooltip(__('lead::views/public-lead-form.whatsapp_validation.action'))
+                                    ->action(fn (mixed $livewire = null): mixed => static::checkWhatsAppValidation($livewire))
+                                    ->visible(fn (?string $operation = null, mixed $livewire = null): bool => static::shouldShowWhatsAppValidationAction($operation, $livewire))
+                            )
+                            ->afterStateUpdated(function ($state, callable $set, mixed $livewire = null): void {
                                 $set('phone', Lead::normalizePhone((string) $state));
+
+                                if (is_object($livewire) && method_exists($livewire, 'resetWhatsAppValidationFeedback')) {
+                                    $livewire->resetWhatsAppValidationFeedback();
+                                }
                             })
                             ->unique(Lead::class, 'phone', ignoreRecord: true)
                             ->rule(function () {
@@ -86,6 +101,7 @@ class LeadResource extends Resource
                         Forms\Components\TextInput::make('sales_person')
                             ->label(__('lead::filament/resources/lead.form.sections.store_information.fields.sales_person'))
                             ->required()
+                            ->disabled(fn (?string $operation = null, mixed $livewire = null): bool => static::shouldDisableUntilWhatsAppValidation($operation, $livewire))
                             ->maxLength(255)
                             ->placeholder(__('lead::filament/resources/lead.form.placeholders.sales_person')),
                         Forms\Components\ToggleButtons::make('store_team_position')
@@ -97,17 +113,20 @@ class LeadResource extends Resource
                                 'Frontliner'  => __('lead::filament/resources/lead.options.store_team_position.frontliner'),
                             ])
                             ->required()
+                            ->disabled(fn (?string $operation = null, mixed $livewire = null): bool => static::shouldDisableUntilWhatsAppValidation($operation, $livewire))
                             ->inline(),
                         Forms\Components\Select::make('store_branch')
                             ->label(__('lead::filament/resources/lead.form.sections.store_information.fields.store_branch'))
                             ->searchable()
                             ->required()
+                            ->disabled(fn (?string $operation = null, mixed $livewire = null): bool => static::shouldDisableUntilWhatsAppValidation($operation, $livewire))
                             ->options(Lead::storeBranchOptions())
                             ->placeholder(__('lead::filament/resources/lead.form.placeholders.store_branch')),
                         Forms\Components\Select::make('phone_transaction_range')
                             ->label(__('lead::filament/resources/lead.form.sections.store_information.fields.phone_transaction_range'))
                             ->placeholder(__('lead::filament/resources/lead.form.placeholders.phone_transaction_range'))
                             ->searchable()
+                            ->disabled(fn (?string $operation = null, mixed $livewire = null): bool => static::shouldDisableUntilWhatsAppValidation($operation, $livewire))
                             ->options([
                                 'Harga di bawah 2 juta' => __('lead::filament/resources/lead.options.phone_transaction_range.below_2m'),
                                 'Harga 2 - 3 juta'      => __('lead::filament/resources/lead.options.phone_transaction_range.2m_3m'),
@@ -142,5 +161,39 @@ class LeadResource extends Resource
             'create' => Pages\CreateLead::route('/create'),
             'edit'   => Pages\EditLead::route('/{record}/edit'),
         ];
+    }
+
+    protected static function getWhatsAppValidationHelperText(?string $operation, mixed $livewire): ?string
+    {
+        if ($operation !== 'create' || ! is_object($livewire) || ! method_exists($livewire, 'getWhatsAppValidationHelperText')) {
+            return null;
+        }
+
+        return $livewire->getWhatsAppValidationHelperText();
+    }
+
+    protected static function checkWhatsAppValidation(mixed $livewire): mixed
+    {
+        if (! is_object($livewire) || ! method_exists($livewire, 'checkWhatsAppValidation')) {
+            return null;
+        }
+
+        return $livewire->checkWhatsAppValidation();
+    }
+
+    protected static function shouldShowWhatsAppValidationAction(?string $operation, mixed $livewire): bool
+    {
+        return $operation === 'create'
+            && is_object($livewire)
+            && method_exists($livewire, 'isWhatsAppValidationEnabled')
+            && $livewire->isWhatsAppValidationEnabled();
+    }
+
+    protected static function shouldDisableUntilWhatsAppValidation(?string $operation, mixed $livewire): bool
+    {
+        return $operation === 'create'
+            && is_object($livewire)
+            && method_exists($livewire, 'shouldDisableUntilWhatsAppValidation')
+            && $livewire->shouldDisableUntilWhatsAppValidation();
     }
 }

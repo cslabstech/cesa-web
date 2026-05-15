@@ -16,6 +16,7 @@ class LegacySyncServiceProvider extends PackageServiceProvider
         $package->name(static::$name)
             ->isCore()
             ->hasConfigFile('legacy-sync')
+            ->hasTranslations()
             ->hasCommands([
                 SyncLegacySqlData::class,
                 SyncAllLegacyData::class,

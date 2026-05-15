@@ -4,6 +4,7 @@ namespace Cesa\Presensi\Tests;
 
 use Cesa\Presensi\PresensiServiceProvider;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 use Tests\UsesSqliteInMemoryDatabase;
 use Webkul\PluginManager\Package;
@@ -36,11 +37,29 @@ abstract class PresensiTestCase extends TestCase
         DB::setDefaultConnection('sqlite');
         DB::reconnect('sqlite');
 
-        $this->app->register(PresensiServiceProvider::class);
+        $this->artisan('migrate', [
+            '--path'     => 'plugins/webkul/plugin-manager/database/migrations/2024_11_05_105102_create_plugins_table.php',
+            '--realpath' => false,
+        ]);
 
-        if (! Package::isPluginInstalled('presensi')) {
+        DB::table('plugins')->updateOrInsert([
+            'name' => 'presensi',
+        ], [
+            'author'       => 'tests',
+            'summary'      => 'tests',
+            'description'  => 'tests',
+            'is_active'    => true,
+            'is_installed' => true,
+            'created_at'   => now(),
+            'updated_at'   => now(),
+        ]);
+
+        Package::$plugins = [];
+
+        $this->app->register(PresensiServiceProvider::class, true);
+
+        if (! Route::has('admin.api.v1.presensi.attendance.today')) {
             require base_path('plugins/cesa/presensi/routes/api.php');
-            require base_path('plugins/cesa/presensi/routes/web.php');
         }
 
         $this->artisan('migrate', [
@@ -111,5 +130,7 @@ abstract class PresensiTestCase extends TestCase
         if (isset($this->sqliteDatabasePath) && is_file($this->sqliteDatabasePath)) {
             @unlink($this->sqliteDatabasePath);
         }
+
+        Package::$plugins = [];
     }
 }

@@ -6,7 +6,6 @@ use Cesa\Lead\Enums\PhoneTransactionRange;
 use Cesa\Lead\Enums\StoreTeamPosition;
 use Cesa\Lead\Models\Lead;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
 /**
  * @extends Factory<Lead>
@@ -37,7 +36,6 @@ class LeadFactory extends Factory
                 config('lead.store_branches', ['Default Branch'])
             ),
             'phone_transaction_range' => $this->faker->randomElement(PhoneTransactionRange::values()),
-            'public_response_id'      => (string) Str::ulid(),
             'created_by'              => null,
         ];
     }

@@ -72,6 +72,32 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
         ]);
     }
 
+    public function test_document_fallback_title_stays_locale_independent(): void
+    {
+        app()->setLocale('id');
+
+        DB::connection('legacy_sync')->table('documents')->insert([
+            [
+                'id'          => 91,
+                'title'       => null,
+                'content'     => '<p>Untitled legacy document</p>',
+                'source_type' => 'html',
+                'docx_path'   => null,
+                'created_at'  => '2026-03-10 07:55:00',
+                'updated_at'  => '2026-03-10 07:55:00',
+            ],
+        ]);
+
+        $this->artisan('legacy:sync', [
+            '--connection' => 'legacy_sync',
+            '--module'     => ['document'],
+        ])->assertExitCode(0);
+
+        $this->assertDatabaseHas('documents', [
+            'title' => 'Legacy Document 91',
+        ]);
+    }
+
     public function test_it_syncs_legacy_company_master_when_syncing_cesa_modules(): void
     {
         User::factory()->create(['email' => 'creator@example.com']);
@@ -386,7 +412,6 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
             'store_team_position'     => 'Kasir',
             'store_branch'            => 'Jakarta',
             'phone_transaction_range' => 'Harga 4 - 7 juta',
-            'public_response_id'      => '01jexistingleadvaluepreserve000001',
             'created_by'              => null,
             'created_at'              => '2026-03-09 07:57:00',
             'updated_at'              => '2026-03-09 07:57:00',
@@ -884,8 +909,8 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
             '--connection' => 'legacy_sync',
             '--module'     => ['helpdesk'],
         ])
-            ->doesntExpectOutputToContain('Could not map legacy business entity ID [1]')
-            ->expectsOutputToContain('Created missing company [PT MKLI] from legacy business entity ID [1].')
+            ->doesntExpectOutputToContain(__('legacy-sync::console.business_entity_not_mapped', ['id' => 1]))
+            ->expectsOutputToContain(__('legacy-sync::console.created_business_entity_company', ['company' => 'PT MKLI', 'id' => 1]))
             ->assertExitCode(0);
 
         $companyId = (int) DB::table('companies')->where('name', 'PT MKLI')->value('id');
@@ -926,8 +951,8 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
             '--connection' => 'legacy_sync',
             '--module'     => ['shelf'],
         ])
-            ->doesntExpectOutputToContain('Could not map legacy company ID [50]')
-            ->expectsOutputToContain('Created missing company [Complete Solusi Nusantara] from legacy company ID [50].')
+            ->doesntExpectOutputToContain(__('legacy-sync::console.company_not_mapped', ['id' => 50]))
+            ->expectsOutputToContain(__('legacy-sync::console.created_legacy_company', ['company' => 'Complete Solusi Nusantara', 'id' => 50]))
             ->assertExitCode(0);
 
         $companyId = (int) DB::table('companies')->where('company_id', 'CSN')->value('id');
@@ -976,7 +1001,7 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
             '--module'     => ['shelf'],
         ])
             ->doesntExpectOutputToContain('Legacy Company 50')
-            ->expectsOutputToContain('Created missing company [PT Shelf Entity] from legacy company ID [50].')
+            ->expectsOutputToContain(__('legacy-sync::console.created_legacy_company', ['company' => 'PT Shelf Entity', 'id' => 50]))
             ->assertExitCode(0);
 
         $companyId = (int) DB::table('companies')->where('name', 'PT Shelf Entity')->value('id');
@@ -1189,7 +1214,7 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
             '--connection' => 'legacy_sync',
             '--module'     => ['shelf'],
         ])
-            ->doesntExpectOutputToContain('Could not map legacy user ID [11]')
+            ->doesntExpectOutputToContain(__('legacy-sync::console.user_not_mapped', ['id' => 11]))
             ->assertExitCode(0);
 
         $this->assertSame(0, DB::table('users')->where('email', 'requester@example.com')->count());
@@ -1231,7 +1256,12 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
             '--connection' => 'legacy_sync',
             '--module'     => ['shelf'],
         ])
-            ->doesntExpectOutputToContain('Skipping legacy record [asset_transfer_details:571]')
+            ->doesntExpectOutputToContain(__('legacy-sync::console.relation_not_resolved', [
+                'table'  => 'asset_transfer_details',
+                'id'     => 571,
+                'column' => 'asset_id',
+                'value'  => 560,
+            ]))
             ->assertExitCode(0);
 
         $assetId = (int) DB::table('shelf_assets')->where('serial_number', 'SN-LAP-001')->value('id');
@@ -1499,7 +1529,10 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
             '--connection' => 'legacy_sync',
             '--module'     => ['shelf'],
         ])
-            ->doesntExpectOutputToContain('Created placeholder user [legacy-user-11@legacy-sync.local]')
+            ->doesntExpectOutputToContain(__('legacy-sync::console.created_placeholder_user', [
+                'email' => 'legacy-user-11@legacy-sync.local',
+                'id'    => 11,
+            ]))
             ->assertExitCode(0);
 
         $this->assertSame(0, DB::table('users')->where('email', 'legacy-user-11@legacy-sync.local')->count());
@@ -1595,8 +1628,18 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
             '--connection' => 'legacy_sync',
             '--module'     => ['shelf'],
         ])
-            ->doesntExpectOutputToContain('Skipping legacy record [asset_transfers:570]')
-            ->doesntExpectOutputToContain('Skipping legacy record [asset_transfer_details:571]')
+            ->doesntExpectOutputToContain(__('legacy-sync::console.relation_not_resolved', [
+                'table'  => 'asset_transfers',
+                'id'     => 570,
+                'column' => 'from_user_id',
+                'value'  => 10,
+            ]))
+            ->doesntExpectOutputToContain(__('legacy-sync::console.relation_not_resolved', [
+                'table'  => 'asset_transfer_details',
+                'id'     => 571,
+                'column' => 'asset_transfer_id',
+                'value'  => 570,
+            ]))
             ->assertExitCode(0);
 
         $fromUserId = (int) DB::table('users')->where('email', 'legacy-user-10@legacy-sync.local')->value('id');
@@ -1639,8 +1682,13 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
             '--connection'         => 'legacy_sync',
             '--skip-missing-users' => true,
         ])
-            ->expectsOutputToContain('Could not map legacy user ID [10]')
-            ->expectsOutputToContain('Skipping legacy record [schedules:212] because relation [user_or_shift_or_office=11:211:210] could not be resolved.')
+            ->expectsOutputToContain(__('legacy-sync::console.user_not_mapped', ['id' => 10]))
+            ->expectsOutputToContain(__('legacy-sync::console.relation_not_resolved', [
+                'table'  => 'schedules',
+                'id'     => 212,
+                'column' => 'user_or_shift_or_office',
+                'value'  => '11:211:210',
+            ]))
             ->assertExitCode(0);
 
         $this->assertDatabaseMissing('users', [
@@ -1836,7 +1884,7 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
             'CREATE TABLE utm_mediums (id INTEGER PRIMARY KEY, creator_id INTEGER, name TEXT, created_at TEXT, updated_at TEXT)',
             'CREATE TABLE utm_sources (id INTEGER PRIMARY KEY, creator_id INTEGER, name TEXT, created_at TEXT, updated_at TEXT)',
             'CREATE TABLE documents (id INTEGER PRIMARY KEY, title TEXT, content TEXT, source_type TEXT, docx_path TEXT, created_at TEXT, updated_at TEXT)',
-            'CREATE TABLE leads (id INTEGER PRIMARY KEY, name TEXT, phone TEXT, address TEXT, sales_person TEXT, store_team_position TEXT, store_branch TEXT, phone_transaction_range TEXT, public_response_id TEXT, created_by INTEGER, created_at TEXT, updated_at TEXT, deleted_at TEXT)',
+            'CREATE TABLE leads (id INTEGER PRIMARY KEY, name TEXT, phone TEXT, address TEXT, sales_person TEXT, store_team_position TEXT, store_branch TEXT, phone_transaction_range TEXT, created_by INTEGER, created_at TEXT, updated_at TEXT, deleted_at TEXT)',
             'CREATE TABLE form_transfer_banks (id INTEGER PRIMARY KEY, code TEXT, name TEXT, short_name TEXT, is_active INTEGER, sort_order INTEGER, created_at TEXT, updated_at TEXT, deleted_at TEXT)',
             'CREATE TABLE form_transfers (id INTEGER PRIMARY KEY, company_id INTEGER, creator_id INTEGER, name TEXT, code TEXT, uid_prefix TEXT, uid_padding INTEGER, uid_sequence INTEGER, description TEXT, is_active INTEGER, approver_mail_subject TEXT, approver_mail_greeting TEXT, approver_mail_action_text TEXT, approver_mail_template TEXT, requester_mail_subject TEXT, requester_mail_greeting TEXT, requester_mail_action_text TEXT, requester_mail_template TEXT, approver_whatsapp_template TEXT, created_at TEXT, updated_at TEXT, deleted_at TEXT)',
             'CREATE TABLE form_transfer_divisions (id INTEGER PRIMARY KEY, form_transfer_id INTEGER, name TEXT, code TEXT, description TEXT, is_active INTEGER, created_at TEXT, updated_at TEXT, deleted_at TEXT)',
@@ -2022,7 +2070,6 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
                 'store_team_position'     => 'Promotor',
                 'store_branch'            => 'Bandung',
                 'phone_transaction_range' => 'Harga 2 - 3 juta',
-                'public_response_id'      => '01jqqqqqqqqqqqqqqqqqqqqqqq',
                 'created_by'              => 10,
                 'created_at'              => '2026-03-10 07:57:00',
                 'updated_at'              => '2026-03-10 07:57:00',

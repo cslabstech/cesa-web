@@ -1,6 +1,7 @@
 {
     "name": "cesa/helpdesk",
-    "description": "Helpdesk ticketing and support operations for CESA",
+    "description": "Pengelolaan tiket bantuan.",
+    "type": "library",
     "authors": [
         {
             "name": "apriansyahrs",

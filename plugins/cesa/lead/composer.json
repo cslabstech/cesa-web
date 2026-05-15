@@ -1,9 +1,12 @@
 {
     "name": "cesa/lead",
-    "description": "Lead management plugin (HMVC) for CESA.",
+    "description": "Pengelolaan prospek toko.",
     "type": "library",
     "authors": [
-        {"name": "apriansyahrs", "email": "apriansyah@rizqis.com"}
+        {
+            "name": "apriansyahrs",
+            "email": "developer@rizqis.com"
+        }
     ],
     "extra": {
         "laravel": {

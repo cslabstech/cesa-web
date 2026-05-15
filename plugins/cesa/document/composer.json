@@ -1,9 +1,12 @@
 {
     "name": "cesa/document",
-    "description": "Document feature plugin (HMVC) for CESA.",
+    "description": "Pengelolaan template dan ekspor dokumen.",
     "type": "library",
     "authors": [
-        {"name": "apriansyahrs", "email": "apriansyah@rizqis.com"}
+        {
+            "name": "apriansyahrs",
+            "email": "developer@rizqis.com"
+        }
     ],
     "extra": {
         "laravel": {
@@ -15,9 +18,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Cesa\\Document\\": "src/",
-            "Cesa\\Document\\Database\\Factories\\": "database/factories/",
-            "Cesa\\Document\\Database\\Seeders\\": "database/seeders/"
+            "Cesa\\Document\\": "src/"
         }
     },
     "autoload-dev": {

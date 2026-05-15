@@ -1,6 +1,7 @@
 {
     "name": "cesa/kepegawaian",
-    "description": "Employee and HR administration for CESA",
+    "description": "Pengelolaan data karyawan dan struktur SDM.",
+    "type": "library",
     "authors": [
         {
             "name": "apriansyahrs",

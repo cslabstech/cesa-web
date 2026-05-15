@@ -1,6 +1,7 @@
 {
     "name": "cesa/form-transfer",
-    "description": "Fund transfer request and approval workflows for CESA",
+    "description": "Pengelolaan pengajuan transfer dana.",
+    "type": "library",
     "authors": [
         {
             "name": "apriansyahrs",

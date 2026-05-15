@@ -27,6 +27,8 @@ class LeadServiceProvider extends PackageServiceProvider
             ->hasRoute('web')
             ->hasMigrations([
                 '2025_10_30_140000_create_leads_table',
+                '2026_03_26_141500_add_public_response_id_to_leads_table',
+                '2026_05_15_000000_drop_public_response_id_from_leads_table',
             ])
             ->runsMigrations()
             ->hasInstallCommand(function (InstallCommand $command): void {

@@ -1,6 +1,6 @@
 {
     "name": "cesa/padelnis",
-    "description": "Padelnis court reservation form for CESA",
+    "description": "Pengelolaan reservasi lapangan Padelnis.",
     "type": "library",
     "authors": [
         {

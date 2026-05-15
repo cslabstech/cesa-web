@@ -1,6 +1,7 @@
 {
     "name": "cesa/shelf",
-    "description": "Asset requests, transfers, and task management for CESA",
+    "description": "Pengelolaan aset, permintaan, transfer, dan tugas.",
+    "type": "library",
     "authors": [
         {
             "name": "apriansyahrs",

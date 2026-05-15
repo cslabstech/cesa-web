@@ -4,6 +4,7 @@ namespace Cesa\Lead\Livewire;
 
 use Cesa\Lead\Models\Lead;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -44,6 +45,8 @@ class PublicLeadForm extends SimplePage
 
     public ?string $whatsappValidationStatus = null;
 
+    public ?string $whatsappValidatedPhone = null;
+
     protected bool $whatsappValidationEnabled = false;
 
     protected string $whatsappValidationProvider = 'fonnte';
@@ -64,6 +67,18 @@ class PublicLeadForm extends SimplePage
 
     protected int $whatsappValidationRateLimitDecaySeconds = 60;
 
+    protected bool $recaptchaEnabled = false;
+
+    protected ?string $recaptchaSiteKey = null;
+
+    protected ?string $recaptchaSecretKey = null;
+
+    protected ?string $recaptchaAction = null;
+
+    protected float $recaptchaScoreThreshold = 0.0;
+
+    protected int $recaptchaTimeout = 5;
+
     public function boot(): void
     {
         $whatsappValidation = config('lead.whatsapp_validation', []);
@@ -74,13 +89,25 @@ class PublicLeadForm extends SimplePage
         $this->whatsappCountryCode = (string) Arr::get($whatsappValidation, 'country_code', '62');
         $this->whatsappValidationTimeout = (int) Arr::get($whatsappValidation, 'timeout', 5);
         $this->whatsappValidationCacheTtl = (int) Arr::get($whatsappValidation, 'cache_ttl', 300);
-        $this->whatsappValidationAllowManual = (bool) Arr::get($whatsappValidation, 'allow_manual_fallback', true);
+        $this->whatsappValidationAllowManual = (bool) Arr::get($whatsappValidation, 'allow_manual_fallback', false);
         $this->whatsappValidationRateLimitMaxAttempts = (int) Arr::get($whatsappValidation, 'rate_limit.max_attempts', 10);
         $this->whatsappValidationRateLimitDecaySeconds = (int) Arr::get($whatsappValidation, 'rate_limit.decay', 60);
 
         $this->whatsappValidationEnabled = (bool) Arr::get($whatsappValidation, 'enabled', false)
             && filled($this->whatsappValidationEndpoint)
             && filled($this->whatsappValidationToken);
+
+        $recaptcha = config('lead.security.recaptcha', []);
+
+        $this->recaptchaSiteKey = Arr::get($recaptcha, 'site_key');
+        $this->recaptchaSecretKey = Arr::get($recaptcha, 'secret_key');
+        $this->recaptchaAction = Arr::get($recaptcha, 'action', 'lead_request');
+        $this->recaptchaScoreThreshold = (float) Arr::get($recaptcha, 'score_threshold', 0.0);
+        $this->recaptchaTimeout = (int) Arr::get($recaptcha, 'timeout', 5);
+
+        $this->recaptchaEnabled = (bool) Arr::get($recaptcha, 'enabled', false)
+            && filled($this->recaptchaSiteKey)
+            && filled($this->recaptchaSecretKey);
     }
 
     public function mount(): void
@@ -89,85 +116,101 @@ class PublicLeadForm extends SimplePage
             abort(404);
         }
 
+        if ($this->recaptchaEnabled) {
+            $this->data['recaptcha_token'] ??= null;
+        }
+
         $this->form->fill($this->data);
     }
 
     public function form(Schema $schema): Schema
     {
+        $fields = [
+            TextInput::make('name')
+                ->label(__('lead::filament/resources/lead.fields.name'))
+                ->required()
+                ->maxLength(255)
+                ->placeholder(__('lead::filament/resources/lead.form.placeholders.name')),
+            TextInput::make('phone')
+                ->label(__('lead::filament/resources/lead.fields.phone'))
+                ->tel()
+                ->required()
+                ->maxLength(15)
+                ->placeholder(__('lead::filament/resources/lead.form.placeholders.phone'))
+                ->live(onBlur: true)
+                ->helperText(fn (): ?string => $this->getWhatsAppValidationHelperText())
+                ->afterStateUpdated(function ($state, callable $set): void {
+                    $set('phone', Lead::normalizePhone((string) $state));
+                    $this->resetWhatsAppValidationFeedback();
+                })
+                ->suffixAction(
+                    Action::make('check_whatsapp')
+                        ->label(__('lead::views/public-lead-form.whatsapp_validation.action'))
+                        ->icon('heroicon-m-magnifying-glass')
+                        ->tooltip(__('lead::views/public-lead-form.whatsapp_validation.action'))
+                        ->action(fn (): mixed => $this->checkWhatsAppValidation())
+                        ->visible(fn (): bool => $this->whatsappValidationEnabled)
+                )
+                ->unique(Lead::class, 'phone')
+                ->rule(function () {
+                    return function (string $attribute, $value, $fail): void {
+                        if (! preg_match('/^62[0-9]{8,}$/', (string) $value)) {
+                            $fail(__('lead::filament/resources/lead.validation.phone_format'));
+                        }
+                    };
+                }),
+            Textarea::make('address')
+                ->label(__('lead::filament/resources/lead.fields.address'))
+                ->required()
+                ->columnSpanFull()
+                ->placeholder(__('lead::filament/resources/lead.form.placeholders.address')),
+            TextInput::make('sales_person')
+                ->label(__('lead::filament/resources/lead.fields.sales_person'))
+                ->required()
+                ->disabled(fn (): bool => $this->shouldDisableUntilWhatsAppValidation())
+                ->maxLength(255)
+                ->placeholder(__('lead::filament/resources/lead.form.placeholders.sales_person')),
+            Select::make('store_team_position')
+                ->label(__('lead::filament/resources/lead.fields.store_team_position'))
+                ->disabled(fn (): bool => $this->shouldDisableUntilWhatsAppValidation())
+                ->options([
+                    'Kepala Toko' => __('lead::filament/resources/lead.options.store_team_position.kepala_toko'),
+                    'Promotor'    => __('lead::filament/resources/lead.options.store_team_position.promotor'),
+                    'Kasir'       => __('lead::filament/resources/lead.options.store_team_position.kasir'),
+                    'Frontliner'  => __('lead::filament/resources/lead.options.store_team_position.frontliner'),
+                ])
+                ->required()
+                ->placeholder(__('lead::filament/resources/lead.form.placeholders.choose')),
+            Select::make('store_branch')
+                ->label(__('lead::filament/resources/lead.fields.store_branch'))
+                ->disabled(fn (): bool => $this->shouldDisableUntilWhatsAppValidation())
+                ->searchable()
+                ->required()
+                ->options(Lead::storeBranchOptions())
+                ->placeholder(__('lead::filament/resources/lead.form.placeholders.store_branch')),
+            Select::make('phone_transaction_range')
+                ->label(__('lead::filament/resources/lead.fields.phone_transaction_range'))
+                ->disabled(fn (): bool => $this->shouldDisableUntilWhatsAppValidation())
+                ->placeholder(__('lead::filament/resources/lead.form.placeholders.phone_transaction_range'))
+                ->searchable()
+                ->options([
+                    'Harga di bawah 2 juta' => __('lead::filament/resources/lead.options.phone_transaction_range.below_2m'),
+                    'Harga 2 - 3 juta'      => __('lead::filament/resources/lead.options.phone_transaction_range.2m_3m'),
+                    'Harga 3 - 4 juta'      => __('lead::filament/resources/lead.options.phone_transaction_range.3m_4m'),
+                    'Harga 4 - 7 juta'      => __('lead::filament/resources/lead.options.phone_transaction_range.4m_7m'),
+                    'Harga di atas 7 juta'  => __('lead::filament/resources/lead.options.phone_transaction_range.above_7m'),
+                ])
+                ->nullable(),
+        ];
+
+        if ($this->recaptchaEnabled) {
+            $fields[] = Hidden::make('recaptcha_token')
+                ->default('')
+                ->dehydrated();
+        }
+
         return $schema
-            ->components([
-                TextInput::make('name')
-                    ->label(__('lead::filament/resources/lead.fields.name'))
-                    ->required()
-                    ->maxLength(255)
-                    ->placeholder(__('lead::filament/resources/lead.form.placeholders.name')),
-                TextInput::make('phone')
-                    ->label(__('lead::filament/resources/lead.fields.phone'))
-                    ->tel()
-                    ->required()
-                    ->maxLength(15)
-                    ->placeholder(__('lead::filament/resources/lead.form.placeholders.phone'))
-                    ->live(onBlur: true)
-                    ->helperText(fn (): ?string => $this->getWhatsAppValidationHelperText())
-                    ->afterStateUpdated(function ($state, callable $set): void {
-                        $set('phone', Lead::normalizePhone((string) $state));
-                        $this->resetWhatsAppValidationFeedback();
-                    })
-                    ->suffixAction(
-                        Action::make('check_whatsapp')
-                            ->label(__('lead::views/public-lead-form.whatsapp_validation.action'))
-                            ->icon('heroicon-m-magnifying-glass')
-                            ->tooltip(__('lead::views/public-lead-form.whatsapp_validation.action'))
-                            ->action(fn (): mixed => $this->checkWhatsAppValidation())
-                            ->visible(fn (): bool => $this->whatsappValidationEnabled)
-                    )
-                    ->unique(Lead::class, 'phone')
-                    ->rule(function () {
-                        return function (string $attribute, $value, $fail): void {
-                            if (! preg_match('/^62[0-9]{8,}$/', (string) $value)) {
-                                $fail(__('lead::filament/resources/lead.validation.phone_format'));
-                            }
-                        };
-                    }),
-                Textarea::make('address')
-                    ->label(__('lead::filament/resources/lead.fields.address'))
-                    ->required()
-                    ->columnSpanFull()
-                    ->placeholder(__('lead::filament/resources/lead.form.placeholders.address')),
-                TextInput::make('sales_person')
-                    ->label(__('lead::filament/resources/lead.fields.sales_person'))
-                    ->required()
-                    ->maxLength(255)
-                    ->placeholder(__('lead::filament/resources/lead.form.placeholders.sales_person')),
-                Select::make('store_team_position')
-                    ->label(__('lead::filament/resources/lead.fields.store_team_position'))
-                    ->options([
-                        'Kepala Toko' => __('lead::filament/resources/lead.options.store_team_position.kepala_toko'),
-                        'Promotor'    => __('lead::filament/resources/lead.options.store_team_position.promotor'),
-                        'Kasir'       => __('lead::filament/resources/lead.options.store_team_position.kasir'),
-                        'Frontliner'  => __('lead::filament/resources/lead.options.store_team_position.frontliner'),
-                    ])
-                    ->required()
-                    ->placeholder(__('lead::filament/resources/lead.form.placeholders.choose')),
-                Select::make('store_branch')
-                    ->label(__('lead::filament/resources/lead.fields.store_branch'))
-                    ->searchable()
-                    ->required()
-                    ->options(Lead::storeBranchOptions())
-                    ->placeholder(__('lead::filament/resources/lead.form.placeholders.store_branch')),
-                Select::make('phone_transaction_range')
-                    ->label(__('lead::filament/resources/lead.fields.phone_transaction_range'))
-                    ->placeholder(__('lead::filament/resources/lead.form.placeholders.phone_transaction_range'))
-                    ->searchable()
-                    ->options([
-                        'Harga di bawah 2 juta' => __('lead::filament/resources/lead.options.phone_transaction_range.below_2m'),
-                        'Harga 2 - 3 juta'      => __('lead::filament/resources/lead.options.phone_transaction_range.2m_3m'),
-                        'Harga 3 - 4 juta'      => __('lead::filament/resources/lead.options.phone_transaction_range.3m_4m'),
-                        'Harga 4 - 7 juta'      => __('lead::filament/resources/lead.options.phone_transaction_range.4m_7m'),
-                        'Harga di atas 7 juta'  => __('lead::filament/resources/lead.options.phone_transaction_range.above_7m'),
-                    ])
-                    ->nullable(),
-            ])
+            ->components($fields)
             ->statePath('data');
     }
 
@@ -183,29 +226,44 @@ class PublicLeadForm extends SimplePage
         $phone = Lead::normalizePhone((string) $phone);
 
         if (blank($phone)) {
+            $this->whatsappValidationStatus = self::WHATSAPP_VALIDATION_STATUS_INVALID;
             $this->addError('data.phone', __('lead::filament/resources/lead.validation.phone_required'));
 
             return;
         }
 
-        $result = $this->requestWhatsAppValidation($phone);
-        $this->whatsappValidationStatus = $result['status'];
+        data_set($this->data, 'phone', $phone);
 
-        if (
-            ! $this->whatsappValidationAllowManual
-            && $result['status'] !== self::WHATSAPP_VALIDATION_STATUS_SUCCESS
-        ) {
-            $this->addError('data.phone', $this->getWhatsAppValidationErrorMessage($result['status']));
+        if ($this->phoneAlreadyExists($phone)) {
+            $this->addError('data.phone', __('lead::filament/resources/lead.validation.phone_unique'));
+
+            return;
         }
+
+        $this->validateWhatsAppPhone($phone);
     }
 
     public function submit(): void
     {
+        $phone = Lead::normalizePhone((string) data_get($this->data, 'phone'));
+
+        if (! $this->ensureWhatsAppValidationPassed($phone)) {
+            return;
+        }
+
         $state = $this->form->getState();
+        $phone = Lead::normalizePhone((string) ($state['phone'] ?? ''));
+
+        if ($this->recaptchaEnabled && ! $this->verifyRecaptchaToken($state)) {
+            return;
+        }
 
         try {
+            $dataToSave = Arr::except($state, ['recaptcha_token']);
+
             $lead = Lead::create([
-                ...$state,
+                ...$dataToSave,
+                'phone'      => $phone,
                 'created_by' => null,
             ]);
 
@@ -243,6 +301,10 @@ class PublicLeadForm extends SimplePage
             return null;
         }
 
+        if ($this->getErrorBag()->has('data.phone')) {
+            return null;
+        }
+
         if ($this->whatsappValidationStatus === self::WHATSAPP_VALIDATION_STATUS_SUCCESS) {
             return __('lead::views/public-lead-form.whatsapp_validation.success');
         }
@@ -266,6 +328,12 @@ class PublicLeadForm extends SimplePage
         return __('lead::views/public-lead-form.whatsapp_validation.hint');
     }
 
+    protected function shouldDisableUntilWhatsAppValidation(): bool
+    {
+        return $this->whatsappValidationEnabled
+            && ! $this->hasSuccessfulWhatsAppValidation((string) data_get($this->data, 'phone'));
+    }
+
     protected function resetWhatsAppValidationFeedback(): void
     {
         if (! $this->whatsappValidationEnabled) {
@@ -273,7 +341,35 @@ class PublicLeadForm extends SimplePage
         }
 
         $this->whatsappValidationStatus = null;
+        $this->whatsappValidatedPhone = null;
         $this->resetErrorBag(['data.phone']);
+    }
+
+    protected function validateWhatsAppPhone(string $phone): bool
+    {
+        if (! $this->whatsappValidationEnabled) {
+            return true;
+        }
+
+        if (
+            $this->whatsappValidatedPhone === $phone
+            && $this->whatsappValidationStatus === self::WHATSAPP_VALIDATION_STATUS_SUCCESS
+        ) {
+            return true;
+        }
+
+        $result = $this->requestWhatsAppValidation($phone);
+
+        $this->whatsappValidationStatus = $result['status'];
+        $this->whatsappValidatedPhone = $phone;
+
+        if (! $this->shouldBlockWhatsAppValidationStatus($result['status'])) {
+            return true;
+        }
+
+        $this->addError('data.phone', $this->getWhatsAppValidationErrorMessage($result['status']));
+
+        return false;
     }
 
     /**
@@ -313,7 +409,11 @@ class PublicLeadForm extends SimplePage
         }
 
         if (! Arr::get($payload, 'status')) {
-            $result['status'] = self::WHATSAPP_VALIDATION_STATUS_FAILED;
+            $reason = strtolower(trim((string) Arr::get($payload, 'reason', '')));
+
+            $result['status'] = in_array($reason, ['target invalid', 'target required'], true)
+                ? self::WHATSAPP_VALIDATION_STATUS_INVALID
+                : self::WHATSAPP_VALIDATION_STATUS_FAILED;
         } else {
             $registered = Arr::get($payload, 'registered', []);
             $notRegistered = Arr::get($payload, 'not_registered', []);
@@ -382,6 +482,55 @@ class PublicLeadForm extends SimplePage
         return sprintf('lead:whatsapp-validation:%s', $phone);
     }
 
+    protected function hasSuccessfulWhatsAppValidation(string $phone): bool
+    {
+        if (! $this->whatsappValidationEnabled) {
+            return true;
+        }
+
+        $phone = Lead::normalizePhone($phone);
+
+        return $phone !== ''
+            && $this->whatsappValidatedPhone === $phone
+            && $this->whatsappValidationStatus === self::WHATSAPP_VALIDATION_STATUS_SUCCESS;
+    }
+
+    protected function ensureWhatsAppValidationPassed(string $phone): bool
+    {
+        if ($this->phoneAlreadyExists($phone)) {
+            $this->addError('data.phone', __('lead::filament/resources/lead.validation.phone_unique'));
+
+            return false;
+        }
+
+        if ($this->hasSuccessfulWhatsAppValidation($phone)) {
+            return true;
+        }
+
+        if (! $this->whatsappValidationEnabled) {
+            return true;
+        }
+
+        if (! $this->getErrorBag()->has('data.phone')) {
+            $this->addError('data.phone', __('lead::views/public-lead-form.whatsapp_validation.required_success'));
+        }
+
+        return false;
+    }
+
+    protected function phoneAlreadyExists(string $phone): bool
+    {
+        $phone = Lead::normalizePhone($phone);
+
+        if ($phone === '') {
+            return false;
+        }
+
+        return Lead::withTrashed()
+            ->where('phone', $phone)
+            ->exists();
+    }
+
     protected function isWhatsAppValidationRateLimited(string $phone): bool
     {
         if ($this->whatsappValidationRateLimitMaxAttempts <= 0 || $this->whatsappValidationRateLimitDecaySeconds <= 0) {
@@ -416,6 +565,16 @@ class PublicLeadForm extends SimplePage
         };
     }
 
+    protected function shouldBlockWhatsAppValidationStatus(string $status): bool
+    {
+        return match ($status) {
+            self::WHATSAPP_VALIDATION_STATUS_SUCCESS => false,
+            self::WHATSAPP_VALIDATION_STATUS_FAILED,
+            self::WHATSAPP_VALIDATION_STATUS_RATE_LIMITED => ! $this->whatsappValidationAllowManual,
+            default                                       => true,
+        };
+    }
+
     protected function getFormActions(): array
     {
         return [
@@ -423,10 +582,110 @@ class PublicLeadForm extends SimplePage
         ];
     }
 
+    public function isRecaptchaEnabled(): bool
+    {
+        return $this->recaptchaEnabled;
+    }
+
+    public function getRecaptchaSiteKey(): ?string
+    {
+        return $this->recaptchaSiteKey;
+    }
+
+    public function getRecaptchaAction(): string
+    {
+        return $this->recaptchaAction ?? 'lead_request';
+    }
+
+    protected function verifyRecaptchaToken(array $state): bool
+    {
+        $token = Arr::get($state, 'recaptcha_token');
+
+        if (! $token) {
+            $this->addError('data.recaptcha_token', __('lead::views/public-lead-form.recaptcha.required'));
+
+            return false;
+        }
+
+        try {
+            $response = Http::asForm()
+                ->timeout($this->recaptchaTimeout)
+                ->post('https://www.google.com/recaptcha/api/siteverify', [
+                    'secret'   => $this->recaptchaSecretKey,
+                    'response' => $token,
+                    'remoteip' => request()?->ip(),
+                ]);
+
+            if (! $response->successful()) {
+                Log::warning('Lead reCAPTCHA verification request failed.', [
+                    'status' => $response->status(),
+                    'body'   => $response->body(),
+                ]);
+
+                $this->addError('data.recaptcha_token', __('lead::views/public-lead-form.recaptcha.failed'));
+
+                return false;
+            }
+
+            $payload = $response->json();
+
+            if (! Arr::get($payload, 'success')) {
+                Log::info('Lead reCAPTCHA verification rejected.', [
+                    'errors' => Arr::get($payload, 'error-codes'),
+                ]);
+
+                $this->addError('data.recaptcha_token', __('lead::views/public-lead-form.recaptcha.failed'));
+
+                return false;
+            }
+
+            $score = (float) Arr::get($payload, 'score', 1.0);
+
+            if (
+                $this->recaptchaScoreThreshold > 0
+                && Arr::has($payload, 'score')
+                && $score < $this->recaptchaScoreThreshold
+            ) {
+                Log::info('Lead reCAPTCHA score below configured threshold.', [
+                    'score'     => $score,
+                    'threshold' => $this->recaptchaScoreThreshold,
+                ]);
+
+                $this->addError('data.recaptcha_token', __('lead::views/public-lead-form.recaptcha.failed'));
+
+                return false;
+            }
+
+            $action = Arr::get($payload, 'action');
+
+            if ($action && $this->recaptchaAction && $action !== $this->recaptchaAction) {
+                Log::info('Lead reCAPTCHA action mismatch detected.', [
+                    'expected' => $this->recaptchaAction,
+                    'received' => $action,
+                ]);
+
+                $this->addError('data.recaptcha_token', __('lead::views/public-lead-form.recaptcha.failed'));
+
+                return false;
+            }
+        } catch (Throwable $exception) {
+            Log::warning('Lead reCAPTCHA verification failed with exception.', [
+                'error' => $exception->getMessage(),
+            ]);
+
+            $this->addError('data.recaptcha_token', __('lead::views/public-lead-form.recaptcha.failed'));
+
+            return false;
+        }
+
+        return true;
+    }
+
     protected function getSubmitAction(): Action
     {
         return Action::make('submit')
             ->label(__('lead::views/public-lead-form.actions.submit'))
+            ->disabled(fn (): bool => $this->shouldDisableUntilWhatsAppValidation())
             ->extraAttributes([
                 'class' => '!bg-primary-700 !text-white shadow-sm hover:!bg-primary-800 hover:!text-white focus-visible:!ring-primary-300',
             ], merge: true)

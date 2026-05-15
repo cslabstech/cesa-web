@@ -33,7 +33,6 @@ class PresensiServiceProvider extends PackageServiceProvider
             ->hasConfigFile()
             ->hasTranslations()
             ->hasViews()
-            ->hasRoute('web')
             ->hasRoute('api')
             ->hasMigrations([
                 '2024_06_25_062004_presensi_create_offices_table',
@@ -64,6 +63,10 @@ class PresensiServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
+        if (! ($this->package->isCore || $this->package->isInstalled())) {
+            return;
+        }
+
         $userModel = config('auth.providers.users.model', User::class);
 
         $userModel::resolveRelationUsing('schedules', function ($user) {
@@ -77,10 +80,6 @@ class PresensiServiceProvider extends PackageServiceProvider
         $userModel::resolveRelationUsing('overtimes', function ($user) {
             return $user->hasMany(Overtime::class)->withTrashed();
         });
-
-        if (! ($this->package->isCore || $this->package->isInstalled())) {
-            return;
-        }
 
         Gate::policy(Office::class, OfficePolicy::class);
         Gate::policy(Shift::class, ShiftPolicy::class);

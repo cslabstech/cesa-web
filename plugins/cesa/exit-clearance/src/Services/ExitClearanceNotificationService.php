@@ -173,13 +173,15 @@ class ExitClearanceNotificationService
 
         $statusLabel = $this->requestService->formatFormStatus($request->form_status);
         $lines = [
-            '*📣 EXIT CLEARANCE - '.($request->form_uid ?? '-').'*',
+            '*📣 '.__('exit-clearance::notifications.whatsapp.approver.heading', [
+                'uid' => $request->form_uid ?? '-',
+            ]).'*',
             '',
-            '*Nama Pengaju:* '.($request->name ?? '-'),
-            '*Divisi:* '.($request->department?->name ?? '-'),
-            '*Status:* '.$statusLabel,
+            '*'.__('exit-clearance::notifications.whatsapp.labels.requester_name').':* '.($request->name ?? '-'),
+            '*'.__('exit-clearance::notifications.whatsapp.labels.division').':* '.($request->department?->name ?? '-'),
+            '*'.__('exit-clearance::notifications.whatsapp.labels.status').':* '.$statusLabel,
             '',
-            '*Tautan persetujuan:*',
+            '*'.__('exit-clearance::notifications.whatsapp.labels.approval_link').':*',
             $actionUrl,
         ];
 
@@ -191,11 +193,16 @@ class ExitClearanceNotificationService
         $request->loadMissing('department');
 
         $lines = [
-            '*📣 STATUS EXIT CLEARANCE - '.($request->form_uid ?? '-').'*',
+            '*📣 '.__('exit-clearance::notifications.whatsapp.requester.heading', [
+                'uid' => $request->form_uid ?? '-',
+            ]).'*',
             '',
-            '*Nama Pengaju:* '.($request->name ?? '-'),
-            '*Divisi:* '.($request->department?->name ?? '-'),
-            '*Status:* '.$statusLabel,
+            '*'.__('exit-clearance::notifications.whatsapp.labels.requester_name').':* '.($request->name ?? '-'),
+            '*'.__('exit-clearance::notifications.whatsapp.labels.division').':* '.($request->department?->name ?? '-'),
+            '*'.__('exit-clearance::notifications.whatsapp.labels.status').':* '.$statusLabel,
+            '',
+            '*'.__('exit-clearance::notifications.whatsapp.labels.progress_link').':*',
+            $progressUrl,
         ];
 
         return implode("\n", $lines);

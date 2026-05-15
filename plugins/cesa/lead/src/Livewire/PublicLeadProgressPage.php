@@ -14,15 +14,13 @@ class PublicLeadProgressPage extends SimplePage
 
     public Lead $lead;
 
-    public function mount(string $response): void
+    public function mount(Lead $lead): void
     {
         if (! Package::isPluginInstalled('lead')) {
             abort(404);
         }
 
-        $this->lead = Lead::query()
-            ->where('public_response_id', $response)
-            ->firstOrFail();
+        $this->lead = $lead;
     }
 
     public function getHeading(): string

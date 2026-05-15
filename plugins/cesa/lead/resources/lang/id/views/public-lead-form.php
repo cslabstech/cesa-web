@@ -34,6 +34,11 @@ return [
         'generic' => 'Terjadi kesalahan saat mengirim formulir. Silakan coba lagi.',
     ],
 
+    'recaptcha' => [
+        'required' => 'Harap selesaikan verifikasi keamanan sebelum mengirim.',
+        'failed'   => 'Verifikasi keamanan gagal. Silakan coba lagi.',
+    ],
+
     'notifications' => [
         'submitted' => [
             'title' => 'Lead terkirim',
@@ -42,12 +47,13 @@ return [
     ],
 
     'whatsapp_validation' => [
-        'action'         => 'Cek WhatsApp',
-        'hint'           => 'Gunakan pengecekan ini untuk memastikan nomor terdaftar di WhatsApp.',
-        'success'        => 'Nomor ini terdaftar di WhatsApp.',
-        'not_registered' => 'Nomor ini tidak terdaftar di WhatsApp.',
-        'invalid'        => 'Nomor tidak valid.',
-        'rate_limited'   => 'Terlalu banyak percobaan. Silakan coba lagi sebentar.',
-        'failed'         => 'Validasi WhatsApp gagal. Silakan coba lagi.',
+        'action'           => 'Cek WhatsApp',
+        'hint'             => 'Gunakan pengecekan ini untuk memastikan nomor terdaftar di WhatsApp.',
+        'success'          => 'Nomor ini terdaftar di WhatsApp.',
+        'not_registered'   => 'Nomor ini tidak terdaftar di WhatsApp.',
+        'invalid'          => 'Nomor tidak valid.',
+        'rate_limited'     => 'Terlalu banyak percobaan. Silakan coba lagi sebentar.',
+        'failed'           => 'Validasi WhatsApp gagal. Silakan coba lagi.',
+        'required_success' => 'Validasi nomor WhatsApp yang terdaftar sebelum melanjutkan.',
     ],
 ];

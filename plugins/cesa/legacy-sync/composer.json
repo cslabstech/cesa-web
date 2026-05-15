@@ -1,6 +1,6 @@
 {
     "name": "cesa/legacy-sync",
-    "description": "Legacy SQL data synchronization for CESA modules",
+    "description": "Sinkronisasi data lama.",
     "type": "library",
     "authors": [
         {

@@ -126,7 +126,7 @@ class I18nTest extends RekrutmenTestCase
             ],
             'id' => [
                 'navigation_label'                 => 'Permintaan MPP',
-                'configurations_label'             => 'Konfigurasi',
+                'configurations_label'             => 'Pengaturan',
                 'division_navigation_label'        => 'Divisi',
                 'pipeline_navigation_label'        => 'Pipeline',
                 'approver_navigation_label'        => 'Approver',

@@ -160,6 +160,8 @@ class SyncLegacySqlData extends Command
 
     public function handle(): int
     {
+        $this->resetRuntimeState();
+
         try {
             $modules = $this->resolveModules();
 
@@ -167,19 +169,18 @@ class SyncLegacySqlData extends Command
             $this->verifyLegacyConnection();
             $this->ensureLegacySyncMappingsTableExists();
 
-            $this->info(sprintf(
-                'Connected to legacy database using connection [%s].',
-                $this->legacyConnection
-            ));
+            $this->info(__('legacy-sync::console.connected', [
+                'connection' => $this->legacyConnection,
+            ]));
 
             if ($this->shouldTruncate()) {
-                $this->warn('Truncate mode is enabled. Target module tables will be emptied before syncing.');
+                $this->warn(__('legacy-sync::console.truncate_enabled'));
             } else {
-                $this->info('Upsert mode is enabled. Existing mapped records will be updated.');
+                $this->info(__('legacy-sync::console.upsert_enabled'));
             }
 
             if ($this->shouldCreateMissingUsers()) {
-                $this->info('Missing legacy users will be created automatically when needed.');
+                $this->info(__('legacy-sync::console.create_missing_users'));
             }
 
             foreach ($modules as $module) {
@@ -194,15 +195,50 @@ class SyncLegacySqlData extends Command
                 };
             }
 
-            $this->info('Legacy sync completed successfully.');
+            $this->info(__('legacy-sync::console.sync_completed'));
 
             return self::SUCCESS;
         } catch (Throwable $throwable) {
             report($throwable);
-            $this->error('Legacy sync failed: '.$throwable->getMessage());
+            $this->error(__('legacy-sync::console.sync_failed', [
+                'message' => $throwable->getMessage(),
+            ]));
 
             return self::FAILURE;
         }
+    }
+
+    protected function resetRuntimeState(): void
+    {
+        $this->legacyConnection = 'legacy_sync';
+        $this->legacyUsersById = [];
+        $this->legacyUsersLoaded = false;
+        $this->targetUsersByEmail = [];
+        $this->targetUserEmailsById = [];
+        $this->targetUserNamesById = [];
+        $this->targetUserIdsByName = [];
+        $this->targetUserDefaultCompaniesById = [];
+        $this->targetEmployeesLoaded = false;
+        $this->targetEmployeeUserIdsByIdentifier = [];
+        $this->targetEmployeesWithoutUsersByIdentifier = [];
+        $this->targetEmployeeIdentifiersById = [];
+        $this->legacyCompaniesById = [];
+        $this->legacyCompaniesLoaded = false;
+        $this->sharedLegacyCompaniesSynchronized = false;
+        $this->sharedLegacyUsersSynchronized = false;
+        $this->sharedLegacyCoreDataSynchronized = false;
+        $this->targetCompaniesByCompanyCode = [];
+        $this->targetCompaniesByName = [];
+        $this->legacyHelpdeskBusinessEntitiesById = [];
+        $this->legacyHelpdeskBusinessEntitiesLoaded = false;
+        $this->legacyShelfAssetsById = [];
+        $this->legacyShelfAssetsLoaded = false;
+        $this->legacyShelfAssetTransfersById = [];
+        $this->legacyShelfAssetTransfersLoaded = false;
+        $this->legacyShelfJobPositionsTable = null;
+        $this->legacyShelfEmployeesTable = null;
+        $this->emittedWarnings = [];
+        $this->syncedExitRequestIds = [];
     }
 
     /**
@@ -278,7 +314,7 @@ class SyncLegacySqlData extends Command
             return;
         }
 
-        $this->warn('Table [legacy_sync_mappings] is missing. Running legacy-sync migrations first.');
+        $this->warn(__('legacy-sync::console.mapping_table_missing'));
 
         $exitCode = $this->callSilent('migrate', [
             '--path'           => base_path('plugins/cesa/legacy-sync/database/migrations'),
@@ -519,7 +555,7 @@ class SyncLegacySqlData extends Command
         ));
 
         if ($existingLegacyTables === []) {
-            $this->warn('Skipping module [shelf]. No legacy shelf tables were found.');
+            $this->warn(__('legacy-sync::console.shelf_tables_missing'));
 
             return;
         }
@@ -1965,7 +2001,7 @@ class SyncLegacySqlData extends Command
         if (! Schema::hasTable('employees_job_positions')) {
             $this->warnOnce(
                 'shelf:employees_job_positions:missing',
-                'Skipping shelf employee job positions sync because target table [employees_job_positions] is missing. Install kepegawaian first.'
+                __('legacy-sync::console.kepegawaian_job_positions_missing')
             );
 
             return;
@@ -1974,7 +2010,7 @@ class SyncLegacySqlData extends Command
         $legacyTable = $this->legacyShelfJobPositionsTable();
 
         if ($legacyTable === null) {
-            $this->line('Legacy employee job positions table not found. Skipping shelf job titles.');
+            $this->line(__('legacy-sync::console.legacy_job_positions_missing'));
 
             return;
         }
@@ -1993,7 +2029,10 @@ class SyncLegacySqlData extends Command
             if ($name === null) {
                 $this->warnOnce(
                     "relation:{$legacyTable}:{$legacyId}:name",
-                    sprintf('Skipping legacy record [%s:%s] because no job position name could be resolved.', $legacyTable, $legacyId)
+                    __('legacy-sync::console.job_position_name_missing', [
+                        'table' => $legacyTable,
+                        'id'    => $legacyId,
+                    ])
                 );
 
                 return;
@@ -2053,7 +2092,7 @@ class SyncLegacySqlData extends Command
         if (! Schema::hasTable('employees_employees')) {
             $this->warnOnce(
                 'shelf:employees_employees:missing',
-                'Skipping shelf employees sync because target table [employees_employees] is missing. Install kepegawaian first.'
+                __('legacy-sync::console.kepegawaian_employees_missing')
             );
 
             return;
@@ -2062,7 +2101,7 @@ class SyncLegacySqlData extends Command
         $legacyTable = $this->legacyShelfEmployeesTable();
 
         if ($legacyTable === null) {
-            $this->line('Legacy employees table not found. Skipping shelf employees.');
+            $this->line(__('legacy-sync::console.legacy_employees_missing'));
 
             return;
         }
@@ -2856,11 +2895,10 @@ class SyncLegacySqlData extends Command
             return true;
         }
 
-        $this->warn(sprintf(
-            'Skipping module [%s]. Missing legacy table(s): %s',
-            $module,
-            implode(', ', $missingTables)
-        ));
+        $this->warn(__('legacy-sync::console.module_missing_tables', [
+            'module' => $module,
+            'tables' => implode(', ', $missingTables),
+        ]));
 
         return false;
     }
@@ -2931,7 +2969,10 @@ class SyncLegacySqlData extends Command
 
                 $this->warnOnce(
                     'document:'.$row->id,
-                    sprintf('Legacy document ID [%s] has no title. Using fallback: [%s].', $row->id, $title)
+                    __('legacy-sync::console.document_title_missing', [
+                        'id'    => $row->id,
+                        'title' => $title,
+                    ])
                 );
             }
 
@@ -3048,13 +3089,14 @@ class SyncLegacySqlData extends Command
             if ($name === null || $phone === '') {
                 $this->warnOnce(
                     'lead:'.$row->id,
-                    sprintf('Skipping legacy lead ID [%s]. Name or phone is missing.', $row->id)
+                    __('legacy-sync::console.lead_name_or_phone_missing', [
+                        'id' => $row->id,
+                    ])
                 );
 
                 return;
             }
 
-            $publicResponseId = $this->nullableString($row->public_response_id ?? null) ?? (string) Str::ulid();
             $createdBy = $this->resolveUserId($this->nullableInt($row->created_by ?? null));
 
             $targetId = $this->resolveTargetId(
@@ -3107,7 +3149,6 @@ class SyncLegacySqlData extends Command
                     'store_team_position'     => $storeTeamPosition,
                     'store_branch'            => $storeBranch,
                     'phone_transaction_range' => $phoneTransactionRange,
-                    'public_response_id'      => $publicResponseId,
                     'created_by'              => $createdBy,
                     'created_at'              => $row->created_at ?? now(),
                     'updated_at'              => $row->updated_at ?? now(),
@@ -4365,12 +4406,16 @@ class SyncLegacySqlData extends Command
         callable $callback,
         string $orderColumn = 'id'
     ): void {
-        $this->line('Syncing '.$label.'...');
+        $this->line(__('legacy-sync::console.syncing_rows', [
+            'label' => $label,
+        ]));
 
         $total = $query->count();
 
         if ($total === 0) {
-            $this->line('No legacy rows found for '.$label.'.');
+            $this->line(__('legacy-sync::console.no_legacy_rows', [
+                'label' => $label,
+            ]));
 
             return;
         }
@@ -4525,10 +4570,9 @@ class SyncLegacySqlData extends Command
 
         $this->warnOnce(
             'user:'.$legacyUserId,
-            sprintf(
-                'Could not map legacy user ID [%d]. Import legacy users table or use --trust-legacy-user-ids if IDs are aligned.',
-                $legacyUserId
-            )
+            __('legacy-sync::console.user_not_mapped', [
+                'id' => $legacyUserId,
+            ])
         );
 
         return null;
@@ -4674,10 +4718,9 @@ class SyncLegacySqlData extends Command
 
         $this->warnOnce(
             'company:'.$legacyCompanyId,
-            sprintf(
-                'Could not map legacy company ID [%d]. Import legacy companies table or use --trust-legacy-company-ids if IDs are aligned.',
-                $legacyCompanyId
-            )
+            __('legacy-sync::console.company_not_mapped', [
+                'id' => $legacyCompanyId,
+            ])
         );
 
         return null;
@@ -4902,11 +4945,10 @@ class SyncLegacySqlData extends Command
 
         $this->rememberMapping('users', $legacyUserId, 'users', (int) $user->id);
 
-        $this->line(sprintf(
-            'Created placeholder user [%s] for unresolved legacy user ID [%d].',
-            $email,
-            $legacyUserId
-        ));
+        $this->line(__('legacy-sync::console.created_placeholder_user', [
+            'email' => $email,
+            'id'    => $legacyUserId,
+        ]));
 
         return (int) $user->id;
     }
@@ -5283,10 +5325,9 @@ class SyncLegacySqlData extends Command
 
         $this->warnOnce(
             'business_entity:'.$legacyBusinessEntityId,
-            sprintf(
-                'Could not map legacy business entity ID [%d] to a company in CESA.',
-                $legacyBusinessEntityId
-            )
+            __('legacy-sync::console.business_entity_not_mapped', [
+                'id' => $legacyBusinessEntityId,
+            ])
         );
 
         return null;
@@ -5321,11 +5362,10 @@ class SyncLegacySqlData extends Command
 
         $this->rememberMapping('business_entities', $legacyBusinessEntityId, 'companies', $companyId);
 
-        $this->line(sprintf(
-            'Created missing company [%s] from legacy business entity ID [%d].',
-            $legacyCompanyName,
-            $legacyBusinessEntityId
-        ));
+        $this->line(__('legacy-sync::console.created_business_entity_company', [
+            'company' => $legacyCompanyName,
+            'id'      => $legacyBusinessEntityId,
+        ]));
 
         return $companyId;
     }
@@ -5379,11 +5419,10 @@ class SyncLegacySqlData extends Command
 
         $this->rememberMapping('companies', $legacyCompanyId, 'companies', $companyId);
 
-        $this->line(sprintf(
-            'Created missing company [%s] from legacy company ID [%d].',
-            $companyName,
-            $legacyCompanyId
-        ));
+        $this->line(__('legacy-sync::console.created_legacy_company', [
+            'company' => $companyName,
+            'id'      => $legacyCompanyId,
+        ]));
 
         return $companyId;
     }
@@ -5978,13 +6017,12 @@ class SyncLegacySqlData extends Command
     {
         $this->warnOnce(
             sprintf('relation:%s:%s:%s', $table, $legacyId, $column),
-            sprintf(
-                'Skipping legacy record [%s:%s] because relation [%s=%s] could not be resolved.',
-                $table,
-                $legacyId,
-                $column,
-                (string) $value
-            )
+            __('legacy-sync::console.relation_not_resolved', [
+                'table'  => $table,
+                'id'     => $legacyId,
+                'column' => $column,
+                'value'  => (string) $value,
+            ])
         );
     }
 

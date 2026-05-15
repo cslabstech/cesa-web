@@ -52,56 +52,58 @@ class SyncAllLegacyData extends Command
             if (! $this->shouldSkipInstall()) {
                 foreach ($this->pluginsToInstall as $plugin) {
                     if (! $this->shouldRunInstallCommand($plugin)) {
-                        $this->info(sprintf(
-                            'Plugin [%s] is already installed. Skipping [%s:install].',
-                            $plugin,
-                            $plugin
-                        ));
+                        $this->info(__('legacy-sync::console.plugin_already_installed', [
+                            'plugin' => $plugin,
+                        ]));
 
                         continue;
                     }
 
-                    $this->info(sprintf('Running [%s:install]...', $plugin));
+                    $this->info(__('legacy-sync::console.running_install', [
+                        'plugin' => $plugin,
+                    ]));
 
                     $exitCode = $this->callCommand($plugin.':install', [
                         '--no-interaction' => true,
                     ]);
 
                     if ($exitCode !== self::SUCCESS) {
-                        $this->error(sprintf('Command [%s:install] failed.', $plugin));
+                        $this->error(__('legacy-sync::console.install_failed', [
+                            'plugin' => $plugin,
+                        ]));
 
                         return $exitCode;
                     }
                 }
             } else {
-                $this->info('Skipping plugin installation as requested.');
+                $this->info(__('legacy-sync::console.skip_install'));
             }
 
             foreach ($this->syncJobs() as $job) {
-                $this->info(sprintf(
-                    'Syncing [%s] from database [%s]...',
-                    implode(', ', $job['modules']),
-                    $job['database']
-                ));
+                $this->info(__('legacy-sync::console.syncing_database', [
+                    'modules'  => implode(', ', $job['modules']),
+                    'database' => $job['database'],
+                ]));
 
                 $exitCode = $this->callCommand('legacy:sync', $this->buildLegacySyncArguments($job));
 
                 if ($exitCode !== self::SUCCESS) {
-                    $this->error(sprintf(
-                        'Legacy sync failed for database [%s].',
-                        $job['database']
-                    ));
+                    $this->error(__('legacy-sync::console.database_sync_failed', [
+                        'database' => $job['database'],
+                    ]));
 
                     return $exitCode;
                 }
             }
 
-            $this->info('Legacy full sync completed successfully.');
+            $this->info(__('legacy-sync::console.full_sync_completed'));
 
             return self::SUCCESS;
         } catch (Throwable $throwable) {
             report($throwable);
-            $this->error('Legacy full sync failed: '.$throwable->getMessage());
+            $this->error(__('legacy-sync::console.full_sync_failed', [
+                'message' => $throwable->getMessage(),
+            ]));
 
             return self::FAILURE;
         }

@@ -35,10 +35,21 @@ return [
         'country_code'          => env('WHATSAPP_COUNTRY_CODE', '62'),
         'timeout'               => (int) env('WHATSAPP_VALIDATION_TIMEOUT', 5),
         'cache_ttl'             => (int) env('WHATSAPP_VALIDATION_CACHE_TTL', 300),
-        'allow_manual_fallback' => env('WHATSAPP_VALIDATION_ALLOW_MANUAL', true),
+        'allow_manual_fallback' => env('WHATSAPP_VALIDATION_ALLOW_MANUAL', false),
         'rate_limit'            => [
             'max_attempts' => (int) env('WHATSAPP_VALIDATION_RATE_LIMIT', 10),
             'decay'        => (int) env('WHATSAPP_VALIDATION_RATE_DECAY', 60),
+        ],
+    ],
+
+    'security' => [
+        'recaptcha' => [
+            'enabled'         => env('LEAD_RECAPTCHA_ENABLED', false),
+            'site_key'        => env('LEAD_RECAPTCHA_SITE_KEY'),
+            'secret_key'      => env('LEAD_RECAPTCHA_SECRET_KEY'),
+            'action'          => env('LEAD_RECAPTCHA_ACTION', 'lead_request'),
+            'score_threshold' => (float) env('LEAD_RECAPTCHA_SCORE_THRESHOLD', 0.5),
+            'timeout'         => (int) env('LEAD_RECAPTCHA_TIMEOUT', 5),
         ],
     ],
 ];

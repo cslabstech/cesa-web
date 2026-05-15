@@ -1,11 +1,11 @@
 {
     "name": "cesa/rekrutmen",
-    "description": "Manpower requests and recruitment workflows for CESA",
+    "description": "Pengelolaan permintaan tenaga kerja dan rekrutmen.",
     "type": "library",
     "authors": [
         {
             "name": "apriansyahrs",
-            "email": "apriansyah@rizqis.com"
+            "email": "developer@rizqis.com"
         }
     ],
     "extra": {
@@ -19,7 +19,6 @@
     "autoload": {
         "psr-4": {
             "Cesa\\Rekrutmen\\": "src/",
-            "Cesa\\Rekrutmen\\Database\\Factories\\": "database/factories/",
             "Cesa\\Rekrutmen\\Database\\Seeders\\": "database/seeders/"
         }
     },

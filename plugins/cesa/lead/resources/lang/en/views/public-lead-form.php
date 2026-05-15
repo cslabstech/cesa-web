@@ -34,6 +34,11 @@ return [
         'generic' => 'Something went wrong while submitting the form. Please try again.',
     ],
 
+    'recaptcha' => [
+        'required' => 'Please complete the security verification before submitting.',
+        'failed'   => 'Security verification failed. Please try again.',
+    ],
+
     'notifications' => [
         'submitted' => [
             'title' => 'Lead submitted',
@@ -42,12 +47,13 @@ return [
     ],
 
     'whatsapp_validation' => [
-        'action'         => 'Check WhatsApp',
-        'hint'           => 'Use this check to confirm the number is registered on WhatsApp.',
-        'success'        => 'This number is registered on WhatsApp.',
-        'not_registered' => 'This number is not registered on WhatsApp.',
-        'invalid'        => 'The number is invalid.',
-        'rate_limited'   => 'Too many attempts. Please try again in a moment.',
-        'failed'         => 'WhatsApp validation failed. Please try again.',
+        'action'           => 'Check WhatsApp',
+        'hint'             => 'Use this check to confirm the number is registered on WhatsApp.',
+        'success'          => 'This number is registered on WhatsApp.',
+        'not_registered'   => 'This number is not registered on WhatsApp.',
+        'invalid'          => 'The number is invalid.',
+        'rate_limited'     => 'Too many attempts. Please try again in a moment.',
+        'failed'           => 'WhatsApp validation failed. Please try again.',
+        'required_success' => 'Please validate a WhatsApp-registered number before continuing.',
     ],
 ];

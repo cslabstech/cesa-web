@@ -164,10 +164,10 @@ class PipelineBoard extends Page implements HasActions, HasBoard, HasForms
                         && filled($record->currentStage?->name))
                     ->form([
                         Placeholder::make('candidate_name')
-                            ->label('Nama Kandidat')
+                            ->label(__('rekrutmen::filament/resources/activity-log.form.fields.candidate'))
                             ->content(fn (JobApplication $record): string => $record->full_name),
                         Placeholder::make('current_stage')
-                            ->label('Tahapan Proses')
+                            ->label(__('rekrutmen::filament/resources/activity-log.form.fields.stage_id'))
                             ->content(fn (JobApplication $record): string => $record->currentStage?->name ?? '-'),
                         DatePicker::make('activity_date')
                             ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))

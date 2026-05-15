@@ -219,7 +219,7 @@ class ExitClearanceSubmissionTest extends ExitClearanceTestCase
         $job->handle();
     }
 
-    public function test_exit_clearance_whatsapp_messages_remove_progress_and_use_consistent_copy(): void
+    public function test_exit_clearance_whatsapp_messages_include_requester_progress_link(): void
     {
         $service = app(ExitClearanceNotificationService::class);
         $department = new Department(['name' => 'Human Resource']);
@@ -250,11 +250,12 @@ class ExitClearanceSubmissionTest extends ExitClearanceTestCase
             'https://example.com/progress'
         );
 
-        $this->assertStringContainsString('📣 EXIT CLEARANCE - EXC-00001', $approverMessage);
-        $this->assertStringContainsString('*Tautan persetujuan:*', $approverMessage);
+        $this->assertStringContainsString(__('exit-clearance::notifications.whatsapp.approver.heading', ['uid' => 'EXC-00001']), $approverMessage);
+        $this->assertStringContainsString('*'.__('exit-clearance::notifications.whatsapp.labels.approval_link').':*', $approverMessage);
         $this->assertStringNotContainsString('Progress', $approverMessage);
-        $this->assertStringContainsString('📣 STATUS EXIT CLEARANCE - EXC-00001', $requesterMessage);
-        $this->assertStringContainsString('*Nama Pengaju:* Budi Santoso', $requesterMessage);
-        $this->assertStringNotContainsString('Progress', $requesterMessage);
+        $this->assertStringContainsString(__('exit-clearance::notifications.whatsapp.requester.heading', ['uid' => 'EXC-00001']), $requesterMessage);
+        $this->assertStringContainsString('*'.__('exit-clearance::notifications.whatsapp.labels.requester_name').':* Budi Santoso', $requesterMessage);
+        $this->assertStringContainsString('*'.__('exit-clearance::notifications.whatsapp.labels.progress_link').':*', $requesterMessage);
+        $this->assertStringContainsString('https://example.com/progress', $requesterMessage);
     }
 }

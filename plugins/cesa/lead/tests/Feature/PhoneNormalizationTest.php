@@ -83,12 +83,13 @@ class PhoneNormalizationTest extends TestCase
 
     public function test_phone_normalization_handles_unicode_characters(): void
     {
-        $input = '０８１２３４５６７８９'; // Full-width numbers
-        $expected = '62';
+        $input = '０８１２３４５６７８９';
 
-        $lead = Lead::factory()->create(['phone' => $input]);
+        $lead = new Lead;
+        $lead->phone = $input;
 
-        $this->assertEquals($expected, $lead->phone);
+        $this->assertSame('', Lead::normalizePhone($input));
+        $this->assertNull($lead->phone);
     }
 
     public function test_phone_normalization_priority_order_620_before_62(): void
@@ -134,11 +135,12 @@ class PhoneNormalizationTest extends TestCase
     public function test_phone_normalization_handles_only_non_digits(): void
     {
         $input = '++--..  ';
-        $expected = '62';
 
-        $lead = Lead::factory()->create(['phone' => $input]);
+        $lead = new Lead;
+        $lead->phone = $input;
 
-        $this->assertEquals($expected, $lead->phone);
+        $this->assertSame('', Lead::normalizePhone($input));
+        $this->assertNull($lead->phone);
     }
 
     public function test_multiple_leads_different_phone_formats_stored_correctly(): void
@@ -238,6 +240,7 @@ class PhoneNormalizationTest extends TestCase
         $lead = new Lead;
         $lead->phone = '';
 
-        $this->assertEquals('62', $lead->phone);
+        $this->assertSame('', Lead::normalizePhone(''));
+        $this->assertNull($lead->phone);
     }
 }
