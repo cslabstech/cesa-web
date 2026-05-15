@@ -22,6 +22,8 @@ class ReservationExporter extends Exporter
             ExportColumn::make('court'),
             ExportColumn::make('reservation_time')
                 ->formatStateUsing(fn (mixed $state): string => static::formatReservationTime($state)),
+            ExportColumn::make('blocked_slots')
+                ->state(fn (Reservation $record): string => $record->blockedSlotSummary()),
             ExportColumn::make('transfer_amount'),
             ExportColumn::make('created_at')
                 ->formatStateUsing(fn (mixed $state): mixed => $state instanceof CarbonInterface ? $state->format('Y-m-d H:i:s') : $state),

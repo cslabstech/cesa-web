@@ -30,6 +30,7 @@ class PublicReservationSuccessPage extends SimplePage
             'reservation_date' => $reservation->reservation_date?->format('Y-m-d'),
             'court'            => $reservation->court,
             'reservation_time' => $reservation->reservation_time,
+            'blocked_slots'    => $reservation->blockedSlotSummary(),
             'transfer_amount'  => $reservation->transfer_amount,
         ];
     }

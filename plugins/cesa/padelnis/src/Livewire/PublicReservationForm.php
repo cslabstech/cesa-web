@@ -65,10 +65,10 @@ class PublicReservationForm extends SimplePage
                     ->placeholder(__('padelnis::views/public-reservation-form.placeholders.court')),
                 Select::make('reservation_time')
                     ->label(__('padelnis::filament/resources/reservation.fields.reservation_time'))
-                    ->options(fn (): array => Reservation::slotOptions())
+                    ->options(fn (): array => Reservation::reservableTimeOptions())
                     ->searchable()
                     ->required()
-                    ->rule(fn () => Rule::in(array_keys(Reservation::slotOptions())))
+                    ->rule(fn () => Rule::in(array_keys(Reservation::reservableTimeOptions())))
                     ->rule(static fn (Get $get): Closure => static::activeSlotValidationRule($get))
                     ->placeholder(__('padelnis::views/public-reservation-form.placeholders.reservation_time')),
                 TextInput::make('transfer_amount')

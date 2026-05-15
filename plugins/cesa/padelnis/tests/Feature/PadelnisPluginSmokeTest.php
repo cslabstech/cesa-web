@@ -7,6 +7,7 @@ use Cesa\Padelnis\Filament\Resources\ReservationResource;
 use Cesa\Padelnis\Livewire\PublicReservationForm;
 use Cesa\Padelnis\Livewire\PublicReservationSuccessPage;
 use Cesa\Padelnis\Models\Reservation;
+use Cesa\Padelnis\Models\ReservationSlot;
 use Cesa\Padelnis\PadelnisPlugin;
 use Cesa\Padelnis\PadelnisServiceProvider;
 use Cesa\Padelnis\Policies\ReservationPolicy;
@@ -25,6 +26,7 @@ class PadelnisPluginSmokeTest extends PadelnisTestCase
     {
         foreach ([
             Reservation::class,
+            ReservationSlot::class,
             ReservationExporter::class,
             ReservationResource::class,
             PublicReservationForm::class,
@@ -44,6 +46,7 @@ class PadelnisPluginSmokeTest extends PadelnisTestCase
         $this->assertSame([
             '2026_05_14_000000_create_padelnis_reservations_table',
             '2026_05_14_000001_add_active_slot_key_to_padelnis_reservations_table',
+            '2026_05_14_000002_create_padelnis_reservation_slots_table',
         ], $package->migrationFileNames);
     }
 
@@ -81,7 +84,7 @@ class PadelnisPluginSmokeTest extends PadelnisTestCase
 
     public function test_reservation_exporter_defines_reservation_columns(): void
     {
-        $this->assertCount(7, ReservationExporter::getColumns());
+        $this->assertCount(8, ReservationExporter::getColumns());
     }
 
     public function test_reservation_exporter_formats_reservation_time_as_slot_label(): void
@@ -93,5 +96,22 @@ class PadelnisPluginSmokeTest extends PadelnisTestCase
         $this->assertSame('06:00 - 07:00', $reservationTimeColumn->formatState('06:00:00'));
         $this->assertSame('06:00 - 07:00', $reservationTimeColumn->formatState('06:00:00 - 07:00:00'));
         $this->assertSame('06:00 - 07:00', $reservationTimeColumn->formatState('06:00 - 07:00'));
+    }
+
+    public function test_reservation_exporter_includes_blocked_slot_details(): void
+    {
+        $blockedSlotsColumn = collect(ReservationExporter::getColumns())
+            ->first(fn ($column): bool => $column->getName() === 'blocked_slots');
+
+        $this->assertNotNull($blockedSlotsColumn);
+    }
+
+    public function test_reservation_table_hides_blocked_slot_details_by_default(): void
+    {
+        $resourceSource = file_get_contents(base_path('plugins/cesa/padelnis/src/Filament/Resources/ReservationResource.php'));
+
+        $this->assertIsString($resourceSource);
+        $this->assertStringContainsString("TextColumn::make('blocked_slots')", $resourceSource);
+        $this->assertStringContainsString('->toggleable(isToggledHiddenByDefault: true)', $resourceSource);
     }
 }

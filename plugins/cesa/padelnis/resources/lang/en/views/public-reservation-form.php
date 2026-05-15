@@ -9,7 +9,7 @@ return [
         'customer_name'    => 'Enter customer name',
         'reservation_date' => 'Select reservation date',
         'court'            => 'Select court',
-        'reservation_time' => 'Select time',
+        'reservation_time' => 'Select start time - end time',
         'transfer_amount'  => 'Example: 150,000',
     ],
 

@@ -7,6 +7,7 @@ use Cesa\Padelnis\Services\ReservationReferenceService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
@@ -42,10 +43,20 @@ class Reservation extends Model
             }
         });
 
+        static::created(function (Reservation $reservation): void {
+            $reservation->syncReservationSlots();
+        });
+
+        static::updated(function (Reservation $reservation): void {
+            $reservation->syncReservationSlots();
+        });
+
         static::deleted(function (Reservation $reservation): void {
             if ($reservation->isForceDeleting()) {
                 return;
             }
+
+            $reservation->reservationSlots()->delete();
 
             static::query()
                 ->withoutGlobalScopes()
@@ -68,6 +79,11 @@ class Reservation extends Model
             'updated_at'       => 'datetime',
             'deleted_at'       => 'datetime',
         ];
+    }
+
+    public function reservationSlots(): HasMany
+    {
+        return $this->hasMany(ReservationSlot::class);
     }
 
     protected function performInsert(Builder $query): bool
@@ -96,7 +112,7 @@ class Reservation extends Model
     protected function performUpdate(Builder $query): bool
     {
         try {
-            return parent::performUpdate($query);
+            return $this->getConnection()->transaction(fn (): bool => parent::performUpdate($query));
         } catch (QueryException $exception) {
             if (static::isDuplicateActiveSlotException($exception)) {
                 throw static::duplicateActiveSlotValidationException();
@@ -138,6 +154,42 @@ class Reservation extends Model
         return array_combine($slots, $slots) ?: [];
     }
 
+    /**
+     * @return array<string, string>
+     */
+    public static function reservableTimeOptions(): array
+    {
+        $configuredSlots = static::configuredSlotRanges();
+        $configuredMaxDurationHours = config('padelnis.max_duration_hours');
+        $maxDurationHours = filled($configuredMaxDurationHours)
+            ? max(1, (int) $configuredMaxDurationHours)
+            : count($configuredSlots);
+        $options = [];
+
+        foreach ($configuredSlots as $startIndex => $startSlot) {
+            $lastEndMinute = $startSlot['end'];
+
+            for ($endIndex = $startIndex; $endIndex < count($configuredSlots); $endIndex++) {
+                $duration = $endIndex - $startIndex + 1;
+                $currentSlot = $configuredSlots[$endIndex];
+
+                if ($duration > $maxDurationHours) {
+                    break;
+                }
+
+                if ($endIndex > $startIndex && $currentSlot['start'] !== $lastEndMinute) {
+                    break;
+                }
+
+                $lastEndMinute = $currentSlot['end'];
+                $range = static::formatTimeRange($startSlot['start'], $currentSlot['end']);
+                $options[$range] = $range;
+            }
+        }
+
+        return $options;
+    }
+
     public function setCustomerNameAttribute(mixed $value): void
     {
         $this->attributes['customer_name'] = $this->normalizeName($value);
@@ -165,6 +217,10 @@ class Reservation extends Model
 
     public static function normalizeReservationTime(mixed $value): string
     {
+        if (is_array($value)) {
+            return static::normalizeReservationSlotsToRange($value);
+        }
+
         $normalized = self::squishValue((string) $value);
 
         foreach (static::slotOptions() as $slot) {
@@ -193,6 +249,50 @@ class Reservation extends Model
         }
 
         return $endTime === null ? $startTime : "{$startTime} - {$endTime}";
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function slotValuesForReservationTime(mixed $value): array
+    {
+        if (is_array($value)) {
+            $slots = array_map(fn (mixed $slot): string => static::normalizeReservationTime($slot), $value);
+            $slots = array_values(array_unique(array_filter($slots, fn (string $slot): bool => array_key_exists($slot, static::slotOptions()))));
+            $slotOrder = array_flip(array_keys(static::slotOptions()));
+
+            usort($slots, fn (string $first, string $second): int => ($slotOrder[$first] ?? PHP_INT_MAX) <=> ($slotOrder[$second] ?? PHP_INT_MAX));
+
+            return $slots;
+        }
+
+        $normalizedRange = static::normalizeReservationTime($value);
+        $range = static::parseTimeRange($normalizedRange);
+
+        if ($range === null) {
+            return [];
+        }
+
+        return array_values(array_filter(static::slotOptions(), function (string $slot) use ($range): bool {
+            $slotRange = static::parseTimeRange($slot);
+
+            return $slotRange !== null
+                && $slotRange['start'] >= $range['start']
+                && $slotRange['end'] <= $range['end'];
+        }));
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function blockedSlotLabels(): array
+    {
+        return static::slotValuesForReservationTime($this->reservation_time);
+    }
+
+    public function blockedSlotSummary(): string
+    {
+        return implode(', ', $this->blockedSlotLabels());
     }
 
     public static function formatTransferAmountForForm(mixed $value): ?string
@@ -249,23 +349,52 @@ class Reservation extends Model
         return "{$normalizedCourt}|{$normalizedDate}|{$normalizedTime}";
     }
 
+    /**
+     * @return list<string>
+     */
+    public static function activeSlotKeys(mixed $court, mixed $reservationDate, mixed $reservationTime): array
+    {
+        $slotKeys = [];
+
+        foreach (static::slotValuesForReservationTime($reservationTime) as $slot) {
+            $slotKey = static::makeActiveSlotKey($court, $reservationDate, $slot);
+
+            if ($slotKey !== null) {
+                $slotKeys[] = $slotKey;
+            }
+        }
+
+        return array_values(array_unique($slotKeys));
+    }
+
     public static function activeSlotExists(mixed $court, mixed $reservationDate, mixed $reservationTime, mixed $ignoredKey = null): bool
     {
-        $activeSlotKey = static::makeActiveSlotKey($court, $reservationDate, $reservationTime);
+        $activeSlotKeys = static::activeSlotKeys($court, $reservationDate, $reservationTime);
 
-        if ($activeSlotKey === null) {
+        if ($activeSlotKeys === []) {
             return false;
         }
 
-        $query = static::query()
-            ->withoutGlobalScopes()
-            ->where('active_slot_key', $activeSlotKey);
+        $slotQuery = ReservationSlot::query()
+            ->whereIn('active_slot_key', $activeSlotKeys);
 
         if ($ignoredKey !== null) {
-            $query->whereKeyNot($ignoredKey);
+            $slotQuery->where('reservation_id', '!=', $ignoredKey);
         }
 
-        return $query->exists();
+        if ($slotQuery->exists()) {
+            return true;
+        }
+
+        $reservationQuery = static::query()
+            ->withoutGlobalScopes()
+            ->whereIn('active_slot_key', $activeSlotKeys);
+
+        if ($ignoredKey !== null) {
+            $reservationQuery->whereKeyNot($ignoredKey);
+        }
+
+        return $reservationQuery->exists();
     }
 
     public static function isDuplicateActiveSlotException(QueryException $exception): bool
@@ -299,27 +428,47 @@ class Reservation extends Model
 
     protected function syncActiveSlotKey(): void
     {
+        $activeSlotKeys = static::activeSlotKeys($this->court, $this->reservation_date, $this->reservation_time);
+
         $this->active_slot_key = $this->deleted_at
             ? null
-            : static::makeActiveSlotKey($this->court, $this->reservation_date, $this->reservation_time);
+            : ($activeSlotKeys[0] ?? null);
     }
 
     protected function assertActiveSlotIsAvailable(): void
     {
-        if (! is_string($this->active_slot_key) || $this->active_slot_key === '') {
+        $activeSlotKeys = static::activeSlotKeys($this->court, $this->reservation_date, $this->reservation_time);
+
+        if ($activeSlotKeys === []) {
             return;
         }
 
-        $query = static::query()
-            ->withoutGlobalScopes()
-            ->where('active_slot_key', $this->active_slot_key);
+        $slotQuery = ReservationSlot::query()
+            ->whereIn('active_slot_key', $activeSlotKeys);
 
         if ($this->exists && $this->getKey() !== null) {
-            $query->whereKeyNot($this->getKey());
+            $slotQuery->where('reservation_id', '!=', $this->getKey());
         }
 
-        if ($query->exists()) {
+        if ($slotQuery->exists()) {
             throw static::duplicateActiveSlotValidationException();
+        }
+    }
+
+    protected function syncReservationSlots(): void
+    {
+        if ($this->trashed()) {
+            $this->reservationSlots()->delete();
+
+            return;
+        }
+
+        $this->reservationSlots()->delete();
+
+        foreach (static::activeSlotKeys($this->court, $this->reservation_date, $this->reservation_time) as $activeSlotKey) {
+            $this->reservationSlots()->create([
+                'active_slot_key' => $activeSlotKey,
+            ]);
         }
     }
 
@@ -379,6 +528,100 @@ class Reservation extends Model
         $normalized = "{$integer}.{$fraction}";
 
         return $isNegative ? "-{$normalized}" : $normalized;
+    }
+
+    /**
+     * @param  array<mixed>  $slots
+     */
+    protected static function normalizeReservationSlotsToRange(array $slots): string
+    {
+        $selectedSlots = static::slotValuesForReservationTime($slots);
+
+        if ($selectedSlots === []) {
+            return '';
+        }
+
+        $ranges = array_values(array_filter(
+            array_map(fn (string $slot): ?array => static::parseTimeRange($slot), $selectedSlots),
+        ));
+
+        if ($ranges === []) {
+            return '';
+        }
+
+        return static::formatTimeRange($ranges[0]['start'], $ranges[array_key_last($ranges)]['end']);
+    }
+
+    /**
+     * @return list<array{value: string, start: int, end: int}>
+     */
+    protected static function configuredSlotRanges(): array
+    {
+        $ranges = [];
+
+        foreach (static::slotOptions() as $slot) {
+            $range = static::parseTimeRange($slot);
+
+            if ($range === null) {
+                continue;
+            }
+
+            $ranges[] = [
+                'value' => $slot,
+                'start' => $range['start'],
+                'end'   => $range['end'],
+            ];
+        }
+
+        usort($ranges, fn (array $first, array $second): int => $first['start'] <=> $second['start']);
+
+        return $ranges;
+    }
+
+    /**
+     * @return array{start: int, end: int}|null
+     */
+    protected static function parseTimeRange(string $value): ?array
+    {
+        $normalized = self::squishValue($value);
+
+        if (! preg_match('/^(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*-\s*(\d{1,2}):(\d{2})(?::\d{2})?)?$/', $normalized, $matches)) {
+            return null;
+        }
+
+        $start = (((int) $matches[1]) * 60) + ((int) $matches[2]);
+        $end = isset($matches[3], $matches[4])
+            ? (((int) $matches[3]) * 60) + ((int) $matches[4])
+            : null;
+
+        if ($end === null) {
+            foreach (static::configuredSlotRanges() as $slot) {
+                if ($slot['start'] === $start) {
+                    $end = $slot['end'];
+
+                    break;
+                }
+            }
+        }
+
+        if ($end === null || $end <= $start) {
+            return null;
+        }
+
+        return [
+            'start' => $start,
+            'end'   => $end,
+        ];
+    }
+
+    protected static function formatTimeRange(int $start, int $end): string
+    {
+        return sprintf('%s - %s', static::formatTime($start), static::formatTime($end));
+    }
+
+    protected static function formatTime(int $minutes): string
+    {
+        return sprintf('%02d:%02d', intdiv($minutes, 60), $minutes % 60);
     }
 
     protected function normalizeName(mixed $value): string

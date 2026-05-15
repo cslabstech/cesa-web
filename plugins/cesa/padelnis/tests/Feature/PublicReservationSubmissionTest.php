@@ -130,8 +130,88 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
         $this->assertSame('06:00 - 07:00', $reservation->reservation_time);
     }
 
+    public function test_reservation_time_options_include_multi_hour_blocks(): void
+    {
+        $options = Reservation::reservableTimeOptions();
+
+        $this->assertArrayHasKey('10:00 - 11:00', $options);
+        $this->assertArrayHasKey('10:00 - 12:00', $options);
+        $this->assertArrayHasKey('10:00 - 13:00', $options);
+        $this->assertArrayHasKey('10:00 - 14:00', $options);
+        $this->assertArrayHasKey('10:00 - 15:00', $options);
+    }
+
+    public function test_reservation_model_stores_multi_hour_block_as_single_reservation_and_locks_each_hour(): void
+    {
+        $reservation = Reservation::factory()->create([
+            'reservation_date' => '2026-06-01',
+            'court'            => 'Padel Court VIP Blue 1',
+            'reservation_time' => '10:00 - 13:00',
+            'transfer_amount'  => 450000,
+        ]);
+
+        $this->assertSame(1, Reservation::query()->count());
+        $this->assertSame('10:00 - 13:00', $reservation->reservation_time);
+        $this->assertSame('450000.00', $reservation->transfer_amount);
+        $this->assertSame([
+            '10:00 - 11:00',
+            '11:00 - 12:00',
+            '12:00 - 13:00',
+        ], $reservation->blockedSlotLabels());
+        $this->assertSame('10:00 - 11:00, 11:00 - 12:00, 12:00 - 13:00', $reservation->blockedSlotSummary());
+        $this->assertDatabaseHas('padelnis_reservation_slots', [
+            'reservation_id'   => $reservation->id,
+            'active_slot_key'  => Reservation::makeActiveSlotKey('Padel Court VIP Blue 1', '2026-06-01', '10:00 - 11:00'),
+        ]);
+        $this->assertDatabaseHas('padelnis_reservation_slots', [
+            'reservation_id'   => $reservation->id,
+            'active_slot_key'  => Reservation::makeActiveSlotKey('Padel Court VIP Blue 1', '2026-06-01', '11:00 - 12:00'),
+        ]);
+        $this->assertDatabaseHas('padelnis_reservation_slots', [
+            'reservation_id'   => $reservation->id,
+            'active_slot_key'  => Reservation::makeActiveSlotKey('Padel Court VIP Blue 1', '2026-06-01', '12:00 - 13:00'),
+        ]);
+        $this->assertSame(3, DB::table('padelnis_reservation_slots')->count());
+    }
+
+    public function test_multi_hour_reservation_blocks_overlapping_slots(): void
+    {
+        Reservation::factory()->create([
+            'reservation_date' => '2026-06-01',
+            'court'            => 'Padel Court VIP Blue 1',
+            'reservation_time' => '10:00 - 13:00',
+        ]);
+
+        $this->expectException(ValidationException::class);
+
+        Reservation::factory()->create([
+            'reservation_date' => '2026-06-01',
+            'court'            => 'Padel Court VIP Blue 1',
+            'reservation_time' => '11:00 - 12:00',
+        ]);
+    }
+
+    public function test_adjacent_slot_after_multi_hour_reservation_can_be_reserved(): void
+    {
+        Reservation::factory()->create([
+            'reservation_date' => '2026-06-01',
+            'court'            => 'Padel Court VIP Blue 1',
+            'reservation_time' => '10:00 - 13:00',
+        ]);
+
+        $reservation = Reservation::factory()->create([
+            'reservation_date' => '2026-06-01',
+            'court'            => 'Padel Court VIP Blue 1',
+            'reservation_time' => '13:00 - 14:00',
+        ]);
+
+        $this->assertSame('13:00 - 14:00', $reservation->reservation_time);
+        $this->assertSame(2, Reservation::query()->count());
+    }
+
     public function test_active_slot_migration_keeps_first_existing_duplicate_as_the_active_lock(): void
     {
+        Schema::dropIfExists('padelnis_reservation_slots');
         Schema::dropIfExists('padelnis_reservations');
 
         (require base_path('plugins/cesa/padelnis/database/migrations/2026_05_14_000000_create_padelnis_reservations_table.php'))->up();
@@ -184,6 +264,27 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
         );
         $this->assertNull($reservations[1]->active_slot_key);
         $this->assertNull($reservations[2]->active_slot_key);
+    }
+
+    public function test_reservation_slot_migration_backfills_each_hour_in_a_range(): void
+    {
+        Schema::dropIfExists('padelnis_reservation_slots');
+
+        DB::table('padelnis_reservations')->insert([
+            'id_reff'          => 'UID0094',
+            'customer_name'    => 'Block Customer',
+            'reservation_date' => '2026-06-01',
+            'court'            => 'Padel Court VIP Blue 1',
+            'reservation_time' => '10:00 - 13:00',
+            'active_slot_key'  => Reservation::makeActiveSlotKey('Padel Court VIP Blue 1', '2026-06-01', '10:00 - 11:00'),
+            'transfer_amount'  => 450000,
+            'created_at'       => now(),
+            'updated_at'       => now(),
+        ]);
+
+        (require base_path('plugins/cesa/padelnis/database/migrations/2026_05_14_000002_create_padelnis_reservation_slots_table.php'))->up();
+
+        $this->assertSame(3, DB::table('padelnis_reservation_slots')->count());
     }
 
     public function test_reservation_model_blocks_duplicate_active_slots(): void
@@ -290,6 +391,41 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
         $this->assertSame('150000.00', $reservation->transfer_amount);
         $this->assertNotNull($reservation->created_at);
         $this->assertFalse(session()->has('filament.notifications'));
+    }
+
+    public function test_can_submit_public_multi_hour_reservation_as_one_payment(): void
+    {
+        Livewire::test(PublicReservationForm::class)
+            ->set('data.customer_name', 'Budi Santoso')
+            ->set('data.reservation_date', '2026-06-01')
+            ->set('data.court', 'Padel Court VIP Blue 1')
+            ->set('data.reservation_time', '10:00 - 13:00')
+            ->set('data.transfer_amount', '450000')
+            ->call('submit')
+            ->assertHasNoErrors();
+
+        $reservation = Reservation::query()->firstOrFail();
+
+        $this->assertSame(1, Reservation::query()->count());
+        $this->assertSame('10:00 - 13:00', $reservation->reservation_time);
+        $this->assertSame('450000.00', $reservation->transfer_amount);
+        $this->assertSame(3, DB::table('padelnis_reservation_slots')->count());
+    }
+
+    public function test_public_reservation_success_page_shows_blocked_slot_details(): void
+    {
+        $reservation = Reservation::factory()->create([
+            'customer_name'    => 'Uji Blok',
+            'reservation_date' => '2026-05-17',
+            'court'            => 'Padel Court VIP Blue 1',
+            'reservation_time' => '10:00 - 13:00',
+            'transfer_amount'  => 450000,
+        ]);
+
+        $this->get(URL::signedRoute('padelnis.public.success', ['idReff' => $reservation->id_reff]))
+            ->assertOk()
+            ->assertSee(__('padelnis::filament/resources/reservation.fields.blocked_slots'))
+            ->assertSee('10:00 - 11:00, 11:00 - 12:00, 12:00 - 13:00');
     }
 
     public function test_can_submit_public_reservation_form_with_local_decimal_transfer_amount(): void

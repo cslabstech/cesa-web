@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'max_duration_hours' => null,
+
     'courts' => [
         'Padel Court VIP Blue 1',
         'Padel Court VIP Blue 2',

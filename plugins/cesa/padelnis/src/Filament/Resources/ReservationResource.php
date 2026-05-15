@@ -13,6 +13,7 @@ use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -90,10 +91,10 @@ class ReservationResource extends Resource
                             ->placeholder(__('padelnis::filament/resources/reservation.form.placeholders.court')),
                         Select::make('reservation_time')
                             ->label(__('padelnis::filament/resources/reservation.fields.reservation_time'))
-                            ->options(fn (): array => Reservation::slotOptions())
+                            ->options(fn (): array => Reservation::reservableTimeOptions())
                             ->searchable()
                             ->required()
-                            ->rule(fn () => Rule::in(array_keys(Reservation::slotOptions())))
+                            ->rule(fn () => Rule::in(array_keys(Reservation::reservableTimeOptions())))
                             ->rule(static fn (Get $get, ?Reservation $record = null): Closure => static::activeSlotValidationRule($get, $record))
                             ->placeholder(__('padelnis::filament/resources/reservation.form.placeholders.reservation_time')),
                         TextInput::make('transfer_amount')
@@ -112,6 +113,40 @@ class ReservationResource extends Resource
                                 'x-on:blur'  => static::transferAmountMaskAlpineExpression(),
                                 'x-init'     => static::transferAmountMaskAlpineExpression(),
                             ]),
+                    ])
+                    ->columns(2),
+            ]);
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make(__('padelnis::filament/resources/reservation.form.sections.reservation.title'))
+                    ->schema([
+                        TextEntry::make('id_reff')
+                            ->label(__('padelnis::filament/resources/reservation.fields.id_reff'))
+                            ->copyable(),
+                        TextEntry::make('customer_name')
+                            ->label(__('padelnis::filament/resources/reservation.fields.customer_name')),
+                        TextEntry::make('reservation_date')
+                            ->label(__('padelnis::filament/resources/reservation.fields.reservation_date'))
+                            ->date('d M Y'),
+                        TextEntry::make('court')
+                            ->label(__('padelnis::filament/resources/reservation.fields.court')),
+                        TextEntry::make('reservation_time')
+                            ->label(__('padelnis::filament/resources/reservation.fields.reservation_time')),
+                        TextEntry::make('blocked_slots')
+                            ->label(__('padelnis::filament/resources/reservation.fields.blocked_slots'))
+                            ->state(fn (Reservation $record): array => $record->blockedSlotLabels())
+                            ->badge()
+                            ->separator(', '),
+                        TextEntry::make('transfer_amount')
+                            ->label(__('padelnis::filament/resources/reservation.fields.transfer_amount'))
+                            ->money('IDR'),
+                        TextEntry::make('created_at')
+                            ->label(__('padelnis::filament/resources/reservation.fields.created_at'))
+                            ->dateTime('d M Y H:i'),
                     ])
                     ->columns(2),
             ]);
@@ -139,6 +174,11 @@ class ReservationResource extends Resource
                 TextColumn::make('reservation_time')
                     ->label(__('padelnis::filament/resources/reservation.table.columns.reservation_time'))
                     ->sortable(),
+                TextColumn::make('blocked_slots')
+                    ->label(__('padelnis::filament/resources/reservation.table.columns.blocked_slots'))
+                    ->state(fn (Reservation $record): string => $record->blockedSlotSummary())
+                    ->wrap()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('court')
                     ->label(__('padelnis::filament/resources/reservation.table.columns.court'))
                     ->searchable()
@@ -194,7 +234,7 @@ class ReservationResource extends Resource
                     ->searchable(),
                 SelectFilter::make('reservation_time')
                     ->label(__('padelnis::filament/resources/reservation.filters.reservation_time'))
-                    ->options(fn (): array => Reservation::slotOptions())
+                    ->options(fn (): array => Reservation::reservableTimeOptions())
                     ->searchable(),
             ])
             ->recordActions([

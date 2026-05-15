@@ -2,14 +2,14 @@
 
 return [
     'title'       => 'TICKETING RESERVASI PADELNIS',
-    'description' => 'Silakan lengkapi data reservasi di bawah ini.',
+    'description' => 'Silakan lengkapi data reservasi di bawah ini. Kini Anda dapat memilih durasi bermain lebih dari 1 jam sekaligus — cukup tentukan Jam Mulai dan Jam Berakhir, tidak perlu booking per 1 jam.',
     'required'    => '* Pertanyaan wajib diisi',
 
     'placeholders' => [
         'customer_name'    => 'Masukkan nama customer',
         'reservation_date' => 'Pilih tanggal reservasi',
         'court'            => 'Pilih lapangan',
-        'reservation_time' => 'Pilih jam',
+        'reservation_time' => 'Pilih jam mulai - jam berakhir',
         'transfer_amount'  => 'Contoh: 150.000',
     ],
 
