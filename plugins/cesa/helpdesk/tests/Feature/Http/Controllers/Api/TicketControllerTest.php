@@ -126,6 +126,84 @@ class TicketControllerTest extends HelpdeskTestCase
         ]);
     }
 
+    public function test_internal_ticket_flow_can_be_created_handled_and_closed_through_api(): void
+    {
+        $requester = User::factory()->create();
+        $handler = User::factory()->create();
+
+        $unit = Unit::factory()->create(['name' => 'IT Support']);
+        $unit->users()->attach($handler->id);
+
+        $category = ProblemCategory::factory()->create([
+            'unit_id'                => $unit->id,
+            'name'                   => 'Laptop',
+            'default_responsible_id' => $handler->id,
+        ]);
+
+        Sanctum::actingAs($this->fakeApiUser($requester->id, ['create_helpdesk_ticket']));
+
+        $createResponse = $this->postJson('/admin/api/v1/helpdesk/tickets', [
+            'priority_id'         => Priority::HIGH,
+            'unit_id'             => $unit->id,
+            'problem_category_id' => $category->id,
+            'title'               => 'Laptop tidak bisa login',
+            'description'         => 'User internal tidak bisa login ke laptop kerja.',
+        ]);
+
+        $createResponse
+            ->assertCreated()
+            ->assertJsonPath('data.owner_id', $requester->id)
+            ->assertJsonPath('data.responsible_id', $handler->id)
+            ->assertJsonPath('data.ticket_status_id', TicketStatus::OPEN);
+
+        $ticketId = $createResponse->json('data.id');
+
+        Sanctum::actingAs($this->fakeApiUser($handler->id, ['update_helpdesk_ticket']));
+
+        $this->getJson('/admin/api/v1/helpdesk/tickets?box=incoming')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $ticketId)
+            ->assertJsonPath('meta.counts.incoming', 1);
+
+        $this->postJson("/admin/api/v1/helpdesk/tickets/{$ticketId}/comments", [
+            'comment' => 'Tiket diterima dan sedang ditangani oleh IT Support.',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.ticket_status_id', TicketStatus::IN_PROGRESS)
+            ->assertJsonCount(1, 'data.comments');
+
+        $this->patchJson("/admin/api/v1/helpdesk/tickets/{$ticketId}", [
+            'ticket_status_id' => TicketStatus::CLOSED,
+            'close_reason'     => 'Laptop sudah bisa login setelah reset credential.',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.ticket_status_id', TicketStatus::CLOSED)
+            ->assertJsonPath('data.close_reason', 'Laptop sudah bisa login setelah reset credential.');
+
+        $ticket = Ticket::query()->findOrFail($ticketId);
+
+        $this->assertSame(TicketStatus::CLOSED, $ticket->ticket_status_id);
+        $this->assertNotNull($ticket->approved_at);
+        $this->assertNotNull($ticket->solved_at);
+        $this->assertSame('Laptop sudah bisa login setelah reset credential.', $ticket->close_reason);
+
+        $this->assertDatabaseHas('helpdesk_comments', [
+            'ticket_id'  => $ticketId,
+            'user_id'    => $handler->id,
+            'visibility' => Comment::VISIBILITY_PUBLIC,
+        ]);
+
+        $this->assertSame([
+            TicketStatus::OPEN,
+            TicketStatus::IN_PROGRESS,
+            TicketStatus::CLOSED,
+        ], DB::table('helpdesk_ticket_histories')
+            ->where('ticket_id', $ticketId)
+            ->orderBy('id')
+            ->pluck('ticket_status_id')
+            ->all());
+    }
+
     public function test_store_ticket_rejects_unsupported_attachment_types(): void
     {
         Storage::fake('public');

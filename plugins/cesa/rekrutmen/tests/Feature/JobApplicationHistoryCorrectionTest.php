@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
+use Webkul\Security\Enums\PermissionType;
 use Webkul\Security\Models\User;
 
 class JobApplicationHistoryCorrectionTest extends RekrutmenTestCase
@@ -32,7 +33,8 @@ class JobApplicationHistoryCorrectionTest extends RekrutmenTestCase
         Filament::setCurrentPanel('admin');
 
         $this->user = User::factory()->create([
-            'is_active' => true,
+            'is_active'           => true,
+            'resource_permission' => PermissionType::GLOBAL,
         ]);
 
         Permission::findOrCreate('view_any_rekrutmen_job::application', 'web');
@@ -50,7 +52,7 @@ class JobApplicationHistoryCorrectionTest extends RekrutmenTestCase
         $this->registerJobApplicationRoutes();
     }
 
-    public function test_job_application_view_registers_pass_current_stage_action(): void
+    public function test_job_application_view_hides_inline_record_activity_action(): void
     {
         $page = app(ViewJobApplication::class);
         $getHeaderActions = new \ReflectionMethod($page, 'getHeaderActions');
@@ -58,7 +60,7 @@ class JobApplicationHistoryCorrectionTest extends RekrutmenTestCase
 
         $actions = $getHeaderActions->invoke($page);
 
-        $this->assertTrue(
+        $this->assertFalse(
             collect($actions)->contains(fn (mixed $action): bool => method_exists($action, 'getName')
                 && $action->getName() === 'record_activity')
         );
@@ -67,40 +69,6 @@ class JobApplicationHistoryCorrectionTest extends RekrutmenTestCase
             collect($actions)->contains(fn (mixed $action): bool => method_exists($action, 'getName')
                 && $action->getName() === 'pass_current_stage')
         );
-    }
-
-    public function test_job_application_view_can_record_activity_inline(): void
-    {
-        [$jobPosting, $screeningStage, $hiredStage] = $this->createPipelineFixture();
-        $candidate = $this->createJobApplication(
-            $jobPosting,
-            $screeningStage,
-            'detail-activity@example.com',
-            'Candidate Detail Activity',
-        );
-
-        Livewire::test(ViewJobApplication::class, ['record' => $candidate->id])
-            ->callAction('record_activity', [
-                'activity_date' => '2026-04-15',
-                'result'        => ActivityEntryResult::PASSED->value,
-                'notes'         => 'Lolos screening dari halaman detail kandidat.',
-            ]);
-
-        $candidate->refresh();
-
-        $this->assertSame($hiredStage->id, $candidate->current_stage_id);
-
-        $history = JobApplicationHistory::query()
-            ->where('job_application_id', $candidate->id)
-            ->whereNotNull('activity_group_id')
-            ->latest('id')
-            ->first();
-
-        $this->assertNotNull($history);
-        $this->assertSame($screeningStage->id, $history->from_stage_id);
-        $this->assertSame($hiredStage->id, $history->to_stage_id);
-        $this->assertSame(ActivityEntryResult::PASSED, $history->result);
-        $this->assertSame('Lolos screening dari halaman detail kandidat.', $history->notes);
     }
 
     public function test_job_application_history_activity_date_can_be_corrected_from_relation_manager(): void

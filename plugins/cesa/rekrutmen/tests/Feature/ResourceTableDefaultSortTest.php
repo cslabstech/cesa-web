@@ -7,6 +7,7 @@ use Cesa\Rekrutmen\Enums\JobApplicationMaritalStatus;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
 use Cesa\Rekrutmen\Enums\StatusKebutuhan;
+use Cesa\Rekrutmen\Filament\Resources\JobApplicationResource;
 use Cesa\Rekrutmen\Filament\Resources\JobApplicationResource\Pages\ListJobApplications;
 use Cesa\Rekrutmen\Filament\Resources\JobPostingResource;
 use Cesa\Rekrutmen\Filament\Resources\JobPostingResource\Pages\ListJobPostings;
@@ -178,6 +179,39 @@ class ResourceTableDefaultSortTest extends RekrutmenTestCase
 
         Livewire::test(ListJobApplications::class)
             ->assertCanSeeTableRecords([$recent, $old], inOrder: true);
+    }
+
+    public function test_job_application_table_exposes_one_click_candidate_contact_copy_action(): void
+    {
+        app()->setLocale('id');
+
+        $pipeline = $this->createPipeline('Copy Candidate Pipeline', now());
+        $stage = RekrutmenStage::query()->create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => 'CV Screening',
+            'order_column'          => 1,
+        ]);
+        $jobPosting = $this->createJobPosting($pipeline, 'Store Crew Bandung', 'store-crew-bandung', now());
+        $application = $this->createJobApplication($jobPosting, $stage, 'copy-candidate@example.com', 'Budi Santoso', now());
+
+        $application->forceFill([
+            'whatsapp_number' => '6281573789248',
+            'active_whatsapp' => '6281573789248',
+        ])->saveQuietly();
+
+        $application = $application->fresh('jobPosting');
+
+        $this->assertSame(
+            'BUDI SANTOSO Store Crew Bandung 6281573789248',
+            JobApplicationResource::formatCandidateContactClipboardText($application),
+        );
+
+        Livewire::test(ListJobApplications::class)
+            ->assertCanSeeTableRecords([$application])
+            ->assertTableActionExists('copy_candidate_contact', record: $application)
+            ->assertTableActionDoesNotExist('mark_rejected', record: $application)
+            ->assertTableActionHasLabel('copy_candidate_contact', 'Copy', record: $application)
+            ->assertTableActionHasIcon('copy_candidate_contact', 'heroicon-o-clipboard-document', record: $application);
     }
 
     private function createRequestManPower(string $email, \DateTimeInterface $createdAt, string $name): RequestManPower

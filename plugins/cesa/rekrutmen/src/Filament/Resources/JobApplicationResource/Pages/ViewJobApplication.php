@@ -2,18 +2,15 @@
 
 namespace Cesa\Rekrutmen\Filament\Resources\JobApplicationResource\Pages;
 
-use Cesa\Rekrutmen\Enums\ActivityEntryResult;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Cesa\Rekrutmen\Filament\Resources\JobApplicationResource;
 use Cesa\Rekrutmen\Models\JobApplication;
 use Filament\Actions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
-use Filament\Schemas\Components\Utilities\Get;
 use InvalidArgumentException;
 
 class ViewJobApplication extends ViewRecord
@@ -23,64 +20,6 @@ class ViewJobApplication extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('record_activity')
-                ->label(__('rekrutmen::filament/resources/activity-log.navigation.label'))
-                ->icon('heroicon-o-clipboard-document-list')
-                ->color('gray')
-                ->visible(fn (JobApplication $record): bool => $record->status === JobApplicationStatus::IN_PROGRESS
-                    && filled($record->currentStage?->name))
-                ->form([
-                    Placeholder::make('candidate_name')
-                        ->label(__('rekrutmen::filament/resources/activity-log.form.fields.candidate'))
-                        ->content(fn (JobApplication $record): string => $record->full_name),
-                    Placeholder::make('current_stage')
-                        ->label(__('rekrutmen::filament/resources/activity-log.form.fields.stage_id'))
-                        ->content(fn (JobApplication $record): string => $record->currentStage?->name ?? '-'),
-                    DatePicker::make('activity_date')
-                        ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
-                        ->required()
-                        ->default(now()->toDateString()),
-                    Select::make('result')
-                        ->label(__('rekrutmen::filament/resources/activity-log.form.fields.result'))
-                        ->options(ActivityEntryResult::activityOptions())
-                        ->required()
-                        ->default(ActivityEntryResult::PENDING->value)
-                        ->live(),
-                    Textarea::make('notes')
-                        ->label(__('rekrutmen::filament/resources/activity-log.form.fields.notes'))
-                        ->maxLength(65535)
-                        ->required(fn (Get $get): bool => $get('result') === ActivityEntryResult::FAILED->value)
-                        ->helperText(__('rekrutmen::filament/resources/activity-log.form.helpers.failed_requires_notes')),
-                ])
-                ->action(function (JobApplication $record, array $data): void {
-                    try {
-                        JobApplication::recordBatchActivity(
-                            (int) $record->job_posting_id,
-                            (int) $record->current_stage_id,
-                            (string) $data['activity_date'],
-                            [[
-                                'job_application_id' => $record->id,
-                                'result'             => $data['result'] ?? ActivityEntryResult::PENDING->value,
-                                'notes'              => $data['notes'] ?? null,
-                            ]],
-                            auth()->id(),
-                        );
-                    } catch (InvalidArgumentException $exception) {
-                        Notification::make()
-                            ->title($exception->getMessage())
-                            ->danger()
-                            ->send();
-
-                        return;
-                    }
-
-                    Notification::make()
-                        ->title(__('rekrutmen::filament/resources/activity-log.notifications.activity_recorded'))
-                        ->success()
-                        ->send();
-
-                    $this->record->refresh();
-                }),
             Actions\Action::make('pass_current_stage')
                 ->label(fn (JobApplication $record): string => __('rekrutmen::filament/resources/job-application.table.actions.pass_current_stage', [
                     'stage' => $record->currentStage?->name ?? __('rekrutmen::filament/resources/job-application.board.card.current_stage_fallback'),

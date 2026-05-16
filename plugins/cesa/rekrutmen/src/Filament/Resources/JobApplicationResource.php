@@ -28,6 +28,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Js;
 use League\Flysystem\UnableToCheckFileExistence;
 use Webkul\Security\Traits\HasResourcePermissionQuery;
 
@@ -319,6 +320,11 @@ class JobApplicationResource extends Resource
                     ->searchable(),
             ])
             ->recordActions([
+                Action::make('copy_candidate_contact')
+                    ->label(__('rekrutmen::filament/resources/job-application.table.actions.copy_candidate_contact'))
+                    ->icon('heroicon-o-clipboard-document')
+                    ->color('gray')
+                    ->actionJs(fn (JobApplication $record): string => static::copyCandidateContactActionJs($record)),
                 ActionGroup::make([
                     ViewAction::make(),
                     EditAction::make(),
@@ -347,34 +353,6 @@ class JobApplicationResource extends Resource
 
                             Notification::make()
                                 ->title(__('rekrutmen::filament/resources/job-application.notifications.marked_hired'))
-                                ->success()
-                                ->send();
-                        }),
-                    Action::make('mark_rejected')
-                        ->label(__('rekrutmen::filament/resources/job-application.table.actions.mark_rejected'))
-                        ->icon('heroicon-o-x-circle')
-                        ->color('danger')
-                        ->visible(fn (JobApplication $record): bool => $record->status === JobApplicationStatus::IN_PROGRESS)
-                        ->form([
-                            Forms\Components\DatePicker::make('activity_date')
-                                ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
-                                ->required()
-                                ->default(now()->toDateString())
-                                ->maxDate(today()),
-                            Forms\Components\Textarea::make('notes')
-                                ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
-                                ->required()
-                                ->maxLength(65535),
-                        ])
-                        ->action(function (JobApplication $record, array $data): void {
-                            $record->markAsRejected(
-                                $data['notes'] ?? null,
-                                auth()->id(),
-                                (string) $data['activity_date'],
-                            );
-
-                            Notification::make()
-                                ->title(__('rekrutmen::filament/resources/job-application.notifications.marked_rejected'))
                                 ->success()
                                 ->send();
                         }),
@@ -445,6 +423,17 @@ class JobApplicationResource extends Resource
         ];
     }
 
+    public static function formatCandidateContactClipboardText(JobApplication $record): string
+    {
+        $record->loadMissing('jobPosting');
+
+        return implode(' ', [
+            static::normalizeClipboardValue($record->full_name),
+            static::normalizeClipboardValue($record->jobPosting?->title),
+            static::normalizeClipboardValue($record->active_whatsapp ?: $record->whatsapp_number ?: $record->active_phone),
+        ]);
+    }
+
     public static function resolveAttachmentDownloadUrl(JobApplication $record, string $attachment): ?string
     {
         if (! auth()->user() || blank($record->resolveAttachmentPath($attachment))) {
@@ -459,6 +448,43 @@ class JobApplicationResource extends Resource
                 'attachment'     => $attachment,
             ],
         );
+    }
+
+    private static function copyCandidateContactActionJs(JobApplication $record): string
+    {
+        $clipboardText = Js::from(static::formatCandidateContactClipboardText($record));
+        $copyMessage = Js::from(__('rekrutmen::filament/resources/job-application.table.actions.copy_candidate_contact_message'));
+
+        return <<<JS
+            const text = {$clipboardText};
+            const fallbackCopy = (value) => {
+                const textarea = document.createElement('textarea');
+                textarea.value = value;
+                textarea.setAttribute('readonly', '');
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                document.execCommand('copy');
+                textarea.remove();
+            };
+
+            if (window.navigator.clipboard?.writeText) {
+                window.navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+            } else {
+                fallbackCopy(text);
+            }
+
+            \$tooltip({$copyMessage}, { timeout: 1500 });
+        JS;
+    }
+
+    private static function normalizeClipboardValue(mixed $value): string
+    {
+        $value = trim((string) ($value ?? ''));
+
+        return $value !== '' ? $value : '-';
     }
 
     private static function resolveUploadedFileMetadata(?JobApplication $record, string $file, string|array|null $storedFileNames, mixed $component, string $attachment): ?array
