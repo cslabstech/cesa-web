@@ -12,6 +12,7 @@ use Cesa\Padelnis\PadelnisPlugin;
 use Cesa\Padelnis\PadelnisServiceProvider;
 use Cesa\Padelnis\Policies\ReservationPolicy;
 use Cesa\Padelnis\Tests\PadelnisTestCase;
+use Illuminate\Support\Str;
 use Webkul\PluginManager\Package;
 
 class PadelnisPluginSmokeTest extends PadelnisTestCase
@@ -93,6 +94,11 @@ class PadelnisPluginSmokeTest extends PadelnisTestCase
         $this->assertStringContainsString("Textarea::make('notes')", $resourceSource);
         $this->assertStringContainsString("TextEntry::make('transfer_date')", $resourceSource);
         $this->assertStringContainsString("TextEntry::make('notes')", $resourceSource);
+        $this->assertStringNotContainsString('->required()', Str::between(
+            $resourceSource,
+            "DatePicker::make('transfer_date')",
+            "Textarea::make('notes')",
+        ));
     }
 
     public function test_reservation_exporter_defines_reservation_columns(): void

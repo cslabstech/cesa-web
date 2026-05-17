@@ -119,7 +119,6 @@ class ReservationResource extends Resource
                             ]),
                         DatePicker::make('transfer_date')
                             ->label(__('padelnis::filament/resources/reservation.fields.transfer_date'))
-                            ->required()
                             ->native(false)
                             ->displayFormat('Y-m-d')
                             ->placeholder(__('padelnis::filament/resources/reservation.form.placeholders.transfer_date')),

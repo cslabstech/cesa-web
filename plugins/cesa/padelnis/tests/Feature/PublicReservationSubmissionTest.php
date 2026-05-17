@@ -410,6 +410,22 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
         $this->assertFalse(session()->has('filament.notifications'));
     }
 
+    public function test_can_submit_public_reservation_form_without_transfer_date(): void
+    {
+        Livewire::test(PublicReservationForm::class)
+            ->set('data.customer_name', 'Budi Santoso')
+            ->set('data.reservation_date', '2026-06-01')
+            ->set('data.court', 'Padel Court VIP Blue 1')
+            ->set('data.reservation_time', '10:00 - 11:00')
+            ->set('data.transfer_amount', '150000')
+            ->call('submit')
+            ->assertHasNoErrors();
+
+        $reservation = Reservation::query()->firstOrFail();
+
+        $this->assertNull($reservation->transfer_date);
+    }
+
     public function test_can_submit_public_multi_hour_reservation_as_one_payment(): void
     {
         Livewire::test(PublicReservationForm::class)
@@ -524,7 +540,6 @@ class PublicReservationSubmissionTest extends PadelnisTestCase
                 'data.court',
                 'data.reservation_time',
                 'data.transfer_amount',
-                'data.transfer_date',
             ]);
     }
 }

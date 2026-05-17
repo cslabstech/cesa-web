@@ -90,7 +90,6 @@ class PublicReservationForm extends SimplePage
                     ]),
                 DatePicker::make('transfer_date')
                     ->label(__('padelnis::filament/resources/reservation.fields.transfer_date'))
-                    ->required()
                     ->displayFormat('Y-m-d')
                     ->native(false)
                     ->placeholder(__('padelnis::views/public-reservation-form.placeholders.transfer_date')),
