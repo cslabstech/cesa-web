@@ -3116,26 +3116,26 @@ class SyncLegacySqlData extends Command
 
             $existingLead = DB::table('leads')->where('id', $targetId)->first();
             $address = $this->resolveRequiredLeadString(
-                $row->address ?? null,
+                $this->legacyValue($row, 'address'),
                 $existingLead?->address ?? null,
                 'Alamat legacy tidak tersedia'
             );
             $salesPerson = $this->resolveRequiredLeadString(
-                $row->sales_person ?? null,
+                $this->legacyValue($row, 'sales_person'),
                 $existingLead?->sales_person ?? null,
                 'Sales legacy tidak tersedia'
             );
             $storeBranch = $this->resolveRequiredLeadString(
-                $row->store_branch ?? null,
+                $this->legacyValue($row, 'store_branch', 'cabang_toko'),
                 $existingLead?->store_branch ?? null,
                 'Cabang legacy tidak tersedia'
             );
             $storeTeamPosition = $this->resolveLeadStoreTeamPosition(
-                $row->store_team_position ?? null,
+                $this->legacyValue($row, 'store_team_position', 'jabatan_tim_toko'),
                 $existingLead?->store_team_position ?? null
             );
             $phoneTransactionRange = $this->resolveLeadPhoneTransactionRange(
-                $row->phone_transaction_range ?? null,
+                $this->legacyValue($row, 'phone_transaction_range', 'range_transaksi_handphone'),
                 $existingLead?->phone_transaction_range ?? null
             );
 
@@ -3158,6 +3158,17 @@ class SyncLegacySqlData extends Command
 
             $this->rememberMapping('leads', $row->id, 'leads', $targetId);
         });
+    }
+
+    protected function legacyValue(object $row, string ...$columns): mixed
+    {
+        foreach ($columns as $column) {
+            if (property_exists($row, $column)) {
+                return $row->{$column};
+            }
+        }
+
+        return null;
     }
 
     protected function resolveRequiredLeadString(mixed $legacyValue, mixed $existingValue, string $fallback): string

@@ -370,6 +370,66 @@ class LegacySqlSyncCommandTest extends LegacySyncTestCase
         ]);
     }
 
+    public function test_it_syncs_legacy_lead_data_from_app_lead_column_names(): void
+    {
+        $targetData = $this->createTargetUsersAndCompanies();
+        $creator = $targetData['creator'];
+
+        Schema::connection('legacy_sync')->drop('leads');
+        Schema::connection('legacy_sync')->create('leads', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name')->nullable();
+            $table->string('phone')->nullable();
+            $table->text('address')->nullable();
+            $table->string('sales_person')->nullable();
+            $table->string('jabatan_tim_toko')->nullable();
+            $table->string('cabang_toko')->nullable();
+            $table->string('range_transaksi_handphone')->nullable();
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->timestamp('created_at')->nullable();
+            $table->timestamp('updated_at')->nullable();
+            $table->timestamp('deleted_at')->nullable();
+        });
+
+        DB::connection('legacy_sync')->table('users')->insert([
+            'id'    => 10,
+            'email' => 'creator@example.com',
+        ]);
+
+        DB::connection('legacy_sync')->table('leads')->insert([
+            [
+                'id'                         => 96,
+                'name'                       => 'Lead App Lama',
+                'phone'                      => '0812-0000-9999',
+                'address'                    => 'Jl. Legacy Lama No. 2',
+                'sales_person'               => 'Sales App Lama',
+                'jabatan_tim_toko'           => 'Kepala Toko',
+                'cabang_toko'                => 'Complete Selular Jatiwangi',
+                'range_transaksi_handphone'  => 'Harga di atas 7 juta',
+                'created_by'                 => 10,
+                'created_at'                 => '2026-03-10 07:58:00',
+                'updated_at'                 => '2026-03-10 07:58:00',
+                'deleted_at'                 => null,
+            ],
+        ]);
+
+        $this->artisan('legacy:sync', [
+            '--connection' => 'legacy_sync',
+            '--module'     => ['lead'],
+        ])->assertExitCode(0);
+
+        $this->assertDatabaseHas('leads', [
+            'name'                    => 'LEAD APP LAMA',
+            'phone'                   => '6281200009999',
+            'address'                 => 'Jl. Legacy Lama No. 2',
+            'sales_person'            => 'Sales App Lama',
+            'store_team_position'     => 'Kepala Toko',
+            'store_branch'            => 'Complete Selular Jatiwangi',
+            'phone_transaction_range' => 'Harga di atas 7 juta',
+            'creator_id'              => $creator->id,
+        ]);
+    }
+
     public function test_it_recreates_the_mapping_table_before_syncing_when_it_is_missing(): void
     {
         $this->createTargetUsersAndCompanies();
