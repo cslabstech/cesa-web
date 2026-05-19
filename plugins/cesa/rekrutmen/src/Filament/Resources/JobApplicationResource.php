@@ -338,7 +338,7 @@ class JobApplicationResource extends Resource
                                 ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
                                 ->required()
                                 ->default(now()->toDateString())
-                                ->maxDate(today()),
+                                ,
                             Forms\Components\Textarea::make('notes')
                                 ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
                                 ->required()
@@ -366,7 +366,7 @@ class JobApplicationResource extends Resource
                                 ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
                                 ->required()
                                 ->default(now()->toDateString())
-                                ->maxDate(today()),
+                                ,
                             Forms\Components\Textarea::make('notes')
                                 ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
                                 ->required()

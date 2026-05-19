@@ -73,7 +73,7 @@ class CreateActivityLog extends Page implements HasForms
                             ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
                             ->required()
                             ->default(now()->toDateString())
-                            ->maxDate(today()),
+                            ,
                         Forms\Components\Placeholder::make('generated_title')
                             ->label(__('rekrutmen::filament/resources/activity-log.form.fields.generated_title'))
                             ->content(fn (Get $get): string => $this->generatedActivityTitle(

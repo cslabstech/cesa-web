@@ -28,7 +28,7 @@ class EditJobApplication extends EditRecord
                         ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
                         ->required()
                         ->default(now()->toDateString())
-                        ->maxDate(today()),
+                        ,
                     Textarea::make('notes')
                         ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
                         ->required()
@@ -54,7 +54,7 @@ class EditJobApplication extends EditRecord
                         ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
                         ->required()
                         ->default(now()->toDateString())
-                        ->maxDate(today()),
+                        ,
                     Textarea::make('notes')
                         ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
                         ->required()
@@ -80,7 +80,7 @@ class EditJobApplication extends EditRecord
                         ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
                         ->required()
                         ->default(now()->toDateString())
-                        ->maxDate(today()),
+                        ,
                     Textarea::make('notes')
                         ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
                         ->required()

@@ -41,7 +41,7 @@ class ViewJobApplication extends ViewRecord
                         ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
                         ->required()
                         ->default(now()->toDateString())
-                        ->maxDate(today()),
+                        ,
                     Textarea::make('notes')
                         ->label(__('rekrutmen::filament/resources/activity-log.form.fields.notes'))
                         ->maxLength(65535),
@@ -90,7 +90,7 @@ class ViewJobApplication extends ViewRecord
                         ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
                         ->required()
                         ->default(now()->toDateString())
-                        ->maxDate(today()),
+                        ,
                     Textarea::make('notes')
                         ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
                         ->required()
@@ -120,7 +120,7 @@ class ViewJobApplication extends ViewRecord
                         ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
                         ->required()
                         ->default(now()->toDateString())
-                        ->maxDate(today()),
+                        ,
                     Textarea::make('notes')
                         ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
                         ->required()
@@ -150,7 +150,7 @@ class ViewJobApplication extends ViewRecord
                         ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
                         ->required()
                         ->default(now()->toDateString())
-                        ->maxDate(today()),
+                        ,
                     Textarea::make('notes')
                         ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
                         ->required()

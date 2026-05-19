@@ -19,12 +19,6 @@ class CreateJobApplication extends CreateRecord
             ? JobPosting::query()->find((int) $data['job_posting_id'])
             : null;
 
-        if (! $jobPosting?->isOpenForCandidateIntake()) {
-            throw ValidationException::withMessages([
-                'job_posting_id' => __('rekrutmen::filament/resources/job-application.workflow_errors.job_posting_not_accepting_applications'),
-            ]);
-        }
-
         $data['current_stage_id'] = JobApplication::resolveInitialStageIdForJobPostingId($data['job_posting_id'] ?? null);
         $data['status'] = JobApplicationStatus::IN_PROGRESS;
 

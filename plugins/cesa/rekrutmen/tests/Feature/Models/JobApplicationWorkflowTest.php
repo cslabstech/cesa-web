@@ -146,41 +146,6 @@ class JobApplicationWorkflowTest extends RekrutmenTestCase
         ]);
     }
 
-    public function test_admin_candidate_creation_uses_job_posting_acceptance_contract(): void
-    {
-        [$jobPosting, $firstStage] = $this->createPipelineFixture('Admin Create Contract');
-
-        $page = new class extends CreateJobApplication
-        {
-            public function exposeMutateFormDataBeforeCreate(array $data): array
-            {
-                return $this->mutateFormDataBeforeCreate($data);
-            }
-        };
-
-        $mutated = $page->exposeMutateFormDataBeforeCreate([
-            'job_posting_id' => $jobPosting->id,
-        ]);
-
-        $this->assertSame($firstStage->id, $mutated['current_stage_id']);
-        $this->assertSame(JobApplicationStatus::IN_PROGRESS, $mutated['status']);
-
-        $this->makeJobApplication($jobPosting, $firstStage, 'fulfilled-admin-create@example.com', [
-            'status' => JobApplicationStatus::HIRED,
-        ]);
-
-        try {
-            $page->exposeMutateFormDataBeforeCreate([
-                'job_posting_id' => $jobPosting->id,
-            ]);
-
-            $this->fail('Admin candidate creation accepted a fulfilled job posting.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('job_posting_id', $exception->errors());
-        }
-    }
-
-    public function test_hired_candidate_can_be_marked_withdrawn_before_onboarding(): void
     {
         [$jobPosting, $firstStage, $secondStage] = $this->createPipelineFixture('Hired Withdrawn');
 

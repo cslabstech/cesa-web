@@ -45,7 +45,7 @@ class HistoriesRelationManager extends RelationManager
                 Forms\Components\DatePicker::make('activity_date')
                     ->label(__('rekrutmen::filament/resources/job-application/relation-managers/histories.form.fields.activity_date'))
                     ->required()
-                    ->maxDate(today())
+                    
                     ->columnSpan([
                         'default' => 1,
                         'md'      => 2,
