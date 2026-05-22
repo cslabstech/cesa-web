@@ -685,7 +685,7 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
                 ->call('exportExcel')
                 ->assertFileDownloaded();
 
-            Excel::assertDownloaded('recruitment-progress-mpp-20260401-to-20260430.xlsx', function (RecruitmentProgressReportExport $export) use ($aprilPosting, $linkedAprilRequest): bool {
+            Excel::assertDownloaded('recruitment-progress-mpp-20260401-to-20260430.xlsx', function (RecruitmentProgressReportExport $export) use ($aprilPosting, $aprilRequest, $linkedAprilRequest): bool {
                 $sheets = $export->sheets();
 
                 $this->assertCount(4, $sheets);
@@ -694,8 +694,8 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
                 $this->assertSame('Detail Posisi', $sheets[2]->title());
                 $this->assertSame('Aktivitas Rekrutmen', $sheets[3]->title());
                 $this->assertWorkbookSheetMatchesOverviewMppLayout($sheets[1], 'K');
-                $this->assertWorkbookSheetMatchesOverviewMppLayout($sheets[2], 'S');
-                $this->assertWorkbookSheetMatchesOverviewMppLayout($sheets[3], 'M');
+                $this->assertWorkbookSheetMatchesOverviewMppLayout($sheets[2], 'U');
+                $this->assertWorkbookSheetMatchesOverviewMppLayout($sheets[3], 'O');
 
                 $overviewRows = collect($sheets[0]->array())->values();
                 $summaryRows = collect($sheets[1]->array())->slice(5)->values();
@@ -706,6 +706,8 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
                 $this->assertFalse($overviewRows->contains(fn (array $row): bool => str_starts_with((string) ($row[0] ?? ''), 'KARYAWAN JOIN BULAN')));
                 $this->assertSame([
                     'BULAN',
+                    'ID PERMINTAAN MPP',
+                    'ID LOWONGAN',
                     'BADAN USAHA',
                     'TANGGAL REQ',
                     'SNAPSHOT',
@@ -726,35 +728,39 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
                     'KARYAWAN JOIN BULAN INI',
                 ], $overviewRows->first(fn (array $row): bool => ($row[0] ?? null) === 'BULAN'));
 
-                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[1] ?? null) === 'PT FINANCE CORE'
-                    && ($row[5] ?? null) === 1
-                    && ($row[8] ?? null) === 1
-                    && ($row[9] ?? null) === 'FINANCE ANALYST'
-                    && ($row[14] ?? null) === 'HOLD'
-                    && ($row[15] ?? null) === 'HOLD'));
-
-                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[1] ?? null) === 'PT IT CORE'
-                    && ($row[2] ?? null) === '02 Apr 2026'
-                    && ($row[4] ?? null) === 28
-                    && ($row[5] ?? null) === 2
-                    && ($row[6] ?? null) === 1
+                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[3] ?? null) === 'PT FINANCE CORE'
                     && ($row[7] ?? null) === 1
-                    && ($row[8] ?? null) === 1
-                    && ($row[9] ?? null) === 'BACKEND ENGINEER'
-                    && ($row[18] ?? null) === 'APRIL HIRED'));
+                    && ($row[10] ?? null) === 1
+                    && ($row[11] ?? null) === 'FINANCE ANALYST'
+                    && ($row[16] ?? null) === 'HOLD'
+                    && ($row[17] ?? null) === 'HOLD'));
 
-                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[1] ?? null) === 'PT IT CORE'
-                    && ($row[2] ?? null) === '03 Apr 2026'
-                    && ($row[5] ?? null) === 1
-                    && ($row[6] ?? null) === 0
+                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[1] ?? null) === sprintf('MPP-UID-%06d', $aprilRequest->id)
+                    && ($row[2] ?? null) === sprintf('LOWONGAN-UID-%06d', $aprilPosting->id)
+                    && ($row[3] ?? null) === 'PT IT CORE'
+                    && ($row[4] ?? null) === '02 Apr 2026'
+                    && ($row[6] ?? null) === 28
+                    && ($row[7] ?? null) === 2
                     && ($row[8] ?? null) === 1
-                    && ($row[9] ?? null) === mb_strtoupper($linkedAprilRequest->posisi_dibutuhkan)));
+                    && ($row[9] ?? null) === 1
+                    && ($row[10] ?? null) === 1
+                    && ($row[11] ?? null) === 'BACKEND ENGINEER'
+                    && ($row[20] ?? null) === 'APRIL HIRED'));
+
+                $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[1] ?? null) === sprintf('MPP-UID-%06d', $linkedAprilRequest->id)
+                    && ($row[2] ?? null) === sprintf('LOWONGAN-UID-%06d', $aprilPosting->id)
+                    && ($row[3] ?? null) === 'PT IT CORE'
+                    && ($row[4] ?? null) === '03 Apr 2026'
+                    && ($row[7] ?? null) === 1
+                    && ($row[8] ?? null) === 0
+                    && ($row[10] ?? null) === 1
+                    && ($row[11] ?? null) === mb_strtoupper($linkedAprilRequest->posisi_dibutuhkan)));
 
                 $this->assertTrue($overviewRows->contains(fn (array $row): bool => ($row[0] ?? null) === 'TOTAL'
-                    && ($row[5] ?? null) === 4
-                    && ($row[6] ?? null) === 1
-                    && ($row[7] ?? null) === 1
-                    && ($row[8] ?? null) === 3));
+                    && ($row[7] ?? null) === 4
+                    && ($row[8] ?? null) === 1
+                    && ($row[9] ?? null) === 1
+                    && ($row[10] ?? null) === 3));
 
                 $this->assertTrue($summaryRows->contains(fn (array $row): bool => $row[0] === 'APRIL 2026'
                     && $row[2] === 3
@@ -764,7 +770,9 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
                     && $row[6] === 3
                     && $row[7] === 1));
 
-                $this->assertTrue($detailRows->contains(fn (array $row): bool => in_array('PT IT CORE', $row, true)
+                $this->assertTrue($detailRows->contains(fn (array $row): bool => ($row[0] ?? null) === sprintf('MPP-UID-%06d', $aprilRequest->id)
+                    && ($row[1] ?? null) === sprintf('LOWONGAN-UID-%06d', $aprilPosting->id)
+                    && in_array('PT IT CORE', $row, true)
                     && in_array('BACKEND ENGINEER', $row, true)
                     && in_array('Pipeline belum cukup, perlu percepatan', $row, true)));
 
@@ -774,12 +782,15 @@ class RecruitmentProgressReportConsistencyTest extends RekrutmenTestCase
                     && in_array('Hold - menunggu keputusan user', $row, true)));
 
                 $this->assertTrue($activityRows->contains(fn (array $row): bool => ($row[2] ?? null) === 'PT IT CORE'
-                    && ($row[3] ?? null) === $aprilPosting->title
-                    && str_contains((string) ($row[4] ?? ''), 'BACKEND ENGINEER')
-                    && str_contains((string) ($row[4] ?? ''), 'BACKEND ENGINEER BATCH 2')
-                    && ($row[8] ?? null) === 2
-                    && ($row[9] ?? null) === 1
-                    && ($row[11] ?? null) === 1));
+                    && ($row[3] ?? null) === sprintf('LOWONGAN-UID-%06d', $aprilPosting->id)
+                    && ($row[4] ?? null) === $aprilPosting->title
+                    && str_contains((string) ($row[5] ?? ''), sprintf('MPP-UID-%06d', $aprilRequest->id))
+                    && str_contains((string) ($row[5] ?? ''), sprintf('MPP-UID-%06d', $linkedAprilRequest->id))
+                    && str_contains((string) ($row[6] ?? ''), 'BACKEND ENGINEER')
+                    && str_contains((string) ($row[6] ?? ''), 'BACKEND ENGINEER BATCH 2')
+                    && ($row[10] ?? null) === 2
+                    && ($row[11] ?? null) === 1
+                    && ($row[13] ?? null) === 1));
 
                 return true;
             });
