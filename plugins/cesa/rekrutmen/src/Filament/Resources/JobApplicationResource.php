@@ -132,7 +132,6 @@ class JobApplicationResource extends Resource
                                     ->required()
                                     ->searchable()
                                     ->live()
-                                    ->disabled(fn (string $operation): bool => $operation === 'edit')
                                     ->afterStateUpdated(function (mixed $state, Set $set): void {
                                         $set('current_stage_id', JobApplication::resolveInitialStageIdForJobPostingId($state));
                                     })
