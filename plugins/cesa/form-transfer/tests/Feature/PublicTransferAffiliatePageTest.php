@@ -18,6 +18,14 @@ class PublicTransferAffiliatePageTest extends FormTransferTestCase
         $routes->refreshActionLookups();
     }
 
+    public function test_public_affiliate_legacy_url_redirects_to_dynamic_category_url(): void
+    {
+        $this->get('/afiliasi')
+            ->assertRedirect(route('form-transfer.public.dynamic-index', [
+                'publicIndexSlug' => FormTransfer::PUBLIC_INDEX_AFFILIATES,
+            ]));
+    }
+
     public function test_public_affiliate_page_lists_only_active_links_in_sort_order(): void
     {
         FormTransfer::factory()->create([
@@ -53,7 +61,7 @@ class PublicTransferAffiliatePageTest extends FormTransferTestCase
             'is_active'                      => false,
         ]);
 
-        $response = $this->get('/afiliasi');
+        $response = $this->get('/form/afiliasi');
 
         $response
             ->assertOk()
@@ -68,7 +76,7 @@ class PublicTransferAffiliatePageTest extends FormTransferTestCase
 
     public function test_public_affiliate_page_shows_empty_state_when_no_active_links_exist(): void
     {
-        $this->get('/afiliasi')
+        $this->get('/form/afiliasi')
             ->assertOk()
             ->assertSee('Belum ada formulir transfer afiliasi yang tersedia saat ini.');
     }

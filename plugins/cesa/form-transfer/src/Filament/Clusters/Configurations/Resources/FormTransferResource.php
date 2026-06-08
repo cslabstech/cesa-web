@@ -8,6 +8,7 @@ use Cesa\FormTransfer\Filament\Clusters\Configurations\Resources\FormTransferRes
 use Cesa\FormTransfer\Filament\Clusters\Configurations\Resources\FormTransferResource\RelationManagers\DivisionsRelationManager;
 use Cesa\FormTransfer\Filament\Clusters\Configurations\Resources\FormTransferResource\RelationManagers\ReferenceNotesRelationManager;
 use Cesa\FormTransfer\Models\FormTransfer;
+use Cesa\FormTransfer\Models\FormTransferPublicCategory;
 use Cesa\FormTransfer\Services\TransferApprovalNotificationService;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -38,6 +39,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Webkul\Security\Traits\HasResourcePermissionQuery;
@@ -113,12 +115,34 @@ class FormTransferResource extends Resource
                                                         ->maxLength(100)
                                                         ->helperText(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.public_badge_label_helper'))
                                                         ->columnSpanFull(),
-                                                    Toggle::make('show_on_transfer_request_index')
-                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.show_on_transfer_request_index'))
-                                                        ->default(true),
-                                                    Toggle::make('show_on_affiliate_index')
-                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.show_on_affiliate_index'))
-                                                        ->default(false),
+                                                    Select::make('publicCategories')
+                                                        ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.public_categories'))
+                                                        ->relationship(
+                                                            name: 'publicCategories',
+                                                            titleAttribute: 'name',
+                                                            modifyQueryUsing: fn (Builder $query): Builder => $query
+                                                                ->active()
+                                                                ->ordered(),
+                                                        )
+                                                        ->getOptionLabelFromRecordUsing(fn (FormTransferPublicCategory $record): string => "{$record->name} (/form/{$record->slug})")
+                                                        ->multiple()
+                                                        ->default(function (): array {
+                                                            $defaultCategoryId = FormTransferPublicCategory::query()
+                                                                ->where('slug', FormTransfer::PUBLIC_INDEX_TRANSFER_REQUESTS)
+                                                                ->value('id');
+
+                                                            return $defaultCategoryId ? [$defaultCategoryId] : [];
+                                                        })
+                                                        ->preload()
+                                                        ->searchable()
+                                                        ->required()
+                                                        ->helperText(__('form-transfer::filament/clusters/configurations/resources/form-transfer.fields.public_categories_helper'))
+                                                        ->saveRelationshipsUsing(function (FormTransfer $record, ?array $state): void {
+                                                            $record->publicCategories()->sync($state ?? []);
+                                                            $record->unsetRelation('publicCategories');
+                                                            $record->syncLegacyPublicIndexFlags();
+                                                        })
+                                                        ->columnSpanFull(),
                                                 ])
                                                 ->columns(2),
                                             Section::make(__('form-transfer::filament/clusters/configurations/resources/form-transfer.sections.access_control'))
@@ -377,6 +401,7 @@ class FormTransferResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('publicCategories'))
             ->columns([
                 TextColumn::make('name')
                     ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.name'))
@@ -392,6 +417,12 @@ class FormTransferResource extends Resource
                     ->formatStateUsing(fn (string $state): string => __(
                         'form-transfer::filament/clusters/configurations/resources/form-transfer.options.public_entry_type.'.$state
                     )),
+                TextColumn::make('public_index_slugs')
+                    ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.public_index_slugs'))
+                    ->state(fn (FormTransfer $record): string => collect($record->getPublicIndexSlugs())
+                        ->map(fn (string $slug): string => '/form/'.$slug)
+                        ->implode(', '))
+                    ->wrap(),
                 TextColumn::make('uid_prefix')
                     ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.uid_prefix'))
                     ->searchable()
@@ -416,12 +447,6 @@ class FormTransferResource extends Resource
                     ->boolean()
                     ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.is_active'))
                     ->sortable(),
-                IconColumn::make('show_on_transfer_request_index')
-                    ->boolean()
-                    ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.show_on_transfer_request_index')),
-                IconColumn::make('show_on_affiliate_index')
-                    ->boolean()
-                    ->label(__('form-transfer::filament/clusters/configurations/resources/form-transfer.columns.show_on_affiliate_index')),
             ])
             ->filters([
                 TernaryFilter::make('is_active')

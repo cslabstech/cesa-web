@@ -4,6 +4,7 @@ namespace Cesa\FormTransfer\Tests\Feature;
 
 use Cesa\FormTransfer\Enums\TransferRequestSubmissionStatus;
 use Cesa\FormTransfer\Models\FormTransfer;
+use Cesa\FormTransfer\Models\FormTransferPublicCategory;
 use Cesa\FormTransfer\Models\TransferBank;
 use Cesa\FormTransfer\Models\TransferDivision;
 use Cesa\FormTransfer\Models\TransferReferenceNote;
@@ -66,17 +67,48 @@ class PublicTransferApiTest extends FormTransferTestCase
             'show_on_affiliate_index'        => true,
         ]);
 
+        $retail = FormTransferPublicCategory::factory()->create([
+            'name' => 'Retail',
+            'slug' => 'retail',
+        ]);
+
+        $retailForm = FormTransfer::factory()->create([
+            'creator_id'                     => null,
+            'company_id'                     => null,
+            'name'                           => 'Transfer Retail',
+            'code'                           => 'TRANSFER_RETAIL',
+            'is_active'                      => true,
+            'show_on_transfer_request_index' => false,
+            'public_sort_order'              => 1,
+            'public_entry_type'              => FormTransfer::PUBLIC_ENTRY_TYPE_EXTERNAL,
+            'public_external_url'            => 'https://forms.gle/retail',
+        ]);
+        $retailForm->publicCategories()->attach($retail);
+
         $this->getJson('/api/form-transfer/transfer-requests')
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('meta.mode', 'transfer_request')
+            ->assertJsonPath('meta.public_index_slug', FormTransfer::PUBLIC_INDEX_TRANSFER_REQUESTS)
             ->assertJsonPath('data.0.code', 'TRANSFER_OPERASIONAL');
 
         $this->getJson('/api/form-transfer/afiliasi')
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('meta.mode', 'affiliate')
+            ->assertJsonPath('meta.public_index_slug', FormTransfer::PUBLIC_INDEX_AFFILIATES)
             ->assertJsonPath('data.0.code', 'TRANSFER_AFILIASI');
+
+        $this->getJson('/api/form-transfer/catalogs/retail')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.mode', 'retail')
+            ->assertJsonPath('meta.public_index_slug', 'retail')
+            ->assertJsonPath('data.0.code', 'TRANSFER_RETAIL')
+            ->assertJsonPath('data.0.public_index_slugs', ['retail']);
+
+        $this->getJson('/api/form-transfer/catalogs/unknown-category')
+            ->assertNotFound();
     }
 
     public function test_public_api_returns_internal_form_detail_with_reference_data(): void

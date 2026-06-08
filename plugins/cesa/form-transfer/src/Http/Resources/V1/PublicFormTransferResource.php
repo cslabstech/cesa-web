@@ -25,6 +25,7 @@ class PublicFormTransferResource extends JsonResource
             'sort_order'                     => $this->public_sort_order,
             'show_on_transfer_request_index' => $this->show_on_transfer_request_index,
             'show_on_affiliate_index'        => $this->show_on_affiliate_index,
+            'public_index_slugs'             => $this->getPublicIndexSlugs(),
             'references'                     => $this->when(
                 $this->relationLoaded('divisions') || $this->relationLoaded('referenceNotes') || $this->relationLoaded('approvalWorkflows'),
                 fn (): array => [

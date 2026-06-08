@@ -15,6 +15,20 @@ return [
         'empty_state'         => 'Belum ada form transfer yang tersedia saat ini.',
     ],
 
+    'catalog' => [
+        'heading'             => 'DAFTAR FORM TRANSFER - :category',
+        'description'         => 'Pilih form transfer kategori :category untuk melanjutkan pengisian permintaan transfer.',
+        'default_description' => 'Buka form transfer kategori :category.',
+        'empty_state'         => 'Belum ada form transfer kategori :category yang tersedia saat ini.',
+    ],
+
+    'categories' => [
+        'heading'             => 'KATEGORI FORM TRANSFER',
+        'description'         => 'Pilih kategori untuk melihat form transfer yang tersedia.',
+        'default_description' => 'Buka form transfer pada kategori ini.',
+        'empty_state'         => 'Belum ada kategori yang tersedia saat ini.',
+    ],
+
     'form' => [
         'heading'       => 'FORM TRANSFER - :form',
         'description'   => 'Isi informasi berikut untuk mengajukan permintaan transfer :form.',

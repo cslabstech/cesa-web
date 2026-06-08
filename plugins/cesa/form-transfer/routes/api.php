@@ -13,6 +13,10 @@ Route::middleware('api')
         Route::get('transfer-requests', [PublicTransferRequestController::class, 'index'])
             ->name('transfer-requests.index');
 
+        Route::get('catalogs/{publicIndexSlug}', [PublicTransferRequestController::class, 'catalogBySlug'])
+            ->where('publicIndexSlug', '[A-Za-z0-9_-]+')
+            ->name('catalogs.show');
+
         Route::get('transfer-requests/progress', [PublicTransferRequestController::class, 'lookupProgress'])
             ->middleware('throttle:10,1')
             ->name('transfer-requests.progress.lookup');

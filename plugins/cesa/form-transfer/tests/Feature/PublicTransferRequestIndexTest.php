@@ -3,6 +3,7 @@
 namespace Cesa\FormTransfer\Tests\Feature;
 
 use Cesa\FormTransfer\Models\FormTransfer;
+use Cesa\FormTransfer\Models\FormTransferPublicCategory;
 use Cesa\FormTransfer\Tests\FormTransferTestCase;
 
 class PublicTransferRequestIndexTest extends FormTransferTestCase
@@ -51,7 +52,12 @@ class PublicTransferRequestIndexTest extends FormTransferTestCase
             'is_active'                      => true,
         ]);
 
-        $response = $this->get('/transfer-requests');
+        $this->get('/transfer-requests')
+            ->assertRedirect(route('form-transfer.public.dynamic-index', [
+                'publicIndexSlug' => FormTransfer::PUBLIC_INDEX_TRANSFER_REQUESTS,
+            ]));
+
+        $response = $this->get('/form/transfer-requests');
 
         $response
             ->assertOk()
@@ -62,5 +68,54 @@ class PublicTransferRequestIndexTest extends FormTransferTestCase
             ->assertDontSee('FORM KHUSUS AFILIASI')
             ->assertSee('https://forms.gle/example-resto', false)
             ->assertSee(route('form-transfer.public.form', $internalForm->code), false);
+    }
+
+    public function test_public_transfer_request_index_can_be_grouped_by_dynamic_category_slug(): void
+    {
+        $retail = FormTransferPublicCategory::factory()->create([
+            'name' => 'Retail',
+            'slug' => 'retail',
+        ]);
+        $distributor = FormTransferPublicCategory::factory()->create([
+            'name' => 'Distributor',
+            'slug' => 'distributor',
+        ]);
+
+        $retailForm = FormTransfer::factory()->create([
+            'name'                => 'FORM RETAIL STORE',
+            'public_entry_type'   => FormTransfer::PUBLIC_ENTRY_TYPE_EXTERNAL,
+            'public_external_url' => 'https://forms.gle/retail-store',
+            'public_sort_order'   => 10,
+            'is_active'           => true,
+        ]);
+        $retailForm->publicCategories()->attach($retail);
+
+        $distributorForm = FormTransfer::factory()->create([
+            'name'                => 'FORM DISTRIBUTOR',
+            'public_entry_type'   => FormTransfer::PUBLIC_ENTRY_TYPE_EXTERNAL,
+            'public_external_url' => 'https://forms.gle/distributor',
+            'public_sort_order'   => 20,
+            'is_active'           => true,
+        ]);
+        $distributorForm->publicCategories()->attach($distributor);
+
+        $this->get('/form/retail')
+            ->assertOk()
+            ->assertSee('RETAIL')
+            ->assertSee('FORM RETAIL STORE')
+            ->assertDontSee('FORM DISTRIBUTOR')
+            ->assertSee('https://forms.gle/retail-store', false);
+
+        $this->get('/retail')
+            ->assertNotFound();
+
+        $this->get('/catalog/retail')
+            ->assertNotFound();
+    }
+
+    public function test_unknown_public_category_slug_returns_not_found(): void
+    {
+        $this->get('/form/unknown-category')
+            ->assertNotFound();
     }
 }

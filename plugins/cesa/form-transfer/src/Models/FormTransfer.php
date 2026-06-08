@@ -26,6 +26,10 @@ class FormTransfer extends Model
 
     public const PUBLIC_ENTRY_TYPE_EXTERNAL = 'external';
 
+    public const PUBLIC_INDEX_TRANSFER_REQUESTS = FormTransferPublicCategory::SLUG_TRANSFER_REQUESTS;
+
+    public const PUBLIC_INDEX_AFFILIATES = FormTransferPublicCategory::SLUG_AFFILIATES;
+
     protected $fillable = [
         'company_id',
         'name',
@@ -92,6 +96,104 @@ class FormTransfer extends Model
         return $this->public_entry_type === self::PUBLIC_ENTRY_TYPE_EXTERNAL && filled($this->public_external_url);
     }
 
+    /**
+     * @return array<int, string>
+     */
+    public static function reservedPublicIndexSlugs(): array
+    {
+        return FormTransferPublicCategory::reservedSlugs();
+    }
+
+    public static function normalizePublicIndexSlug(mixed $slug): string
+    {
+        return FormTransferPublicCategory::normalizeSlug($slug);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function normalizePublicIndexSlugs(mixed $slugs): array
+    {
+        if (is_string($slugs)) {
+            $slugs = preg_split('/[\s,]+/', $slugs) ?: [];
+        }
+
+        if (! is_array($slugs)) {
+            return [];
+        }
+
+        return collect($slugs)
+            ->map(fn (mixed $slug): string => self::normalizePublicIndexSlug($slug))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public static function isAllowedPublicIndexSlug(mixed $slug): bool
+    {
+        return FormTransferPublicCategory::isAllowedSlug($slug);
+    }
+
+    public static function isBuiltInPublicIndexSlug(string $slug): bool
+    {
+        return FormTransferPublicCategory::isBuiltInSlug($slug);
+    }
+
+    public static function hasPublicIndexSlug(string $slug): bool
+    {
+        return FormTransferPublicCategory::activeSlugExists($slug);
+    }
+
+    public function scopeShownOnPublicIndex(Builder $query, string $slug): Builder
+    {
+        $slug = self::normalizePublicIndexSlug($slug);
+
+        return $query->where(function (Builder $query) use ($slug): void {
+            $query->whereHas('publicCategories', function (Builder $query) use ($slug): void {
+                $query
+                    ->where('slug', $slug)
+                    ->where('is_active', true);
+            });
+
+            if ($slug === self::PUBLIC_INDEX_TRANSFER_REQUESTS) {
+                $query->orWhere('show_on_transfer_request_index', true);
+            }
+
+            if ($slug === self::PUBLIC_INDEX_AFFILIATES) {
+                $query->orWhere('show_on_affiliate_index', true);
+            }
+        });
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getPublicIndexSlugs(): array
+    {
+        if ($this->relationLoaded('publicCategories')) {
+            $explicitSlugs = $this->publicCategories
+                ->where('is_active', true)
+                ->pluck('slug')
+                ->all();
+
+            if ($explicitSlugs !== []) {
+                return self::normalizePublicIndexSlugs($explicitSlugs);
+            }
+        }
+
+        $explicitSlugs = $this->publicCategories()
+            ->where('is_active', true)
+            ->pluck('slug')
+            ->all();
+
+        if ($explicitSlugs !== []) {
+            return $explicitSlugs;
+        }
+
+        return $this->legacyPublicIndexSlugsFromFlags();
+    }
+
     public function getPublicDestinationUrlAttribute(): string
     {
         if ($this->usesExternalPublicEntry()) {
@@ -118,6 +220,41 @@ class FormTransfer extends Model
                     : 1;
             }
         });
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function legacyPublicIndexSlugsFromFlags(): array
+    {
+        if (
+            ! array_key_exists('show_on_transfer_request_index', $this->attributes)
+            && ! array_key_exists('show_on_affiliate_index', $this->attributes)
+        ) {
+            return [self::PUBLIC_INDEX_TRANSFER_REQUESTS];
+        }
+
+        $slugs = [];
+
+        if ((bool) $this->show_on_transfer_request_index) {
+            $slugs[] = self::PUBLIC_INDEX_TRANSFER_REQUESTS;
+        }
+
+        if ((bool) $this->show_on_affiliate_index) {
+            $slugs[] = self::PUBLIC_INDEX_AFFILIATES;
+        }
+
+        return self::normalizePublicIndexSlugs($slugs);
+    }
+
+    public function syncLegacyPublicIndexFlags(): void
+    {
+        $slugs = $this->getPublicIndexSlugs();
+
+        $this->forceFill([
+            'show_on_transfer_request_index' => in_array(self::PUBLIC_INDEX_TRANSFER_REQUESTS, $slugs, true),
+            'show_on_affiliate_index'        => in_array(self::PUBLIC_INDEX_AFFILIATES, $slugs, true),
+        ])->saveQuietly();
     }
 
     public function company(): BelongsTo
@@ -158,6 +295,16 @@ class FormTransfer extends Model
         return $this->belongsToMany(User::class, 'form_transfer_user_accesses', 'form_transfer_id', 'user_id')
             ->withTrashed()
             ->withTimestamps();
+    }
+
+    public function publicCategories(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            FormTransferPublicCategory::class,
+            'form_transfer_public_category_assignments',
+            'form_transfer_id',
+            'form_transfer_public_category_id',
+        )->withTimestamps();
     }
 
     public function generateNextRequestUid(): string

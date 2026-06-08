@@ -28,6 +28,8 @@ abstract class FormTransferTestCase extends TestCase
 
         parent::setUp();
 
+        $this->withoutVite();
+
         $this->artisan('migrate', [
             '--path'     => 'plugins/webkul/plugin-manager/database/migrations/2024_11_05_105102_create_plugins_table.php',
             '--realpath' => false,

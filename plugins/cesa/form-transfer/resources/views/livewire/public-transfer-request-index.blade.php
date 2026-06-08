@@ -3,10 +3,10 @@
         <div class="mb-6 rounded-lg border-t-[10px] {{ $affiliateMode ? 'border-[#673AB7]' : 'cesa-primary-border' }} bg-white shadow-sm">
             <div class="px-6 pb-6 pt-5">
                 <h1 class="text-[32px] font-normal leading-tight text-gray-900">
-                    {{ $affiliateMode ? __('form-transfer::public.affiliates.heading') : __('form-transfer::public.index.heading') }}
+                    {{ $heading }}
                 </h1>
                 <p class="mt-2 text-sm text-gray-600">
-                    {{ $affiliateMode ? __('form-transfer::public.affiliates.description') : __('form-transfer::public.index.description') }}
+                    {{ $description }}
                 </p>
             </div>
         </div>
@@ -28,7 +28,7 @@
                                     {{ $formTransfer->name }}
                                 </h2>
                                 <p class="mt-2 text-sm text-gray-600">
-                                    {{ filled($formTransfer->description) ? $formTransfer->description : ($affiliateMode ? __('form-transfer::public.affiliates.default_description') : __('form-transfer::public.index.default_description')) }}
+                                    {{ filled($formTransfer->description) ? $formTransfer->description : $defaultDescription }}
                                 </p>
                             </div>
                             <x-filament::icon
@@ -42,7 +42,7 @@
         @else
             <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                 <p class="text-sm text-gray-600">
-                    {{ $affiliateMode ? __('form-transfer::public.affiliates.empty_state') : __('form-transfer::public.index.empty_state') }}
+                    {{ $emptyState }}
                 </p>
             </div>
         @endif

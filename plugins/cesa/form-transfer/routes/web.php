@@ -1,17 +1,23 @@
 <?php
 
 use Cesa\FormTransfer\Http\Controllers\PublicAttachmentDownloadController;
+use Cesa\FormTransfer\Livewire\PublicCategoryIndex;
 use Cesa\FormTransfer\Livewire\PublicTransferApprovalPage;
 use Cesa\FormTransfer\Livewire\PublicTransferProgressPage;
 use Cesa\FormTransfer\Livewire\PublicTransferRequestForm;
 use Cesa\FormTransfer\Livewire\PublicTransferRequestIndex;
+use Cesa\FormTransfer\Models\FormTransfer;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web'])->group(function (): void {
-    Route::get('afiliasi', PublicTransferRequestIndex::class)
+    Route::get('afiliasi', fn () => redirect()->route('form-transfer.public.dynamic-index', [
+        'publicIndexSlug' => FormTransfer::PUBLIC_INDEX_AFFILIATES,
+    ]))
         ->name('form-transfer.public.affiliates');
 
-    Route::get('transfer-requests', PublicTransferRequestIndex::class)
+    Route::get('transfer-requests', fn () => redirect()->route('form-transfer.public.dynamic-index', [
+        'publicIndexSlug' => FormTransfer::PUBLIC_INDEX_TRANSFER_REQUESTS,
+    ]))
         ->name('form-transfer.public.index');
 
     Route::get('transfer-requests/approval/{task}', PublicTransferApprovalPage::class)
@@ -29,4 +35,11 @@ Route::middleware(['web'])->group(function (): void {
     Route::get('transfer-requests/files/{statusResponseId}/{attachment}', PublicAttachmentDownloadController::class)
         ->middleware('signed')
         ->name('form-transfer.public.attachments.download');
+
+    Route::get('form', PublicCategoryIndex::class)
+        ->name('form-transfer.public.categories');
+
+    Route::get('form/{publicIndexSlug}', PublicTransferRequestIndex::class)
+        ->where('publicIndexSlug', '[A-Za-z0-9][A-Za-z0-9_-]*')
+        ->name('form-transfer.public.dynamic-index');
 });

@@ -7,6 +7,7 @@ use Cesa\FormTransfer\Enums\TransferRequestApprovalStatus;
 use Cesa\FormTransfer\Enums\TransferRequestRealizationStatus;
 use Cesa\FormTransfer\Enums\TransferRequestSubmissionStatus;
 use Cesa\FormTransfer\Models\FormTransfer;
+use Cesa\FormTransfer\Models\FormTransferPublicCategory;
 use Cesa\FormTransfer\Models\TransferApprovalWorkflow;
 use Cesa\FormTransfer\Models\TransferBank;
 use Cesa\FormTransfer\Models\TransferDivision;
@@ -14,6 +15,7 @@ use Cesa\FormTransfer\Models\TransferReferenceNote;
 use Cesa\FormTransfer\Models\TransferRequest;
 use Cesa\FormTransfer\Models\TransferRequestRealization;
 use Cesa\FormTransfer\Tests\FormTransferTestCase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Webkul\Security\Models\User as SecurityUser;
@@ -50,6 +52,144 @@ class FormTransferModelTest extends FormTransferTestCase
 
         $this->assertSame(1, $first->public_sort_order);
         $this->assertSame(2, $second->public_sort_order);
+        $this->assertSame([FormTransfer::PUBLIC_INDEX_TRANSFER_REQUESTS], $first->getPublicIndexSlugs());
+    }
+
+    public function test_form_transfer_public_categories_drive_public_index_slugs_and_sync_legacy_flags(): void
+    {
+        $retail = FormTransferPublicCategory::factory()->create([
+            'name' => 'Retail Store',
+            'slug' => 'Retail Store',
+        ]);
+        $affiliate = FormTransferPublicCategory::query()
+            ->where('slug', FormTransfer::PUBLIC_INDEX_AFFILIATES)
+            ->firstOrFail();
+        $formTransfer = FormTransfer::factory()->create([
+            'show_on_transfer_request_index' => true,
+            'show_on_affiliate_index'        => false,
+        ]);
+
+        $formTransfer->publicCategories()->sync([$retail->getKey(), $affiliate->getKey()]);
+        $formTransfer->unsetRelation('publicCategories');
+        $formTransfer->syncLegacyPublicIndexFlags();
+        $formTransfer->refresh();
+
+        $this->assertEqualsCanonicalizing(
+            ['retail-store', FormTransfer::PUBLIC_INDEX_AFFILIATES],
+            $formTransfer->getPublicIndexSlugs()
+        );
+        $this->assertFalse($formTransfer->show_on_transfer_request_index);
+        $this->assertTrue($formTransfer->show_on_affiliate_index);
+    }
+
+    public function test_public_categories_are_seeded_and_validate_public_slugs(): void
+    {
+        $this->assertDatabaseHas('form_transfer_public_categories', [
+            'name'      => 'Permintaan Transfer',
+            'slug'      => FormTransfer::PUBLIC_INDEX_TRANSFER_REQUESTS,
+            'is_active' => true,
+        ]);
+        $this->assertDatabaseHas('form_transfer_public_categories', [
+            'name'      => 'Afiliasi',
+            'slug'      => FormTransfer::PUBLIC_INDEX_AFFILIATES,
+            'is_active' => true,
+        ]);
+
+        $category = FormTransferPublicCategory::factory()->create([
+            'name' => 'Retail Modern',
+            'slug' => 'Retail Modern',
+        ]);
+
+        $this->assertSame('retail-modern', $category->slug);
+        $this->assertTrue(FormTransfer::hasPublicIndexSlug('retail-modern'));
+
+        $this->expectException(ValidationException::class);
+
+        FormTransferPublicCategory::factory()->create([
+            'name' => 'Admin',
+            'slug' => 'admin',
+        ]);
+    }
+
+    public function test_builtin_public_category_normalization_migration_backfills_legacy_flags(): void
+    {
+        $formTransfer = FormTransfer::factory()->create([
+            'show_on_transfer_request_index' => true,
+            'show_on_affiliate_index'        => true,
+        ]);
+
+        DB::table('form_transfer_public_category_assignments')
+            ->where('form_transfer_id', $formTransfer->getKey())
+            ->delete();
+
+        $migration = require base_path(
+            'plugins/cesa/form-transfer/database/migrations/2026_06_07_000001_normalize_form_transfer_builtin_public_categories.php'
+        );
+
+        $migration->up();
+
+        $transferRequestsCategoryId = FormTransferPublicCategory::query()
+            ->where('slug', FormTransfer::PUBLIC_INDEX_TRANSFER_REQUESTS)
+            ->value('id');
+        $affiliatesCategoryId = FormTransferPublicCategory::query()
+            ->where('slug', FormTransfer::PUBLIC_INDEX_AFFILIATES)
+            ->value('id');
+
+        $this->assertDatabaseHas('form_transfer_public_category_assignments', [
+            'form_transfer_id'                 => $formTransfer->getKey(),
+            'form_transfer_public_category_id' => $transferRequestsCategoryId,
+        ]);
+        $this->assertDatabaseHas('form_transfer_public_category_assignments', [
+            'form_transfer_id'                 => $formTransfer->getKey(),
+            'form_transfer_public_category_id' => $affiliatesCategoryId,
+        ]);
+    }
+
+    public function test_public_category_assignment_foreign_key_names_fit_mysql_limit(): void
+    {
+        $source = file_get_contents(base_path(
+            'plugins/cesa/form-transfer/database/migrations/2026_06_06_141951_create_form_transfer_public_categories_tables.php'
+        ));
+        $foreignKeyNames = [
+            'ft_pubcat_assign_form_transfer_fk',
+            'ft_pubcat_assign_public_category_fk',
+        ];
+
+        $this->assertIsString($source);
+
+        foreach ($foreignKeyNames as $foreignKeyName) {
+            $this->assertLessThanOrEqual(64, strlen($foreignKeyName));
+            $this->assertStringContainsString($foreignKeyName, $source);
+        }
+    }
+
+    public function test_builtin_public_categories_cannot_be_deactivated_renamed_or_deleted(): void
+    {
+        $category = FormTransferPublicCategory::query()
+            ->where('slug', FormTransfer::PUBLIC_INDEX_TRANSFER_REQUESTS)
+            ->firstOrFail();
+
+        $this->assertTrue($category->isBuiltIn());
+
+        try {
+            $category->forceFill(['is_active' => false])->save();
+            $this->fail('Built-in public categories should not be deactivated.');
+        } catch (ValidationException) {
+            $this->assertTrue($category->fresh()->is_active);
+            $category = $category->fresh();
+        }
+
+        try {
+            $category->forceFill(['slug' => 'renamed-transfer-requests'])->save();
+            $this->fail('Built-in public category slugs should not be changed.');
+        } catch (ValidationException) {
+            $this->assertSame(FormTransfer::PUBLIC_INDEX_TRANSFER_REQUESTS, $category->fresh()->slug);
+            $category = $category->fresh();
+        }
+
+        $this->expectException(ValidationException::class);
+
+        $category->delete();
     }
 
     public function test_internal_entry_scope_only_returns_non_deleted_internal_form_transfers(): void

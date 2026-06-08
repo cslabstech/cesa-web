@@ -3,11 +3,13 @@
 namespace Cesa\FormTransfer;
 
 use Cesa\DatabaseSnapshot\Services\DatabaseSnapshotManager;
+use Cesa\FormTransfer\Livewire\PublicCategoryIndex;
 use Cesa\FormTransfer\Livewire\PublicTransferApprovalPage;
 use Cesa\FormTransfer\Livewire\PublicTransferProgressPage;
 use Cesa\FormTransfer\Livewire\PublicTransferRequestForm;
 use Cesa\FormTransfer\Livewire\PublicTransferRequestIndex;
 use Cesa\FormTransfer\Models\FormTransfer;
+use Cesa\FormTransfer\Models\FormTransferPublicCategory;
 use Cesa\FormTransfer\Models\TransferApprovalWorkflow;
 use Cesa\FormTransfer\Models\TransferBank;
 use Cesa\FormTransfer\Models\TransferDivision;
@@ -18,6 +20,7 @@ use Cesa\FormTransfer\Observers\TransferBankObserver;
 use Cesa\FormTransfer\Observers\TransferDivisionObserver;
 use Cesa\FormTransfer\Observers\TransferReferenceNoteObserver;
 use Cesa\FormTransfer\Policies\FormTransferPolicy;
+use Cesa\FormTransfer\Policies\FormTransferPublicCategoryPolicy;
 use Cesa\FormTransfer\Policies\TransferApprovalWorkflowPolicy;
 use Cesa\FormTransfer\Policies\TransferBankPolicy;
 use Cesa\FormTransfer\Policies\TransferDivisionPolicy;
@@ -61,6 +64,8 @@ class FormTransferServiceProvider extends PackageServiceProvider
                 '2026_04_22_150000_drop_public_open_in_new_tab_from_form_transfers_table',
                 '2026_04_24_064244_create_form_transfer_request_realizations_table',
                 '2026_05_15_010100_add_creator_id_to_form_transfer_support_tables',
+                '2026_06_06_141951_create_form_transfer_public_categories_tables',
+                '2026_06_07_000001_normalize_form_transfer_builtin_public_categories',
             ])
             ->runsMigrations()
             ->hasInstallCommand(function (InstallCommand $command): void {
@@ -85,10 +90,12 @@ class FormTransferServiceProvider extends PackageServiceProvider
 
         Livewire::component('cesa.form-transfer.livewire.public-transfer-request-form', PublicTransferRequestForm::class);
         Livewire::component('cesa.form-transfer.livewire.public-transfer-request-index', PublicTransferRequestIndex::class);
+        Livewire::component('cesa.form-transfer.livewire.public-category-index', PublicCategoryIndex::class);
         Livewire::component('cesa.form-transfer.livewire.public-transfer-approval', PublicTransferApprovalPage::class);
         Livewire::component('cesa.form-transfer.livewire.public-transfer-progress', PublicTransferProgressPage::class);
 
         Gate::policy(FormTransfer::class, FormTransferPolicy::class);
+        Gate::policy(FormTransferPublicCategory::class, FormTransferPublicCategoryPolicy::class);
         Gate::policy(TransferRequest::class, TransferRequestPolicy::class);
         Gate::policy(TransferDivision::class, TransferDivisionPolicy::class);
         Gate::policy(TransferBank::class, TransferBankPolicy::class);
@@ -118,6 +125,8 @@ class FormTransferServiceProvider extends PackageServiceProvider
                 'form_transfer_requests',
                 'form_transfer_request_realizations',
                 'form_transfer_user_accesses',
+                'form_transfer_public_categories',
+                'form_transfer_public_category_assignments',
             ],
         ]);
     }

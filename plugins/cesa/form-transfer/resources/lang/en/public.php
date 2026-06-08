@@ -15,6 +15,20 @@ return [
         'empty_state'         => 'No transfer request forms are available right now.',
     ],
 
+    'catalog' => [
+        'heading'             => ':category Transfer Request Forms',
+        'description'         => 'Choose a :category transfer request form to continue.',
+        'default_description' => 'Open the :category transfer request form.',
+        'empty_state'         => 'No :category transfer forms are available right now.',
+    ],
+
+    'categories' => [
+        'heading'             => 'Transfer Request Categories',
+        'description'         => 'Choose a category to see the available transfer request forms.',
+        'default_description' => 'Open the forms in this category.',
+        'empty_state'         => 'No categories are available right now.',
+    ],
+
     'form' => [
         'heading'       => 'Transfer Request - :form',
         'description'   => 'Fill out the information below to submit a transfer request for :form.',

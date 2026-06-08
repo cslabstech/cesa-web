@@ -17,7 +17,6 @@ use Cesa\FormTransfer\Models\TransferRequest;
 use Cesa\FormTransfer\Services\RecaptchaValidator;
 use Cesa\FormTransfer\Services\TransferApprovalNotificationService;
 use Cesa\FormTransfer\Services\TransferRequestService;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -35,12 +34,31 @@ class PublicTransferRequestController extends Controller
 
     public function affiliates(): AnonymousResourceCollection
     {
-        return $this->catalog('affiliate');
+        return $this->catalog(FormTransfer::PUBLIC_INDEX_AFFILIATES, 'affiliate');
     }
 
     public function index(): AnonymousResourceCollection
     {
-        return $this->catalog('transfer_request');
+        return $this->catalog(FormTransfer::PUBLIC_INDEX_TRANSFER_REQUESTS, 'transfer_request');
+    }
+
+    public function catalogBySlug(string $publicIndexSlug): AnonymousResourceCollection|JsonResponse
+    {
+        $slug = FormTransfer::normalizePublicIndexSlug($publicIndexSlug);
+
+        if (
+            ! FormTransfer::isAllowedPublicIndexSlug($slug)
+            || (
+                ! FormTransfer::isBuiltInPublicIndexSlug($slug)
+                && ! FormTransfer::hasPublicIndexSlug($slug)
+            )
+        ) {
+            return response()->json([
+                'message' => 'Katalog form transfer tidak ditemukan.',
+            ], 404);
+        }
+
+        return $this->catalog($slug, $slug);
     }
 
     public function show(string $formTransfer, Request $request): JsonResponse
@@ -48,6 +66,7 @@ class PublicTransferRequestController extends Controller
         $formTransferModel = $this->findInternalFormTransfer($formTransfer);
 
         $formTransferModel->load([
+            'publicCategories',
             'divisions' => fn ($query) => $query
                 ->where('is_active', true)
                 ->orderBy('name'),
@@ -212,15 +231,12 @@ class PublicTransferRequestController extends Controller
         return PublicTransferRequestResource::make($transferRequest)->response();
     }
 
-    protected function catalog(string $mode): AnonymousResourceCollection
+    protected function catalog(string $publicIndexSlug, string $mode): AnonymousResourceCollection
     {
         $forms = FormTransfer::query()
+            ->with('publicCategories')
             ->where('is_active', true)
-            ->when(
-                $mode === 'affiliate',
-                fn (Builder $query): Builder => $query->where('show_on_affiliate_index', true),
-                fn (Builder $query): Builder => $query->where('show_on_transfer_request_index', true),
-            )
+            ->shownOnPublicIndex($publicIndexSlug)
             ->orderBy('public_sort_order')
             ->orderBy('name')
             ->get();
@@ -228,8 +244,9 @@ class PublicTransferRequestController extends Controller
         return PublicFormTransferResource::collection($forms)
             ->additional([
                 'meta' => [
-                    'mode'  => $mode,
-                    'count' => $forms->count(),
+                    'mode'              => $mode,
+                    'public_index_slug' => $publicIndexSlug,
+                    'count'             => $forms->count(),
                 ],
             ]);
     }
