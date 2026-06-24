@@ -1,0 +1,27 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="0.5" y="0.5" width="63" height="63" rx="12.5" fill="white"/>
+<rect x="0.5" y="0.5" width="63" height="63" rx="12.5" stroke="#DCE0E5"/>
+
+<!-- Clipboard Board (Blue) -->
+<rect x="18" y="14" width="28" height="38" rx="2" fill="#0070F2"/>
+
+<!-- Clip (Yellow) -->
+<rect x="26" y="10" width="12" height="6" rx="1.5" fill="#FDB421"/>
+
+<!-- Paper Sheet (White) -->
+<rect x="21" y="19" width="22" height="30" rx="1" fill="white"/>
+
+<!-- Checklist Item 1 -->
+<rect x="24" y="24" width="5" height="5" rx="1" fill="#FC5B1C"/>
+<path d="M 25 26.5 L 26 27.5 L 28 25" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="31" y="25" width="9" height="3" rx="1" fill="#0070F2"/>
+
+<!-- Checklist Item 2 -->
+<rect x="24" y="32" width="5" height="5" rx="1" fill="#FC5B1C"/>
+<path d="M 25 34.5 L 26 35.5 L 28 33" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="31" y="33" width="9" height="3" rx="1" fill="#0070F2"/>
+
+<!-- Checklist Item 3 -->
+<rect x="24" y="40" width="5" height="5" rx="1" stroke="#DCE0E5" stroke-width="1.5" fill="none"/>
+<rect x="31" y="41" width="7" height="3" rx="1" fill="#DCE0E5"/>
+</svg>
