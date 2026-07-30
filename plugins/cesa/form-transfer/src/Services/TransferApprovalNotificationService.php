@@ -1020,9 +1020,6 @@ HTML;
 
         $endpoint = Arr::get($config, 'endpoint');
         $apiKey = Arr::get($config, 'api_key');
-        $sender = Arr::get($config, 'sender');
-
-        $provider = strtolower(trim((string) Arr::get($config, 'provider', 'generic')));
 
         $missing = [];
 
@@ -1034,16 +1031,10 @@ HTML;
             $missing[] = 'api_key';
         }
 
-        if ($provider !== 'fonnte' && ! $sender) {
-            $missing[] = 'sender';
-        }
-
         if ($missing !== []) {
             Log::warning('FormTransfer WhatsApp notification skipped due to missing configuration.', [
-                'provider' => $provider,
                 'endpoint' => $endpoint,
                 'api_key'  => $apiKey ? 'configured' : 'missing',
-                'sender'   => $sender,
                 'missing'  => $missing,
             ]);
 

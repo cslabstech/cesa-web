@@ -154,12 +154,12 @@ class PublicLeadSubmissionTest extends TestCase
             ->assertHasErrors(['data.phone']);
     }
 
-    public function test_can_validate_whatsapp_number_via_fonnte(): void
+    public function test_can_validate_whatsapp_number_via_waghub(): void
     {
         config([
             'lead.whatsapp_validation.enabled'                 => true,
-            'lead.whatsapp_validation.provider'                => 'fonnte',
-            'lead.whatsapp_validation.endpoint'                => 'https://api.fonnte.com/validate',
+            'lead.whatsapp_validation.provider'                => 'waghub',
+            'lead.whatsapp_validation.endpoint'                => 'https://waghub.mekayastudio.com',
             'lead.whatsapp_validation.token'                   => 'test-token',
             'lead.whatsapp_validation.country_code'            => '62',
             'lead.whatsapp_validation.allow_manual_fallback'   => true,
@@ -168,12 +168,11 @@ class PublicLeadSubmissionTest extends TestCase
         ]);
 
         Http::fake([
-            'api.fonnte.com/validate' => Http::response([
-                'status'         => true,
-                'registered'     => ['628123456789'],
-                'not_registered' => [],
-                'invalid'        => [],
-                'message'        => 'success',
+            'waghub.mekayastudio.com/api/v1/number-checks' => Http::response([
+                'data' => [
+                    'status'     => 'registered',
+                    'registered' => true,
+                ]
             ], 200),
         ]);
 
@@ -188,8 +187,8 @@ class PublicLeadSubmissionTest extends TestCase
     {
         config([
             'lead.whatsapp_validation.enabled'                 => true,
-            'lead.whatsapp_validation.provider'                => 'fonnte',
-            'lead.whatsapp_validation.endpoint'                => 'https://api.fonnte.com/validate',
+            'lead.whatsapp_validation.provider'                => 'waghub',
+            'lead.whatsapp_validation.endpoint'                => 'https://waghub.mekayastudio.com',
             'lead.whatsapp_validation.token'                   => 'test-token',
             'lead.whatsapp_validation.country_code'            => '62',
             'lead.whatsapp_validation.allow_manual_fallback'   => false,
@@ -198,11 +197,11 @@ class PublicLeadSubmissionTest extends TestCase
         ]);
 
         Http::fake([
-            'api.fonnte.com/validate' => Http::response([
-                'status'         => true,
-                'registered'     => ['628123456789'],
-                'not_registered' => [],
-                'invalid'        => [],
+            'waghub.mekayastudio.com/api/v1/number-checks' => Http::response([
+                'data' => [
+                    'status'     => 'registered',
+                    'registered' => true,
+                ]
             ], 200),
         ]);
 
@@ -240,8 +239,8 @@ class PublicLeadSubmissionTest extends TestCase
 
         config([
             'lead.whatsapp_validation.enabled'                 => true,
-            'lead.whatsapp_validation.provider'                => 'fonnte',
-            'lead.whatsapp_validation.endpoint'                => 'https://api.fonnte.com/validate',
+            'lead.whatsapp_validation.provider'                => 'waghub',
+            'lead.whatsapp_validation.endpoint'                => 'https://waghub.mekayastudio.com',
             'lead.whatsapp_validation.token'                   => 'test-token',
             'lead.whatsapp_validation.country_code'            => '62',
             'lead.whatsapp_validation.allow_manual_fallback'   => false,
@@ -270,8 +269,8 @@ class PublicLeadSubmissionTest extends TestCase
     {
         config([
             'lead.whatsapp_validation.enabled'                 => true,
-            'lead.whatsapp_validation.provider'                => 'fonnte',
-            'lead.whatsapp_validation.endpoint'                => 'https://api.fonnte.com/validate',
+            'lead.whatsapp_validation.provider'                => 'waghub',
+            'lead.whatsapp_validation.endpoint'                => 'https://waghub.mekayastudio.com',
             'lead.whatsapp_validation.token'                   => 'test-token',
             'lead.whatsapp_validation.country_code'            => '62',
             'lead.whatsapp_validation.allow_manual_fallback'   => false,
@@ -282,9 +281,9 @@ class PublicLeadSubmissionTest extends TestCase
         Http::fake();
 
         Livewire::test(PublicLeadForm::class)
-            ->set('data.name', 'Fonnte Lead')
-            ->set('data.phone', '08123456789')
-            ->set('data.address', 'Jl. Fonnte')
+            ->set('data.name', 'WAG Hub Lead')
+            ->set('data.phone', '6281234567890')
+            ->set('data.address', 'Jl. WAG Hub')
             ->set('data.sales_person', 'Sales')
             ->set('data.store_team_position', 'Kasir')
             ->set('data.store_branch', 'Complete Selular Babakan')
@@ -296,12 +295,12 @@ class PublicLeadSubmissionTest extends TestCase
         $this->assertDatabaseCount('leads', 0);
     }
 
-    public function test_submit_allows_saving_after_whatsapp_number_is_validated_via_fonnte(): void
+    public function test_submit_allows_saving_after_whatsapp_number_is_validated_via_waghub(): void
     {
         config([
             'lead.whatsapp_validation.enabled'                 => true,
-            'lead.whatsapp_validation.provider'                => 'fonnte',
-            'lead.whatsapp_validation.endpoint'                => 'https://api.fonnte.com/validate',
+            'lead.whatsapp_validation.provider'                => 'waghub',
+            'lead.whatsapp_validation.endpoint'                => 'https://waghub.mekayastudio.com',
             'lead.whatsapp_validation.token'                   => 'test-token',
             'lead.whatsapp_validation.country_code'            => '62',
             'lead.whatsapp_validation.allow_manual_fallback'   => false,
@@ -310,17 +309,18 @@ class PublicLeadSubmissionTest extends TestCase
         ]);
 
         Http::fake([
-            'api.fonnte.com/validate' => Http::response([
-                'status'         => true,
-                'registered'     => ['628123456789'],
-                'not_registered' => [],
+            'waghub.mekayastudio.com/api/v1/number-checks' => Http::response([
+                'data' => [
+                    'status'     => 'registered',
+                    'registered' => true,
+                ]
             ], 200),
         ]);
 
         $component = Livewire::test(PublicLeadForm::class)
-            ->set('data.name', 'Fonnte Lead')
+            ->set('data.name', 'Waghub Lead')
             ->set('data.phone', '08123456789')
-            ->set('data.address', 'Jl. Fonnte')
+            ->set('data.address', 'Jl. Waghub')
             ->set('data.sales_person', 'Sales')
             ->set('data.store_team_position', 'Kasir')
             ->set('data.store_branch', 'Complete Selular Babakan')
@@ -335,15 +335,15 @@ class PublicLeadSubmissionTest extends TestCase
         $component->assertRedirect($lead->getPublicProgressUrl());
 
         $this->assertDatabaseHas('leads', [
-            'name'  => 'FONNTE LEAD',
+            'name'  => 'WAGHUB LEAD',
             'phone' => '628123456789',
         ]);
 
         Http::assertSent(function ($request): bool {
-            return $request->url() === 'https://api.fonnte.com/validate'
-                && $request->hasHeader('Authorization', 'test-token')
-                && $request['target'] === '628123456789'
-                && $request['countryCode'] === '62';
+            return $request->url() === 'https://waghub.mekayastudio.com/api/v1/number-checks'
+                && $request->hasHeader('Authorization', 'Bearer test-token')
+                && $request['recipient']['value'] === '628123456789'
+                && $request['route_key'] === 'default';
         });
 
         Http::assertSentCount(1);
@@ -353,8 +353,8 @@ class PublicLeadSubmissionTest extends TestCase
     {
         config([
             'lead.whatsapp_validation.enabled'                 => true,
-            'lead.whatsapp_validation.provider'                => 'fonnte',
-            'lead.whatsapp_validation.endpoint'                => 'https://api.fonnte.com/validate',
+            'lead.whatsapp_validation.provider'                => 'waghub',
+            'lead.whatsapp_validation.endpoint'                => 'https://waghub.mekayastudio.com',
             'lead.whatsapp_validation.token'                   => 'test-token',
             'lead.whatsapp_validation.country_code'            => '62',
             'lead.whatsapp_validation.allow_manual_fallback'   => true,
@@ -363,10 +363,11 @@ class PublicLeadSubmissionTest extends TestCase
         ]);
 
         Http::fake([
-            'api.fonnte.com/validate' => Http::response([
-                'status'         => true,
-                'registered'     => [],
-                'not_registered' => ['628123456789'],
+            'waghub.mekayastudio.com/api/v1/number-checks' => Http::response([
+                'data' => [
+                    'status'     => 'not_registered',
+                    'registered' => false,
+                ]
             ], 200),
         ]);
 
@@ -394,8 +395,8 @@ class PublicLeadSubmissionTest extends TestCase
     {
         config([
             'lead.whatsapp_validation.enabled'                 => true,
-            'lead.whatsapp_validation.provider'                => 'fonnte',
-            'lead.whatsapp_validation.endpoint'                => 'https://api.fonnte.com/validate',
+            'lead.whatsapp_validation.provider'                => 'waghub',
+            'lead.whatsapp_validation.endpoint'                => 'https://waghub.mekayastudio.com',
             'lead.whatsapp_validation.token'                   => 'test-token',
             'lead.whatsapp_validation.country_code'            => '62',
             'lead.whatsapp_validation.allow_manual_fallback'   => false,
@@ -404,12 +405,11 @@ class PublicLeadSubmissionTest extends TestCase
         ]);
 
         Http::fake([
-            'api.fonnte.com/validate' => Http::response([
-                'status'         => true,
-                'registered'     => [],
-                'not_registered' => ['628123456789'],
-                'invalid'        => [],
-                'message'        => 'success',
+            'waghub.mekayastudio.com/api/v1/number-checks' => Http::response([
+                'data' => [
+                    'status'     => 'not_registered',
+                    'registered' => false,
+                ]
             ], 200),
         ]);
 

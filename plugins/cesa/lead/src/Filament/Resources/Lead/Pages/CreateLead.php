@@ -34,7 +34,7 @@ class CreateLead extends CreateRecord
 
     protected bool $whatsappValidationEnabled = false;
 
-    protected string $whatsappValidationProvider = 'fonnte';
+    protected string $whatsappValidationProvider = 'waghub';
 
     protected ?string $whatsappValidationEndpoint = null;
 
@@ -42,22 +42,12 @@ class CreateLead extends CreateRecord
 
     protected string $whatsappCountryCode = '62';
 
-    protected int $whatsappValidationTimeout = 5;
-
-    protected int $whatsappValidationCacheTtl = 300;
-
-    protected bool $whatsappValidationAllowManual = true;
-
-    protected int $whatsappValidationRateLimitMaxAttempts = 10;
-
-    protected int $whatsappValidationRateLimitDecaySeconds = 60;
-
     public function boot(): void
     {
         $whatsappValidation = config('lead.whatsapp_validation', []);
 
-        $this->whatsappValidationProvider = (string) Arr::get($whatsappValidation, 'provider', 'fonnte');
-        $this->whatsappValidationEndpoint = Arr::get($whatsappValidation, 'endpoint');
+        $this->whatsappValidationEnabled = (bool) Arr::get($whatsappValidation, 'enabled', false);
+        $this->whatsappValidationProvider = (string) Arr::get($whatsappValidation, 'provider', 'waghub');
         $this->whatsappValidationToken = Arr::get($whatsappValidation, 'token');
         $this->whatsappCountryCode = (string) Arr::get($whatsappValidation, 'country_code', '62');
         $this->whatsappValidationTimeout = (int) Arr::get($whatsappValidation, 'timeout', 5);
@@ -238,35 +228,32 @@ class CreateLead extends CreateRecord
             ];
         }
 
-        $payload = $this->performWhatsAppValidationRequest($phone);
+        $response = $this->performWhatsAppValidationRequest($phone);
         $result = [
             'status' => self::WHATSAPP_VALIDATION_STATUS_FAILED,
         ];
 
-        if ($payload === null) {
+        if ($response === null) {
             return $result;
         }
 
-        if (! Arr::get($payload, 'status')) {
-            $reason = strtolower(trim((string) Arr::get($payload, 'reason', '')));
+        $status = $response->status();
+        $payload = $response->json();
 
-            $result['status'] = in_array($reason, ['target invalid', 'target required'], true)
-                ? self::WHATSAPP_VALIDATION_STATUS_INVALID
-                : self::WHATSAPP_VALIDATION_STATUS_FAILED;
-        } else {
-            $registered = Arr::get($payload, 'registered', []);
-            $notRegistered = Arr::get($payload, 'not_registered', []);
-            $invalid = Arr::get($payload, 'invalid', []);
-
-            if (is_array($registered) && count($registered) > 0) {
+        if ($status === 422) {
+            $result['status'] = self::WHATSAPP_VALIDATION_STATUS_INVALID;
+        } elseif ($response->successful()) {
+            $isRegistered = Arr::get($payload, 'data.registered');
+            
+            if ($isRegistered === true) {
                 $result['status'] = self::WHATSAPP_VALIDATION_STATUS_SUCCESS;
-            } elseif (is_array($notRegistered) && count($notRegistered) > 0) {
+            } elseif ($isRegistered === false || Arr::get($payload, 'data.status') === 'not_registered') {
                 $result['status'] = self::WHATSAPP_VALIDATION_STATUS_NOT_REGISTERED;
-            } elseif (is_array($invalid) && count($invalid) > 0) {
-                $result['status'] = self::WHATSAPP_VALIDATION_STATUS_INVALID;
             } else {
                 $result['status'] = self::WHATSAPP_VALIDATION_STATUS_FAILED;
             }
+        } else {
+            $result['status'] = self::WHATSAPP_VALIDATION_STATUS_FAILED;
         }
 
         if (
@@ -279,24 +266,27 @@ class CreateLead extends CreateRecord
         return $result;
     }
 
-    protected function performWhatsAppValidationRequest(string $phone): ?array
+    protected function performWhatsAppValidationRequest(string $phone): ?\Illuminate\Http\Client\Response
     {
-        if ($this->whatsappValidationProvider !== 'fonnte') {
+        if ($this->whatsappValidationProvider !== 'waghub') {
             return null;
         }
 
         try {
-            $response = Http::asForm()
-                ->timeout($this->whatsappValidationTimeout)
+            $response = Http::timeout($this->whatsappValidationTimeout)
+                ->acceptJson()
                 ->withHeaders([
-                    'Authorization' => (string) $this->whatsappValidationToken,
+                    'Authorization' => 'Bearer ' . $this->whatsappValidationToken,
                 ])
-                ->post((string) $this->whatsappValidationEndpoint, [
-                    'target'      => $phone,
-                    'countryCode' => $this->whatsappCountryCode,
+                ->post(rtrim((string) $this->whatsappValidationEndpoint, '/') . '/api/v1/number-checks', [
+                    'recipient' => [
+                        'type'  => 'phone',
+                        'value' => $phone,
+                    ],
+                    'route_key' => 'default',
                 ]);
 
-            if (! $response->successful()) {
+            if (! $response->successful() && $response->status() !== 422) {
                 Log::warning('Admin lead WhatsApp validation request failed.', [
                     'status' => $response->status(),
                 ]);
@@ -304,9 +294,7 @@ class CreateLead extends CreateRecord
                 return null;
             }
 
-            $payload = $response->json();
-
-            return is_array($payload) ? $payload : null;
+            return $response;
         } catch (Throwable $exception) {
             Log::warning('Admin lead WhatsApp validation request exception.', [
                 'error' => $exception->getMessage(),

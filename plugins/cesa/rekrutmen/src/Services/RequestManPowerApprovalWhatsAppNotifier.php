@@ -28,16 +28,10 @@ class RequestManPowerApprovalWhatsAppNotifier
 
         $endpoint = Arr::get($config, 'endpoint');
         $apiKey = Arr::get($config, 'api_key');
-        $sender = Arr::get($config, 'sender');
-        $provider = strtolower(trim((string) Arr::get($config, 'provider', 'generic')));
-        $requiresSender = $provider !== 'fonnte';
-
-        if (! $endpoint || ! $apiKey || ($requiresSender && ! $sender)) {
+        if (! $endpoint || ! $apiKey) {
             Log::warning('Recruitment WhatsApp approval notification skipped due to missing configuration.', [
-                'provider' => $provider,
                 'endpoint' => $endpoint,
                 'api_key'  => $apiKey ? 'configured' : 'missing',
-                'sender'   => $sender,
             ]);
 
             return;
@@ -63,7 +57,6 @@ class RequestManPowerApprovalWhatsAppNotifier
             $message,
             $endpoint,
             $apiKey,
-            (string) ($sender ?? ''),
             $timeout,
         );
 

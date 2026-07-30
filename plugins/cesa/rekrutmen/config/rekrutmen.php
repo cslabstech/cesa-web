@@ -16,11 +16,10 @@ return [
             ],
         ],
         'whatsapp' => [
-            'enabled'      => env('WHATSAPP_ENABLED', false),
-            'provider'     => env('WHATSAPP_PROVIDER', 'fonnte'),
-            'endpoint'     => env('WHATSAPP_API_ENDPOINT', 'https://api.fonnte.com/send'),
-            'api_key'      => env('WHATSAPP_API_KEY'),
-            'sender'       => env('WHATSAPP_SENDER_NUMBER'),
+            'enabled'      => ! empty(env('WAG_URL')) && ! empty(env('WAG_TOKEN')),
+            'endpoint'     => env('WAG_URL', 'https://waghub.mekayastudio.com'),
+            'api_key'      => env('WAG_TOKEN'),
+
             'country_code' => env('WHATSAPP_COUNTRY_CODE', '62'),
             'throttle'     => [
                 'enabled'              => env('WHATSAPP_THROTTLE_ENABLED', true),

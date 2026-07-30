@@ -15,11 +15,11 @@ class AdminLeadCreateWhatsAppValidationTest extends TestCase
         $this->enableWhatsAppValidation();
 
         Http::fake([
-            'api.fonnte.com/validate' => Http::response([
-                'status'         => true,
-                'registered'     => ['628123456789'],
-                'not_registered' => [],
-                'invalid'        => [],
+            'waghub.mekayastudio.com/api/v1/number-checks' => Http::response([
+                'data' => [
+                    'status'     => 'registered',
+                    'registered' => true,
+                ]
             ], 200),
         ]);
 
@@ -59,11 +59,11 @@ class AdminLeadCreateWhatsAppValidationTest extends TestCase
         $this->enableWhatsAppValidation();
 
         Http::fake([
-            'api.fonnte.com/validate' => Http::response([
-                'status'         => true,
-                'registered'     => ['628123456789'],
-                'not_registered' => [],
-                'invalid'        => [],
+            'waghub.mekayastudio.com/api/v1/number-checks' => Http::response([
+                'data' => [
+                    'status'     => 'registered',
+                    'registered' => true,
+                ]
             ], 200),
         ]);
 
@@ -139,8 +139,8 @@ class AdminLeadCreateWhatsAppValidationTest extends TestCase
     {
         config([
             'lead.whatsapp_validation.enabled'                 => true,
-            'lead.whatsapp_validation.provider'                => 'fonnte',
-            'lead.whatsapp_validation.endpoint'                => 'https://api.fonnte.com/validate',
+            'lead.whatsapp_validation.provider'                => 'waghub',
+            'lead.whatsapp_validation.endpoint'                => 'https://waghub.mekayastudio.com',
             'lead.whatsapp_validation.token'                   => 'test-token',
             'lead.whatsapp_validation.country_code'            => '62',
             'lead.whatsapp_validation.allow_manual_fallback'   => false,

@@ -35,7 +35,7 @@ class WhatsAppNotifier implements NotificationChannel
         try {
             $endpoint = config('form-transfer.notifications.whatsapp.endpoint');
             $apiKey = config('form-transfer.notifications.whatsapp.api_key');
-            $sender = config('form-transfer.notifications.whatsapp.sender');
+
             $timeout = config('form-transfer.notifications.whatsapp.timeout', 10);
             $delaySeconds = app(WhatsAppThrottleService::class)->getDispatchDelaySeconds();
 
@@ -44,7 +44,6 @@ class WhatsAppNotifier implements NotificationChannel
                 $content,
                 $endpoint,
                 $apiKey,
-                (string) ($sender ?? ''),
                 $timeout
             );
 
@@ -88,10 +87,8 @@ class WhatsAppNotifier implements NotificationChannel
     public function shouldSend(array $config = []): bool
     {
         $enabled = config('form-transfer.notifications.whatsapp.enabled', false);
-        $provider = strtolower(trim((string) config('form-transfer.notifications.whatsapp.provider', 'generic')));
         $endpoint = config('form-transfer.notifications.whatsapp.endpoint');
         $apiKey = config('form-transfer.notifications.whatsapp.api_key');
-        $sender = config('form-transfer.notifications.whatsapp.sender');
 
         if (! $enabled) {
             return false;
@@ -105,12 +102,6 @@ class WhatsAppNotifier implements NotificationChannel
 
         if (empty($apiKey)) {
             Log::warning('WhatsApp notifications enabled but API key not configured');
-
-            return false;
-        }
-
-        if ($provider !== 'fonnte' && empty($sender)) {
-            Log::warning('WhatsApp notifications enabled but sender not configured');
 
             return false;
         }

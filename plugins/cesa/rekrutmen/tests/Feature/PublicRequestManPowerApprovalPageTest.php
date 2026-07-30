@@ -45,7 +45,7 @@ class PublicRequestManPowerApprovalPageTest extends RekrutmenTestCase
         Queue::fake();
 
         config()->set('rekrutmen.notifications.whatsapp.enabled', true);
-        config()->set('rekrutmen.notifications.whatsapp.provider', 'fonnte');
+
         config()->set('rekrutmen.notifications.whatsapp.endpoint', 'https://example.com/whatsapp');
         config()->set('rekrutmen.notifications.whatsapp.api_key', 'test-api-key');
         config()->set('rekrutmen.notifications.whatsapp.queue', 'whatsapp');
@@ -155,7 +155,7 @@ class PublicRequestManPowerApprovalPageTest extends RekrutmenTestCase
             'key'                  => 'mail-resend-'.Str::uuid(),
         ]);
         config()->set('rekrutmen.notifications.whatsapp.enabled', true);
-        config()->set('rekrutmen.notifications.whatsapp.provider', 'fonnte');
+
         config()->set('rekrutmen.notifications.whatsapp.endpoint', 'https://example.com/whatsapp');
         config()->set('rekrutmen.notifications.whatsapp.api_key', 'test-api-key');
         config()->set('rekrutmen.notifications.whatsapp.queue', 'whatsapp');

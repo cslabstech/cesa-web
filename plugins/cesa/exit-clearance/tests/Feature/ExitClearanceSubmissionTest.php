@@ -163,19 +163,18 @@ class ExitClearanceSubmissionTest extends ExitClearanceTestCase
         $this->assertSame('whatsapp', $whatsAppJob->queue);
     }
 
-    public function test_exit_clearance_fonnte_job_uses_authorization_header_and_local_target(): void
+    public function test_exit_clearance_waghub_job_uses_correct_payload(): void
     {
-        config()->set('exit-clearance.notifications.whatsapp.provider', 'fonnte');
-        config()->set('exit-clearance.notifications.whatsapp.country_code', '62');
+
 
         Http::fake([
-            'https://api.fonnte.com/send' => Http::response(['status' => true], 200),
+            'https://waghub.mekayastudio.com/api/v1/messages' => Http::response(['status' => 'queued'], 200),
         ]);
 
         $job = new SendWhatsAppNotification(
-            '628123456789',
+            '+628123456789',
             'Test message',
-            'https://api.fonnte.com/send',
+            'https://waghub.mekayastudio.com',
             'test-token',
             '',
         );
@@ -183,41 +182,18 @@ class ExitClearanceSubmissionTest extends ExitClearanceTestCase
         $job->handle();
 
         Http::assertSent(function (HttpRequest $request): bool {
-            $body = $request->body();
+            $body = $request->json();
 
-            return $request->url() === 'https://api.fonnte.com/send'
-                && $request->hasHeader('Authorization', 'test-token')
-                && str_contains($body, 'name="target"')
-                && str_contains($body, '08123456789')
-                && str_contains($body, 'name="countryCode"')
-                && str_contains($body, '62');
+            return $request->url() === 'https://waghub.mekayastudio.com/api/v1/messages'
+                && $request->hasHeader('Authorization', 'Bearer test-token')
+                && $request->hasHeader('Idempotency-Key')
+                && $body['recipient']['value'] === '+628123456789'
+                && $body['message']['text'] === 'Test message'
+                && $body['purpose'] === 'notification';
         });
     }
 
-    public function test_exit_clearance_fonnte_job_detects_uppercase_status_failures(): void
-    {
-        config()->set('exit-clearance.notifications.whatsapp.provider', 'fonnte');
 
-        Http::fake([
-            'https://api.fonnte.com/send' => Http::response([
-                'Status' => false,
-                'reason' => 'token invalid',
-            ], 200),
-        ]);
-
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('token invalid');
-
-        $job = new SendWhatsAppNotification(
-            '628123456789',
-            'Test message',
-            'https://api.fonnte.com/send',
-            'test-token',
-            '',
-        );
-
-        $job->handle();
-    }
 
     public function test_exit_clearance_whatsapp_messages_include_requester_progress_link(): void
     {

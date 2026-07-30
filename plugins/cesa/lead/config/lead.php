@@ -29,10 +29,9 @@ return [
     ],
 
     'whatsapp_validation' => [
-        'enabled'               => env('WHATSAPP_ENABLED', false),
-        'provider'              => env('WHATSAPP_PROVIDER', 'fonnte'),
-        'endpoint'              => env('WHATSAPP_VALIDATION_ENDPOINT', 'https://api.fonnte.com/validate'),
-        'token'                 => env('WHATSAPP_API_KEY'),
+        'enabled'               => ! empty(env('WAG_URL')) && ! empty(env('WAG_TOKEN')),
+        'endpoint'              => env('WAG_URL', 'https://waghub.mekayastudio.com'),
+        'token'                 => env('WAG_TOKEN'),
         'country_code'          => env('WHATSAPP_COUNTRY_CODE', '62'),
         'timeout'               => (int) env('WHATSAPP_VALIDATION_TIMEOUT', 5),
         'cache_ttl'             => (int) env('WHATSAPP_VALIDATION_CACHE_TTL', 300),
