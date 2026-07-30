@@ -5,6 +5,7 @@ return [
         'Complete Selular Babakan',
         'Complete Selular Cilacap',
         'Complete Selular Ciledug',
+        'Complite Plus Ciledug',
         'Complete Selular Gebang',
         'Complete Selular Jatiwangi',
         'Complete Selular Jatiwangi2 (Cibolerang)',

@@ -294,12 +294,21 @@ class LeadIntegrationTest extends TestCase
         ]);
     }
 
+    public function test_store_branch_options_include_complete_plus_ciledug(): void
+    {
+        $options = Lead::storeBranchOptions();
+
+        $this->assertArrayHasKey('Complite Plus Ciledug', $options);
+        $this->assertSame('Complite Plus Ciledug', $options['Complite Plus Ciledug']);
+    }
+
     public function test_all_store_branch_options_can_be_stored(): void
     {
         $cabangOptions = [
             'Complete Selular Babakan',
             'Complete Selular Cilacap',
             'Complete Selular Ciledug',
+            'Complite Plus Ciledug',
             'Complete Selular Gebang',
             'Complete Selular Jatiwangi',
             'Complete Selular Jatiwangi2 (Cibolerang)',
