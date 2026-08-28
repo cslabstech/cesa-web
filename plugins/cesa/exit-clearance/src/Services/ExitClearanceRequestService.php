@@ -292,7 +292,7 @@ class ExitClearanceRequestService
         }
     }
 
-    protected function resolveResignationLetterUrl(Request $request): ?string
+    public function resolveResignationLetterUrl(Request $request): ?string
     {
         $value = $request->resignation_letter_url;
 

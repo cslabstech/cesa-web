@@ -39,9 +39,11 @@ class ApproverSeeder extends Seeder
     {
         foreach (self::APPROVERS as $approverData) {
             Approver::query()->updateOrCreate(
-                ['email' => $approverData['email']],
                 [
-                    'name'       => $approverData['name'],
+                    'name'  => $approverData['name'],
+                    'email' => $approverData['email'],
+                ],
+                [
                     'phone'      => null,
                     'title'      => $approverData['title'],
                     'creator_id' => null,

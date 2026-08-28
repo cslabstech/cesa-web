@@ -21,10 +21,5 @@ class DatabaseSeederTest extends ExitClearanceTestCase
         $this->assertSame($firstDepartments, DB::table('exit_clearance_departments')->count());
         $this->assertSame($firstApprovers, DB::table('exit_clearance_approvers')->count());
         $this->assertSame($firstPivot, DB::table('exit_clearance_department_approver')->count());
-
-        $this->assertSame(
-            DB::table('exit_clearance_approvers')->count(),
-            DB::table('exit_clearance_approvers')->distinct('email')->count('email')
-        );
     }
 }

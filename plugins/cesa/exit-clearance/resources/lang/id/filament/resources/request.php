@@ -8,6 +8,12 @@ return [
         'download_pdf_filename_prefix' => 'exit-clearance',
         'open_approval_page'           => 'Buka halaman approval',
         'view_progress'                => 'Buka Halaman Progres',
+        'export'                       => 'Ekspor Pengajuan Exit Clearance',
+    ],
+    'exports' => [
+        'notifications' => [
+            'completed_body' => 'Ekspor pengajuan exit clearance selesai dengan :success baris berhasil diekspor dan :failed baris gagal diekspor.',
+        ],
     ],
     'steps' => [
         'resignation_letter' => 'Surat Pengunduran Diri',
@@ -105,6 +111,7 @@ return [
         'resignation_letter' => 'Surat Pengunduran Diri',
         'department'         => 'Divisi',
         'approvers'          => 'Penyetuju',
+        'pending_approvers'  => 'Penyetuju Pending',
     ],
     'filters' => [
         'department'   => 'Divisi',

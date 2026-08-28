@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('exit_clearance_approvers', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
-            $table->string('email')->unique();
+            $table->string('email');
             $table->string('phone')->nullable();
             $table->string('title');
             $table->foreignId('creator_id')->nullable()->constrained('users')->nullOnDelete();

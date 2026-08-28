@@ -4,14 +4,20 @@ namespace Cesa\ExitClearance\Tests\Feature;
 
 use Cesa\ExitClearance\Filament\Resources\RequestResource\Pages\ListRequests;
 use Cesa\ExitClearance\Filament\Resources\RequestResource\Pages\ViewRequest;
+use Cesa\ExitClearance\Jobs\SendWhatsAppNotification;
 use Cesa\ExitClearance\Models\Approver;
 use Cesa\ExitClearance\Models\Request;
+use Cesa\ExitClearance\Notifications\ApprovalRequestNotification;
 use Cesa\ExitClearance\Services\ExitClearanceNotificationService;
+use Cesa\ExitClearance\Services\ExitClearanceRequestService;
 use Cesa\ExitClearance\Tests\ExitClearanceTestCase;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
+use ReflectionProperty;
 use Webkul\Security\Enums\PermissionType;
 use Webkul\Security\Models\User as SecurityUser;
 use ZipArchive;
@@ -94,6 +100,57 @@ class RequestPdfDownloadActionsTest extends ExitClearanceTestCase
             ->assertSee('Menunggu')
             ->assertSee(__('exit-clearance::filament/resources/request.actions.open_approval_page'))
             ->assertSee($expectedUrl, false);
+    }
+
+    public function test_view_page_can_resend_whatsapp_to_a_single_pending_approver(): void
+    {
+        Notification::fake();
+        Queue::fake();
+
+        config()->set('exit-clearance.notifications.mail.enabled', true);
+        config()->set('exit-clearance.notifications.whatsapp.enabled', true);
+        config()->set('exit-clearance.notifications.whatsapp.endpoint', 'https://example.com/whatsapp');
+        config()->set('exit-clearance.notifications.whatsapp.api_key', 'test-api-key');
+        config()->set('exit-clearance.notifications.whatsapp.throttle.enabled', false);
+
+        $request = Request::factory()->create([
+            'form_status' => ExitClearanceRequestService::FORM_STATUS_PENDING,
+        ]);
+
+        $gaOfficer = Approver::query()->create([
+            'name'  => 'Uwis GA',
+            'title' => 'GA Officer',
+            'email' => 'uwis.ga@example.com',
+            'phone' => '089665104596',
+        ]);
+
+        $hrManager = Approver::query()->create([
+            'name'  => 'Ester HR',
+            'title' => 'HR Manager',
+            'email' => 'ester.hr@example.com',
+            'phone' => '081575216729',
+        ]);
+
+        $request->approvers()->sync([
+            $gaOfficer->id => ['status' => ExitClearanceRequestService::APPROVAL_PENDING],
+            $hrManager->id => ['status' => ExitClearanceRequestService::APPROVAL_PENDING],
+        ]);
+
+        Livewire::test(ViewRequest::class, [
+            'record' => $request->getKey(),
+        ])
+            ->callAction('resend-pending-approvers', [
+                'approver_id' => $gaOfficer->getKey(),
+            ])
+            ->assertNotified(__('exit-clearance::filament/resources/request/pages/view-request.notifications.notifications_resent.title'));
+
+        Notification::assertSentOnDemandTimes(ApprovalRequestNotification::class, 1);
+        Queue::assertPushed(SendWhatsAppNotification::class, 1);
+        Queue::assertPushed(SendWhatsAppNotification::class, function (SendWhatsAppNotification $job): bool {
+            $phone = new ReflectionProperty($job, 'phone');
+
+            return $phone->getValue($job) === '6289665104596';
+        });
     }
 
     public function test_view_page_download_pdf_action_downloads_pdf(): void

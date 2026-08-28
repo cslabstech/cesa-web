@@ -22,84 +22,69 @@ class ExitClearanceNotificationService
     {
         $request->loadMissing('approvers', 'department');
 
-        $summary = $this->requestService->buildSummary($request);
-        $approvals = $this->requestService->buildApprovals($request);
-        $progressUrl = $this->buildProgressUrl($request);
-
         foreach ($request->approvers as $approver) {
-            $actionUrl = $this->buildApprovalUrl($request, $approver);
-
-            if (! empty($approver->email) && config('exit-clearance.notifications.mail.enabled', true)) {
-                $notification = new ApprovalRequestNotification(
-                    $request,
-                    $approver,
-                    $summary,
-                    $approvals,
-                    $actionUrl,
-                    $progressUrl,
-                );
-
-                $delaySeconds = app(MailThrottleService::class)->getDispatchDelaySeconds();
-
-                if ($delaySeconds > 0) {
-                    $notification->delay(now()->addSeconds($delaySeconds));
-                }
-
-                Notification::route('mail', $approver->email)
-                    ->notify($notification);
-            }
-
-            $this->sendWhatsApp(
-                $approver->phone,
-                $this->buildApproverWhatsAppMessage($request, $approver, $actionUrl, $progressUrl)
-            );
+            $this->notifyApprover($request, $approver);
         }
     }
 
-    public function notifyPendingApprovers(Request $request): int
+    public function notifyPendingApprovers(Request $request, ?int $approverId = null): int
     {
         $request->loadMissing('approvers', 'department');
+
+        $pendingApprovers = $request->approvers->filter(function ($approver) use ($approverId): bool {
+            $status = $this->requestService->normalizeApprovalStatus($approver->pivot?->status);
+
+            if ($status !== ExitClearanceRequestService::APPROVAL_PENDING) {
+                return false;
+            }
+
+            if ($approverId === null) {
+                return true;
+            }
+
+            return (int) $approver->getKey() === $approverId;
+        });
+
+        foreach ($pendingApprovers as $approver) {
+            $this->notifyApprover($request, $approver);
+        }
+
+        return $pendingApprovers->count();
+    }
+
+    public function notifyApprover(Request $request, Approver $approver): void
+    {
+        $request->loadMissing('department');
 
         $summary = $this->requestService->buildSummary($request);
         $approvals = $this->requestService->buildApprovals($request);
         $progressUrl = $this->buildProgressUrl($request);
+        $actionUrl = $this->buildApprovalUrl($request, $approver);
 
-        $pendingApprovers = $request->approvers->filter(function ($approver): bool {
-            $status = $this->requestService->normalizeApprovalStatus($approver->pivot?->status);
+        if (! empty($approver->email) && config('exit-clearance.notifications.mail.enabled', true)) {
+            $notification = new ApprovalRequestNotification(
+                $request,
+                $approver,
+                $summary,
+                $approvals,
+                $actionUrl,
+                $progressUrl,
+            );
 
-            return $status === ExitClearanceRequestService::APPROVAL_PENDING;
-        });
+            $delaySeconds = app(MailThrottleService::class)->getDispatchDelaySeconds();
 
-        foreach ($pendingApprovers as $approver) {
-            $actionUrl = $this->buildApprovalUrl($request, $approver);
-
-            if (! empty($approver->email) && config('exit-clearance.notifications.mail.enabled', true)) {
-                $notification = new ApprovalRequestNotification(
-                    $request,
-                    $approver,
-                    $summary,
-                    $approvals,
-                    $actionUrl,
-                    $progressUrl,
-                );
-
-                $delaySeconds = app(MailThrottleService::class)->getDispatchDelaySeconds();
-
-                if ($delaySeconds > 0) {
-                    $notification->delay(now()->addSeconds($delaySeconds));
-                }
-
-                Notification::route('mail', $approver->email)
-                    ->notify($notification);
+            if ($delaySeconds > 0) {
+                $notification->delay(now()->addSeconds($delaySeconds));
             }
 
-            $this->sendWhatsApp(
-                $approver->phone,
-                $this->buildApproverWhatsAppMessage($request, $approver, $actionUrl, $progressUrl)
-            );
+            Notification::route('mail', $approver->email)
+                ->notify($notification);
         }
 
-        return $pendingApprovers->count();
+        $this->sendWhatsApp(
+            $approver->phone,
+            $this->buildApproverWhatsAppMessage($request, $approver, $actionUrl, $progressUrl)
+        );
     }
 
     public function notifyRequester(Request $request, string $statusLabel): void
@@ -179,6 +164,8 @@ class ExitClearanceNotificationService
             '',
             '*'.__('exit-clearance::notifications.whatsapp.labels.requester_name').':* '.($request->name ?? '-'),
             '*'.__('exit-clearance::notifications.whatsapp.labels.division').':* '.($request->department?->name ?? '-'),
+            '*'.__('exit-clearance::notifications.whatsapp.labels.approval_step').':* '.($approver->title ?? '-'),
+            '*'.__('exit-clearance::notifications.whatsapp.labels.approver_name').':* '.($approver->name ?? '-'),
             '*'.__('exit-clearance::notifications.whatsapp.labels.status').':* '.$statusLabel,
             '',
             '*'.__('exit-clearance::notifications.whatsapp.labels.approval_link').':*',

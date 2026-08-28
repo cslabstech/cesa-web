@@ -3,6 +3,7 @@
 namespace Cesa\FormTransfer\Tests\Unit\Services;
 
 use Cesa\ExitClearance\Services\MailThrottleService as ExitClearanceMailThrottleService;
+use Cesa\ExitClearance\Services\WhatsAppThrottleService as ExitClearanceWhatsAppThrottleService;
 use Cesa\FormTransfer\Filament\Clusters\Configurations\Resources\FormTransferResource;
 use Cesa\FormTransfer\Jobs\SendWhatsAppNotification;
 use Cesa\FormTransfer\Models\FormTransfer;
@@ -22,7 +23,6 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
-use RuntimeException;
 
 class NotificationDefaultsTest extends FormTransferTestCase
 {
@@ -67,7 +67,7 @@ class NotificationDefaultsTest extends FormTransferTestCase
             'Test message',
             'https://example.com/whatsapp',
             'test-api-key',
-            '628111111111'
+            10
         );
 
         $this->assertSame('notifications', config('form-transfer.notifications.queue'));
@@ -134,22 +134,67 @@ class NotificationDefaultsTest extends FormTransferTestCase
 
         config()->set('form-transfer.notifications.whatsapp.throttle', [
             'enabled'              => true,
-            'min_interval_seconds' => 3,
+            'min_interval_seconds' => 2,
             'max_interval_seconds' => 3,
             'key'                  => $key,
         ]);
         config()->set('rekrutmen.notifications.whatsapp.throttle', [
             'enabled'              => true,
-            'min_interval_seconds' => 3,
+            'min_interval_seconds' => 2,
+            'max_interval_seconds' => 3,
+            'key'                  => $key,
+        ]);
+        config()->set('exit-clearance.notifications.whatsapp.throttle', [
+            'enabled'              => true,
+            'min_interval_seconds' => 2,
             'max_interval_seconds' => 3,
             'key'                  => $key,
         ]);
 
         $firstDelay = (new FormTransferWhatsAppThrottleService)->getDispatchDelaySeconds();
         $secondDelay = (new RekrutmenWhatsAppThrottleService)->getDispatchDelaySeconds();
+        $thirdDelay = (new ExitClearanceWhatsAppThrottleService)->getDispatchDelaySeconds();
 
         $this->assertSame(0, $firstDelay);
-        $this->assertSame(3, $secondDelay);
+        $this->assertGreaterThanOrEqual(2, $secondDelay);
+        $this->assertLessThanOrEqual(3, $secondDelay);
+        $this->assertGreaterThanOrEqual(2, $thirdDelay);
+        $this->assertLessThanOrEqual(6, $thirdDelay);
+    }
+
+    public function test_notify_approver_queues_whatsapp_job_with_integer_timeout(): void
+    {
+        Queue::fake();
+        Route::get('/test/form-transfer/approval/{task}', fn (): string => 'ok')
+            ->name('form-transfer.public.approval');
+        Route::get('/test/form-transfer/progress/{response}', fn (): string => 'ok')
+            ->name('form-transfer.public.progress');
+        app('router')->getRoutes()->refreshNameLookups();
+        app('router')->getRoutes()->refreshActionLookups();
+
+        config()->set('form-transfer.notifications.mail.enabled', false);
+        config()->set('form-transfer.notifications.whatsapp.enabled', true);
+        config()->set('form-transfer.notifications.whatsapp.endpoint', 'https://waghub.example.com');
+        config()->set('form-transfer.notifications.whatsapp.api_key', 'test-api-key');
+        config()->set('form-transfer.notifications.whatsapp.timeout', 10);
+
+        $formTransfer = FormTransfer::factory()->create();
+        $request = TransferRequest::factory()
+            ->for($formTransfer, 'formTransfer')
+            ->create([
+                'status_response_id' => (string) Str::uuid(),
+            ]);
+
+        $approval = [
+            'name'    => 'Approver',
+            'email'   => 'approver@example.com',
+            'phone'   => '08123456789',
+            'task_id' => 'approval-task-whatsapp',
+        ];
+
+        app(TransferApprovalNotificationService::class)->notifyApprover($request, $approval, [$approval]);
+
+        Queue::assertPushed(SendWhatsAppNotification::class);
     }
 
     public function test_notify_requester_now_bypasses_queue(): void
@@ -184,7 +229,6 @@ class NotificationDefaultsTest extends FormTransferTestCase
     public function test_form_transfer_waghub_job_uses_correct_payload(): void
     {
 
-
         Http::fake([
             'https://waghub.mekayastudio.com/api/v1/messages' => Http::response(['status' => 'queued'], 200),
         ]);
@@ -194,7 +238,7 @@ class NotificationDefaultsTest extends FormTransferTestCase
             'Test message',
             'https://waghub.mekayastudio.com',
             'test-token',
-            '',
+            10,
         );
 
         $job->handle();
@@ -210,8 +254,6 @@ class NotificationDefaultsTest extends FormTransferTestCase
                 && $body['purpose'] === 'notification';
         });
     }
-
-
 
     public function test_form_transfer_whatsapp_message_uses_professional_consistent_copy_without_progress(): void
     {

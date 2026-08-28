@@ -1049,7 +1049,6 @@ HTML;
             $message,
             $endpoint,
             $apiKey,
-            (string) ($sender ?? ''),
             $timeout,
         );
 

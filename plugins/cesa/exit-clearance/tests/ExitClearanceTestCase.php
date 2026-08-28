@@ -3,6 +3,7 @@
 namespace Cesa\ExitClearance\Tests;
 
 use Cesa\ExitClearance\ExitClearanceServiceProvider;
+use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use ReflectionClass;
@@ -15,6 +16,21 @@ abstract class ExitClearanceTestCase extends TestCase
 {
     use RefreshDatabase;
     use UsesSqliteInMemoryDatabase;
+
+    public function createApplication(): Application
+    {
+        $app = parent::createApplication();
+
+        $app['config']->set('database.default', 'sqlite');
+        $app['config']->set('database.connections.sqlite', [
+            'driver'                  => 'sqlite',
+            'database'                => ':memory:',
+            'prefix'                  => '',
+            'foreign_key_constraints' => true,
+        ]);
+
+        return $app;
+    }
 
     protected function setUp(): void
     {
@@ -29,8 +45,9 @@ abstract class ExitClearanceTestCase extends TestCase
             '--realpath' => false,
         ]);
 
-        DB::table('plugins')->insert([
-            'name'         => 'exit-clearance',
+        DB::table('plugins')->updateOrInsert([
+            'name' => 'exit-clearance',
+        ], [
             'author'       => 'tests',
             'is_active'    => true,
             'is_installed' => true,

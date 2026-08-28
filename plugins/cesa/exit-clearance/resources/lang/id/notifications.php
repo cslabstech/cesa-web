@@ -11,6 +11,8 @@ return [
         'labels' => [
             'requester_name' => 'Nama Pengaju',
             'division'       => 'Divisi',
+            'approval_step'  => 'Tahap Persetujuan',
+            'approver_name'  => 'Nama Pengesah',
             'status'         => 'Status',
             'approval_link'  => 'Tautan persetujuan',
             'progress_link'  => 'Tautan progress',

@@ -3,9 +3,12 @@
 return [
     'actions' => [
         'resend_pending_approvers' => [
-            'label'             => 'Kirim ulang ke approver pending',
-            'modal_heading'     => 'Kirim ulang notifikasi',
-            'modal_description' => 'Notifikasi akan dikirim ulang ke approver yang statusnya masih pending.',
+            'label'                       => 'Kirim ulang ke approver pending',
+            'modal_heading'               => 'Kirim ulang notifikasi',
+            'modal_description'           => 'Notifikasi akan dikirim ulang ke approver yang statusnya masih pending.',
+            'approver_id'                 => 'Pengesah',
+            'approver_id_placeholder'     => 'Semua approver pending',
+            'approver_id_helper'          => 'Pilih satu pengesah, atau kosongkan untuk mengirim ke semua yang masih pending.',
         ],
     ],
     'notifications' => [

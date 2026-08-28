@@ -3,9 +3,12 @@
 return [
     'actions' => [
         'resend_pending_approvers' => [
-            'label'             => 'Resend to pending approvers',
-            'modal_heading'     => 'Resend notification',
-            'modal_description' => 'Notifications will be resent to approvers whose status is still pending.',
+            'label'                   => 'Resend to pending approvers',
+            'modal_heading'           => 'Resend notification',
+            'modal_description'       => 'Notifications will be resent to approvers whose status is still pending.',
+            'approver_id'             => 'Approver',
+            'approver_id_placeholder' => 'All pending approvers',
+            'approver_id_helper'      => 'Pick one approver, or leave empty to send to every pending approver.',
         ],
     ],
     'notifications' => [

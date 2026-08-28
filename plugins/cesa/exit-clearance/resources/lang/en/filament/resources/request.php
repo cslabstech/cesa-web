@@ -8,6 +8,12 @@ return [
         'download_pdf_filename_prefix' => 'exit-clearance',
         'open_approval_page'           => 'Open approval page',
         'view_progress'                => 'Open Progress Page',
+        'export'                       => 'Export Exit Clearance Requests',
+    ],
+    'exports' => [
+        'notifications' => [
+            'completed_body' => 'The exit clearance request export finished with :success exported row(s) and :failed failed row(s).',
+        ],
     ],
     'steps' => [
         'resignation_letter' => 'Resignation Letter',
@@ -105,6 +111,7 @@ return [
         'resignation_letter' => 'Resignation Letter',
         'department'         => 'Department',
         'approvers'          => 'Approvers',
+        'pending_approvers'  => 'Pending Approvers',
     ],
     'filters' => [
         'department'   => 'Department',

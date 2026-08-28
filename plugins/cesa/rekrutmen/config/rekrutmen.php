@@ -23,8 +23,8 @@ return [
             'country_code' => env('WHATSAPP_COUNTRY_CODE', '62'),
             'throttle'     => [
                 'enabled'              => env('WHATSAPP_THROTTLE_ENABLED', true),
-                'min_interval_seconds' => (int) env('WHATSAPP_THROTTLE_MIN_INTERVAL', 5),
-                'max_interval_seconds' => (int) env('WHATSAPP_THROTTLE_MAX_INTERVAL', 10),
+                'min_interval_seconds' => (int) env('WHATSAPP_THROTTLE_MIN_INTERVAL', 2),
+                'max_interval_seconds' => (int) env('WHATSAPP_THROTTLE_MAX_INTERVAL', 3),
                 'key'                  => env('WHATSAPP_THROTTLE_KEY', 'global'),
             ],
             'queue'      => env('WHATSAPP_QUEUE', 'whatsapp'),

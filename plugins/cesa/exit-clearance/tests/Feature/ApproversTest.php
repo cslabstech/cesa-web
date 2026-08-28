@@ -67,4 +67,28 @@ class ApproversTest extends ExitClearanceTestCase
         $this->assertSame($headDepartment->id, $freshChildDepartment->headOfDepartment?->id);
         $this->assertTrue($freshHeadDepartment->subDepartments->contains('id', $childDepartment->id));
     }
+
+    public function test_multiple_approvers_can_have_the_same_email(): void
+    {
+        $sharedEmail = 'same-email@example.com';
+
+        $approverOne = Approver::query()->create([
+            'name'  => 'Approver Alpha',
+            'email' => $sharedEmail,
+            'title' => 'Title Alpha',
+        ]);
+
+        $approverTwo = Approver::query()->create([
+            'name'  => 'Approver Beta',
+            'email' => $sharedEmail,
+            'title' => 'Title Beta',
+        ]);
+
+        $this->assertNotSame($approverOne->id, $approverTwo->id);
+        $this->assertSame($sharedEmail, $approverOne->fresh()->email);
+        $this->assertSame($sharedEmail, $approverTwo->fresh()->email);
+
+        $matchingApprovers = Approver::query()->where('email', $sharedEmail)->get();
+        $this->assertCount(2, $matchingApprovers);
+    }
 }

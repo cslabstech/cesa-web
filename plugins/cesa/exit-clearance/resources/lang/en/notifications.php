@@ -11,6 +11,8 @@ return [
         'labels' => [
             'requester_name' => 'Requester Name',
             'division'       => 'Division',
+            'approval_step'  => 'Approval Step',
+            'approver_name'  => 'Approver Name',
             'status'         => 'Status',
             'approval_link'  => 'Approval link',
             'progress_link'  => 'Progress link',

@@ -10,12 +10,16 @@ use Cesa\ExitClearance\Notifications\ApprovalRequestNotification;
 use Cesa\ExitClearance\Notifications\RequestStatusNotification;
 use Cesa\ExitClearance\Services\ExitClearanceNotificationService;
 use Cesa\ExitClearance\Services\ExitClearanceRequestService;
+use Cesa\ExitClearance\Services\WhatsAppThrottleService;
 use Cesa\ExitClearance\Tests\ExitClearanceTestCase;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use RuntimeException;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
+use ReflectionProperty;
 
 class ExitClearanceSubmissionTest extends ExitClearanceTestCase
 {
@@ -166,7 +170,6 @@ class ExitClearanceSubmissionTest extends ExitClearanceTestCase
     public function test_exit_clearance_waghub_job_uses_correct_payload(): void
     {
 
-
         Http::fake([
             'https://waghub.mekayastudio.com/api/v1/messages' => Http::response(['status' => 'queued'], 200),
         ]);
@@ -193,8 +196,6 @@ class ExitClearanceSubmissionTest extends ExitClearanceTestCase
         });
     }
 
-
-
     public function test_exit_clearance_whatsapp_messages_include_requester_progress_link(): void
     {
         $service = app(ExitClearanceNotificationService::class);
@@ -205,7 +206,10 @@ class ExitClearanceSubmissionTest extends ExitClearanceTestCase
             'form_status' => ExitClearanceRequestService::FORM_STATUS_PENDING,
         ]);
         $request->setRelation('department', $department);
-        $approver = new Approver(['name' => 'Manager HR']);
+        $approver = new Approver([
+            'name'  => 'Uwis GA',
+            'title' => 'GA Officer',
+        ]);
 
         $approverMethod = new \ReflectionMethod($service, 'buildApproverWhatsAppMessage');
         $approverMethod->setAccessible(true);
@@ -227,11 +231,102 @@ class ExitClearanceSubmissionTest extends ExitClearanceTestCase
         );
 
         $this->assertStringContainsString(__('exit-clearance::notifications.whatsapp.approver.heading', ['uid' => 'EXC-00001']), $approverMessage);
+        $this->assertStringContainsString('*'.__('exit-clearance::notifications.whatsapp.labels.approval_step').':* GA Officer', $approverMessage);
+        $this->assertStringContainsString('*'.__('exit-clearance::notifications.whatsapp.labels.approver_name').':* Uwis GA', $approverMessage);
         $this->assertStringContainsString('*'.__('exit-clearance::notifications.whatsapp.labels.approval_link').':*', $approverMessage);
         $this->assertStringNotContainsString('Progress', $approverMessage);
         $this->assertStringContainsString(__('exit-clearance::notifications.whatsapp.requester.heading', ['uid' => 'EXC-00001']), $requesterMessage);
         $this->assertStringContainsString('*'.__('exit-clearance::notifications.whatsapp.labels.requester_name').':* Budi Santoso', $requesterMessage);
         $this->assertStringContainsString('*'.__('exit-clearance::notifications.whatsapp.labels.progress_link').':*', $requesterMessage);
         $this->assertStringContainsString('https://example.com/progress', $requesterMessage);
+    }
+
+    public function test_notify_pending_approvers_can_target_a_single_pending_approver(): void
+    {
+        Notification::fake();
+        Queue::fake();
+
+        config()->set('exit-clearance.notifications.mail.enabled', true);
+        config()->set('exit-clearance.notifications.whatsapp.enabled', true);
+        config()->set('exit-clearance.notifications.whatsapp.endpoint', 'https://example.com/whatsapp');
+        config()->set('exit-clearance.notifications.whatsapp.api_key', 'test-api-key');
+        config()->set('exit-clearance.notifications.whatsapp.throttle.enabled', false);
+
+        $department = Department::factory()->create();
+        $request = Request::factory()->create([
+            'department_id' => $department->id,
+            'form_status'   => ExitClearanceRequestService::FORM_STATUS_PENDING,
+        ]);
+
+        $gaOfficer = Approver::query()->create([
+            'name'  => 'Uwis GA',
+            'title' => 'GA Officer',
+            'email' => 'uwis.ga@example.com',
+            'phone' => '081234567890',
+        ]);
+
+        $hrManager = Approver::query()->create([
+            'name'  => 'Ester HR',
+            'title' => 'HR Manager',
+            'email' => 'ester.hr@example.com',
+            'phone' => '081298765432',
+        ]);
+
+        $approvedApprover = Approver::query()->create([
+            'name'  => 'Approved One',
+            'title' => 'IT Manager',
+            'email' => 'approved@example.com',
+            'phone' => '081211111111',
+        ]);
+
+        $request->approvers()->sync([
+            $gaOfficer->id        => ['status' => ExitClearanceRequestService::APPROVAL_PENDING],
+            $hrManager->id        => ['status' => ExitClearanceRequestService::APPROVAL_PENDING],
+            $approvedApprover->id => ['status' => ExitClearanceRequestService::APPROVAL_APPROVED],
+        ]);
+
+        $sentCount = app(ExitClearanceNotificationService::class)
+            ->notifyPendingApprovers($request->fresh('approvers'), $gaOfficer->id);
+
+        $this->assertSame(1, $sentCount);
+
+        Notification::assertSentOnDemandTimes(ApprovalRequestNotification::class, 1);
+        Notification::assertSentOnDemand(ApprovalRequestNotification::class, function (
+            ApprovalRequestNotification $notification,
+            array $channels,
+            object $notifiable,
+        ): bool {
+            return ($notifiable->routes['mail'] ?? null) === 'uwis.ga@example.com';
+        });
+
+        Queue::assertPushed(SendWhatsAppNotification::class, 1);
+        Queue::assertPushed(SendWhatsAppNotification::class, function (SendWhatsAppNotification $job): bool {
+            $phone = new ReflectionProperty($job, 'phone');
+            $message = new ReflectionProperty($job, 'message');
+
+            return $phone->getValue($job) === '6281234567890'
+                && str_contains((string) $message->getValue($job), 'GA Officer')
+                && str_contains((string) $message->getValue($job), 'Uwis GA');
+        });
+    }
+
+    public function test_whatsapp_throttle_spaces_messages_two_to_three_seconds_apart(): void
+    {
+        $key = 'exit-clearance-whatsapp-'.Str::uuid();
+
+        config()->set('exit-clearance.notifications.whatsapp.throttle', [
+            'enabled'              => true,
+            'min_interval_seconds' => 2,
+            'max_interval_seconds' => 3,
+            'key'                  => $key,
+        ]);
+
+        $throttle = app(WhatsAppThrottleService::class);
+        $firstDelay = $throttle->getDispatchDelaySeconds();
+        $secondDelay = $throttle->getDispatchDelaySeconds();
+
+        $this->assertSame(0, $firstDelay);
+        $this->assertGreaterThanOrEqual(2, $secondDelay);
+        $this->assertLessThanOrEqual(3, $secondDelay);
     }
 }

@@ -2,8 +2,10 @@
 
 namespace Cesa\ExitClearance\Filament\Resources\RequestResource\Pages;
 
+use Cesa\ExitClearance\Filament\Exports\RequestExporter;
 use Cesa\ExitClearance\Filament\Resources\RequestResource;
 use Filament\Actions\CreateAction;
+use Filament\Actions\ExportAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Tables;
@@ -18,6 +20,10 @@ class ListRequests extends ListRecords
     {
         return [
             CreateAction::make()->icon('heroicon-o-plus-circle'),
+            ExportAction::make()
+                ->exporter(RequestExporter::class)
+                ->label(__('exit-clearance::filament/resources/request.actions.export'))
+                ->icon('heroicon-o-arrow-down-tray'),
         ];
     }
 
