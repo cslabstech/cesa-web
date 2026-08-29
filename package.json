@@ -15,5 +15,12 @@
         "postcss": "^8.4.47",
         "tailwindcss": "^4.2.2",
         "vite": "^5.0"
+    },
+    "dependencies": {
+        "@vitejs/plugin-vue": "5.0",
+        "lucide-vue-next": "^0.475.0",
+        "pinia": "2.1",
+        "vue": "3.4",
+        "vue-router": "4.3"
     }
 }

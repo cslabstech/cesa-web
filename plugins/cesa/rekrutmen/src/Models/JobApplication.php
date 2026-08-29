@@ -7,16 +7,12 @@ use Cesa\Rekrutmen\Enums\JobApplicationGender;
 use Cesa\Rekrutmen\Enums\JobApplicationMaritalStatus;
 use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Cesa\Rekrutmen\Services\MailThrottleService;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -76,6 +72,10 @@ class JobApplication extends Model
         'photo_path',
         'resume_path',
         'status',
+        'ai_match_score',
+        'ai_recommendation',
+        'ai_summary',
+        'ai_analyzed_at',
     ];
 
     protected function casts(): array
@@ -85,6 +85,8 @@ class JobApplication extends Model
             'birth_date'     => 'date',
             'marital_status' => JobApplicationMaritalStatus::class,
             'status'         => JobApplicationStatus::class,
+            'ai_match_score' => 'integer',
+            'ai_analyzed_at' => 'datetime',
             'position'       => 'decimal:10',
             'created_at'     => 'datetime',
             'updated_at'     => 'datetime',
@@ -1505,5 +1507,3 @@ class JobApplication extends Model
             ->value('id');
     }
 }
-
-
