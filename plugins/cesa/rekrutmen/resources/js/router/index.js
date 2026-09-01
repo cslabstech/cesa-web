@@ -6,21 +6,13 @@ import RecruitmentProgressView from '../views/RecruitmentProgressView.vue';
 import ConfigurationsView from '../views/ConfigurationsView.vue';
 
 const routes = [
-    // Manpower Requests
-    {
-        path: '/admin/request-man-powers',
-        alias: ['/rekrutmen/requests', '/rekrutmen'],
-        name: 'requests',
-        component: RequestManPowerView,
-        meta: { title: 'Manpower Requests' }
-    },
     // Job Postings
     {
         path: '/admin/job-postings',
-        alias: ['/rekrutmen/postings'],
+        alias: ['/rekrutmen/postings', '/rekrutmen'],
         name: 'postings',
         component: JobPostingsView,
-        meta: { title: 'Job Postings' }
+        meta: { title: 'Lowongan Kerja' }
     },
     // Job Applications
     {
@@ -28,7 +20,15 @@ const routes = [
         alias: ['/rekrutmen/applications'],
         name: 'applications',
         component: JobApplicationsView,
-        meta: { title: 'Job Applications' }
+        meta: { title: 'Data Pelamar' }
+    },
+    // Manpower Requests
+    {
+        path: '/admin/request-man-powers',
+        alias: ['/rekrutmen/requests'],
+        name: 'requests',
+        component: RequestManPowerView,
+        meta: { title: 'Permintaan FPTK' }
     },
     // Recruitment Progress
     {
@@ -36,7 +36,7 @@ const routes = [
         alias: ['/rekrutmen/progress'],
         name: 'progress',
         component: RecruitmentProgressView,
-        meta: { title: 'Recruitment Progress' }
+        meta: { title: 'Monitoring & Progress' }
     },
     // Configurations
     {
@@ -44,12 +44,12 @@ const routes = [
         alias: ['/rekrutmen/configurations', '/admin/rekrutmen/configurations'],
         name: 'configurations',
         component: ConfigurationsView,
-        meta: { title: 'Configurations' }
+        meta: { title: 'Master Data & Pengaturan' }
     },
     // Wildcard fallback
     {
         path: '/:pathMatch(.*)*',
-        redirect: '/admin/request-man-powers'
+        redirect: '/admin/job-postings'
     }
 ];
 

@@ -58,16 +58,24 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('job-postings', [RekrutmenSpaController::class, 'getJobPostings'])->name('rekrutmen.api.job-postings');
         Route::patch('job-postings/{id}/publish', [RekrutmenSpaController::class, 'togglePublishJobPosting'])->name('rekrutmen.api.job-postings.publish');
         Route::put('job-postings/{id}', [RekrutmenSpaController::class, 'updateJobPosting'])->name('rekrutmen.api.job-postings.update');
+        Route::post('job-postings/{id}', [RekrutmenSpaController::class, 'updateJobPosting'])->name('rekrutmen.api.job-postings.update-post');
 
         Route::get('applications', [RekrutmenSpaController::class, 'getApplications'])->name('rekrutmen.api.applications');
         Route::get('applications/{id}/cv', [RekrutmenSpaController::class, 'viewCv'])->name('rekrutmen.api.applications.cv');
+        Route::post('applications/{id}/upload-cv', [RekrutmenSpaController::class, 'uploadCv'])->name('rekrutmen.api.applications.upload-cv');
+        Route::get('applications/{id}/photo', [RekrutmenSpaController::class, 'viewPhoto'])->name('rekrutmen.api.applications.photo');
         Route::patch('applications/{id}/stage', [RekrutmenSpaController::class, 'updateApplicationStage'])->name('rekrutmen.api.applications.stage');
-        Route::patch('applications/{id}/status', [RekrutmenSpaController::class, 'updateApplicationStatus'])->name('rekrutmen.api.applications.status');
         Route::post('applications/{id}/analyze-ai', [RekrutmenSpaController::class, 'analyzeWithAi'])->name('rekrutmen.api.applications.analyze-ai');
         Route::post('applications/batch-analyze-ai', [RekrutmenSpaController::class, 'batchAnalyzeWithAi'])->name('rekrutmen.api.applications.batch-analyze-ai');
-
         Route::get('progress-report', [RekrutmenSpaController::class, 'getProgressReport'])->name('rekrutmen.api.progress-report');
+        Route::get('progress-report/export', [RekrutmenSpaController::class, 'exportProgressReport'])->name('rekrutmen.api.progress-report.export');
         Route::get('configurations', [RekrutmenSpaController::class, 'getConfigurations'])->name('rekrutmen.api.configurations');
+        Route::get('settings/ai', [RekrutmenSpaController::class, 'getAiSettings'])->name('rekrutmen.api.settings.ai');
+        Route::post('settings/ai', [RekrutmenSpaController::class, 'saveAiSettings'])->name('rekrutmen.api.settings.ai.save');
+        Route::post('settings/ai/test', [RekrutmenSpaController::class, 'testAiConnection'])->name('rekrutmen.api.settings.ai.test');
+        Route::get('settings/mail-templates', [RekrutmenSpaController::class, 'getMailTemplates'])->name('rekrutmen.api.settings.mail-templates');
+        Route::post('settings/mail-templates', [RekrutmenSpaController::class, 'saveMailTemplates'])->name('rekrutmen.api.settings.mail-templates.save');
+        Route::post('applications/{id}/send-email', [RekrutmenSpaController::class, 'sendCandidateEmail'])->name('rekrutmen.api.applications.send-email');
     });
 
     // Native Admin Panel URLs taken over by Vue SPA:

@@ -9,7 +9,9 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
     stages: [],
     activeJob: null,
     progressData: null,
+    progressReport: null,
     configurationsData: null,
+    configurations: null,
     loading: {
       requests: false,
       postings: false,
@@ -25,8 +27,8 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
       this.loading.requests = true;
       try {
         const res = await axios.get('/rekrutmen/api/requests', { params: { search } });
-        if (res.data && res.data.data) {
-          this.requests = res.data.data;
+        if (res.data) {
+          this.requests = Array.isArray(res.data.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []);
         }
       } catch (err) {
         console.error('Failed fetching requests', err);
@@ -74,8 +76,8 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
       this.loading.postings = true;
       try {
         const res = await axios.get('/rekrutmen/api/job-postings', { params: { search } });
-        if (res.data && res.data.data) {
-          this.postings = res.data.data;
+        if (res.data) {
+          this.postings = Array.isArray(res.data.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []);
         }
       } catch (err) {
         console.error('Failed fetching postings', err);
@@ -102,7 +104,14 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
 
     async updateJobPosting(id, payload) {
       try {
-        const res = await axios.put(`/rekrutmen/api/job-postings/${id}`, payload);
+        let res;
+        if (payload instanceof FormData) {
+          res = await axios.post(`/rekrutmen/api/job-postings/${id}`, payload, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+        } else {
+          res = await axios.put(`/rekrutmen/api/job-postings/${id}`, payload);
+        }
         await this.fetchPostings('', true);
         return res.data;
       } catch (err) {
@@ -137,17 +146,27 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
       return this.applications;
     },
 
+    async moveStage(appId, newStageId) {
+      return this.updateApplicationStage(appId, newStageId);
+    },
+
     async updateApplicationStage(appId, newStageId) {
-      const app = this.applications.find(a => a.id === appId);
+      const app = this.applications.find(a => String(a.id) === String(appId));
+      const stage = this.stages.find(s => String(s.id) === String(newStageId));
       if (app) {
         app.current_stage_id = parseInt(newStageId);
+        if (stage) {
+          app.stage = { id: stage.id, name: stage.name, color: stage.color };
+        }
       }
       try {
-        await axios.patch(`/rekrutmen/api/applications/${appId}/stage`, {
-          stage_id: newStageId
+        const res = await axios.patch(`/rekrutmen/api/applications/${appId}/stage`, {
+          stage_id: parseInt(newStageId)
         });
+        return res.data || { success: true };
       } catch (err) {
         console.error('Failed to update stage', err);
+        throw err;
       }
     },
 
@@ -183,10 +202,13 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
       }
     },
 
-    async batchAnalyzeWithAi() {
+    async batchAnalyzeWithAi(jobId = null) {
       try {
-        const res = await axios.post('/rekrutmen/api/applications/batch-analyze-ai');
-        await this.fetchApplications({}, true);
+        const res = await axios.post('/rekrutmen/api/applications/batch-analyze-ai', {
+          job_id: jobId,
+          force: true,
+        });
+        await this.fetchApplications(jobId ? { job_id: jobId } : {}, true);
         return res.data;
       } catch (err) {
         console.error('Failed batch AI analysis', err);
@@ -195,35 +217,40 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
     },
 
     async fetchProgressReport(force = false) {
-      if (this.progressData && !force) return this.progressData;
+      if (this.progressReport && !force) return this.progressReport;
       this.loading.progress = true;
       try {
         const res = await axios.get('/rekrutmen/api/progress-report');
         if (res.data) {
           this.progressData = res.data;
+          this.progressReport = res.data;
         }
       } catch (err) {
         console.error('Failed fetching progress report', err);
       } finally {
         this.loading.progress = false;
       }
-      return this.progressData;
+      return this.progressReport;
     },
 
     async fetchConfigurations(force = false) {
-      if (this.configurationsData && !force) return this.configurationsData;
+      if (this.configurations && !force) return this.configurations;
       this.loading.configurations = true;
       try {
         const res = await axios.get('/rekrutmen/api/configurations');
         if (res.data) {
           this.configurationsData = res.data;
+          this.configurations = res.data;
+          if (res.data.stages) {
+            this.stages = res.data.stages;
+          }
         }
       } catch (err) {
         console.error('Failed fetching configurations', err);
       } finally {
         this.loading.configurations = false;
       }
-      return this.configurationsData;
+      return this.configurations;
     }
   }
 });

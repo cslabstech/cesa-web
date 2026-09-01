@@ -1,43 +1,47 @@
 <template>
-  <div class="space-y-5">
-    <!-- Breadcrumb & Top Page Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+  <div class="space-y-6">
+    <!-- Top Header Title & Controls -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <div class="flex items-center gap-1.5 text-xs text-slate-500 font-medium mb-1">
-          <span>Job Applications</span>
-          <ChevronRight class="w-3.5 h-3.5 text-slate-400" />
-          <span class="text-slate-700 font-semibold">{{ activeJobTitle ? activeJobTitle : 'Semua Pelamar' }}</span>
-        </div>
-        <h1 class="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-          <span>{{ activeJobTitle ? `Pelamar: ${activeJobTitle}` : 'Daftar Pelamar Kerja' }}</span>
+        <h1 class="text-xl font-bold text-slate-900 tracking-tight">
+          {{ activeJobTitle ? `Pelamar: ${activeJobTitle}` : 'Data Pelamar Kerja' }}
         </h1>
         <p class="text-xs text-slate-500 mt-0.5">
-          Ringkasan seluruh kandidat pelamar dan hasil screening kualifikasi otomatis.
+          Pantau seluruh data kandidat pelamar, kualifikasi, dan tahapan seleksi
         </p>
       </div>
 
       <!-- Controls & View Switcher -->
       <div class="flex items-center gap-2.5">
-        <!-- Active Filter with Reset button -->
+        <!-- Active Filter Indicator -->
         <button
           v-if="activeJobId"
           @click="resetJobFilter"
-          class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold border border-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+          class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold border border-blue-200 flex items-center gap-1.5 transition-colors cursor-pointer"
           title="Tampilkan Semua Pelamar"
         >
-          <span>Tampilkan Semua Lowongan</span>
-          <span class="text-slate-400 font-bold">&times;</span>
+          <span>Filter: {{ activeJobTitle }}</span>
+          <span class="text-blue-500 font-bold">&times;</span>
         </button>
 
-        <!-- View Toggle (Table / Kanban) -->
-        <div class="flex items-center bg-slate-100 border border-slate-200 rounded-lg p-0.5">
+        <!-- Evaluasi Kualifikasi Action Button -->
+        <button
+          @click="startRescreening"
+          :disabled="isScreening"
+          class="px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+          title="Jalankan evaluasi kualifikasi otomatis untuk pelamar"
+        >
+          <RefreshCw class="w-3.5 h-3.5 text-slate-500" :class="{ 'animate-spin': isScreening }" />
+          <span>Evaluasi Kualifikasi</span>
+        </button>
+
+        <!-- View Switcher (Table / Kanban) -->
+        <div class="inline-flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
           <button
             @click="viewMode = 'table'"
             :class="[
-              'px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer',
-              viewMode === 'table'
-                ? 'bg-white text-blue-600 shadow-2xs font-bold'
-                : 'text-slate-600 hover:text-slate-900'
+              'px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer',
+              viewMode === 'table' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
             ]"
           >
             <ListFilter class="w-3.5 h-3.5" />
@@ -46,535 +50,924 @@
           <button
             @click="viewMode = 'kanban'"
             :class="[
-              'px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer',
-              viewMode === 'kanban'
-                ? 'bg-white text-blue-600 shadow-2xs font-bold'
-                : 'text-slate-600 hover:text-slate-900'
+              'px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer',
+              viewMode === 'kanban' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
             ]"
           >
             <Kanban class="w-3.5 h-3.5" />
             <span>Kanban</span>
           </button>
         </div>
-
-        <!-- Search Input -->
-        <div class="relative w-64">
-          <Search class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            v-model="searchQuery"
-            @input="handleSearch"
-            type="text"
-            placeholder="Search kandidat..."
-            class="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-2xs"
-          />
-        </div>
       </div>
     </div>
 
-    <!-- METRIC / KPI STAT CARDS -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-      <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs">
-        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Pelamar</div>
-        <div class="text-2xl font-bold text-slate-900 mt-1.5">{{ applications.length }}</div>
-        <div class="text-[11px] text-slate-400 mt-0.5 font-medium">Kandidat terdaftar</div>
-      </div>
-      <div class="bg-white p-4 rounded-xl border border-slate-200/90 border-t-2 border-t-emerald-500 shadow-2xs">
-        <div class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Direkomendasikan</div>
-        <div class="text-2xl font-bold text-emerald-600 mt-1.5">{{ recommendedCount }}</div>
-        <div class="text-[11px] text-emerald-600 mt-0.5 font-medium">&ge; 80% Match Score</div>
-      </div>
-      <div class="bg-white p-4 rounded-xl border border-slate-200/90 border-t-2 border-t-amber-500 shadow-2xs">
-        <div class="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Dipertimbangkan</div>
-        <div class="text-2xl font-bold text-amber-600 mt-1.5">{{ consideredCount }}</div>
-        <div class="text-[11px] text-amber-600 mt-0.5 font-medium">60% - 79% Match Score</div>
-      </div>
-      <div class="bg-white p-4 rounded-xl border border-slate-200/90 border-t-2 border-t-rose-500 shadow-2xs">
-        <div class="text-[11px] font-bold text-rose-700 uppercase tracking-wider">Kurang Sesuai</div>
-        <div class="text-2xl font-bold text-rose-600 mt-1.5">{{ notSuitableCount }}</div>
-        <div class="text-[11px] text-rose-500 mt-0.5 font-medium">&lt; 60% Match Score</div>
-      </div>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="store.loading.applications" class="bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-      <LoadingState
-        title="Sedang memuat data pelamar..."
-        subtitle="Menyiapkan daftar kandidat dan hasil analisis screening..."
-      />
-    </div>
-
-    <!-- TABLE LIST VIEW -->
+    <!-- Alert / Toast Message -->
     <div
-      v-else-if="viewMode === 'table'"
-      class="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden"
+      v-if="toastMessage"
+      :class="[
+        'p-3 rounded-lg border flex items-center justify-between text-xs font-medium transition-all shadow-2xs',
+        toastType === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
+      ]"
     >
-      <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-        <div class="text-xs text-slate-500 font-medium">
-          Menampilkan <strong class="text-slate-900">{{ applications.length }}</strong> kandidat pelamar
-        </div>
-        <div class="flex items-center gap-2">
-          <button class="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-            <Filter class="w-3.5 h-3.5 text-slate-500" />
-            <span class="text-[11px] font-semibold text-slate-700">Filter</span>
-          </button>
-        </div>
+      <div class="flex items-center gap-2">
+        <CheckCircle2 v-if="toastType === 'success'" class="w-4 h-4 text-emerald-600" />
+        <AlertCircle v-else class="w-4 h-4 text-rose-600" />
+        <span>{{ toastMessage }}</span>
+      </div>
+      <button @click="toastMessage = null" class="text-slate-400 hover:text-slate-600 font-bold">&times;</button>
+    </div>
+
+    <!-- Integrated Filter Tabs & Search Bar -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 pb-4">
+      <!-- Match Filter Tabs -->
+      <div class="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+        <button
+          @click="matchFilter = 'all'"
+          :class="[
+            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0',
+            matchFilter === 'all'
+              ? 'bg-slate-900 text-white'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          ]"
+        >
+          Semua Pelamar <span class="ml-1 opacity-70">({{ applications.length }})</span>
+        </button>
+
+        <button
+          @click="matchFilter = 'recommended'"
+          :class="[
+            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0',
+            matchFilter === 'recommended'
+              ? 'bg-emerald-600 text-white'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          ]"
+        >
+          Sangat Sesuai <span class="ml-1 opacity-70">({{ recommendedCount }})</span>
+        </button>
+
+        <button
+          @click="matchFilter = 'considered'"
+          :class="[
+            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0',
+            matchFilter === 'considered'
+              ? 'bg-amber-600 text-white'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          ]"
+        >
+          Dipertimbangkan <span class="ml-1 opacity-70">({{ consideredCount }})</span>
+        </button>
+
+        <button
+          @click="matchFilter = 'not_suitable'"
+          :class="[
+            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0',
+            matchFilter === 'not_suitable'
+              ? 'bg-slate-700 text-white'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          ]"
+        >
+          Kurang Sesuai <span class="ml-1 opacity-70">({{ notSuitableCount }})</span>
+        </button>
       </div>
 
+      <!-- Search Bar -->
+      <div class="relative w-full sm:w-80">
+        <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Cari nama, email, atau posisi..."
+          class="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-2xs"
+        />
+      </div>
+    </div>
+
+    <!-- TABLE VIEW -->
+    <div
+      v-if="viewMode === 'table'"
+      class="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden"
+    >
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs">
           <thead>
-            <tr class="bg-slate-50/70 text-slate-500 border-b border-slate-200/80">
-              <th class="py-2.5 px-4 w-10">
-                <input type="checkbox" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5" />
-              </th>
-              <th class="py-2.5 px-4 text-[11px] font-bold uppercase tracking-wider">Nama Pelamar</th>
-              <th class="py-2.5 px-4 text-[11px] font-bold uppercase tracking-wider">Lowongan Dilamar</th>
-              <th class="py-2.5 px-4 text-[11px] font-bold uppercase tracking-wider">Hasil Screening AI</th>
-              <th class="py-2.5 px-4 text-[11px] font-bold uppercase tracking-wider">Tahapan Seleksi</th>
-              <th class="py-2.5 px-4 text-[11px] font-bold uppercase tracking-wider">Status</th>
-              <th class="py-2.5 px-4 text-[11px] font-bold uppercase tracking-wider">Tanggal Masuk</th>
-              <th class="py-2.5 px-4 text-right w-10"></th>
+            <tr class="bg-slate-50 text-slate-500 border-b border-slate-200">
+              <th class="py-3 px-4 font-semibold text-[11px]">Kandidat Pelamar</th>
+              <th class="py-3 px-4 font-semibold text-[11px]">Posisi Dilamar</th>
+              <th class="py-3 px-4 font-semibold text-[11px]">Kualifikasi Match</th>
+              <th class="py-3 px-4 font-semibold text-[11px]">Tahapan Seleksi</th>
+              <th class="py-3 px-4 font-semibold text-[11px]">Status</th>
+              <th class="py-3 px-4 font-semibold text-[11px]">Tanggal Masuk</th>
+              <th class="py-3 px-4 text-right font-semibold text-[11px] w-24">Aksi</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
-            <tr v-for="app in applications" :key="app.id" class="hover:bg-slate-50/60 transition-colors group">
-              <td class="py-3 px-4 align-top"><input type="checkbox" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 mt-0.5" /></td>
-              <td class="py-3 px-4 align-top">
-                <div class="font-semibold text-xs text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer" @click="openDetail(app)">{{ app.full_name }}</div>
-                <div class="text-[11px] text-slate-400 mt-0.5">{{ app.email }} &bull; {{ app.phone }}</div>
-              </td>
-              <td class="py-3 px-4 align-top text-slate-700 text-xs font-medium">{{ app.job_posting?.title || '-' }}</td>
-              <td class="py-3 px-4 align-top">
-                <div v-if="app.ai_match_score !== null && app.ai_match_score !== undefined" class="space-y-0.5">
-                  <span :class="['inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase border cursor-pointer', getAiBadgeClasses(app.ai_match_score, app.ai_recommendation)]" @click="openDetail(app)">
-                    {{ app.ai_match_score }}% {{ formatAiRecommendation(app.ai_recommendation) }}
-                  </span>
-                  <div v-if="app.ai_summary" class="text-[11px] text-slate-500 leading-tight line-clamp-1 max-w-xs">{{ app.ai_summary }}</div>
+            <tr v-for="app in filteredApplications" :key="app.id" class="hover:bg-slate-50 transition-colors group">
+              <!-- Name & Contact -->
+              <td class="py-3.5 px-4 align-middle">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                    <User class="w-4 h-4 text-slate-500" />
+                  </div>
+                  <div>
+                    <div class="font-bold text-xs text-slate-900 hover:text-blue-600 transition-colors cursor-pointer" @click="openDetail(app)">
+                      {{ app.full_name }}
+                    </div>
+                    <div class="text-[11px] text-slate-400 mt-0.5">{{ app.email }} &bull; {{ app.phone }}</div>
+                  </div>
                 </div>
-                <div v-else class="text-[11px] text-slate-400 italic">Sedang dievaluasi...</div>
               </td>
-              <td class="py-3 px-4 align-top"><span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">{{ app.stage?.name || 'Screening CV' }}</span></td>
-              <td class="py-3 px-4 align-top"><span :class="['inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border', getStatusBadge(app.status)]">{{ app.status }}</span></td>
-              <td class="py-3 px-4 align-top text-slate-600 text-xs whitespace-nowrap">{{ app.created_at }}</td>
-              <td class="py-3 px-4 align-top text-right whitespace-nowrap">
-                <button @click="openDetail(app)" class="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors cursor-pointer"><MoreVertical class="w-4 h-4" /></button>
+
+              <!-- Job Title -->
+              <td class="py-3.5 px-4 align-middle text-slate-700 font-medium">
+                {{ app.job_posting?.title || '-' }}
+              </td>
+
+              <!-- Score / Match -->
+              <td class="py-3.5 px-4 align-middle">
+                <div v-if="app.ai_match_score !== null && app.ai_match_score !== undefined">
+                  <button
+                    type="button"
+                    @click.stop="openAnalysisModal(app)"
+                    :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border cursor-pointer hover:shadow-xs transition-all hover:scale-105 active:scale-95', getAiBadgeClasses(app.ai_match_score)]"
+                    title="Klik untuk melihat hasil analisis kualifikasi"
+                  >
+                    {{ app.ai_match_score }}% &bull; {{ formatAiRecommendation(app.ai_recommendation) }}
+                  </button>
+                </div>
+                <div v-else class="text-[11px] text-slate-400 italic">Menunggu evaluasi</div>
+              </td>
+
+              <!-- Stage -->
+              <td class="py-3.5 px-4 align-middle">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                  {{ app.stage?.name || 'Screening CV' }}
+                </span>
+              </td>
+
+              <!-- Status -->
+              <td class="py-3.5 px-4 align-middle">
+                <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-semibold border', getStatusBadge(app.status)]">
+                  {{ formatStatus(app.status) }}
+                </span>
+              </td>
+
+              <!-- Date -->
+              <td class="py-3.5 px-4 align-middle text-slate-600 whitespace-nowrap text-xs">
+                {{ app.created_at }}
+              </td>
+
+              <!-- Action -->
+              <td class="py-3.5 px-4 align-middle text-right whitespace-nowrap">
+                <div class="flex items-center justify-end gap-1.5">
+                  <button
+                    @click.stop="openSendEmailModal(app)"
+                    class="p-1.5 text-slate-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                    title="Kirim Notifikasi Email"
+                  >
+                    <Mail class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click="openDetail(app)"
+                    class="px-2.5 py-1 text-blue-600 hover:bg-blue-50 rounded-md text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    Detail Profil
+                  </button>
+                </div>
               </td>
             </tr>
-            <tr v-if="!applications?.length"><td colspan="8" class="py-16 text-center text-xs text-slate-500">Tidak ada data pelamar kerja untuk lowongan ini.</td></tr>
+            <tr v-if="!filteredApplications.length">
+              <td colspan="7" class="py-12 text-center text-xs text-slate-500">
+                Tidak ada data kandidat pelamar yang sesuai kriteria filter.
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- KANBAN BOARD -->
-    <div v-else class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar min-h-[calc(100vh-230px)] items-start select-none">
-      <div v-for="stage in stages" :key="stage.id" class="w-80 shrink-0 bg-slate-100/70 border rounded-2xl flex flex-col max-h-[calc(100vh-230px)] transition-all duration-150" :class="dragOverStageId === stage.id ? 'border-blue-500 bg-blue-50/50 ring-2 ring-blue-400/40' : 'border-slate-200/80'" @dragover.prevent="handleDragOver(stage.id)" @dragleave="handleDragLeave(stage.id)" @drop="handleDrop(stage.id)">
-        <div class="p-3.5 border-b border-slate-200/80 bg-white/70 rounded-t-2xl flex items-center justify-between">
+    <!-- KANBAN BOARD VIEW -->
+    <div v-else class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar min-h-[calc(100vh-280px)] items-start select-none">
+      <div
+        v-for="stage in stages"
+        :key="stage.id"
+        class="w-80 shrink-0 bg-slate-100/70 border rounded-2xl flex flex-col max-h-[calc(100vh-280px)] transition-all shadow-2xs"
+        :class="dragOverStageId === stage.id ? 'border-blue-500 bg-blue-50/50 ring-2 ring-blue-400/30' : 'border-slate-200'"
+        @dragover.prevent="handleDragOver(stage.id)"
+        @dragleave="handleDragLeave(stage.id)"
+        @drop.prevent="handleDrop(stage.id, $event)"
+      >
+        <!-- Column Header -->
+        <div class="p-3.5 border-b border-slate-200/80 bg-white/80 backdrop-blur-xs rounded-t-2xl flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: stage.color || '#3b82f6' }"></span>
-            <span class="text-xs font-bold text-slate-800 tracking-wide uppercase">{{ stage.name }}</span>
+            <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: stage.color || '#64748b' }"></span>
+            <span class="text-xs font-bold text-slate-800 tracking-tight">{{ stage.name }}</span>
           </div>
-          <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">{{ getStageApplications(stage.id).length }}</span>
+          <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+            {{ getStageApplications(stage.id).length }}
+          </span>
         </div>
-        <div class="p-3 space-y-2.5 overflow-y-auto flex-1 custom-scrollbar">
-          <div v-for="app in getStageApplications(stage.id)" :key="app.id" class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs hover:shadow-xs transition-all cursor-grab active:cursor-grabbing hover:border-blue-400" draggable="true" @dragstart="handleDragStart(app, $event)" @dragend="handleDragEnd" @click="openDetail(app)">
+
+        <!-- Kanban Cards List -->
+        <div class="p-3 space-y-3 overflow-y-auto flex-1 custom-scrollbar">
+          <div
+            v-for="app in getStageApplications(stage.id)"
+            :key="app.id"
+            class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs hover:shadow-xs transition-all cursor-grab active:cursor-grabbing hover:border-slate-300 group"
+            draggable="true"
+            @dragstart="handleDragStart(app, $event)"
+            @dragend="handleDragEnd"
+            @click="openDetail(app)"
+          >
+            <!-- Top: Candidate Name & Match Pill -->
             <div class="flex items-start justify-between gap-2">
-              <span class="font-bold text-xs text-slate-900 hover:text-blue-600">{{ app.full_name }}</span>
-              <span v-if="app.ai_match_score !== null && app.ai_match_score !== undefined" :class="['px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0', getAiBadgeClasses(app.ai_match_score, app.ai_recommendation)]">{{ app.ai_match_score }}%</span>
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                  <User class="w-3.5 h-3.5 text-slate-500" />
+                </div>
+                <div class="min-w-0">
+                  <h4 class="font-bold text-xs text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                    {{ app.full_name }}
+                  </h4>
+                  <p class="text-[11px] text-slate-400 truncate">{{ app.email }}</p>
+                </div>
+              </div>
+
+              <button
+                v-if="app.ai_match_score !== null && app.ai_match_score !== undefined"
+                type="button"
+                @click.stop="openAnalysisModal(app)"
+                :class="['px-2 py-0.5 rounded-full text-[10px] font-semibold border shrink-0 hover:shadow-xs transition-transform cursor-pointer', getAiBadgeClasses(app.ai_match_score)]"
+                title="Klik untuk melihat hasil analisis kualifikasi"
+              >
+                {{ app.ai_match_score }}%
+              </button>
             </div>
-            <div class="text-[11px] text-slate-500 mt-1 line-clamp-1">{{ app.job_posting?.title || '-' }}</div>
-            <div class="flex items-center justify-between text-[10px] text-slate-400 pt-2.5 mt-2.5 border-t border-slate-100">
+
+            <!-- Role / Details Subtitle -->
+            <div v-if="!activeJobId && app.job_posting?.title" class="text-[11px] font-medium text-slate-600 mt-2.5 pt-2 border-t border-slate-100 line-clamp-1">
+              {{ app.job_posting.title }}
+            </div>
+
+            <!-- Card Footer -->
+            <div class="flex items-center justify-between text-[10px] text-slate-400 mt-2.5 pt-2 border-t border-slate-100">
               <span>{{ app.created_at }}</span>
-              <span class="text-blue-600 font-semibold">{{ app.source || 'Website' }}</span>
+              <span class="px-1.5 py-0.5 rounded bg-slate-50 text-slate-600 border border-slate-100 font-medium">
+                {{ app.source || 'Portal' }}
+              </span>
             </div>
           </div>
-          <div v-if="!getStageApplications(stage.id).length" class="py-10 text-center text-[11px] text-slate-400 border border-dashed border-slate-200 rounded-xl">Geser kandidat ke kolom ini</div>
+
+          <!-- Empty State in Column -->
+          <div
+            v-if="!getStageApplications(stage.id).length"
+            class="py-10 text-center text-xs text-slate-400 border border-dashed border-slate-200/80 rounded-xl flex flex-col items-center justify-center gap-1"
+          >
+            <span class="text-slate-300 text-sm">&empty;</span>
+            <span>Belum ada kandidat</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Exact ATS Candidate Detail Modal matching user screenshot -->
+    <!-- CANDIDATE ATS DETAIL MODAL -->
     <div
       v-if="selectedApp"
-      class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5"
+      class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5"
       @click.self="selectedApp = null"
     >
-      <div class="bg-white rounded-2xl border border-slate-200 w-full max-w-6xl max-h-[94vh] flex flex-col shadow-2xl overflow-hidden">
-        <!-- 1. Top Navbar -->
-        <div class="px-6 py-3.5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-          <button
-            @click="selectedApp = null"
-            class="flex items-center gap-2 text-sm font-bold text-slate-800 hover:text-blue-600 transition-colors cursor-pointer"
-          >
-            <ArrowLeft class="w-4 h-4 text-slate-700" />
-            <span>Kandidat Detail</span>
-          </button>
+      <div class="bg-white rounded-2xl border border-slate-200 w-full max-w-7xl h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        
+        <!-- Top Header Bar matching reference -->
+        <div class="px-8 py-5 border-b border-slate-200 bg-white flex items-center justify-between shrink-0">
+          <div class="flex items-center gap-4 min-w-0">
+            <button
+              @click="selectedApp = null"
+              class="p-1 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+              title="Kembali"
+            >
+              <ArrowLeft class="w-5 h-5" />
+            </button>
+            <div class="min-w-0">
+              <h2 class="text-lg font-black text-slate-900 tracking-tight uppercase leading-tight truncate">
+                {{ selectedApp.full_name }}
+              </h2>
+              <p class="text-xs text-slate-400 font-medium mt-0.5">
+                ID #{{ selectedApp.id }} &bull; Melamar pada {{ selectedApp.created_at }}
+              </p>
+            </div>
+          </div>
 
-          <div class="flex items-center gap-2">
+          <!-- Top Right: Stage Selector, Buka CV, Close -->
+          <div class="flex items-center gap-3 shrink-0">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold text-slate-500">Tahap:</span>
+              <div class="relative">
+                <select
+                  :value="selectedApp.current_stage_id || selectedApp.stage?.id || 1"
+                  @change="moveCandidateStage(selectedApp, $event.target.value)"
+                  class="appearance-none bg-white border border-slate-300 hover:border-slate-400 text-xs font-semibold rounded-lg pl-3 pr-8 py-1.5 text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs"
+                >
+                  <option v-for="stg in stages" :key="stg.id" :value="stg.id">
+                    {{ stg.name }}
+                  </option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                  <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                </div>
+              </div>
+            </div>
+
+            <button
+              @click="openSendEmailModal(selectedApp)"
+              class="px-3.5 py-1.5 rounded-lg bg-[#0c2340] hover:bg-[#07172b] text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+            >
+              <Mail class="w-3.5 h-3.5" />
+              <span>Kirim Email</span>
+            </button>
+
             <a
               v-if="selectedApp.resume_url"
               :href="selectedApp.resume_url"
               target="_blank"
-              class="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center gap-1.5 shadow-2xs transition-colors"
+              class="px-3.5 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-xs font-bold text-slate-800 flex items-center gap-1.5 shadow-2xs transition-colors"
             >
-              <span>Buka CV di Tab Baru</span>
+              <span>Buka CV</span>
               <ExternalLink class="w-3.5 h-3.5 text-slate-500" />
             </a>
 
             <button
               @click="selectedApp = null"
-              class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl text-xl font-bold cursor-pointer transition-colors"
+              class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg text-xl font-bold cursor-pointer transition-colors leading-none"
             >
               &times;
             </button>
           </div>
         </div>
 
-        <!-- 2. Candidate Hero Info Banner -->
-        <div class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white shrink-0">
-          <div class="flex items-center gap-4">
-            <!-- Circular Avatar Initials -->
-            <div class="w-13 h-13 rounded-full bg-blue-50 text-blue-700 font-extrabold text-base flex items-center justify-center border border-blue-100 shadow-2xs">
-              {{ getInitials(selectedApp.full_name) }}
+        <!-- Main Body: 2 Columns Layout -->
+        <div class="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
+          
+          <!-- LEFT COLUMN: Candidate Data Tables (42% Width) -->
+          <div class="w-full lg:w-[42%] p-7 overflow-y-auto no-scrollbar border-r border-slate-200 bg-white space-y-6">
+            
+            <!-- 0. Evaluasi Kualifikasi & Kesesuaian (AI Screening) -->
+            <div class="p-4 rounded-xl bg-slate-50/90 border border-slate-200/90 shadow-2xs space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <Sparkles class="w-4 h-4 text-indigo-600" />
+                  <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Hasil Evaluasi Kualifikasi</h3>
+                </div>
+                <span
+                  v-if="selectedApp.ai_match_score !== null && selectedApp.ai_match_score !== undefined"
+                  :class="['px-2.5 py-0.5 rounded-full text-xs font-bold border', getAiBadgeClasses(selectedApp.ai_match_score)]"
+                >
+                  {{ selectedApp.ai_match_score }}% &bull; {{ formatAiRecommendation(selectedApp.ai_recommendation) }}
+                </span>
+                <span v-else class="text-[11px] text-slate-400 italic">Belum dievaluasi</span>
+              </div>
+
+              <!-- Summary Text with line breaks -->
+              <div class="text-xs text-slate-700 leading-relaxed bg-white p-3.5 rounded-lg border border-slate-200/80 whitespace-pre-line">
+                {{ selectedApp.ai_summary || 'Evaluasi kualifikasi akan membandingkan data CV dengan persyaratan posisi lowongan ini.' }}
+              </div>
+
+              <!-- Footer with Re-screen button -->
+              <div class="flex items-center justify-between pt-1">
+                <div class="text-[10.5px] text-slate-400">
+                  <span v-if="selectedApp.ai_analyzed_at">Diperbarui: {{ selectedApp.ai_analyzed_at }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    @click="rescreenSingleCandidate(selectedApp)"
+                    :disabled="isScreening"
+                    class="px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-200 bg-white rounded-md border border-slate-300 flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw class="w-3 h-3 text-slate-500" :class="{ 'animate-spin': isScreening }" />
+                    <span>Evaluasi Ulang</span>
+                  </button>
+                  <button
+                    type="button"
+                    @click="openAnalysisModal(selectedApp)"
+                    class="px-2.5 py-1 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 bg-white rounded-md border border-blue-200 transition-colors cursor-pointer"
+                  >
+                    Detail Komparasi
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 1. Data Pribadi -->
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 mb-2.5">Data Pribadi</h3>
+              <div class="border border-slate-200 rounded-lg overflow-hidden">
+                <table class="w-full text-xs text-left">
+                  <tbody class="divide-y divide-slate-200">
+                    <tr>
+                      <td class="py-2.5 px-3.5 text-slate-500 font-medium w-40 bg-slate-50/40">Nama Lengkap (KTP)</td>
+                      <td class="py-2.5 px-3.5 text-slate-900 font-bold uppercase">{{ selectedApp.full_name }}</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40">Email</td>
+                      <td class="py-2.5 px-3.5 text-slate-900 font-medium">{{ selectedApp.email || '-' }}</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40">Jenis Kelamin</td>
+                      <td class="py-2.5 px-3.5 text-slate-900 font-medium">{{ selectedApp.gender || '-' }}</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40">Tanggal Lahir</td>
+                      <td class="py-2.5 px-3.5 text-slate-900 font-medium">{{ selectedApp.birth_date || '-' }}</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40">Status Pernikahan</td>
+                      <td class="py-2.5 px-3.5 text-slate-900 font-medium">{{ selectedApp.marital_status || '-' }}</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40">Sumber Lamaran</td>
+                      <td class="py-2.5 px-3.5 text-slate-900 font-medium">{{ selectedApp.source || 'Website' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 2. Kontak & Komunikasi -->
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 mb-2.5">Kontak & Komunikasi</h3>
+              <div class="border border-slate-200 rounded-lg overflow-hidden">
+                <table class="w-full text-xs text-left">
+                  <tbody class="divide-y divide-slate-200">
+                    <tr>
+                      <td class="py-2.5 px-3.5 text-slate-500 font-medium w-40 bg-slate-50/40">No. WhatsApp</td>
+                      <td class="py-2.5 px-3.5 text-slate-900 font-semibold">{{ selectedApp.whatsapp_number || selectedApp.phone || '-' }}</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40">No. Telepon Aktif</td>
+                      <td class="py-2.5 px-3.5 text-slate-900 font-medium">{{ selectedApp.active_phone || selectedApp.phone || '-' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 3. Kontak Darurat -->
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 mb-2.5">Kontak Darurat</h3>
+              <div class="border border-slate-200 rounded-lg overflow-hidden">
+                <table class="w-full text-xs text-left">
+                  <tbody class="divide-y divide-slate-200">
+                    <tr>
+                      <td class="py-2.5 px-3.5 text-slate-500 font-medium w-40 bg-slate-50/40">Nama</td>
+                      <td class="py-2.5 px-3.5 text-slate-900 font-bold uppercase">{{ selectedApp.emergency_contact_name || '-' }}</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40">Hubungan</td>
+                      <td class="py-2.5 px-3.5 text-slate-900 font-bold uppercase">{{ selectedApp.emergency_contact_relation || '-' }}</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40">No. Kontak</td>
+                      <td class="py-2.5 px-3.5 text-slate-900 font-semibold">{{ selectedApp.emergency_contact_phone || '-' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 4. Alamat Pelamar -->
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 mb-2.5">Alamat Pelamar</h3>
+              <div class="border border-slate-200 rounded-lg overflow-hidden">
+                <table class="w-full text-xs text-left">
+                  <tbody class="divide-y divide-slate-200">
+                    <tr>
+                      <td class="py-2.5 px-3.5 text-slate-500 font-medium w-40 bg-slate-50/40 align-top">Alamat Sesuai KTP</td>
+                      <td class="py-2.5 px-3.5 text-slate-900 font-bold uppercase leading-relaxed">{{ selectedApp.address_ktp || '-' }}</td>
+                    </tr>
+                    <tr>
+                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40 align-top">Alamat Sesuai Domisili</td>
+                      <td class="py-2.5 px-3.5 text-slate-900 font-bold uppercase leading-relaxed">{{ selectedApp.address_domicile || '-' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- RIGHT COLUMN: CV / Document Viewer (58% Width) -->
+          <div class="w-full lg:w-[58%] bg-slate-50/70 p-7 flex flex-col h-full overflow-hidden">
+            
+            <div class="flex items-center justify-between mb-3 shrink-0">
+              <h3 class="text-sm font-bold text-slate-900">Pratinjau Dokumen CV / Resume</h3>
+              <div class="flex items-center gap-2.5">
+                <button
+                  v-if="selectedApp.ai_match_score !== null && selectedApp.ai_match_score !== undefined"
+                  type="button"
+                  @click.stop="openAnalysisModal(selectedApp)"
+                  :class="['px-2.5 py-0.5 rounded-full text-xs font-bold border hover:shadow-xs cursor-pointer transition-transform hover:scale-105 active:scale-95', getAiBadgeClasses(selectedApp.ai_match_score)]"
+                  title="Klik untuk melihat detail analisis kualifikasi"
+                >
+                  {{ selectedApp.ai_match_score }}% Match
+                </button>
+
+                <!-- Upload / Ganti CV Button -->
+                <label
+                  class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+                  title="Upload / Ganti Dokumen CV asli pelamar"
+                >
+                  <Upload class="w-3.5 h-3.5 text-blue-600" />
+                  <span>{{ isUploadingCv ? 'Mengunggah...' : 'Upload CV Asli' }}</span>
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf,.doc,.docx"
+                    @change="handleCvUploadForApplicant"
+                    class="hidden"
+                    :disabled="isUploadingCv"
+                  />
+                </label>
+
+                <a
+                  v-if="selectedApp.resume_url"
+                  :href="selectedApp.resume_url"
+                  target="_blank"
+                  class="text-xs font-semibold text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 ml-1"
+                >
+                  <span>Unduh Berkas</span>
+                  <ExternalLink class="w-3 h-3" />
+                </a>
+              </div>
+            </div>
+
+            <!-- Embedded PDF Document Container -->
+            <div class="flex-1 rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs flex flex-col relative">
+              <iframe
+                v-if="selectedApp.resume_url"
+                :src="selectedApp.resume_url"
+                class="w-full h-full border-0"
+              ></iframe>
+              <div v-else class="flex-1 flex flex-col items-center justify-center text-center p-8 bg-slate-50/50">
+                <FileText class="w-12 h-12 text-slate-300 mb-3" />
+                <p class="text-sm font-bold text-slate-700">Belum Ada Dokumen CV Asli</p>
+                <p class="text-xs text-slate-400 mt-1 max-w-sm">Anda dapat mengunggah file CV asli pelamar (format PDF/DOC) agar muncul di pratinjau ini.</p>
+                
+                <label
+                  class="mt-4 px-4 py-2 bg-[#0c2340] hover:bg-[#07172b] text-white font-semibold text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-2 transition-all hover:scale-102"
+                >
+                  <Upload class="w-4 h-4" />
+                  <span>{{ isUploadingCv ? 'Mengunggah File...' : 'Upload File CV (PDF)' }}</span>
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf,.doc,.docx"
+                    @change="handleCvUploadForApplicant"
+                    class="hidden"
+                    :disabled="isUploadingCv"
+                  />
+                </label>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- HASIL EVALUASI KUALIFIKASI & PERSYARATAN MODAL -->
+    <div
+      v-if="analysisModalApp"
+      class="fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+      @click.self="analysisModalApp = null"
+    >
+      <div class="bg-white rounded-2xl border border-slate-200 w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-[90vh]">
+        <!-- Modal Header -->
+        <div class="px-6 py-4.5 border-b border-slate-200 flex items-center justify-between bg-white shrink-0">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+              <Sparkles class="w-4 h-4" />
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">Hasil Evaluasi Kualifikasi &amp; Persyaratan</h3>
+              <p class="text-xs text-slate-500 mt-0.5">{{ analysisModalApp.full_name }} &bull; {{ analysisModalApp.job_posting?.title || 'Posisi Lowongan' }}</p>
+            </div>
+          </div>
+          <button
+            @click="analysisModalApp = null"
+            class="text-slate-400 hover:text-slate-700 rounded-lg p-1 text-xl font-bold cursor-pointer leading-none"
+          >
+            &times;
+          </button>
+        </div>
+
+        <!-- Modal Body: Clean Table Style & Analysis Report -->
+        <div class="p-6 space-y-4.5 text-xs overflow-y-auto custom-scrollbar flex-1">
+          <div class="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+            <table class="w-full text-left">
+              <tbody class="divide-y divide-slate-200">
+                <tr>
+                  <td class="py-2.5 px-4 text-slate-500 font-medium w-40 bg-slate-50/60">Nama Pelamar</td>
+                  <td class="py-2.5 px-4 text-slate-900 font-bold uppercase">{{ analysisModalApp.full_name }}</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-4 text-slate-500 font-medium bg-slate-50/60">Posisi yang Dilamar</td>
+                  <td class="py-2.5 px-4 text-slate-900 font-semibold">{{ analysisModalApp.job_posting?.title || '-' }}</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-4 text-slate-500 font-medium bg-slate-50/60">Kesesuaian Kualifikasi</td>
+                  <td class="py-2.5 px-4">
+                    <span :class="['inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border shadow-2xs', getAiBadgeClasses(analysisModalApp.ai_match_score)]">
+                      {{ analysisModalApp.ai_match_score }}% Match &bull; {{ formatAiRecommendation(analysisModalApp.ai_recommendation) }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Catatan / Rangkuman Evaluasi Komparatif -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <FileText class="w-3.5 h-3.5 text-slate-500" />
+                <span>Rangkuman Evaluasi Komparasi CV vs Kualifikasi</span>
+              </h4>
+              <span class="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                AI &amp; ATS Screening
+              </span>
+            </div>
+            
+            <div class="p-4 bg-slate-50/80 rounded-xl border border-slate-200/90 text-slate-700 leading-relaxed text-xs whitespace-pre-line shadow-2xs">
+              {{ analysisModalApp.ai_summary || 'Kandidat memiliki kualifikasi yang relevan dengan persyaratan posisi lowongan ini.' }}
+            </div>
+            
+            <div v-if="analysisModalApp.ai_analyzed_at" class="text-[11px] text-slate-400 text-right">
+              Terakhir dievaluasi: {{ analysisModalApp.ai_analyzed_at }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="px-6 py-3.5 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
+          <button
+            @click="rescreenSingleCandidate(analysisModalApp)"
+            :disabled="isScreening"
+            class="px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200 rounded-lg border border-slate-300 flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 shadow-2xs"
+          >
+            <RefreshCw class="w-3 h-3 text-slate-500" :class="{ 'animate-spin': isScreening }" />
+            <span>Evaluasi Ulang CV</span>
+          </button>
+
+          <div class="flex items-center gap-2">
+            <button
+              @click="analysisModalApp = null"
+              class="px-3.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+            >
+              Tutup
+            </button>
+            <button
+              @click="openDetail(analysisModalApp); analysisModalApp = null"
+              class="px-4 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 rounded-lg shadow-xs transition-colors cursor-pointer"
+            >
+              Buka Detail Profil
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEND EMAIL MODAL (Clean HR Style matching mockup) -->
+    <div
+      v-if="sendEmailModalApp"
+      class="fixed inset-0 z-[120] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+      @click.self="sendEmailModalApp = null"
+    >
+      <div class="bg-white rounded-2xl border border-slate-200/90 w-full max-w-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col my-6 max-h-[92vh]">
+        <!-- Modal Header -->
+        <div class="px-7 py-4.5 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+          <div class="flex items-center gap-3.5">
+            <img :src="oceanSpaceLogoUrl" alt="OCEAN SPACE" class="h-6 w-auto object-contain" />
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">
+                Kirim Undangan / Email Pelamar
+              </h3>
+              <p class="text-xs text-slate-500 mt-0.5">
+                Penerima: <strong class="text-slate-800">{{ sendEmailModalApp.full_name }}</strong> <span v-if="sendEmailModalApp.email">({{ sendEmailModalApp.email }})</span>
+              </p>
+            </div>
+          </div>
+          <button
+            @click="sendEmailModalApp = null"
+            class="text-slate-400 hover:text-slate-700 rounded-lg p-1 text-xl font-bold cursor-pointer leading-none"
+          >
+            &times;
+          </button>
+        </div>
+
+        <!-- Modal Body (Scrollable) -->
+        <div class="p-7 space-y-4 text-xs overflow-y-auto flex-1 custom-scrollbar">
+          <!-- Category Tabs (Clean Underline Style) -->
+          <div>
+            <div class="text-[10.5px] font-bold uppercase tracking-wider text-slate-400 mb-2">KATEGORI EMAIL</div>
+            <div class="flex items-center gap-6 border-b border-slate-200/80 overflow-x-auto">
+              <button
+                type="button"
+                @click="applyEmailTemplate('psikotes')"
+                :class="[
+                  'flex items-center gap-2 pb-2.5 text-xs cursor-pointer transition-colors border-b-2 whitespace-nowrap',
+                  activeEmailTemplateKey === 'psikotes'
+                    ? 'border-[#0c2340] text-[#0c2340] font-bold'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 font-medium'
+                ]"
+              >
+                <FileText class="w-3.5 h-3.5" />
+                <span>Tes &amp; Kompetensi</span>
+              </button>
+
+              <button
+                type="button"
+                @click="applyEmailTemplate('interview')"
+                :class="[
+                  'flex items-center gap-2 pb-2.5 text-xs cursor-pointer transition-colors border-b-2 whitespace-nowrap',
+                  activeEmailTemplateKey === 'interview'
+                    ? 'border-[#0c2340] text-[#0c2340] font-bold'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 font-medium'
+                ]"
+              >
+                <Users class="w-3.5 h-3.5" />
+                <span>Wawancara</span>
+              </button>
+
+              <button
+                type="button"
+                @click="applyEmailTemplate('offering')"
+                :class="[
+                  'flex items-center gap-2 pb-2.5 text-xs cursor-pointer transition-colors border-b-2 whitespace-nowrap',
+                  activeEmailTemplateKey === 'offering'
+                    ? 'border-[#0c2340] text-[#0c2340] font-bold'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 font-medium'
+                ]"
+              >
+                <Mail class="w-3.5 h-3.5" />
+                <span>Offering Letter</span>
+              </button>
+
+              <button
+                type="button"
+                @click="applyEmailTemplate('rejection')"
+                :class="[
+                  'flex items-center gap-2 pb-2.5 text-xs cursor-pointer transition-colors border-b-2 whitespace-nowrap',
+                  activeEmailTemplateKey === 'rejection'
+                    ? 'border-[#0c2340] text-[#0c2340] font-bold'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 font-medium'
+                ]"
+              >
+                <Bell class="w-3.5 h-3.5" />
+                <span>Pemberitahuan Status</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Subject Input -->
+          <div>
+            <label class="block font-bold text-xs text-slate-800 mb-1.5">Subjek Email</label>
+            <input
+              type="text"
+              v-model="emailForm.subject"
+              class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400 font-medium"
+            />
+          </div>
+
+          <!-- Body Message Textarea -->
+          <div>
+            <label class="block font-bold text-xs text-slate-800 mb-1.5">Pesan Pembuka</label>
+            <textarea
+              v-model="emailForm.body_message"
+              rows="4"
+              class="w-full bg-white border border-slate-200 rounded-lg p-3 text-xs text-slate-900 focus:outline-none focus:border-slate-400 leading-relaxed font-sans"
+            ></textarea>
+          </div>
+
+          <!-- Section: Detail Pelaksanaan -->
+          <div class="space-y-3.5 pt-1">
+            <div class="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">DETAIL PELAKSANAAN</div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <label class="block font-bold text-xs text-slate-800 mb-1.5">Jadwal / Batas Waktu</label>
+                <div class="relative">
+                  <input
+                    type="text"
+                    v-model="emailForm.schedule"
+                    placeholder="Contoh: Batas Pengerjaan: 3x24 Jam"
+                    class="w-full bg-white border border-slate-200 rounded-lg pl-3.5 pr-8 py-2 text-xs text-slate-900 focus:outline-none focus:border-slate-400"
+                  />
+                  <ChevronDown class="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              <div>
+                <label class="block font-bold text-xs text-slate-800 mb-1.5">Metode / Lokasi Penempatan</label>
+                <div class="relative">
+                  <input
+                    type="text"
+                    v-model="emailForm.venue_or_method"
+                    placeholder="Contoh: Online Assessment"
+                    class="w-full bg-white border border-slate-200 rounded-lg pl-3.5 pr-8 py-2 text-xs text-slate-900 focus:outline-none focus:border-slate-400"
+                  />
+                  <ChevronDown class="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
             </div>
 
             <div>
-              <h2 class="text-lg font-extrabold text-slate-900 tracking-tight">{{ selectedApp.full_name }}</h2>
-              <div class="text-xs font-bold text-blue-600 mt-0.5">{{ selectedApp.job_posting?.title || '-' }}</div>
-              <div class="flex items-center gap-2 text-[11px] text-slate-500 mt-1 font-medium">
-                <Calendar class="w-3.5 h-3.5 text-slate-400" />
-                <span>{{ selectedApp.created_at }}</span>
-                <span>|</span>
-                <span>Tahapan: <strong class="text-blue-600 font-semibold">{{ selectedApp.stage?.name || 'Screening CV' }}</strong></span>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-3">
-            <!-- Match Score Box -->
-            <div class="bg-emerald-50/90 border border-emerald-200 rounded-xl px-4 py-2 text-center min-w-[95px] shadow-2xs">
-              <div class="text-lg font-extrabold text-emerald-600 leading-tight">
-                {{ selectedApp.ai_match_score !== null && selectedApp.ai_match_score !== undefined ? selectedApp.ai_match_score : 80 }}%
-              </div>
-              <div class="text-[9px] font-extrabold text-emerald-700 tracking-wider uppercase mt-0.5">MATCH SCORE</div>
-            </div>
-
-            <!-- Status Box -->
-            <div class="bg-amber-50/90 border border-amber-300 rounded-xl px-3.5 py-2 text-xs font-bold text-amber-700 flex items-center gap-1.5 shadow-2xs uppercase">
-              <Clock class="w-3.5 h-3.5 text-amber-600" />
-              <span>{{ selectedApp.status ? selectedApp.status.replace('_', ' ') : 'IN PROGRESS' }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 3. Two-Column Split Body (Scrollable) -->
-        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50/50">
-          <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-            <!-- LEFT COLUMN (Cards: Hasil Screening, Informasi Kandidat, Informasi Lamaran) -->
-            <div class="md:col-span-4 space-y-4">
-              <!-- Card 1: Hasil Screening -->
-              <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs space-y-3">
-                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-700">Hasil Screening</div>
-
-                <div class="flex items-center gap-3.5">
-                  <!-- Circular Gauge Indicator -->
-                  <div class="relative w-18 h-18 shrink-0 flex items-center justify-center">
-                    <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                      <path
-                        class="text-slate-100 stroke-current"
-                        stroke-width="3.5"
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                      <path
-                        class="text-emerald-500 stroke-current"
-                        stroke-width="3.5"
-                        :stroke-dasharray="`${selectedApp.ai_match_score || 80}, 100`"
-                        stroke-linecap="round"
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                    </svg>
-                    <div class="absolute flex flex-col items-center justify-center">
-                      <span class="text-xs font-bold text-slate-900">{{ selectedApp.ai_match_score || 80 }}%</span>
-                      <span class="text-[7px] text-slate-400 font-semibold uppercase">Match Score</span>
-                    </div>
-                  </div>
-
-                  <!-- Narrative -->
-                  <p class="text-[11px] text-slate-700 leading-relaxed font-normal">
-                    {{ selectedApp.ai_summary || 'Kandidat telah memenuhi sebagian besar persyaratan posisi yang dilamar.' }}
-                  </p>
-                </div>
-
-                <!-- Bottom Gauge Bar -->
-                <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                  <div class="h-full bg-emerald-500 rounded-full" :style="{ width: (selectedApp.ai_match_score || 80) + '%' }"></div>
-                </div>
-              </div>
-
-              <!-- Card 2: Informasi Kandidat -->
-              <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs space-y-3">
-                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-700">Informasi Kandidat</div>
-
-                <div class="space-y-2.5 text-xs">
-                  <!-- Email -->
-                  <div class="flex items-start gap-2.5">
-                    <Mail class="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                    <div class="flex-1">
-                      <div class="text-[11px] text-slate-400 font-medium">Email</div>
-                      <div class="font-semibold text-slate-900 select-all">{{ selectedApp.email }}</div>
-                    </div>
-                  </div>
-
-                  <!-- No. Telepon -->
-                  <div class="flex items-start gap-2.5">
-                    <Phone class="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                    <div class="flex-1">
-                      <div class="text-[11px] text-slate-400 font-medium">No. Telepon / WA</div>
-                      <div class="font-semibold text-slate-900 select-all">{{ selectedApp.phone || '-' }}</div>
-                    </div>
-                  </div>
-
-                  <!-- Alamat Domisili -->
-                  <div class="flex items-start gap-2.5">
-                    <MapPin class="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                    <div class="flex-1">
-                      <div class="text-[11px] text-slate-400 font-medium">Alamat Domisili</div>
-                      <div class="text-slate-800 leading-snug font-medium">{{ selectedApp.address_domicile || selectedApp.address || '-' }}</div>
-                    </div>
-                  </div>
-
-                  <!-- Jenis Kelamin -->
-                  <div class="flex items-start gap-2.5">
-                    <User class="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                    <div class="flex-1">
-                      <div class="text-[11px] text-slate-400 font-medium">Jenis Kelamin</div>
-                      <div class="font-semibold text-slate-900">{{ selectedApp.gender || '-' }}</div>
-                    </div>
-                  </div>
-
-                  <!-- Tanggal Lahir -->
-                  <div class="flex items-start gap-2.5">
-                    <Calendar class="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                    <div class="flex-1">
-                      <div class="text-[11px] text-slate-400 font-medium">Tanggal Lahir</div>
-                      <div class="font-semibold text-slate-900">{{ selectedApp.birth_date || '-' }}</div>
-                    </div>
-                  </div>
-
-                  <!-- Status Pernikahan -->
-                  <div class="flex items-start gap-2.5">
-                    <Heart class="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                    <div class="flex-1">
-                      <div class="text-[11px] text-slate-400 font-medium">Status Pernikahan</div>
-                      <div class="font-semibold text-slate-900">{{ selectedApp.marital_status || '-' }}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Card 3: Informasi Lamaran -->
-              <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs space-y-3">
-                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-700">Informasi Lamaran</div>
-
-                <div class="space-y-2.5 text-xs">
-                  <!-- Tanggal Melamar -->
-                  <div class="flex items-start gap-2.5">
-                    <Calendar class="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                    <div class="flex-1">
-                      <div class="text-[11px] text-slate-400 font-medium">Tanggal Melamar</div>
-                      <div class="font-semibold text-slate-900">{{ selectedApp.created_at }}</div>
-                    </div>
-                  </div>
-
-                  <!-- Sumber Lamaran -->
-                  <div class="flex items-start gap-2.5">
-                    <Globe class="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                    <div class="flex-1">
-                      <div class="text-[11px] text-slate-400 font-medium">Sumber Lamaran</div>
-                      <div class="font-semibold text-slate-900">{{ selectedApp.source || 'oceanspace.co.id' }}</div>
-                    </div>
-                  </div>
-
-                  <!-- Posisi Dilamar -->
-                  <div class="flex items-start gap-2.5">
-                    <Briefcase class="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                    <div class="flex-1">
-                      <div class="text-[11px] text-slate-400 font-medium">Posisi Dilamar</div>
-                      <div class="font-semibold text-blue-600">{{ selectedApp.job_posting?.title || '-' }}</div>
-                    </div>
-                  </div>
-                </div>
+              <label class="block font-bold text-xs text-slate-800 mb-1.5">Tautan / Link Akses (Link Tes / Meet / Portal)</label>
+              <div class="relative">
+                <Link2 class="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="url"
+                  v-model="emailForm.action_url"
+                  placeholder="https://assessment.oceanspace.co.id"
+                  class="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-slate-400 font-mono"
+                />
               </div>
             </div>
 
-            <!-- RIGHT COLUMN (DOKUMEN CV & PROFIL KANDIDAT Card) -->
-            <div class="md:col-span-8 bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs flex flex-col min-h-[680px]">
-              <!-- Tabs Header -->
-              <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
-                <div class="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl">
-                  <button
-                    @click="activeRightTab = 'cv'"
-                    :class="[
-                      'px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer',
-                      activeRightTab === 'cv' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'
-                    ]"
-                  >
-                    <FileText class="w-3.5 h-3.5 text-slate-500" />
-                    <span>Berkas CV Asli</span>
-                  </button>
+            <div>
+              <label class="block font-bold text-xs text-slate-800 mb-1.5">Teks Tombol Aksi (Tombol di Surat)</label>
+              <input
+                type="text"
+                v-model="emailForm.action_label"
+                placeholder="Contoh: Mulai Tes Psikotes Online"
+                class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-slate-400"
+              />
+            </div>
 
-                  <button
-                    @click="activeRightTab = 'profile'"
-                    :class="[
-                      'px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer',
-                      activeRightTab === 'profile' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'
-                    ]"
-                  >
-                    <User class="w-3.5 h-3.5 text-slate-500" />
-                    <span>Profil Lengkap Pelamar</span>
-                  </button>
-                </div>
+            <!-- PDF Document Upload for Offering Letter -->
+            <div v-if="activeEmailTemplateKey === 'offering'" class="p-4 bg-slate-50/90 rounded-xl border border-slate-200 space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="block font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                  <FileText class="w-3.5 h-3.5 text-blue-600" />
+                  <span>Lampiran Dokumen Offering Letter (PDF)</span>
+                </label>
+                <span class="text-[10.5px] text-slate-500 font-medium">Format .PDF (Maks. 15MB)</span>
+              </div>
 
-                <div v-if="activeRightTab === 'cv'" class="flex items-center gap-2">
-                  <a
-                    v-if="selectedApp.resume_url"
-                    :href="selectedApp.resume_url"
-                    target="_blank"
-                    class="text-slate-600 hover:text-slate-900 font-semibold text-xs flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>Buka Layar Penuh</span>
-                    <ExternalLink class="w-3 h-3 text-slate-400" />
-                  </a>
+              <div v-if="!emailForm.attachment" class="relative border-2 border-dashed border-slate-200 hover:border-blue-500 bg-white rounded-xl p-4 text-center cursor-pointer transition-colors group">
+                <input
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  @change="handleAttachmentUpload"
+                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <div class="flex flex-col items-center justify-center gap-1 text-slate-500 group-hover:text-blue-600">
+                  <Upload class="w-5 h-5 text-blue-600 mb-0.5" />
+                  <span class="text-xs font-semibold text-slate-700">Pilih atau Tarik File PDF Offering Letter ke sini</span>
+                  <span class="text-[10.5px] text-slate-400">File PDF ini akan otomatis dilampirkan dan dikirim ke email kandidat</span>
                 </div>
               </div>
 
-              <!-- TAB 1: CV Viewer (Full Height, Fit to Width Canvas) -->
-              <div v-show="activeRightTab === 'cv'" class="w-full mt-3 flex-1 flex flex-col">
-                <div class="w-full bg-white rounded-xl overflow-hidden border border-slate-200 shadow-2xs" style="height: 740px; min-height: 740px;">
-                  <iframe
-                    v-if="selectedApp.resume_url"
-                    :src="selectedApp.resume_url + '#view=FitH&toolbar=0&navpanes=0'"
-                    style="width: 100%; height: 740px; min-height: 740px; border: none; display: block;"
-                    title="Curriculum Vitae Viewer"
-                  ></iframe>
-                  <div v-else class="w-full h-full flex flex-col items-center justify-center text-slate-400 p-8 bg-slate-50">
-                    <FileText class="w-12 h-12 stroke-1 text-slate-300 mb-2" />
-                    <p class="text-xs">Dokumen CV belum dilampirkan oleh kandidat ini.</p>
+              <div v-else class="flex items-center justify-between bg-white p-3 rounded-lg border border-blue-200 shadow-2xs">
+                <div class="flex items-center gap-2.5 overflow-hidden">
+                  <div class="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center font-bold text-[10px] shrink-0">
+                    PDF
+                  </div>
+                  <div class="truncate">
+                    <div class="text-xs font-bold text-slate-800 truncate">{{ emailForm.attachment_name }}</div>
+                    <div class="text-[10px] text-slate-400">{{ formatFileSize(emailForm.attachment?.size) }}</div>
                   </div>
                 </div>
-              </div>
-
-              <!-- TAB 2: Profil Lengkap Pelamar -->
-              <div v-show="activeRightTab === 'profile'" class="flex-1 py-4 space-y-4 overflow-y-auto custom-scrollbar">
-                <!-- Identitas & Data Diri -->
-                <div class="border border-slate-200 rounded-xl p-4 space-y-3 bg-white">
-                  <h3 class="font-bold text-xs uppercase tracking-wider text-slate-700 border-b pb-2 flex items-center gap-1.5">
-                    <User class="w-3.5 h-3.5 text-slate-500" />
-                    <span>Identitas & Data Pribadi</span>
-                  </h3>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-                    <div>
-                      <span class="text-slate-400 font-medium block text-[11px]">Nama Lengkap</span>
-                      <div class="font-bold text-slate-900 mt-0.5">{{ selectedApp.full_name }}</div>
-                    </div>
-                    <div>
-                      <span class="text-slate-400 font-medium block text-[11px]">Jenis Kelamin</span>
-                      <div class="font-semibold text-slate-800 mt-0.5">{{ selectedApp.gender || '-' }}</div>
-                    </div>
-                    <div>
-                      <span class="text-slate-400 font-medium block text-[11px]">Tanggal Lahir</span>
-                      <div class="font-semibold text-slate-800 mt-0.5">{{ selectedApp.birth_date || '-' }}</div>
-                    </div>
-                    <div>
-                      <span class="text-slate-400 font-medium block text-[11px]">Status Pernikahan</span>
-                      <div class="font-semibold text-slate-800 mt-0.5">{{ selectedApp.marital_status || '-' }}</div>
-                    </div>
-                    <div>
-                      <span class="text-slate-400 font-medium block text-[11px]">Email</span>
-                      <div class="font-semibold text-slate-900 mt-0.5 select-all">{{ selectedApp.email }}</div>
-                    </div>
-                    <div>
-                      <span class="text-slate-400 font-medium block text-[11px]">Nomor Telepon / WhatsApp</span>
-                      <div class="font-semibold text-slate-900 mt-0.5 select-all">{{ selectedApp.phone || '-' }}</div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Alamat & Domisili -->
-                <div class="border border-slate-200 rounded-xl p-4 space-y-3 bg-white">
-                  <h3 class="font-bold text-xs uppercase tracking-wider text-slate-700 border-b pb-2 flex items-center gap-1.5">
-                    <MapPin class="w-3.5 h-3.5 text-slate-500" />
-                    <span>Alamat & Domisili Pelamar</span>
-                  </h3>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                    <div>
-                      <span class="text-slate-400 font-medium block text-[11px]">Alamat Domisili Sekarang</span>
-                      <div class="text-slate-800 leading-snug font-medium mt-0.5">{{ selectedApp.address_domicile || selectedApp.address || '-' }}</div>
-                    </div>
-                    <div>
-                      <span class="text-slate-400 font-medium block text-[11px]">Alamat Sesuai KTP</span>
-                      <div class="text-slate-800 leading-snug font-medium mt-0.5">{{ selectedApp.address_ktp || '-' }}</div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Kontak Darurat -->
-                <div class="border border-slate-200 rounded-xl p-4 space-y-3 bg-white">
-                  <h3 class="font-bold text-xs uppercase tracking-wider text-slate-700 border-b pb-2 flex items-center gap-1.5">
-                    <Phone class="w-3.5 h-3.5 text-slate-500" />
-                    <span>Kontak Darurat</span>
-                  </h3>
-                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                    <div>
-                      <span class="text-slate-400 font-medium block text-[11px]">Nama Kontak Darurat</span>
-                      <div class="font-semibold text-slate-900 mt-0.5">{{ selectedApp.emergency_contact_name || '-' }}</div>
-                    </div>
-                    <div>
-                      <span class="text-slate-400 font-medium block text-[11px]">Hubungan / Relasi</span>
-                      <div class="font-semibold text-slate-900 mt-0.5">{{ selectedApp.emergency_contact_relation || '-' }}</div>
-                    </div>
-                    <div>
-                      <span class="text-slate-400 font-medium block text-[11px]">Nomor Telepon Darurat</span>
-                      <div class="font-semibold text-slate-900 mt-0.5">{{ selectedApp.emergency_contact_phone || '-' }}</div>
-                    </div>
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  @click="removeAttachment"
+                  class="text-slate-400 hover:text-red-600 p-1.5 rounded-md hover:bg-red-50 transition-colors cursor-pointer text-sm font-bold leading-none"
+                  title="Hapus Lampiran"
+                >
+                  &times;
+                </button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 4. Bottom Action Footer Bar -->
-        <div class="px-6 py-3.5 bg-white border-t border-slate-200 flex items-center justify-between shrink-0">
-          <div class="flex items-center gap-2.5">
-            <!-- Reject Button -->
-            <button
-              @click="handleStatusAction(selectedApp, 'rejected')"
-              class="px-5 py-2.5 rounded-xl border border-rose-300 text-rose-600 bg-white hover:bg-rose-50 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-            >
-              <X class="w-3.5 h-3.5" />
-              <span>Reject</span>
-            </button>
-
-            <!-- Shortlist Button -->
-            <button
-              @click="handleStatusAction(selectedApp, 'shortlisted')"
-              class="px-5 py-2.5 rounded-xl border border-amber-300 text-amber-600 bg-white hover:bg-amber-50 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-            >
-              <Star class="w-3.5 h-3.5" />
-              <span>Shortlist</span>
-            </button>
-          </div>
-
-          <!-- Lanjut ke Tahap Berikutnya Button -->
+        <!-- Modal Footer -->
+        <div class="px-7 py-3.5 border-t border-slate-200/80 bg-slate-50/50 flex items-center justify-between sticky bottom-0 z-10">
           <button
-            @click="handleAdvanceStage(selectedApp)"
-            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+            type="button"
+            @click="sendEmailModalApp = null"
+            class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
           >
-            <span>Lanjut ke Tahap Berikutnya</span>
-            <ArrowRight class="w-4 h-4" />
+            Batal
+          </button>
+
+          <button
+            type="button"
+            @click="executeSendEmail"
+            :disabled="isSendingEmail || !sendEmailModalApp.email"
+            class="px-5 py-2.5 bg-[#0c2340] hover:bg-[#07172b] text-white font-semibold rounded-lg text-xs transition-colors cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-2"
+          >
+            <span v-if="isSendingEmail" class="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            <Mail v-else class="w-3.5 h-3.5" />
+            <span>{{ isSendingEmail ? 'Mengirim...' : 'Kirim Email' }}</span>
           </button>
         </div>
       </div>
@@ -583,53 +976,103 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { 
-  ChevronRight, 
-  Search, 
-  Filter, 
-  Kanban, 
-  ListFilter, 
-  MoreVertical, 
-  Sparkles, 
-  FileText, 
-  ExternalLink, 
-  User, 
-  Phone, 
-  MapPin, 
-  Users, 
-  Clock,
-  ArrowLeft,
-  ArrowRight,
-  Mail,
-  Heart,
-  Globe,
-  Briefcase,
-  X,
-  Star,
-  Calendar
-} from 'lucide-vue-next';
 import { useRekrutmenStore } from '../stores/rekrutmen';
-import LoadingState from '../components/LoadingState.vue';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
+import axios from 'axios';
+import { 
+  Search, ListFilter, Kanban, ArrowLeft, ExternalLink,
+  CheckCircle2, AlertCircle, Mail, Phone, FileText, RefreshCw, User, Sparkles,
+  Link2, Users, Bell, ChevronDown, Upload
+} from 'lucide-vue-next';
 
+const store = useRekrutmenStore();
 const route = useRoute();
 const router = useRouter();
-const store = useRekrutmenStore();
-const viewMode = ref('table');
-const searchQuery = ref('');
-const selectedApp = ref(null);
-const activeRightTab = ref('cv');
-const isAiScanning = ref(false);
-const draggedApp = ref(null);
-const dragOverStageId = ref(null);
 
-const applications = computed(() => store.applications);
-const stages = computed(() => store.stages);
-const activeJobId = computed(() => route.query.job_id);
+const logoUrl = '/images/logo.png';
+const oceanSpaceLogoUrl = '/images/oceanspace-logo.png';
+const viewMode = ref('table');
+const matchFilter = ref('all');
+const searchQuery = ref('');
+const toastMessage = ref(null);
+const toastType = ref('success');
+const selectedApp = ref(null);
+const analysisModalApp = ref(null);
+const dragOverStageId = ref(null);
+const isScreening = ref(false);
+
+const defaultStages = [
+  { id: 1, name: 'Screening CV', color: '#2563eb' },
+  { id: 2, name: 'Interview HR', color: '#d97706' },
+  { id: 3, name: 'Psikotes', color: '#7c3aed' },
+  { id: 4, name: 'Tes Kompetensi', color: '#4f46e5' },
+  { id: 5, name: 'Interview User', color: '#0284c7' },
+  { id: 6, name: 'Background Check', color: '#0d9488' },
+  { id: 7, name: 'Offering Letter', color: '#ea580c' },
+  { id: 8, name: 'Hired', color: '#059669' }
+];
+
+onMounted(() => {
+  store.fetchApplications('', false).catch(() => {});
+});
+
+const applications = computed(() => {
+  if (route.query.job_id) {
+    return store.applications.filter(a => String(a.job_posting_id) === String(route.query.job_id));
+  }
+  return store.applications || [];
+});
+
+const stages = computed(() => {
+  if (store.stages && store.stages.length) return store.stages;
+  if (store.configurations?.stages && store.configurations.stages.length) return store.configurations.stages;
+  return defaultStages;
+});
+
+const activeJobId = computed(() => route.query.job_id || null);
+const activeJobTitle = computed(() => {
+  if (!activeJobId.value) return null;
+  const job = store.postings.find(j => String(j.id) === String(activeJobId.value));
+  return job ? job.title : null;
+});
+
+const recommendedCount = computed(() => applications.value.filter(a => a.ai_match_score >= 75).length);
+const consideredCount = computed(() => applications.value.filter(a => a.ai_match_score >= 50 && a.ai_match_score < 75).length);
+const notSuitableCount = computed(() => applications.value.filter(a => a.ai_match_score !== null && a.ai_match_score < 50).length);
+
+const filteredApplications = computed(() => {
+  let list = applications.value;
+
+  if (matchFilter.value === 'recommended') {
+    list = list.filter(a => a.ai_match_score >= 75);
+  } else if (matchFilter.value === 'considered') {
+    list = list.filter(a => a.ai_match_score >= 50 && a.ai_match_score < 75);
+  } else if (matchFilter.value === 'not_suitable') {
+    list = list.filter(a => a.ai_match_score !== null && a.ai_match_score < 50);
+  }
+
+  if (!searchQuery.value) return list;
+  const q = searchQuery.value.toLowerCase();
+  return list.filter(a => 
+    (a.full_name && a.full_name.toLowerCase().includes(q)) ||
+    (a.email && a.email.toLowerCase().includes(q)) ||
+    (a.phone && a.phone.includes(q)) ||
+    (a.job_posting && a.job_posting.title && a.job_posting.title.toLowerCase().includes(q))
+  );
+});
+
+const getStageApplications = (stageId) => {
+  return filteredApplications.value.filter(a => {
+    const currentStage = a.current_stage_id || a.stage?.id || 1;
+    return String(currentStage) === String(stageId);
+  });
+};
 
 const getInitials = (name) => {
-  if (!name) return 'U';
+  if (!name) return 'PL';
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) {
     return (parts[0][0] + parts[1][0]).toUpperCase();
@@ -637,113 +1080,489 @@ const getInitials = (name) => {
   return name.substring(0, 2).toUpperCase();
 };
 
-const activeJobTitle = computed(() => {
-  if (route.query.job_id) {
-    if (store.activeJob?.title) return store.activeJob.title;
-    if (applications.value.length > 0 && applications.value[0]?.job_posting?.title) return applications.value[0].job_posting.title;
-    return `Lowongan #${route.query.job_id}`;
-  }
-  return null;
-});
-
-const recommendedCount = computed(() => applications.value.filter(a => a.ai_match_score >= 80 || (a.ai_recommendation || '').includes('RECOMMENDED')).length);
-const consideredCount = computed(() => applications.value.filter(a => (a.ai_match_score >= 60 && a.ai_match_score < 80) || (a.ai_recommendation || '').includes('CONSIDERED')).length);
-const notSuitableCount = computed(() => applications.value.filter(a => (a.ai_match_score !== null && a.ai_match_score < 60) || (a.ai_recommendation || '').includes('NOT_SUITABLE')).length);
-
-let debounceTimer = null;
-const handleSearch = () => {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => { loadData(); }, 250);
-};
-
-const loadData = () => { store.fetchApplications({ search: searchQuery.value, job_id: route.query.job_id || '' }, true); };
-const resetJobFilter = () => { router.push({ path: '/admin/job-applications' }); };
-
-onMounted(() => {
-  if (route.query.search) {
-    searchQuery.value = route.query.search;
-  }
-  loadData();
-});
-
-watch(() => route.query.job_id, () => { loadData(); });
-watch(() => route.query.search, (newSearch) => {
-  if (newSearch !== undefined && newSearch !== searchQuery.value) {
-    searchQuery.value = newSearch || '';
-    loadData();
-  }
-});
-
-const getStageApplications = (stageId) => applications.value.filter(app => Number(app.current_stage_id) === Number(stageId));
-
-const handleSingleAiScan = async (app) => {
-  isAiScanning.value = true;
-  try {
-    const res = await store.analyzeCandidateWithAi(app.id);
-    if (selectedApp.value && selectedApp.value.id === app.id) selectedApp.value = { ...selectedApp.value, ...res.application };
-  } catch (err) { console.error(err); } finally { isAiScanning.value = false; }
-};
-
-const handleStatusAction = async (app, newStatus) => {
-  if (!app) return;
-  app.status = newStatus;
-  await store.updateApplicationStatus(app.id, newStatus);
-  selectedApp.value = null;
-};
-
-const handleAdvanceStage = async (app) => {
-  if (!app) return;
-  const currentStageId = Number(app.current_stage_id);
-  const currentIdx = stages.value.findIndex(s => Number(s.id) === currentStageId);
-  if (currentIdx !== -1 && currentIdx < stages.value.length - 1) {
-    const nextStage = stages.value[currentIdx + 1];
-    app.current_stage_id = nextStage.id;
-    app.stage = nextStage;
-    await store.updateApplicationStage(app.id, nextStage.id);
-  }
-  selectedApp.value = null;
-};
-
-const getAiBadgeClasses = (score, recommendation) => {
-  const rec = (recommendation || '').toUpperCase();
-  if (score >= 80 || rec.includes('RECOMMENDED')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  if (score >= 60 || rec.includes('CONSIDERED')) return 'bg-amber-50 text-amber-700 border-amber-200';
-  return 'bg-rose-50 text-rose-700 border-rose-200';
+const getAiBadgeClasses = (score) => {
+  if (score === null || score === undefined) return 'bg-slate-50 text-slate-500 border-slate-200';
+  if (score >= 75) return 'bg-emerald-50 text-emerald-700 border-emerald-300';
+  if (score >= 50) return 'bg-amber-50 text-amber-700 border-amber-300';
+  return 'bg-rose-50 text-rose-700 border-rose-300';
 };
 
 const formatAiRecommendation = (rec) => {
-  const r = (rec || '').toUpperCase();
-  if (r.includes('RECOMMENDED')) return 'Rekomendasi';
-  if (r.includes('CONSIDERED')) return 'Dipertimbangkan';
-  if (r.includes('NOT_SUITABLE')) return 'Kurang Sesuai';
-  return 'Selesai';
+  if (!rec) return 'Direkomendasikan';
+  const lower = String(rec).toLowerCase();
+  if (lower.includes('rekomend') || (lower.includes('recommend') && !lower.includes('not') && !lower.includes('un'))) return 'Direkomendasikan';
+  if (lower.includes('timbang') || lower.includes('consider')) return 'Dipertimbangkan';
+  if (lower.includes('kurang') || lower.includes('tidak') || lower.includes('not') || lower.includes('reject')) return 'Kurang Sesuai';
+  return rec;
 };
 
-const handleDragStart = (app, event) => {
-  draggedApp.value = app;
-  if (event.dataTransfer) { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', String(app.id)); }
-};
-const handleDragOver = (stageId) => { dragOverStageId.value = stageId; };
-const handleDragLeave = (stageId) => { if (dragOverStageId.value === stageId) dragOverStageId.value = null; };
-const handleDragEnd = () => { draggedApp.value = null; dragOverStageId.value = null; };
-const handleDrop = async (stageId) => {
-  if (!draggedApp.value) return;
-  const app = draggedApp.value;
-  const prevId = app.current_stage_id;
-  if (Number(prevId) === Number(stageId)) { handleDragEnd(); return; }
-  app.current_stage_id = stageId;
-  handleDragEnd();
-  try { await store.updateApplicationStage(app.id, stageId); } catch (err) { app.current_stage_id = prevId; }
+const formatStatus = (status) => {
+  if (!status) return 'Dalam Proses';
+  const s = String(status).toLowerCase().replace(/_/g, ' ');
+  if (s.includes('in progress')) return 'Dalam Proses';
+  if (s.includes('shortlist')) return 'Shortlisted';
+  if (s.includes('reject')) return 'Ditolak';
+  if (s.includes('hire')) return 'Diterima';
+  return s.charAt(0).toUpperCase() + s.slice(1);
 };
 
 const getStatusBadge = (status) => {
-  const s = status?.toLowerCase() || '';
-  if (s.includes('hired') || s.includes('diterima')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  if (s.includes('rejected') || s.includes('ditolak')) return 'bg-rose-50 text-rose-700 border-rose-200';
-  return 'bg-slate-50 text-slate-600 border-slate-200';
+  const s = String(status).toLowerCase();
+  if (s.includes('hire') || s.includes('shortlist')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  if (s.includes('reject')) return 'bg-rose-50 text-rose-700 border-rose-200';
+  return 'bg-slate-50 text-slate-700 border-slate-200';
 };
 
-const openDetail = (app) => { selectedApp.value = app; };
+const resetJobFilter = () => {
+  router.push({ path: '/admin/job-applications' });
+};
 
-onMounted(() => { loadData(); });
+const isUploadingCv = ref(false);
+
+const openDetail = (app) => {
+  selectedApp.value = app;
+};
+
+const handleCvUploadForApplicant = async (event) => {
+  const file = event.target.files?.[0];
+  if (!file || !selectedApp.value) return;
+
+  if (file.size > 20 * 1024 * 1024) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Ukuran File Terlalu Besar',
+      text: 'Maksimal ukuran file CV adalah 20MB.',
+      confirmButtonColor: '#0c2340',
+    });
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('cv', file);
+
+  isUploadingCv.value = true;
+  Swal.fire({
+    title: 'Mengunggah CV...',
+    html: '<div class="text-xs text-slate-500 mt-2">Sedang menyimpan dokumen dan melakukan evaluasi kualifikasi...</div>',
+    allowOutsideClick: false,
+    showConfirmButton: false,
+    didOpen: () => {
+      Swal.showLoading();
+    }
+  });
+
+  try {
+    const res = await axios.post(`/rekrutmen/api/applications/${selectedApp.value.id}/upload-cv`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+
+    isUploadingCv.value = false;
+    if (res.data?.success) {
+      selectedApp.value.resume_path = res.data.resume_path;
+      selectedApp.value.resume_url = res.data.resume_url;
+      if (res.data.ai_match_score !== undefined) {
+        selectedApp.value.ai_match_score = res.data.ai_match_score;
+        selectedApp.value.ai_recommendation = res.data.ai_recommendation;
+        selectedApp.value.ai_summary = res.data.ai_summary;
+        selectedApp.value.ai_analyzed_at = res.data.ai_analyzed_at;
+      }
+
+      const found = store.applications.find(a => a.id === selectedApp.value.id);
+      if (found) {
+        found.resume_path = res.data.resume_path;
+        found.resume_url = res.data.resume_url;
+        found.has_resume = true;
+        found.ai_match_score = res.data.ai_match_score;
+        found.ai_recommendation = res.data.ai_recommendation;
+        found.ai_summary = res.data.ai_summary;
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'CV Berhasil Diunggah!',
+        text: 'Dokumen CV asli pelamar telah tersimpan dan ditampilkan di pratinjau.',
+        timer: 2200,
+        showConfirmButton: false,
+        iconColor: '#10b981',
+        customClass: {
+          popup: 'rounded-2xl border border-slate-100 shadow-2xl p-6 font-sans',
+          title: 'text-sm font-bold text-slate-900',
+        }
+      });
+    }
+  } catch (err) {
+    isUploadingCv.value = false;
+    Swal.fire({
+      icon: 'error',
+      title: 'Gagal Mengunggah CV',
+      text: err.response?.data?.message || 'Terjadi kesalahan saat mengunggah file CV.',
+      confirmButtonColor: '#e11d48',
+    });
+  }
+};
+
+const openAnalysisModal = (app) => {
+  if (!app) return;
+  analysisModalApp.value = app;
+};
+
+const startRescreening = async () => {
+  isScreening.value = true;
+  Swal.fire({
+    title: 'Evaluasi Kualifikasi',
+    html: '<div class="text-xs text-slate-500 mt-2 leading-relaxed">Sedang menganalisis dan mencocokkan data berkas seluruh pelamar...</div>',
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+    customClass: {
+      popup: 'rounded-2xl border border-slate-100 shadow-2xl p-6 font-sans',
+      title: 'text-sm font-bold text-slate-900',
+    },
+    didOpen: () => {
+      Swal.showLoading();
+    }
+  });
+
+  try {
+    const res = await store.batchAnalyzeWithAi(activeJobId.value);
+    isScreening.value = false;
+    Swal.fire({
+      icon: 'success',
+      title: 'Evaluasi Selesai',
+      html: `<div class="text-xs text-slate-600 mt-1">${res.message || 'Evaluasi kualifikasi berhasil diperbarui.'}</div>`,
+      timer: 2000,
+      showConfirmButton: false,
+      iconColor: '#10b981',
+      customClass: {
+        popup: 'rounded-2xl border border-slate-100 shadow-2xl p-6 font-sans',
+        title: 'text-sm font-bold text-slate-900',
+      }
+    });
+  } catch (e) {
+    isScreening.value = false;
+    Swal.fire({
+      icon: 'error',
+      title: 'Gagal',
+      html: '<div class="text-xs text-slate-600 mt-1">Terjadi kesalahan saat memproses evaluasi kualifikasi.</div>',
+      confirmButtonColor: '#739ec5',
+      customClass: {
+        popup: 'rounded-2xl border border-slate-100 shadow-2xl p-6 font-sans',
+        title: 'text-sm font-bold text-slate-900',
+        confirmButton: 'px-4 py-2 rounded-xl text-xs font-bold'
+      }
+    });
+  }
+};
+
+const rescreenSingleCandidate = async (app) => {
+  if (!app) return;
+  isScreening.value = true;
+  Swal.fire({
+    title: 'Mengevaluasi Pelamar',
+    html: `<div class="text-xs text-slate-500 mt-2 leading-relaxed">Menganalisis data kualifikasi <b>${app.full_name}</b>...</div>`,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+    customClass: {
+      popup: 'rounded-2xl border border-slate-100 shadow-2xl p-6 font-sans',
+      title: 'text-sm font-bold text-slate-900',
+    },
+    didOpen: () => {
+      Swal.showLoading();
+    }
+  });
+
+  try {
+    const res = await store.analyzeCandidateWithAi(app.id);
+    isScreening.value = false;
+    if (res.application && selectedApp.value && selectedApp.value.id === app.id) {
+      selectedApp.value = { ...selectedApp.value, ...res.application };
+    }
+    Swal.fire({
+      icon: 'success',
+      title: 'Evaluasi Berhasil',
+      html: `<div class="text-xs text-slate-600 mt-1">${res.message || `Evaluasi untuk "${app.full_name}" berhasil diperbarui.`}</div>`,
+      timer: 2000,
+      showConfirmButton: false,
+      iconColor: '#10b981',
+      customClass: {
+        popup: 'rounded-2xl border border-slate-100 shadow-2xl p-6 font-sans',
+        title: 'text-sm font-bold text-slate-900',
+      }
+    });
+  } catch (e) {
+    isScreening.value = false;
+    Swal.fire({
+      icon: 'error',
+      title: 'Gagal',
+      html: '<div class="text-xs text-slate-600 mt-1">Gagal mengevaluasi data pelamar.</div>',
+      confirmButtonColor: '#739ec5',
+      customClass: {
+        popup: 'rounded-2xl border border-slate-100 shadow-2xl p-6 font-sans',
+        title: 'text-sm font-bold text-slate-900',
+        confirmButton: 'px-4 py-2 rounded-xl text-xs font-bold'
+      }
+    });
+  }
+};
+
+const handleDragStart = (app, event) => {
+  if (event && event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(app.id));
+  }
+};
+
+const handleDragEnd = () => {
+  dragOverStageId.value = null;
+};
+
+const handleDragOver = (stageId) => {
+  dragOverStageId.value = stageId;
+};
+
+const handleDragLeave = (stageId) => {
+  if (dragOverStageId.value === stageId) {
+    dragOverStageId.value = null;
+  }
+};
+
+const handleDrop = async (stageId, event) => {
+  dragOverStageId.value = null;
+  const appId = event?.dataTransfer?.getData('text/plain');
+  if (!appId) return;
+
+  const app = store.applications.find(a => String(a.id) === String(appId));
+  const currentStageId = app ? (app.current_stage_id || app.stage?.id || 1) : null;
+  if (app && String(currentStageId) !== String(stageId)) {
+    await moveCandidateStage(app, stageId);
+  }
+};
+
+const moveCandidateStage = async (app, stageId) => {
+  try {
+    const res = await store.moveStage(app.id, stageId);
+    if (res && res.success) {
+      app.current_stage_id = parseInt(stageId);
+      const targetStage = stages.value.find(s => String(s.id) === String(stageId));
+      if (targetStage) {
+        app.stage = { id: targetStage.id, name: targetStage.name, color: targetStage.color };
+      }
+      if (selectedApp.value && String(selectedApp.value.id) === String(app.id)) {
+        selectedApp.value.current_stage_id = parseInt(stageId);
+        if (targetStage) {
+          selectedApp.value.stage = { id: targetStage.id, name: targetStage.name, color: targetStage.color };
+        }
+      }
+      toastType.value = 'success';
+      toastMessage.value = `Kandidat "${app.full_name}" dipindahkan ke tahap ${targetStage ? targetStage.name : 'baru'}.`;
+      setTimeout(() => { toastMessage.value = null; }, 3000);
+    }
+  } catch (e) {
+    toastType.value = 'error';
+    toastMessage.value = 'Gagal memindahkan tahapan kandidat.';
+  }
+};
+
+// Send Email Logic
+const sendEmailModalApp = ref(null);
+const emailTemplatesList = ref({});
+const activeEmailTemplateKey = ref('psikotes');
+const isSendingEmail = ref(false);
+
+const emailForm = ref({
+  subject: '',
+  body_message: '',
+  badge_text: 'Notifikasi Rekrutmen',
+  info_box_title: 'Detail Informasi',
+  action_url: '',
+  action_label: '',
+  schedule: '',
+  venue_or_method: '',
+  special_note: '',
+  attachment: null,
+  attachment_name: '',
+});
+
+const handleAttachmentUpload = (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  if (file.size > 15 * 1024 * 1024) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Ukuran File Terlalu Besar',
+      text: 'Maksimal ukuran file dokumen adalah 15MB.',
+      confirmButtonColor: '#0c2340',
+    });
+    return;
+  }
+
+  emailForm.value.attachment = file;
+  emailForm.value.attachment_name = file.name;
+};
+
+const removeAttachment = () => {
+  emailForm.value.attachment = null;
+  emailForm.value.attachment_name = '';
+};
+
+const formatFileSize = (bytes) => {
+  if (!bytes) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+const fetchEmailTemplates = async () => {
+  try {
+    const res = await axios.get('/rekrutmen/api/settings/mail-templates');
+    if (res.data?.templates) {
+      emailTemplatesList.value = res.data.templates;
+    }
+  } catch (err) {
+    console.error('Failed to fetch email templates', err);
+  }
+};
+
+const openSendEmailModal = async (app) => {
+  if (!app) return;
+  sendEmailModalApp.value = app;
+  emailForm.value.attachment = null;
+  emailForm.value.attachment_name = '';
+  
+  if (!Object.keys(emailTemplatesList.value).length) {
+    await fetchEmailTemplates();
+  }
+  
+  const stgName = (app.stage?.name || '').toLowerCase();
+  let defaultKey = 'psikotes';
+  if (stgName.includes('interview')) defaultKey = 'interview';
+  else if (stgName.includes('offer')) defaultKey = 'offering';
+  else if (stgName.includes('reject') || stgName.includes('tolak')) defaultKey = 'rejection';
+  
+  applyEmailTemplate(defaultKey);
+};
+
+const applyEmailTemplate = (key) => {
+  activeEmailTemplateKey.value = key;
+  const tpl = emailTemplatesList.value[key];
+  if (!tpl || !sendEmailModalApp.value) return;
+
+  const app = sendEmailModalApp.value;
+  const name = app.full_name || 'Pelamar';
+  const pos = app.job_posting?.title || 'Posisi Lowongan';
+  const comp = 'OCEAN SPACE';
+  const loc = app.job_posting?.location || 'Indonesia';
+
+  const replaceTags = (text) => {
+    if (!text) return '';
+    return text
+      .replaceAll('{nama_pelamar}', name)
+      .replaceAll('{posisi}', pos)
+      .replaceAll('{perusahaan}', comp)
+      .replaceAll('{lokasi}', loc);
+  };
+
+  emailForm.value.subject = replaceTags(tpl.subject);
+  emailForm.value.body_message = replaceTags(tpl.body);
+  emailForm.value.badge_text = tpl.badge || 'Notifikasi Rekrutmen';
+  emailForm.value.info_box_title = tpl.info_title || 'Detail Informasi';
+  emailForm.value.action_label = tpl.action_label || '';
+  emailForm.value.special_note = tpl.default_note || '';
+
+  if (key === 'interview') {
+    emailForm.value.venue_or_method = 'Online (Google Meet)';
+    emailForm.value.schedule = 'Senin, ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ' pukul 10:00 WIB';
+    emailForm.value.action_url = 'https://meet.google.com/new';
+  } else if (key === 'psikotes') {
+    emailForm.value.venue_or_method = 'Online Assessment';
+    emailForm.value.schedule = 'Batas Pengerjaan: 3x24 Jam';
+    emailForm.value.action_url = 'https://assessment.oceanspace.co.id';
+  } else if (key === 'offering') {
+    emailForm.value.venue_or_method = loc;
+    emailForm.value.schedule = 'Mulai Kerja: 1 Bulan Setelah Konfirmasi';
+    emailForm.value.action_url = '';
+  } else {
+    emailForm.value.action_url = '';
+    emailForm.value.schedule = '';
+    emailForm.value.venue_or_method = '';
+  }
+};
+
+const executeSendEmail = async () => {
+  if (!sendEmailModalApp.value) return;
+  const app = sendEmailModalApp.value;
+
+  if (!app.email) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Email Tidak Ditemukan',
+      text: 'Kandidat ini belum memiliki alamat email yang tersimpan di sistem.',
+      confirmButtonColor: '#0c2340',
+    });
+    return;
+  }
+
+  isSendingEmail.value = true;
+  try {
+    const formData = new FormData();
+    formData.append('subject', emailForm.value.subject || '');
+    formData.append('body_message', emailForm.value.body_message || '');
+    formData.append('schedule', emailForm.value.schedule || '');
+    formData.append('venue_or_method', emailForm.value.venue_or_method || '');
+    formData.append('action_url', emailForm.value.action_url || '');
+    formData.append('action_label', emailForm.value.action_label || '');
+    formData.append('special_note', emailForm.value.special_note || '');
+    formData.append('badge_text', emailForm.value.badge_text || '');
+    formData.append('info_box_title', emailForm.value.info_box_title || '');
+    if (emailForm.value.attachment) {
+      formData.append('attachment', emailForm.value.attachment);
+    }
+
+    const res = await axios.post(`/rekrutmen/api/applications/${app.id}/send-email`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+
+    isSendingEmail.value = false;
+    sendEmailModalApp.value = null;
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Email Terkirim!',
+      html: `<div class="text-xs text-slate-600 mt-1">${res.data.message || 'Notifikasi email berhasil dikirim ke kandidat.'}</div>`,
+      timer: 2500,
+      showConfirmButton: false,
+      iconColor: '#10b981',
+      customClass: {
+        popup: 'rounded-2xl border border-slate-100 shadow-2xl p-6 font-sans',
+        title: 'text-sm font-bold text-slate-900',
+      }
+    });
+  } catch (err) {
+    isSendingEmail.value = false;
+    Swal.fire({
+      icon: 'error',
+      title: 'Gagal Mengirim Email',
+      text: err.response?.data?.message || 'Terjadi kesalahan saat mengirim email.',
+      confirmButtonColor: '#e11d48',
+      customClass: {
+        popup: 'rounded-2xl border border-slate-100 shadow-2xl p-6 font-sans',
+        title: 'text-sm font-bold text-slate-900',
+        confirmButton: 'px-4 py-2 rounded-xl text-xs font-bold'
+      }
+    });
+  }
+};
 </script>
+
+<style scoped>
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+</style>

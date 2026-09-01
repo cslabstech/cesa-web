@@ -1,14 +1,14 @@
 <template>
-  <div class="min-h-screen bg-[#f8fafc] text-gray-900 flex flex-col antialiased">
-    <!-- Top Header Navigation Bar -->
+  <div class="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased flex flex-col">
+    <!-- Top Navbar Navigation -->
     <Navbar :user="user" />
 
-    <!-- Main Content Container with smooth transitions -->
-    <main class="flex-1 w-full max-w-[1720px] mx-auto px-6 py-6">
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
       <router-view v-slot="{ Component, route }">
-        <transition name="fade" mode="out-in">
-          <component :is="Component" :key="route.fullPath" />
-        </transition>
+        <keep-alive>
+          <component :is="Component" :key="route.name" />
+        </keep-alive>
       </router-view>
     </main>
   </div>

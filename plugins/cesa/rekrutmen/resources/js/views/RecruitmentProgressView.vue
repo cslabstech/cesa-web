@@ -15,10 +15,13 @@
 
       <div class="flex items-center gap-3">
         <button
-          class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-xs transition-colors cursor-pointer"
+          @click="exportExcel"
+          :disabled="isExporting"
+          class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-xs transition-colors cursor-pointer disabled:opacity-50"
         >
-          <FileSpreadsheet class="w-4 h-4" />
-          <span>Export Excel</span>
+          <span v-if="isExporting" class="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          <FileSpreadsheet v-else class="w-4 h-4" />
+          <span>{{ isExporting ? 'Mengekspor...' : 'Export Excel' }}</span>
         </button>
       </div>
     </div>
@@ -155,6 +158,21 @@ const filteredPositions = computed(() => {
     p.company?.toLowerCase().includes(q)
   );
 });
+
+const isExporting = ref(false);
+
+const exportExcel = () => {
+  isExporting.value = true;
+  const link = document.createElement('a');
+  link.href = '/rekrutmen/api/progress-report/export';
+  link.setAttribute('download', '');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => {
+    isExporting.value = false;
+  }, 1500);
+};
 
 onMounted(() => {
   store.fetchProgressReport(true);

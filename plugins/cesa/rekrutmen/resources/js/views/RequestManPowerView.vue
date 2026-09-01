@@ -1,27 +1,24 @@
 <template>
   <div class="space-y-6">
-    <!-- Breadcrumb & Page Header -->
+    <!-- Top Header Title & Action Button -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <div class="flex items-center gap-1.5 text-xs text-gray-500 font-medium mb-1">
-          <span>Manpower Requests</span>
-          <ChevronRight class="w-3.5 h-3.5 text-gray-400" />
-          <span class="text-gray-700">List</span>
-        </div>
-        <h1 class="text-2xl font-bold tracking-tight text-gray-900">
-          Manpower Requests
+        <h1 class="text-xl font-bold text-slate-900 tracking-tight">
+          Permintaan Tenaga Kerja (FPTK)
         </h1>
+        <p class="text-xs text-slate-500 mt-0.5">
+          Kelola dan pantau permohonan penambahan personil dari seluruh cabang dan divisi
+        </p>
       </div>
 
-      <!-- Action Button -->
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2.5">
         <a
           href="/man-power"
           target="_blank"
-          class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-xs transition-colors cursor-pointer"
+          class="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-3.5 py-2 rounded-lg shadow-2xs transition-colors cursor-pointer"
         >
-          <PlusCircle class="w-4 h-4" />
-          <span>New Manpower Request</span>
+          <Plus class="w-3.5 h-3.5" />
+          <span>Buat FPTK Baru</span>
         </a>
       </div>
     </div>
@@ -30,238 +27,138 @@
     <div
       v-if="toastMessage"
       :class="[
-        'p-4 rounded-xl border flex items-center justify-between transition-all shadow-sm',
+        'p-3 rounded-lg border flex items-center justify-between text-xs font-medium transition-all shadow-2xs',
         toastType === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
       ]"
     >
-      <div class="flex items-center gap-2 text-xs font-semibold">
+      <div class="flex items-center gap-2">
         <CheckCircle2 v-if="toastType === 'success'" class="w-4 h-4 text-emerald-600" />
         <AlertCircle v-else class="w-4 h-4 text-rose-600" />
         <span>{{ toastMessage }}</span>
       </div>
-      <button @click="toastMessage = null" class="text-gray-400 hover:text-gray-600 font-bold">&times;</button>
+      <button @click="toastMessage = null" class="text-slate-400 hover:text-slate-600 font-bold">&times;</button>
     </div>
 
-    <!-- White Table Card -->
-    <div class="bg-white rounded-xl border border-gray-200/90 shadow-xs overflow-hidden">
-      <!-- Toolbar -->
-      <div class="p-4 border-b border-gray-100 flex items-center justify-end gap-3">
-        <div class="relative w-72">
-          <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            v-model="searchQuery"
-            @input="handleSearch"
-            type="text"
-            placeholder="Search"
-            class="w-full bg-white border border-gray-200 rounded-lg pl-9 pr-3 py-1.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
-          />
-        </div>
-
-        <button class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-          <Filter class="w-3.5 h-3.5 text-gray-500" />
-          <span class="text-[11px] font-bold text-gray-700">0</span>
+    <!-- Filter Tabs & Search Bar -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 pb-4">
+      <!-- Status Filter Tabs -->
+      <div class="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+        <button
+          @click="statusFilter = 'all'"
+          :class="[
+            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0',
+            statusFilter === 'all'
+              ? 'bg-slate-900 text-white'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          ]"
+        >
+          Semua FPTK <span class="ml-1 opacity-70">({{ requests.length }})</span>
         </button>
 
-        <button class="p-1.5 text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors" title="Toggle Columns">
-          <Columns3 class="w-4 h-4" />
+        <button
+          @click="statusFilter = 'approved'"
+          :class="[
+            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0',
+            statusFilter === 'approved'
+              ? 'bg-emerald-600 text-white'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          ]"
+        >
+          Disetujui <span class="ml-1 opacity-70">({{ approvedCount }})</span>
+        </button>
+
+        <button
+          @click="statusFilter = 'pending'"
+          :class="[
+            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0',
+            statusFilter === 'pending'
+              ? 'bg-amber-600 text-white'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          ]"
+        >
+          Menunggu <span class="ml-1 opacity-70">({{ pendingCount }})</span>
         </button>
       </div>
 
-      <!-- Data Table -->
-      <!-- Loading State -->
-      <LoadingState
-        v-if="store.loading.requests"
-        title="Sedang memuat data..."
-        subtitle="Menyiapkan daftar Manpower Request & FPTK..."
-      />
+      <!-- Search Input -->
+      <div class="relative w-full sm:w-80">
+        <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Cari nomor FPTK, posisi, divisi..."
+          class="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-2xs"
+        />
+      </div>
+    </div>
 
-      <div v-else class="overflow-x-auto">
+    <!-- Loading State -->
+    <div v-if="store.loading.requests && !requests.length" class="bg-white rounded-xl border border-slate-200 p-8 text-center text-xs text-slate-500 shadow-2xs">
+      Sedang memuat data permohonan tenaga kerja...
+    </div>
+
+    <!-- Data Table Card -->
+    <div v-else class="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
+      <div class="overflow-x-auto">
         <table class="w-full text-left text-xs">
           <thead>
-            <tr class="bg-gray-50/50 text-gray-900 border-b border-gray-200/80">
-              <th class="py-3 px-4 w-10">
-                <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
-              </th>
-              <th class="py-3 px-4 font-semibold">
-                <div class="flex items-center gap-1 cursor-pointer select-none hover:text-blue-600">
-                  <span>Requested Position</span>
-                  <ChevronDown class="w-3.5 h-3.5 text-gray-400" />
-                </div>
-              </th>
-              <th class="py-3 px-4 font-semibold">
-                <div class="flex items-center gap-1 cursor-pointer select-none hover:text-blue-600">
-                  <span>Quantity</span>
-                  <ChevronDown class="w-3.5 h-3.5 text-gray-400" />
-                </div>
-              </th>
-              <th class="py-3 px-4 font-semibold">
-                <div class="flex items-center gap-1 cursor-pointer select-none hover:text-blue-600">
-                  <span>Fulfillment Progress</span>
-                </div>
-              </th>
-              <th class="py-3 px-4 font-semibold">
-                <div class="flex items-center gap-1 cursor-pointer select-none hover:text-blue-600">
-                  <span>Submission Date</span>
-                  <ChevronDown class="w-3.5 h-3.5 text-gray-400" />
-                </div>
-              </th>
-              <th class="py-3 px-4 font-semibold">
-                <div class="flex items-center gap-1 cursor-pointer select-none hover:text-blue-600">
-                  <span>Approval Status</span>
-                  <ChevronDown class="w-3.5 h-3.5 text-gray-400" />
-                </div>
-              </th>
-              <th class="py-3 px-4 text-right w-16"></th>
+            <tr class="bg-slate-50 text-slate-500 border-b border-slate-200">
+              <th class="py-3 px-4 font-semibold text-[11px]">No. FPTK & Posisi</th>
+              <th class="py-3 px-4 font-semibold text-[11px]">Divisi & Cabang</th>
+              <th class="py-3 px-4 font-semibold text-[11px]">Kebutuhan</th>
+              <th class="py-3 px-4 font-semibold text-[11px]">Progres Pemenuhan</th>
+              <th class="py-3 px-4 font-semibold text-[11px]">Tanggal Pengajuan</th>
+              <th class="py-3 px-4 font-semibold text-[11px]">Status</th>
+              <th class="py-3 px-4 text-right font-semibold text-[11px] w-20">Aksi</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr
-              v-for="item in requests"
-              :key="item.id"
-              class="hover:bg-blue-50/20 transition-colors group"
-            >
-              <!-- Checkbox -->
-              <td class="py-4 px-4 align-top">
-                <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 mt-0.5" />
+          <tbody class="divide-y divide-slate-100">
+            <tr v-for="item in filteredRequests" :key="item.id" class="hover:bg-slate-50 transition-colors">
+              <td class="py-3.5 px-4 align-middle">
+                <div class="font-bold text-xs text-slate-900">{{ item.position_name || item.position_title || 'Staff' }}</div>
+                <div class="text-[11px] text-slate-400 font-mono mt-0.5">#{{ item.request_number || item.id }}</div>
               </td>
-
-              <!-- Requested Position + Subtitles -->
-              <td class="py-4 px-4 align-top max-w-sm">
-                <div
-                  class="font-semibold text-sm text-gray-900 group-hover:text-blue-600 transition-colors cursor-pointer"
-                  @click="openDetail(item)"
-                >
-                  {{ item.posisi_dibutuhkan }}
-                </div>
-                <div class="text-xs text-gray-500 mt-1 leading-relaxed">
-                  {{ item.position_description }}
-                </div>
+              <td class="py-3.5 px-4 align-middle text-slate-700">
+                <div class="font-medium">{{ item.division?.name || item.department || '-' }}</div>
+                <div class="text-[11px] text-slate-400">{{ item.branch || item.location || 'Indonesia' }}</div>
               </td>
-
-              <!-- Quantity Badge -->
-              <td class="py-4 px-4 align-top whitespace-nowrap">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-200">
-                  {{ item.jumlah_karyawan_dibutuhkan }} orang
-                </span>
+              <td class="py-3.5 px-4 align-middle font-bold text-slate-900">
+                {{ item.quantity || 1 }} Orang
               </td>
-
-              <!-- Fulfillment Progress -->
-              <td class="py-4 px-4 align-top">
-                <span
-                  :class="[
-                    'inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-semibold border',
-                    getFulfillmentBadge(item.fulfillment_status)
-                  ]"
-                >
-                  {{ item.fulfillment_status }}
-                </span>
-                <div class="text-xs text-gray-500 mt-1">
-                  {{ item.fulfillment_summary }}
-                </div>
-              </td>
-
-              <!-- Submission Date -->
-              <td class="py-4 px-4 align-top text-gray-600 whitespace-nowrap">
-                {{ item.tanggal_pengajuan }}
-              </td>
-
-              <!-- Approval Status Badge & Desc -->
-              <td class="py-4 px-4 align-top max-w-xs">
-                <span
-                  :class="[
-                    'inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-semibold border',
-                    getApprovalBadge(item.status)
-                  ]"
-                >
-                  {{ item.status }}
-                </span>
-                <div v-if="item.approval_description" class="text-xs text-gray-500 mt-1 font-normal leading-relaxed">
-                  {{ item.approval_description }}
-                </div>
-              </td>
-
-              <!-- Action Buttons (Approve, Reject, Detail, Menu) -->
-              <td class="py-4 px-4 align-top text-right whitespace-nowrap">
-                <div class="flex items-center justify-end gap-1.5">
-                  <!-- Quick Approve Button (if pending/hold) -->
-                  <button
-                    v-if="item.can_approve_reject"
-                    @click="handleApprove(item)"
-                    class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-emerald-200/60 shadow-2xs cursor-pointer"
-                    title="Setujui (Approve) Permintaan Ini"
-                  >
-                    <CheckCircle2 class="w-4 h-4" />
-                  </button>
-
-                  <!-- Quick Reject Button (if pending/hold) -->
-                  <button
-                    v-if="item.can_approve_reject"
-                    @click="handleReject(item)"
-                    class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-rose-200/60 shadow-2xs cursor-pointer"
-                    title="Tolak (Reject) Permintaan Ini"
-                  >
-                    <XCircle class="w-4 h-4" />
-                  </button>
-
-                  <!-- More Dropdown -->
-                  <div class="relative inline-block text-left">
-                    <button
-                      @click="activeActionId = activeActionId === item.id ? null : item.id"
-                      class="p-1.5 text-gray-500 hover:text-blue-600 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                    >
-                      <MoreVertical class="w-4 h-4" />
-                    </button>
-
+              <td class="py-3.5 px-4 align-middle">
+                <div class="w-32 space-y-1">
+                  <div class="flex items-center justify-between text-[10px] font-semibold text-slate-600">
+                    <span>{{ item.fulfilled_count || 0 }}/{{ item.quantity || 1 }}</span>
+                    <span>{{ Math.min(100, Math.round(((item.fulfilled_count || 0) / (item.quantity || 1)) * 100)) }}%</span>
+                  </div>
+                  <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                     <div
-                      v-if="activeActionId === item.id"
-                      class="origin-top-right absolute right-0 mt-1 w-48 rounded-xl shadow-lg bg-white border border-gray-100 py-1.5 z-20"
-                      @click="activeActionId = null"
-                    >
-                      <button
-                        @click="openDetail(item)"
-                        class="w-full text-left flex items-center gap-2 px-3.5 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer"
-                      >
-                        <Eye class="w-3.5 h-3.5 text-gray-400" />
-                        <span>Lihat Detail MPP</span>
-                      </button>
-
-                      <button
-                        v-if="item.can_approve_reject"
-                        @click="handleApprove(item)"
-                        class="w-full text-left flex items-center gap-2 px-3.5 py-2 text-xs text-emerald-700 hover:bg-emerald-50 font-semibold cursor-pointer"
-                      >
-                        <CheckCircle2 class="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Approve Request</span>
-                      </button>
-
-                      <button
-                        v-if="item.can_approve_reject"
-                        @click="handleReject(item)"
-                        class="w-full text-left flex items-center gap-2 px-3.5 py-2 text-xs text-rose-700 hover:bg-rose-50 font-semibold cursor-pointer"
-                      >
-                        <XCircle class="w-3.5 h-3.5 text-rose-600" />
-                        <span>Reject Request</span>
-                      </button>
-
-                      <a
-                        v-if="item.public_progress_url"
-                        :href="item.public_progress_url"
-                        target="_blank"
-                        class="flex items-center gap-2 px-3.5 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                      >
-                        <ExternalLink class="w-3.5 h-3.5 text-gray-400" />
-                        <span>Lihat Link Progress</span>
-                      </a>
-                    </div>
+                      class="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                      :style="{ width: `${Math.min(100, Math.round(((item.fulfilled_count || 0) / (item.quantity || 1)) * 100))}%` }"
+                    ></div>
                   </div>
                 </div>
               </td>
+              <td class="py-3.5 px-4 align-middle text-slate-600 whitespace-nowrap text-xs">
+                {{ item.submission_date || item.created_at || '-' }}
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold border', getApprovalBadge(item.approval_status || item.status)]">
+                  {{ item.approval_status || item.status || 'Pending' }}
+                </span>
+              </td>
+              <td class="py-3.5 px-4 align-middle text-right whitespace-nowrap">
+                <button
+                  @click="openRequestDetail(item)"
+                  class="px-2.5 py-1 text-blue-600 hover:bg-blue-50 rounded-md text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Detail
+                </button>
+              </td>
             </tr>
-
-            <!-- Empty State -->
-            <tr v-if="!requests?.length">
-              <td colspan="7" class="py-16 text-center text-xs text-gray-500">
-                Tidak ada data Manpower Requests yang ditemukan.
+            <tr v-if="!filteredRequests.length">
+              <td colspan="7" class="py-12 text-center text-xs text-slate-500">
+                Tidak ada data permintaan tenaga kerja yang sesuai.
               </td>
             </tr>
           </tbody>
@@ -269,102 +166,50 @@
       </div>
     </div>
 
-    <!-- MPP Detail Modal -->
+    <!-- Request Detail Modal -->
     <div
-      v-if="selectedItem"
-      class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
-      @click.self="selectedItem = null"
+      v-if="selectedRequest"
+      class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+      @click.self="selectedRequest = null"
     >
-      <div class="bg-white rounded-2xl border border-gray-200 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl custom-scrollbar">
-        <div class="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
+      <div class="bg-white rounded-2xl border border-slate-200 w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div>
-            <div class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Detail Manpower Request</div>
-            <h2 class="text-lg font-bold text-gray-900 mt-0.5">{{ selectedItem.posisi_dibutuhkan }}</h2>
+            <h3 class="text-sm font-bold text-slate-900">Detail Permintaan FPTK</h3>
+            <p class="text-[11px] text-slate-500 mt-0.5">Nomor FPTK: #{{ selectedRequest.request_number || selectedRequest.id }}</p>
           </div>
-          <button @click="selectedItem = null" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
+          <button @click="selectedRequest = null" class="text-slate-400 hover:text-slate-600 text-xl font-bold cursor-pointer">&times;</button>
         </div>
 
-        <div class="p-6 space-y-6 text-xs text-gray-800">
-          <!-- Status Banner -->
-          <div class="flex items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-200">
+        <div class="p-6 space-y-3.5 text-xs">
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2.5">
+            <div class="flex justify-between border-b border-slate-200/60 pb-2">
+              <span class="text-slate-500">Posisi:</span>
+              <span class="font-bold text-slate-900">{{ selectedRequest.position_name || selectedRequest.position_title }}</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-200/60 pb-2">
+              <span class="text-slate-500">Divisi / Departemen:</span>
+              <span class="font-semibold text-slate-800">{{ selectedRequest.division?.name || selectedRequest.department || '-' }}</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-200/60 pb-2">
+              <span class="text-slate-500">Jumlah Kebutuhan:</span>
+              <span class="font-bold text-slate-900">{{ selectedRequest.quantity || 1 }} Orang</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-200/60 pb-2">
+              <span class="text-slate-500">Status Persetujuan:</span>
+              <span class="font-bold text-emerald-600">{{ selectedRequest.approval_status || selectedRequest.status }}</span>
+            </div>
             <div>
-              <span class="text-gray-500 font-medium">Status Approval</span>
-              <div class="font-bold text-sm mt-0.5">{{ selectedItem.status }}</div>
-            </div>
-            <div class="text-right">
-              <span class="text-gray-500 font-medium">Progress Pemenuhan</span>
-              <div class="font-bold text-sm text-blue-600 mt-0.5">{{ selectedItem.fulfillment_status }}</div>
-            </div>
-          </div>
-
-          <!-- Section: Info Pengajuan -->
-          <div>
-            <h3 class="font-bold text-sm text-gray-900 border-b pb-2 mb-3">Informasi Pengajuan</h3>
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <span class="text-gray-500 font-semibold">Nama Pengaju:</span>
-                <div class="font-bold text-gray-900 mt-0.5">{{ selectedItem.nama_pengaju || '-' }}</div>
-              </div>
-              <div>
-                <span class="text-gray-500 font-semibold">Posisi Pengaju:</span>
-                <div class="text-gray-900 mt-0.5">{{ selectedItem.posisi_pengaju || '-' }}</div>
-              </div>
-              <div>
-                <span class="text-gray-500 font-semibold">Divisi / Perusahaan:</span>
-                <div class="text-gray-900 mt-0.5">{{ selectedItem.division_name }} / {{ selectedItem.company_name }}</div>
-              </div>
-              <div>
-                <span class="text-gray-500 font-semibold">Lokasi Penempatan:</span>
-                <div class="text-gray-900 mt-0.5">{{ selectedItem.lokasi_penempatan }}</div>
-              </div>
-              <div>
-                <span class="text-gray-500 font-semibold">Jumlah Karyawan Dibutuhkan:</span>
-                <div class="font-bold text-blue-600 mt-0.5">{{ selectedItem.jumlah_karyawan_dibutuhkan }} Orang</div>
-              </div>
-              <div>
-                <span class="text-gray-500 font-semibold">Estimasi Tanggal Join:</span>
-                <div class="text-gray-900 mt-0.5">{{ selectedItem.estimasi_tanggal_join }}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Section: Kualifikasi & Jobdesk -->
-          <div v-if="selectedItem.requirements_kualifikasi">
-            <h3 class="font-bold text-sm text-gray-900 border-b pb-2 mb-3">Kualifikasi / Requirements</h3>
-            <div class="whitespace-pre-line bg-gray-50 p-4 rounded-xl border border-gray-200 text-gray-700 leading-relaxed">
-              {{ selectedItem.requirements_kualifikasi }}
-            </div>
-          </div>
-
-          <div v-if="selectedItem.job_description">
-            <h3 class="font-bold text-sm text-gray-900 border-b pb-2 mb-3">Job Description</h3>
-            <div class="whitespace-pre-line bg-gray-50 p-4 rounded-xl border border-gray-200 text-gray-700 leading-relaxed">
-              {{ selectedItem.job_description }}
+              <span class="text-slate-500 block mb-1">Alasan Penambahan:</span>
+              <p class="text-slate-800 leading-relaxed">{{ selectedRequest.reason || selectedRequest.justification || 'Kebutuhan operasional penambahan personil' }}</p>
             </div>
           </div>
         </div>
 
-        <div class="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between sticky bottom-0">
-          <div class="flex items-center gap-2">
-            <button
-              v-if="selectedItem.can_approve_reject"
-              @click="handleApprove(selectedItem); selectedItem = null"
-              class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-xs cursor-pointer shadow-xs"
-            >
-              Setujui (Approve)
-            </button>
-            <button
-              v-if="selectedItem.can_approve_reject"
-              @click="handleReject(selectedItem); selectedItem = null"
-              class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-lg text-xs cursor-pointer shadow-xs"
-            >
-              Tolak (Reject)
-            </button>
-          </div>
-
+        <div class="px-6 py-3.5 border-t border-slate-100 flex items-center justify-end bg-slate-50">
           <button
-            @click="selectedItem = null"
-            class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-semibold rounded-lg cursor-pointer"
+            @click="selectedRequest = null"
+            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition-colors cursor-pointer text-xs"
           >
             Tutup
           </button>
@@ -376,99 +221,53 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import {
-  PlusCircle,
-  Search,
-  MoreVertical,
-  ChevronRight,
-  ExternalLink,
-  Eye,
-  CheckCircle2,
-  XCircle,
-  AlertCircle
-} from 'lucide-vue-next';
 import { useRekrutmenStore } from '../stores/rekrutmen';
-import LoadingState from '../components/LoadingState.vue';
+import { 
+  Search, Plus, CheckCircle2, AlertCircle
+} from 'lucide-vue-next';
 
 const store = useRekrutmenStore();
-const requests = computed(() => store.requests);
+const statusFilter = ref('all');
 const searchQuery = ref('');
-const activeActionId = ref(null);
-const selectedItem = ref(null);
 const toastMessage = ref(null);
 const toastType = ref('success');
+const selectedRequest = ref(null);
 
 onMounted(() => {
-  store.fetchRequests(searchQuery.value, true);
+  store.fetchRequests('', false).catch(() => {});
 });
 
-let debounceTimer = null;
-const handleSearch = () => {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    store.fetchRequests(searchQuery.value, true);
-  }, 200);
-};
+const requests = computed(() => store.requests || []);
 
-const showToast = (msg, type = 'success') => {
-  toastMessage.value = msg;
-  toastType.value = type;
-  setTimeout(() => {
-    toastMessage.value = null;
-  }, 4000);
-};
+const approvedCount = computed(() => requests.value.filter(r => (r.approval_status === 'Approved' || r.status === 'Approved')).length);
+const pendingCount = computed(() => requests.value.filter(r => (r.approval_status === 'Pending' || r.status === 'Pending')).length);
 
-const handleApprove = async (item) => {
-  if (!confirm(`Apakah Anda yakin ingin menyetujui (Approve) permintaan "${item.posisi_dibutuhkan}"?`)) {
-    return;
-  }
-  try {
-    const res = await store.approveRequest(item.id);
-    showToast(res.message || 'Permintaan berhasil disetujui!', 'success');
-  } catch (err) {
-    showToast(err.response?.data?.message || 'Gagal menyetujui permintaan.', 'error');
-  }
-};
+const filteredRequests = computed(() => {
+  let list = requests.value;
 
-const handleReject = async (item) => {
-  if (!confirm(`Apakah Anda yakin ingin menolak (Reject) permintaan "${item.posisi_dibutuhkan}"?`)) {
-    return;
+  if (statusFilter.value === 'approved') {
+    list = list.filter(r => (r.approval_status === 'Approved' || r.status === 'Approved'));
+  } else if (statusFilter.value === 'pending') {
+    list = list.filter(r => (r.approval_status === 'Pending' || r.status === 'Pending'));
   }
-  try {
-    const res = await store.rejectRequest(item.id);
-    showToast(res.message || 'Permintaan telah ditolak.', 'success');
-  } catch (err) {
-    showToast(err.response?.data?.message || 'Gagal menolak permintaan.', 'error');
-  }
-};
 
-const openDetail = (item) => {
-  selectedItem.value = item;
-};
-
-const getFulfillmentBadge = (status) => {
-  const s = status?.toLowerCase() || '';
-  if (s.includes('closed') || s.includes('selesai')) {
-    return 'bg-gray-100 text-gray-700 border-gray-200';
-  }
-  if (s.includes('process') || s.includes('proses')) {
-    return 'bg-blue-50 text-blue-600 border-blue-200';
-  }
-  return 'bg-rose-50 text-rose-600 border-rose-200';
-};
+  if (!searchQuery.value) return list;
+  const q = searchQuery.value.toLowerCase();
+  return list.filter(r => 
+    (r.position_name && r.position_name.toLowerCase().includes(q)) ||
+    (r.position_title && r.position_title.toLowerCase().includes(q)) ||
+    (r.request_number && r.request_number.toLowerCase().includes(q)) ||
+    (r.department && r.department.toLowerCase().includes(q))
+  );
+});
 
 const getApprovalBadge = (status) => {
-  const s = status?.toLowerCase() || '';
-  if (s.includes('approved') || s.includes('disetujui')) {
-    return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  }
-  if (s.includes('rejected') || s.includes('ditolak')) {
-    return 'bg-rose-50 text-rose-700 border-rose-200';
-  }
+  if (status === 'Approved' || status === 'Disetujui') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  if (status === 'Rejected' || status === 'Ditolak') return 'bg-rose-50 text-rose-700 border-rose-200';
   return 'bg-amber-50 text-amber-700 border-amber-200';
 };
 
-onMounted(() => {
-  store.fetchRequests();
-});
+const openRequestDetail = (item) => {
+  selectedRequest.value = item;
+};
 </script>

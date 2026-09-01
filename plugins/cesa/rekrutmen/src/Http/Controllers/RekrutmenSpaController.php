@@ -5,6 +5,7 @@ namespace Cesa\Rekrutmen\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
+use Cesa\Rekrutmen\Exports\RecruitmentProgressExport;
 use Cesa\Rekrutmen\Filament\Resources\JobPostingResource;
 use Cesa\Rekrutmen\Filament\Resources\RequestManPowerResource;
 use Cesa\Rekrutmen\Models\Approver;
@@ -17,9 +18,14 @@ use Cesa\Rekrutmen\Models\RequestManPower;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class RekrutmenSpaController extends Controller
 {
@@ -210,6 +216,8 @@ class RekrutmenSpaController extends Controller
                 'requirements'           => $record->requirements,
                 'context_description'    => JobPostingResource::formatJobPostingContext($record),
                 'location'               => $record->location ?? 'Indonesia',
+                'thumbnail_path'         => $record->thumbnail_path,
+                'thumbnail_url'          => $record->thumbnail_url,
                 'is_published'           => (bool) $record->is_published,
                 'applications_count'     => $record->applications_count ?? 0,
                 'request_man_powers_cnt' => $record->request_man_powers_count ?? 0,
@@ -251,12 +259,14 @@ class RekrutmenSpaController extends Controller
     public function updateJobPosting(Request $request, $id): JsonResponse
     {
         $request->validate([
-            'title'        => 'required|string|max:255',
-            'location'     => 'nullable|string|max:255',
-            'description'  => 'nullable|string',
-            'requirements' => 'nullable|string',
-            'closing_date' => 'nullable|date',
-            'is_published' => 'nullable|boolean',
+            'title'            => 'required|string|max:255',
+            'location'         => 'nullable|string|max:255',
+            'description'      => 'nullable|string',
+            'requirements'     => 'nullable|string',
+            'closing_date'     => 'nullable|date',
+            'is_published'     => 'nullable',
+            'thumbnail'        => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'remove_thumbnail' => 'nullable',
         ]);
 
         $posting = JobPosting::findOrFail($id);
@@ -266,14 +276,27 @@ class RekrutmenSpaController extends Controller
         $posting->requirements = $request->input('requirements');
         $posting->closing_date = $request->input('closing_date');
         if ($request->has('is_published')) {
-            $posting->is_published = (bool) $request->input('is_published');
+            $posting->is_published = filter_var($request->input('is_published'), FILTER_VALIDATE_BOOLEAN);
         }
+
+        if ($request->hasFile('thumbnail')) {
+            $path = $request->file('thumbnail')->store(JobPosting::THUMBNAIL_DIRECTORY, JobPosting::thumbnailDisk());
+            $posting->thumbnail_path = $path;
+        } elseif ($request->input('remove_thumbnail') === '1' || $request->input('remove_thumbnail') === true || $request->input('remove_thumbnail') === 'true') {
+            $posting->thumbnail_path = null;
+        }
+
         $posting->save();
 
         return response()->json([
             'success' => true,
             'message' => "Lowongan \"{$posting->title}\" berhasil diperbarui!",
-            'posting' => $posting,
+            'posting' => [
+                'id'            => $posting->id,
+                'title'         => $posting->title,
+                'thumbnail_url' => $posting->thumbnail_url,
+                'is_published'  => $posting->is_published,
+            ],
         ]);
     }
 
@@ -360,16 +383,32 @@ class RekrutmenSpaController extends Controller
                 ];
             }
 
-            $marital = $app->marital_status ? (is_object($app->marital_status) ? $app->marital_status->name ?? (string) $app->marital_status : (string) $app->marital_status) : '-';
+            $marital = $app->marital_status ? (is_object($app->marital_status) ? (method_exists($app->marital_status, 'getLabel') ? $app->marital_status->getLabel() : $app->marital_status->name ?? (string) $app->marital_status) : (string) $app->marital_status) : '-';
+
+            $genderLabel = '-';
+            if ($app->gender) {
+                $genderLabel = is_object($app->gender)
+                    ? (method_exists($app->gender, 'getLabel') ? $app->gender->getLabel() : $app->gender->name ?? (string) $app->gender)
+                    : (string) $app->gender;
+            }
+
+            $hasResumeOnDisk = false;
+            if (filled($app->resume_path)) {
+                $rel = ltrim($app->resume_path, '/');
+                $hasResumeOnDisk = file_exists(storage_path('app/'.$rel))
+                    || file_exists(storage_path('app/public/'.$rel))
+                    || file_exists(public_path('storage/'.$rel))
+                    || file_exists(public_path($rel));
+            }
 
             return [
                 'id'                         => $app->id,
                 'full_name'                  => $app->full_name,
                 'email'                      => $app->email,
                 'phone'                      => $app->whatsapp_number ?? $app->active_phone ?? '-',
-                'whatsapp_number'            => $app->whatsapp_number,
-                'active_phone'               => $app->active_phone,
-                'gender'                     => $app->gender?->name ?? (string) $app->gender,
+                'whatsapp_number'            => $app->whatsapp_number ?? '-',
+                'active_phone'               => $app->active_phone ?? '-',
+                'gender'                     => $genderLabel,
                 'birth_date'                 => $app->birth_date ? $app->birth_date->format('d/m/Y') : '-',
                 'marital_status'             => $marital,
                 'address'                    => $app->address_domicile ?? $app->address_ktp ?? '-',
@@ -378,20 +417,23 @@ class RekrutmenSpaController extends Controller
                 'emergency_contact_name'     => $app->emergency_contact_name ?? '-',
                 'emergency_contact_relation' => $app->emergency_contact_relation ?? '-',
                 'emergency_contact_phone'    => $app->emergency_contact_phone ?? '-',
+                'photo_path'                 => $app->photo_path,
+                'has_photo'                  => filled($app->photo_path),
+                'photo_url'                  => $app->photo_path ? url("/rekrutmen/api/applications/{$app->id}/photo") : null,
                 'source'                     => $app->source ?? 'Website',
                 'job_posting_id'             => $app->job_posting_id,
                 'job_posting'                => $app->jobPosting ? ['id' => $app->jobPosting->id, 'title' => $app->jobPosting->title, 'location' => $app->jobPosting->location] : null,
                 'current_stage_id'           => $app->current_stage_id ?? 1,
                 'stage'                      => $stageData,
                 'status'                     => $app->status ? (is_object($app->status) ? $app->status->value : $app->status) : 'in_progress',
-                'ai_match_score'             => $app->ai_match_score,
-                'ai_recommendation'          => $app->ai_recommendation,
-                'ai_summary'                 => $app->ai_summary,
+                'ai_match_score'             => $hasResumeOnDisk ? $app->ai_match_score : 0,
+                'ai_recommendation'          => $hasResumeOnDisk ? $app->ai_recommendation : 'Kurang Sesuai',
+                'ai_summary'                 => $hasResumeOnDisk ? $app->ai_summary : "Pelamar {$app->full_name} belum melampirkan berkas CV/Resume digital. Skor kualifikasi 0% Match.",
                 'ai_analyzed_at'             => $app->ai_analyzed_at ? $app->ai_analyzed_at->format('d/m/Y H:i') : null,
-                'has_resume'                 => filled($app->resume_path),
-                'resume_path'                => $app->resume_path,
-                'resume_filename'            => $app->resume_path ? basename($app->resume_path) : "CV-{$app->id}.pdf",
-                'resume_url'                 => url("/rekrutmen/api/applications/{$app->id}/cv"),
+                'has_resume'                 => $hasResumeOnDisk,
+                'resume_path'                => $hasResumeOnDisk ? $app->resume_path : null,
+                'resume_filename'            => $hasResumeOnDisk ? basename($app->resume_path) : "CV-{$app->id}.pdf",
+                'resume_url'                 => $hasResumeOnDisk ? url("/rekrutmen/api/applications/{$app->id}/cv") : null,
                 'created_at'                 => $app->created_at ? $app->created_at->format('d/m/Y') : '-',
             ];
         });
@@ -402,6 +444,61 @@ class RekrutmenSpaController extends Controller
             'active_job'   => $activeJob ? ['id' => $activeJob->id, 'title' => $activeJob->title, 'location' => $activeJob->location] : null,
             'total'        => $applications->count(),
         ]);
+    }
+
+    /**
+     * View candidate profile photo.
+     */
+    public function viewPhoto(Request $request, $id)
+    {
+        $application = JobApplication::findOrFail($id);
+
+        if (empty($application->photo_path)) {
+            abort(404, 'Foto diri belum diunggah oleh kandidat ini.');
+        }
+
+        $relativePath = ltrim($application->photo_path, '/');
+        $disks = array_values(array_unique(array_filter([
+            config('filament.default_filesystem_disk', null),
+            config('filesystems.default'),
+            'local',
+            'public',
+        ])));
+
+        foreach ($disks as $disk) {
+            try {
+                if (config()->has("filesystems.disks.{$disk}") && Storage::disk($disk)->exists($relativePath)) {
+                    $path = Storage::disk($disk)->path($relativePath);
+                    $mime = Storage::disk($disk)->mimeType($relativePath) ?? 'image/jpeg';
+
+                    return response()->file($path, [
+                        'Content-Type'        => $mime,
+                        'Content-Disposition' => 'inline; filename="'.basename($relativePath).'"',
+                    ]);
+                }
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        $candidatePaths = [
+            storage_path('app/'.$relativePath),
+            storage_path('app/public/'.$relativePath),
+            public_path('storage/'.$relativePath),
+        ];
+
+        foreach ($candidatePaths as $p) {
+            if (file_exists($p) && is_readable($p)) {
+                $mime = mime_content_type($p) ?: 'image/jpeg';
+
+                return response()->file($p, [
+                    'Content-Type'        => $mime,
+                    'Content-Disposition' => 'inline; filename="'.basename($p).'"',
+                ]);
+            }
+        }
+
+        abort(404, 'File foto tidak ditemukan.');
     }
 
     /**
@@ -464,6 +561,46 @@ class RekrutmenSpaController extends Controller
         $pdf = Pdf::loadHTML($html);
 
         return $pdf->stream(basename($relativePath));
+    }
+
+    /**
+     * Upload or replace candidate CV file directly from UI.
+     */
+    public function uploadCv(Request $request, $id): JsonResponse
+    {
+        $request->validate([
+            'cv' => 'required|file|mimes:pdf,doc,docx|max:20480',
+        ]);
+
+        $application = JobApplication::findOrFail($id);
+
+        $file = $request->file('cv');
+        $filename = 'CV-'.$application->id.'-'.Str::slug($application->full_name).'.'.$file->getClientOriginalExtension();
+        $path = $file->storeAs('rekrutmen/cv', $filename, 'public');
+
+        $application->resume_path = $path;
+        $application->save();
+
+        // Perform AI Screening on the newly uploaded real CV
+        if ($application->jobPosting) {
+            $aiResult = $this->performAiCvScreening($application, $application->jobPosting, true);
+            $application->ai_match_score = $aiResult['score'];
+            $application->ai_recommendation = $aiResult['recommendation'];
+            $application->ai_summary = $aiResult['summary'];
+            $application->ai_analyzed_at = now();
+            $application->saveQuietly();
+        }
+
+        return response()->json([
+            'success'           => true,
+            'message'           => "Berkas CV untuk \"{$application->full_name}\" berhasil diunggah!",
+            'resume_path'       => $application->resume_path,
+            'resume_url'        => url("/rekrutmen/api/applications/{$application->id}/cv?t=".time()),
+            'ai_match_score'    => $application->ai_match_score,
+            'ai_recommendation' => $application->ai_recommendation,
+            'ai_summary'        => $application->ai_summary,
+            'ai_analyzed_at'    => $application->ai_analyzed_at ? $application->ai_analyzed_at->format('d/m/Y H:i') : null,
+        ]);
     }
 
     /**
@@ -595,14 +732,22 @@ class RekrutmenSpaController extends Controller
     }
 
     /**
-     * Batch analyze all candidates that haven't been analyzed yet.
+     * Batch analyze or re-screen candidates with AI.
      */
-    public function batchAnalyzeWithAi(): JsonResponse
+    public function batchAnalyzeWithAi(Request $request): JsonResponse
     {
-        $applications = JobApplication::with('jobPosting')
-            ->whereNull('ai_match_score')
-            ->limit(100)
-            ->get();
+        $jobId = $request->input('job_id');
+        $force = $request->boolean('force', true);
+
+        $query = JobApplication::with('jobPosting');
+        if ($jobId) {
+            $query->where('job_posting_id', $jobId);
+        }
+        if (! $force) {
+            $query->whereNull('ai_match_score');
+        }
+
+        $applications = $query->limit(200)->get();
 
         $count = 0;
         foreach ($applications as $app) {
@@ -618,171 +763,348 @@ class RekrutmenSpaController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Berhasil menganalisis {$count} kandidat dengan AI Screening!",
+            'message' => "Berhasil memproses screening ulang AI untuk {$count} kandidat!",
             'count'   => $count,
         ]);
     }
 
     /**
-     * AI CV Screening Engine: Compare candidate CV & profile dynamically against any Job Requirements & Description.
+     * AI CV Screening Engine: Compare candidate CV & profile dynamically against Job Requirements & Qualifications.
      */
     private function performAiCvScreening(JobApplication $application, ?JobPosting $job, bool $useExternalApi = false): array
     {
-        $geminiApiKey = config('services.gemini.api_key') ?? env('GEMINI_API_KEY');
-
-        $jobTitle = $job?->title ?? 'Lowongan Kerja';
-        $jobLocation = $job?->location ?? 'Indonesia';
+        $candidateName = $application->full_name;
+        $jobTitle = $job?->title ?? 'Posisi Lowongan Kerja';
+        $titleLower = strtolower($jobTitle);
         $jobRequirements = trim($job?->requirements ?? '');
         $jobDescription = trim($job?->description ?? '');
+        $jobLocation = trim($job?->location ?? '');
 
-        if (empty($jobRequirements)) {
-            $jobRequirements = 'Pendidikan minimal SMA/SMK atau S1, memiliki integritas, disiplin, dan siap menjalankan tugas sesuai posisi.';
+        // 1. Extract genuine text from candidate's uploaded CV file
+        $cvText = $this->extractTextFromCvDocument($application);
+        $hasRealCv = ! empty($cvText);
+
+        // If candidate has no readable CV document
+        if (! $hasRealCv) {
+            return [
+                'score'          => 0,
+                'recommendation' => 'Kurang Sesuai',
+                'summary'        => "Pelamar {$candidateName} belum melampirkan berkas CV/Resume digital. Evaluasi perbandingan terhadap Kualifikasi & Persyaratan posisi {$jobTitle} belum dapat dinilai (Skor 0% Match). Silakan minta pelamar untuk melampirkan dokumen CV terlebih dahulu.",
+            ];
         }
-        if (empty($jobDescription)) {
-            $jobDescription = 'Menjalankan tugas dan tanggung jawab sesuai standar operasional posisi '.$jobTitle.'.';
-        }
 
-        $candidateName = $application->full_name;
-        $candidateGender = $application->gender?->name ?? (string) $application->gender ?? 'Tidak diketahui';
-        $candidateDomicile = $application->address_domicile ?? $application->address_ktp ?? 'Tidak dicantumkan';
-        $candidateEmail = $application->email ?? '';
-        $candidatePhone = $application->whatsapp_number ?? $application->active_phone ?? '-';
-        $hasResume = filled($application->resume_path);
+        // 2. Try Online Gemini AI Screening if API key is available
+        $apiKey = self::getGeminiApiKey();
+        if (! empty($apiKey)) {
+            $domicile = $application->address_domicile ?? $application->address_ktp ?? '-';
+            $gender = $application->gender ? (is_object($application->gender) ? (method_exists($application->gender, 'getLabel') ? $application->gender->getLabel() : $application->gender->name) : (string) $application->gender) : '-';
 
-        // Read CV content if available on storage
-        $cvTextContent = '';
-        if ($hasResume) {
-            $path = storage_path('app/'.$application->resume_path);
-            $publicPath = storage_path('app/public/'.$application->resume_path);
-            $targetPath = file_exists($path) ? $path : (file_exists($publicPath) ? $publicPath : null);
-            if ($targetPath && is_readable($targetPath)) {
-                $rawContent = @file_get_contents($targetPath);
-                if ($rawContent) {
-                    // Strip binary characters for plain text extraction
-                    $cvTextContent = preg_replace('/[^\x20-\x7E\t\r\n]/', ' ', substr($rawContent, 0, 4000));
+            $prompt = <<<PROMPT
+Anda adalah seorang HR Expert dan ATS (Applicant Tracking System) Screener profesional.
+Tugas Anda adalah melakukan evaluasi mendalam dan membandingkan secara komparatif antara isi dokumen CV/Resume Pelamar dengan Kualifikasi & Persyaratan posisi lowongan pekerjaan yang dilamar.
+
+=== DATA LOWONGAN PEKERJAAN ===
+Posisi Lowongan : {$jobTitle}
+Lokasi Penempatan : {$jobLocation}
+Deskripsi Pekerjaan:
+{$jobDescription}
+
+Kualifikasi & Persyaratan:
+{$jobRequirements}
+
+=== DATA PELAMAR & TEKS CV ===
+Nama Pelamar : {$candidateName}
+Domisili     : {$domicile}
+Jenis Kelamin: {$gender}
+Isi Ekstraksi Teks CV / Resume:
+{$cvText}
+
+=== INSTRUKSI EVALUASI KOMPARATIF ===
+1. Bandingkan secara cermat setiap poin Kualifikasi & Persyaratan lowongan terhadap data di CV pelamar (keahlian teknis/hard skills, latar belakang pendidikan, pengalaman kerja yang relevan, soft skills, dan domisili).
+2. Tentukan skor kesesuaian kualifikasi (score) dalam rentang angka bulat 0 sampai 100:
+   - 75 - 100: Kandidat SANGAT SESUAI (memenuhi mayoritas/seluruh kualifikasi utama).
+   - 50 - 74 : Kandidat MEMENUHI SEBAGIAN (ada potensi dan keahlian dasar, namun ada gap/kualifikasi yang perlu dipertimbangkan).
+   - 0 - 49  : Kandidat KURANG SESUAI (kualifikasi/pengalaman di CV tidak relevan dengan persyaratan lowongan).
+3. Tentukan rekomendasi akhir (recommendation) secara TEGAS HANYA memilih salah satu dari 3 kategori berikut:
+   - "Direkomendasikan" (jika skor >= 75)
+   - "Dipertimbangkan" (jika skor 50 - 74)
+   - "Kurang Sesuai" (jika skor < 50)
+4. Buat rangkuman evaluasi komparatif (summary) yang profesional, terstruktur, dan jelas dalam Bahasa Indonesia (3-5 baris) yang memuat:
+   - Ringkasan kecocokan kualifikasi terhadap posisi {$jobTitle}.
+   - Kualifikasi & keahlian yang SUDAH TERPENUHI dari CV.
+   - Poin kualifikasi yang BELUM TERPENUHI atau perlu dikonfirmasi saat wawancara.
+   - Kesimpulan dan saran tindak lanjut rekruter.
+
+=== FORMAT OUTPUT WAJIB (JSON MURNI) ===
+Keluarkan HANYA JSON valid tanpa format markdown atau teks pembuka lainnya:
+{
+  "score": 85,
+  "recommendation": "Direkomendasikan",
+  "summary": "Berdasarkan analisis perbandingan kualifikasi untuk posisi {$jobTitle}..."
+}
+PROMPT;
+
+            $geminiResponse = self::callGeminiApi($apiKey, $prompt, 25);
+            if ($geminiResponse) {
+                $parsed = $this->parseAiJsonResponse($geminiResponse);
+                if ($parsed && isset($parsed['score']) && isset($parsed['recommendation'])) {
+                    $score = max(0, min(100, (int) $parsed['score']));
+
+                    // Normalize recommendation label
+                    $rec = 'Direkomendasikan';
+                    if ($score < 50) {
+                        $rec = 'Kurang Sesuai';
+                    } elseif ($score < 75) {
+                        $rec = 'Dipertimbangkan';
+                    }
+
+                    $summary = trim((string) ($parsed['summary'] ?? ''));
+                    if (empty($summary)) {
+                        $summary = "Berdasarkan evaluasi AI, kandidat {$candidateName} memiliki skor kesesuaian {$score}% ({$rec}) terhadap kualifikasi posisi {$jobTitle}.";
+                    }
+
+                    return [
+                        'score'          => $score,
+                        'recommendation' => $rec,
+                        'summary'        => $summary,
+                    ];
                 }
             }
         }
 
-        $candidateDataSummary = "Nama: {$candidateName}\n"
-            ."Jenis Kelamin: {$candidateGender}\n"
-            ."Domisili/KTP: {$candidateDomicile}\n"
-            ."Email: {$candidateEmail}\n"
-            ."Kontak/WA: {$candidatePhone}\n"
-            .'Dokumen CV: '.($hasResume ? 'Terlampir ('.basename($application->resume_path).')' : 'Tidak ada')
-            .($cvTextContent ? "\nRingkasan Ekstrak CV:\n".substr(trim($cvTextContent), 0, 500) : '');
+        // 3. Fallback: Intelligent Rule-Based & Semantic Requirement Matching Engine
+        return $this->performAlgorithmicRequirementMatching($application, $job, $cvText);
+    }
 
-        // IF GEMINI API KEY EXISTS AND EXPLICITLY REQUESTED, CALL GEMINI FLASH
-        if ($useExternalApi && $geminiApiKey) {
-            try {
-                $prompt = "Kamu adalah AI HR Recruiter profesional. Bandingkan profil dan CV kandidat pelamar kerja dengan persyaratan & kualifikasi posisi berikut secara objektif:\n\n"
-                    ."=== POSISI LOWONGAN ===\n"
-                    ."Posisi: {$jobTitle}\n"
-                    ."Lokasi: {$jobLocation}\n"
-                    ."Deskripsi Pekerjaan: {$jobDescription}\n"
-                    ."Persyaratan & Kualifikasi: {$jobRequirements}\n\n"
-                    ."=== DATA & CV KANDIDAT ===\n"
-                    ."{$candidateDataSummary}\n\n"
-                    ."PETUNJUK EVALUASI:\n"
-                    ."1. Bandingkan kualifikasi kandidat dengan persyaratan lowongan {$jobTitle}.\n"
-                    ."2. Berikan match score 0 - 100.\n"
-                    ."3. Rekomendasi: 'RECOMMENDED' (>=80), 'CONSIDERED' (60-79), atau 'NOT_SUITABLE' (<60).\n"
-                    ."4. Berikan ringkasan alasan kesesuaian 1-2 kalimat dalam bahasa Indonesia.\n\n"
-                    ."Format output JSON valid:\n"
-                    .'{"score": 85, "recommendation": "RECOMMENDED", "summary": "Alasan kesesuaian..."}';
+    /**
+     * Parse and extract clean JSON array from AI response string.
+     */
+    private function parseAiJsonResponse(string $rawText): ?array
+    {
+        $cleaned = trim($rawText);
+        if (preg_match('/```(?:json)?\s*([\s\S]*?)\s*```/i', $cleaned, $matches)) {
+            $cleaned = trim($matches[1]);
+        }
 
-                $response = Http::timeout(4)->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$geminiApiKey}", [
-                    'contents' => [
-                        ['parts' => [['text' => $prompt]]],
-                    ],
-                ]);
+        $decoded = json_decode($cleaned, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && isset($decoded['score'])) {
+            return $decoded;
+        }
 
-                if ($response->successful()) {
-                    $jsonText = $response->json('candidates.0.content.parts.0.text');
-                    $cleanJson = preg_replace('/```json|```/', '', trim($jsonText));
-                    $parsed = json_decode($cleanJson, true);
-                    if (isset($parsed['score']) && isset($parsed['recommendation'])) {
-                        return [
-                            'score'          => (int) $parsed['score'],
-                            'recommendation' => (string) $parsed['recommendation'],
-                            'summary'        => (string) ($parsed['summary'] ?? 'Kandidat telah dianalisis AI.'),
-                        ];
+        if (preg_match('/\{[\s\S]*\}/', $cleaned, $jsonMatches)) {
+            $decoded = json_decode($jsonMatches[0], true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && isset($decoded['score'])) {
+                return $decoded;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Fallback Algorithmic Requirement Matching: Compares CV text against position requirements & qualifications.
+     */
+    private function performAlgorithmicRequirementMatching(JobApplication $application, ?JobPosting $job, string $cvText): array
+    {
+        $candidateName = $application->full_name;
+        $jobTitle = $job?->title ?? 'Posisi Lowongan Kerja';
+        $titleLower = strtolower($jobTitle);
+        $jobRequirements = trim($job?->requirements ?? '');
+        $jobDescription = trim($job?->description ?? '');
+        $cvLower = strtolower($cvText);
+
+        // Define domain-specific competency checklists
+        $competencyMap = [
+            'developer' => [
+                'laravel'          => 'Laravel Framework',
+                'vue'              => 'Vue.js / Frontend',
+                'javascript'       => 'JavaScript / TypeScript',
+                'php'              => 'PHP & OOP',
+                'mysql'            => 'MySQL / Database',
+                'api'              => 'REST API & Web Service',
+                'git'              => 'Git / Version Control',
+                'fullstack'        => 'Fullstack Web Architecture',
+                'sistem informasi' => 'Pendidikan IT / Sistem Informasi',
+                'informatika'      => 'Pendidikan Teknik Informatika',
+            ],
+            'sales' => [
+                'penjualan'  => 'Pengalaman Penjualan / Sales',
+                'target'     => 'Pencapaian Target Penjualan',
+                'komunikasi' => 'Komunikasi & Negosiasi',
+                'pelanggan'  => 'Pelayanan Konsumen (Customer Service)',
+                'smartphone' => 'Penguasaan Produk Gadget / Retail',
+                'retail'     => 'Pengalaman Retail / Store',
+            ],
+            'marketing' => [
+                'digital marketing' => 'Strategi Digital Marketing',
+                'sosial media'      => 'Social Media Management',
+                'konten'            => 'Content Creation & Copywriting',
+                'ads'               => 'Meta / Google Advertising',
+                'canva'             => 'Design Tools (Canva/Photoshop)',
+                'analisis'          => 'Analisis Tren & Pasar',
+            ],
+            'gudang' => [
+                'gudang'   => 'Manajemen Gudang / Warehouse',
+                'stok'     => 'Stok Opname & Inventori',
+                'logistik' => 'Logistik & Distribusi',
+                'barang'   => 'Pencatatan Masuk/Keluar Barang',
+                'fisik'    => 'Kesiapan Fisik & Ketelitian',
+            ],
+            'admin' => [
+                'administrasi' => 'Administrasi Dokumen & Arsip',
+                'excel'        => 'Microsoft Excel / Spreadsheet',
+                'laporan'      => 'Penyusunan Laporan Kerja',
+                'ketelitian'   => 'Ketelitian & Input Data',
+                'koordinasi'   => 'Koordinasi Antar Divisi',
+            ],
+        ];
+
+        // Determine relevant competency domain
+        $selectedDomain = 'admin';
+        foreach (['developer', 'sales', 'marketing', 'gudang'] as $dom) {
+            if (str_contains($titleLower, $dom) || (in_array($dom, ['developer']) && preg_match('/(programmer|software|web|it)/i', $titleLower))) {
+                $selectedDomain = $dom;
+                break;
+            }
+        }
+
+        $domainChecks = $competencyMap[$selectedDomain] ?? $competencyMap['admin'];
+        $matchedPoints = [];
+        $unmatchedPoints = [];
+
+        foreach ($domainChecks as $kw => $label) {
+            if (str_contains($cvLower, $kw)) {
+                $matchedPoints[] = $label;
+            } else {
+                $unmatchedPoints[] = $label;
+            }
+        }
+
+        // Also check direct keywords from Job Requirements text
+        $reqLines = array_filter(preg_split('/[\r\n]+/', $jobRequirements));
+        $customMatched = 0;
+        $totalCustomReq = 0;
+
+        foreach ($reqLines as $line) {
+            $lineClean = trim(preg_replace('/^[\s\-\•\*\d\.\)\:]+/', '', $line));
+            if (strlen($lineClean) >= 6) {
+                $totalCustomReq++;
+                $words = array_filter(preg_split('/[\s,\.\/\-\(\)]+/', strtolower($lineClean)), fn ($w) => strlen($w) >= 4);
+                $foundWordCount = 0;
+                foreach ($words as $w) {
+                    if (str_contains($cvLower, $w)) {
+                        $foundWordCount++;
                     }
                 }
-            } catch (\Throwable $e) {
-                Log::warning('Gemini API call failed, falling back to intelligent dynamic requirement matcher', ['error' => $e->getMessage()]);
-            }
-        }
-
-        // FULLY DYNAMIC & CANDIDATE-SPECIFIC MATCHER: Compare Candidate Profile & CV vs Job Requirements
-        $statusStr = is_object($application->status) ? $application->status->value : (string) $application->status;
-        $isRejected = str_contains(strtolower($statusStr), 'reject') || str_contains(strtolower($statusStr), 'ditolak');
-
-        $domLower = strtolower($candidateDomicile);
-        $nameLower = strtolower($candidateName);
-        $locLower = strtolower($jobLocation);
-        $reqLower = strtolower($jobRequirements.' '.$jobDescription.' '.$jobTitle);
-
-        // Location analysis
-        $isDirectLocal = false;
-        if (filled($jobLocation) && filled($candidateDomicile)) {
-            $locTokens = preg_split('/[\s,\-\/]+/', $locLower);
-            foreach ($locTokens as $token) {
-                if (strlen($token) >= 4 && str_contains($domLower, $token)) {
-                    $isDirectLocal = true;
-                    break;
+                if (! empty($words) && ($foundWordCount / count($words)) >= 0.35) {
+                    $customMatched++;
                 }
             }
         }
-        $isNear = str_contains($domLower, 'kuningan') || str_contains($domLower, 'majalengka') || str_contains($domLower, 'brebes') || str_contains($domLower, 'indramayu') || str_contains($domLower, 'cirebon');
-        $isFar = str_contains($domLower, 'padang') || str_contains($domLower, 'sumatra') || str_contains($domLower, 'jakarta') || str_contains($domLower, 'cimahi') || str_contains($domLower, 'bogor') || str_contains($domLower, 'lampung') || str_contains($domLower, 'kebumen');
 
-        // Extract authentic criteria strictly according to the specific job position
-        $criteriaPool = $this->extractPositionCriteria($job);
+        // Calculate weighted score
+        $domainScore = (count($matchedPoints) / max(1, count($domainChecks))) * 100;
+        $reqScore = $totalCustomReq > 0 ? ($customMatched / $totalCustomReq) * 100 : $domainScore;
+        $finalScore = (int) round(($domainScore * 0.6) + ($reqScore * 0.4));
 
-        // Seeded unique assessment for each candidate
-        $seed = abs(crc32($candidateName.$jobTitle.$application->id));
+        // Education & Experience Bonus
+        if (str_contains($cvLower, 'sarjana') || str_contains($cvLower, 's1') || str_contains($cvLower, 'diploma') || str_contains($cvLower, 'd3')) {
+            $finalScore = min(98, $finalScore + 5);
+        }
+        if (str_contains($cvLower, 'pengalaman') || str_contains($cvLower, '202') || str_contains($cvLower, 'tahun')) {
+            $finalScore = min(98, $finalScore + 5);
+        }
 
-        if ($isRejected || str_contains($domLower, 'padang')) {
-            $score = 42 + ($seed % 8); // 42 - 49%
-            $recommendation = 'NOT_SUITABLE';
-            $summary = "Kandidat berdomisili jauh ({$candidateDomicile}) dan kualifikasi belum selaras dengan kriteria prioritas on-site posisi {$jobTitle}. Berkas berstatus ditolak/kurang sesuai.";
-        } elseif ($isDirectLocal && ($seed % 10) >= 4) {
-            // High scoring local match
-            $score = 85 + ($seed % 10); // 85 - 94%
-            $recommendation = 'RECOMMENDED';
-            $strongSkill1 = $criteriaPool[$seed % count($criteriaPool)];
-            $strongSkill2 = $criteriaPool[($seed + 1) % count($criteriaPool)];
-            $summary = "Kandidat sangat cocok untuk posisi {$jobTitle}. Menunjukkan keunggulan pada {$strongSkill1} dan {$strongSkill2}. Domisili lokal sangat menguntungkan untuk koordinasi on-site.";
-        } elseif ($isDirectLocal || $isNear) {
-            // Moderate scoring local / near region match
-            $score = 72 + ($seed % 11); // 72 - 82%
-            $recommendation = $score >= 80 ? 'RECOMMENDED' : 'CONSIDERED';
-            $primarySkill = $criteriaPool[$seed % count($criteriaPool)];
-            $toVerify = $criteriaPool[($seed + 2) % count($criteriaPool)];
-            if ($score >= 80) {
-                $summary = "Memenuhi kualifikasi utama {$jobTitle} dengan penguasaan {$primarySkill} yang baik. Domisili di area {$candidateDomicile} mendukung ritme kerja on-site.";
-            } else {
-                $summary = "Memenuhi sebagian persyaratan posisi {$jobTitle} ({$primarySkill}). Perlu konfirmasi mendalam terkait {$toVerify} saat sesi interview.";
-            }
-        } elseif ($isFar) {
-            // Far region applicants
-            $score = 58 + ($seed % 12); // 58 - 69%
-            $recommendation = 'CONSIDERED';
-            $skill = $criteriaPool[$seed % count($criteriaPool)];
-            $summary = "Latar belakang memiliki dasar {$skill}, namun domisili di {$candidateDomicile} memerlukan klarifikasi kesiapan relokasi dan komitmen kerja di {$jobLocation}.";
+        // Bound final score
+        $finalScore = max(25, min(95, $finalScore));
+
+        // Assign recommendation category
+        if ($finalScore >= 75) {
+            $recommendation = 'Direkomendasikan';
+            $matchedText = ! empty($matchedPoints) ? implode(', ', array_slice($matchedPoints, 0, 4)) : 'Keahlian teknis dan profil kerja relevan';
+            $summary = "Berdasarkan evaluasi kualifikasi untuk posisi {$jobTitle}, {$candidateName} menunjukkan keselarasan yang sangat baik ({$finalScore}% Match - Direkomendasikan).\n\nKualifikasi Terpenuhi: Menguasai kompetensi utama ({$matchedText}) dengan latar belakang pendidikan dan pengalaman yang mendukung.\n\nPoin Pertimbangan: Siap dijadwalkan ke tahap seleksi berikutnya untuk pendalaman kompetensi teknis.";
+        } elseif ($finalScore >= 50) {
+            $recommendation = 'Dipertimbangkan';
+            $matchedText = ! empty($matchedPoints) ? implode(', ', array_slice($matchedPoints, 0, 3)) : 'Keahlian dasar yang relevan';
+            $unmatchedText = ! empty($unmatchedPoints) ? implode(', ', array_slice($unmatchedPoints, 0, 3)) : 'beberapa kualifikasi spesifik';
+            $summary = "Berdasarkan evaluasi kualifikasi untuk posisi {$jobTitle}, {$candidateName} memenuhi sebagian kualifikasi ({$finalScore}% Match - Dipertimbangkan).\n\nKualifikasi Terpenuhi: Memiliki kompetensi dasar ({$matchedText}).\n\nPoin Pertimbangan: Perlu pengujian lebih lanjut terkait ({$unmatchedText}) pada sesi wawancara teknis atau tes kompetensi.";
         } else {
-            $score = 66 + ($seed % 14); // 66 - 79%
-            $recommendation = $score >= 80 ? 'RECOMMENDED' : 'CONSIDERED';
-            $skill = $criteriaPool[$seed % count($criteriaPool)];
-            $summary = "Kandidat memenuhi kualifikasi dasar {$jobTitle} ({$skill}). Disarankan untuk dievaluasi lebih lanjut pada tahap wawancara.";
+            $recommendation = 'Kurang Sesuai';
+            $summary = "Berdasarkan evaluasi kualifikasi untuk posisi {$jobTitle}, profil {$candidateName} kurang selaras ({$finalScore}% Match - Kurang Sesuai).\n\nCatatan Evaluasi: Kualifikasi teknis dan pengalaman pada CV belum memenuhi persyaratan utama yang dibutuhkan lowongan ini.";
         }
 
         return [
-            'score'          => $score,
+            'score'          => $finalScore,
             'recommendation' => $recommendation,
             'summary'        => $summary,
         ];
+    }
+
+    /**
+     * Extract clean textual content from candidate CV file (supports PDF & uncompressed text).
+     */
+    private function extractTextFromCvDocument(JobApplication $application): string
+    {
+        if (empty($application->resume_path)) {
+            return '';
+        }
+
+        $relativePath = ltrim($application->resume_path, '/');
+        $candidatePaths = [
+            storage_path('app/'.$relativePath),
+            storage_path('app/public/'.$relativePath),
+            public_path('storage/'.$relativePath),
+            public_path($relativePath),
+        ];
+
+        $targetPath = null;
+        foreach ($candidatePaths as $p) {
+            if (file_exists($p) && is_readable($p)) {
+                $targetPath = $p;
+                break;
+            }
+        }
+
+        if (! $targetPath) {
+            return '';
+        }
+
+        $content = @file_get_contents($targetPath);
+        if (! $content) {
+            return '';
+        }
+
+        $extractedText = '';
+
+        // Extract and uncompress FlateDecode streams from PDF
+        if (preg_match_all('/stream[\r\n]+(.*?)[\r\n]+endstream/is', $content, $matches)) {
+            foreach ($matches[1] as $stream) {
+                $uncompressed = @gzuncompress($stream);
+                if ($uncompressed === false) {
+                    $uncompressed = @gzinflate($stream);
+                }
+                if ($uncompressed !== false) {
+                    if (preg_match_all('/\((.*?)\)\s*Tj/s', $uncompressed, $textMatches)) {
+                        $extractedText .= ' '.implode('', $textMatches[1]);
+                    }
+                    if (preg_match_all('/\[(.*?)\]\s*TJ/s', $uncompressed, $arrayMatches)) {
+                        foreach ($arrayMatches[1] as $arr) {
+                            if (preg_match_all('/\((.*?)\)/s', $arr, $subMatches)) {
+                                $extractedText .= ' '.implode('', $subMatches[1]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (empty($extractedText)) {
+            $extractedText = preg_replace('/[^\x20-\x7E\t\r\n]/', ' ', substr($content, 0, 5000));
+        }
+
+        $cleaned = str_replace(['\\(', '\\)', '\\\\', '\\n', '\\r', '\\t'], ['(', ')', '\\', "\n", "\r", "\t"], $extractedText);
+
+        return trim(preg_replace('/\s+/', ' ', $cleaned));
     }
 
     /**
@@ -943,6 +1265,16 @@ class RekrutmenSpaController extends Controller
     }
 
     /**
+     * Export Recruitment Progress Report to Excel with professional corporate styling.
+     */
+    public function exportProgressReport(): BinaryFileResponse
+    {
+        $filename = 'Laporan_Recruitment_Progress_'.date('Ymd_His').'.xlsx';
+
+        return Excel::download(new RecruitmentProgressExport, $filename);
+    }
+
+    /**
      * Get master configurations (pipelines, stages, divisions, approvers).
      */
     public function getConfigurations(): JsonResponse
@@ -953,5 +1285,415 @@ class RekrutmenSpaController extends Controller
             'approvers'  => Approver::with('division')->latest()->get(),
             'pipelines'  => RekrutmenPipeline::with('stages')->get(),
         ]);
+    }
+
+    /**
+     * Get Active Gemini API Key (Priority: Database Settings table -> Fallback: .env / config).
+     */
+    public static function getGeminiApiKey(): ?string
+    {
+        try {
+            $setting = DB::table('settings')
+                ->where('group', 'rekrutmen')
+                ->where('name', 'gemini_api_key')
+                ->first();
+
+            if ($setting && ! empty($setting->payload)) {
+                $decoded = json_decode($setting->payload, true);
+                $key = is_string($decoded) ? $decoded : ($decoded['key'] ?? (string) $setting->payload);
+                if (! empty($key) && $key !== 'null') {
+                    return trim(trim($key, '"'));
+                }
+            }
+        } catch (\Throwable $e) {
+            // fallback
+        }
+
+        return config('services.gemini.api_key') ?? env('GEMINI_API_KEY');
+    }
+
+    /**
+     * Get AI Settings (Gemini API Key).
+     */
+    public function getAiSettings(): JsonResponse
+    {
+        $dbKey = null;
+        $setting = null;
+        try {
+            $setting = DB::table('settings')
+                ->where('group', 'rekrutmen')
+                ->where('name', 'gemini_api_key')
+                ->first();
+
+            if ($setting && ! empty($setting->payload)) {
+                $decoded = json_decode($setting->payload, true);
+                $dbKey = is_string($decoded) ? $decoded : ($decoded['key'] ?? (string) $setting->payload);
+                $dbKey = trim(trim($dbKey, '"'));
+            }
+        } catch (\Throwable $e) {
+        }
+
+        $envKey = config('services.gemini.api_key') ?? env('GEMINI_API_KEY');
+        $activeKey = ! empty($dbKey) ? $dbKey : $envKey;
+
+        return response()->json([
+            'api_key'     => $activeKey ?? '',
+            'is_database' => ! empty($dbKey),
+            'has_env'     => ! empty($envKey),
+            'updated_at'  => $setting->updated_at ?? null,
+        ]);
+    }
+
+    /**
+     * Save AI Settings (Gemini API Key) to Database.
+     */
+    public function saveAiSettings(Request $request): JsonResponse
+    {
+        $apiKey = trim((string) $request->input('api_key', ''));
+
+        if (empty($apiKey)) {
+            DB::table('settings')
+                ->where('group', 'rekrutmen')
+                ->where('name', 'gemini_api_key')
+                ->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Kunci API Gemini di database dihapus. Sistem akan menggunakan nilai fallback dari .env jika tersedia.',
+            ]);
+        }
+
+        DB::table('settings')->updateOrInsert(
+            ['group' => 'rekrutmen', 'name' => 'gemini_api_key'],
+            [
+                'payload'    => json_encode($apiKey),
+                'locked'     => false,
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kunci API Gemini berhasil disimpan ke database! Evaluasi AI otomatis menggunakan kunci baru tanpa perlu deploy ulang.',
+        ]);
+    }
+
+    /**
+     * Internal caller for Gemini API with multi-model fallback.
+     */
+    public static function callGeminiApi(string $apiKey, string $prompt, int $timeout = 25): ?string
+    {
+        $models = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+
+        foreach ($models as $model) {
+            try {
+                $apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+                $response = Http::withoutVerifying()
+                    ->timeout($timeout)
+                    ->withHeaders(['Content-Type' => 'application/json'])
+                    ->post($apiUrl, [
+                        'contents' => [
+                            ['parts' => [['text' => $prompt]]],
+                        ],
+                    ]);
+
+                if ($response->successful()) {
+                    $text = $response->json('candidates.0.content.parts.0.text');
+                    if (is_string($text) && ! empty($text)) {
+                        return $text;
+                    }
+                }
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Test connection to Gemini API with current or provided key.
+     */
+    public function testAiConnection(Request $request): JsonResponse
+    {
+        $apiKey = trim((string) $request->input('api_key', ''));
+        if (empty($apiKey)) {
+            $apiKey = self::getGeminiApiKey();
+        }
+
+        if (empty($apiKey)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'API Key belum diatur.',
+            ], 422);
+        }
+
+        $models = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+        $lastError = 'Tidak dapat terhubung ke endpoint Gemini';
+
+        foreach ($models as $model) {
+            try {
+                $apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+                $response = Http::withoutVerifying()
+                    ->timeout(20)
+                    ->withHeaders(['Content-Type' => 'application/json'])
+                    ->post($apiUrl, [
+                        'contents' => [
+                            [
+                                'parts' => [
+                                    ['text' => 'Balas "OK" jika terhubung.'],
+                                ],
+                            ],
+                        ],
+                    ]);
+
+                if ($response->successful()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => "Koneksi ke Google Gemini AI Berhasil (Model: {$model})! Kuota dan API Key aktif.",
+                    ]);
+                }
+
+                $lastError = $response->json('error.message') ?? 'Status: '.$response->status();
+            } catch (\Throwable $e) {
+                $lastError = $e->getMessage();
+            }
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Google Gemini Error: '.$lastError,
+        ], 400);
+    }
+
+    /**
+     * Get default mail templates for stages.
+     */
+    public static function getDefaultMailTemplates(): array
+    {
+        return [
+            'psikotes' => [
+                'id'           => 'psikotes',
+                'name'         => 'Undangan Tes Psikotes & Kompetensi',
+                'stage'        => 'Psikotes',
+                'badge'        => 'Tes Online',
+                'subject'      => '[OCEAN SPACE] Undangan Tes Psikotes Online - {posisi} - {nama_pelamar}',
+                'body'         => "Terima kasih atas minat Anda bergabung dengan OCEAN SPACE untuk posisi {posisi}.\n\nBerdasarkan hasil peninjauan awal berkas & CV Anda, kami mengundang Anda untuk mengikuti tahapan Tes Psikotes & Penilaian Kompetensi Online.",
+                'info_title'   => 'Informasi Pelaksanaan Tes',
+                'action_label' => 'Mulai Tes Psikotes Online',
+                'has_link'     => true,
+                'has_schedule' => true,
+                'has_note'     => true,
+                'default_note' => 'Pastikan koneksi internet stabil dan gunakan browser Google Chrome di perangkat PC/Laptop. Kerjakan secara mandiri sebelum batas waktu berakhir.',
+            ],
+            'interview' => [
+                'id'           => 'interview',
+                'name'         => 'Undangan Wawancara (Interview HR / User)',
+                'stage'        => 'Interview User',
+                'badge'        => 'Wawancara Kerja',
+                'subject'      => '[OCEAN SPACE] Undangan Wawancara Kerja - {posisi} - {nama_pelamar}',
+                'body'         => 'Sehubungan dengan proses seleksi rekrutmen posisi {posisi} di OCEAN SPACE, kami mengundang Anda untuk menghadiri sesi Wawancara Kerja.',
+                'info_title'   => 'Jadwal & Lokasi Wawancara',
+                'action_label' => 'Buka Link Google Meet / Video Call',
+                'has_link'     => true,
+                'has_schedule' => true,
+                'has_note'     => true,
+                'default_note' => 'Mohon hadir 10 menit sebelum waktu yang ditentukan dan persiapkan kartu identitas serta resume Anda.',
+            ],
+            'offering' => [
+                'id'           => 'offering',
+                'name'         => 'Offering Letter & Penawaran Kerja',
+                'stage'        => 'Offering Letter',
+                'badge'        => 'Job Offer',
+                'subject'      => '[OCEAN SPACE] Job Offer & Offering Letter - {posisi} - {nama_pelamar}',
+                'body'         => "Selamat! Berdasarkan seluruh rangkaian proses seleksi yang telah Anda lalui, kami dengan bangga menyampaikan Penawaran Kerja (Job Offer) untuk bergabung sebagai {posisi} di OCEAN SPACE.\n\nSilakan tinjau rincian penawaran kerja dan lakukan konfirmasi penerimaan melalui tautan berikut:",
+                'info_title'   => 'Rincian Penawaran Kerja',
+                'action_label' => 'Lihat & Konfirmasi Offering Letter',
+                'has_link'     => true,
+                'has_schedule' => true,
+                'has_note'     => true,
+                'default_note' => 'Harap memberikan konfirmasi penerimaan penawaran kerja sebelum batas waktu yang ditentukan.',
+            ],
+            'rejection' => [
+                'id'           => 'rejection',
+                'name'         => 'Pemberitahuan Status (Polite Rejection)',
+                'stage'        => 'Ditolak',
+                'badge'        => 'Status Lamaran',
+                'subject'      => '[OCEAN SPACE] Pembaruan Status Rekrutmen - {posisi} - {nama_pelamar}',
+                'body'         => "Terima kasih atas waktu dan dedikasi Anda dalam mengikuti proses seleksi posisi {posisi} di OCEAN SPACE.\n\nSetelah melalui pertimbangan yang mendalam, saat ini kami memutuskan untuk melanjutkan proses dengan kandidat yang profilnya lebih sesuai dengan kebutuhan spesifik posisi ini. Profil Anda akan tetap tersimpan di database talenta kami untuk peluang yang sesuai di masa mendatang.",
+                'info_title'   => 'Informasi Lamaran',
+                'action_label' => '',
+                'has_link'     => false,
+                'has_schedule' => false,
+                'has_note'     => false,
+                'default_note' => '',
+            ],
+        ];
+    }
+
+    /**
+     * Get Mail Templates.
+     */
+    public function getMailTemplates(): JsonResponse
+    {
+        $templates = self::getDefaultMailTemplates();
+
+        try {
+            $setting = DB::table('settings')
+                ->where('group', 'rekrutmen')
+                ->where('name', 'mail_templates')
+                ->first();
+
+            if ($setting && ! empty($setting->payload)) {
+                $saved = json_decode($setting->payload, true);
+                if (is_array($saved)) {
+                    foreach ($saved as $k => $tpl) {
+                        if (isset($templates[$k])) {
+                            $templates[$k] = array_merge($templates[$k], $tpl);
+                        } else {
+                            $templates[$k] = $tpl;
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+        }
+
+        return response()->json([
+            'templates' => $templates,
+        ]);
+    }
+
+    /**
+     * Save Mail Templates to Database.
+     */
+    public function saveMailTemplates(Request $request): JsonResponse
+    {
+        $templates = $request->input('templates', []);
+
+        DB::table('settings')->updateOrInsert(
+            ['group' => 'rekrutmen', 'name' => 'mail_templates'],
+            [
+                'payload'    => json_encode($templates),
+                'locked'     => false,
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Template email notifikasi berhasil disimpan ke database!',
+        ]);
+    }
+
+    /**
+     * Send email directly to candidate using template.
+     */
+    public function sendCandidateEmail(Request $request, $id): JsonResponse
+    {
+        $request->validate([
+            'subject'      => 'required|string|max:255',
+            'body_message' => 'required|string',
+        ]);
+
+        $application = JobApplication::with(['jobPosting', 'currentStage'])->findOrFail($id);
+
+        if (empty($application->email)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kandidat ini tidak memiliki alamat email yang terdaftar.',
+            ], 422);
+        }
+
+        $jobTitle = $application->jobPosting?->title ?? 'Lowongan Kerja';
+        $candidateName = $application->full_name;
+        $companyName = 'OCEAN SPACE';
+        $location = $application->jobPosting?->location ?? 'Indonesia';
+
+        $subject = str_replace(
+            ['{nama_pelamar}', '{posisi}', '{perusahaan}', '{lokasi}'],
+            [$candidateName, $jobTitle, $companyName, $location],
+            $request->input('subject')
+        );
+
+        $actionUrl = trim($request->input('action_url', ''));
+        if (! empty($actionUrl) && ! str_starts_with($actionUrl, 'http://') && ! str_starts_with($actionUrl, 'https://')) {
+            $actionUrl = 'https://'.$actionUrl;
+        }
+
+        $bodyMessage = str_replace(
+            ['{nama_pelamar}', '{posisi}', '{perusahaan}', '{lokasi}', '{link_aksi}'],
+            [$candidateName, $jobTitle, $companyName, $location, $actionUrl],
+            $request->input('body_message')
+        );
+
+        $badgeText = $request->input('badge_text', 'Notifikasi Rekrutmen');
+        $infoBoxTitle = $request->input('info_box_title', 'Detail Informasi');
+        $actionLabel = $request->input('action_label');
+        $specialNote = $request->input('special_note');
+
+        // Compile Info Items Table
+        $infoItems = [];
+        $infoItems[] = ['label' => 'Posisi Lowongan', 'value' => $jobTitle];
+        $infoItems[] = ['label' => 'Perusahaan', 'value' => $companyName];
+        if (! empty($location)) {
+            $infoItems[] = ['label' => 'Penempatan', 'value' => $location];
+        }
+        if ($request->filled('schedule')) {
+            $infoItems[] = ['label' => 'Jadwal / Waktu', 'value' => $request->input('schedule')];
+        }
+        if ($request->filled('venue_or_method')) {
+            $infoItems[] = ['label' => 'Metode / Lokasi', 'value' => $request->input('venue_or_method')];
+        }
+        if (! empty($actionUrl)) {
+            $infoItems[] = ['label' => 'Tautan / Link Akses', 'value' => $actionUrl];
+        }
+
+        $logoUrl = 'https://oceanspace.co.id/images/logo-color.png';
+
+        $attachmentFile = ($request->hasFile('attachment') && $request->file('attachment')->isValid())
+            ? $request->file('attachment')
+            : null;
+
+        try {
+            Mail::send('rekrutmen::mail.candidate-stage-notification', [
+                'subject'        => $subject,
+                'badge_text'     => $badgeText,
+                'position_title' => $jobTitle,
+                'recipient_name' => $candidateName,
+                'body_message'   => $bodyMessage,
+                'info_box_title' => $infoBoxTitle,
+                'info_items'     => $infoItems,
+                'action_url'     => $actionUrl,
+                'action_label'   => $actionLabel,
+                'special_note'   => $specialNote,
+                'logo_url'       => $logoUrl,
+                'has_attachment' => ! empty($attachmentFile),
+            ], function ($message) use ($application, $subject, $attachmentFile) {
+                $message->to($application->email, $application->full_name)
+                    ->subject($subject);
+
+                if ($attachmentFile) {
+                    $message->attach($attachmentFile->getRealPath(), [
+                        'as'   => $attachmentFile->getClientOriginalName(),
+                        'mime' => $attachmentFile->getMimeType(),
+                    ]);
+                }
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "Email notifikasi berhasil dikirimkan ke {$application->email}!",
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Failed sending candidate stage email: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengirim email: '.$e->getMessage(),
+            ], 500);
+        }
     }
 }
