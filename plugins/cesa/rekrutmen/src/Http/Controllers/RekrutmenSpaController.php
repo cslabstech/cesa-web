@@ -15,6 +15,7 @@ use Cesa\Rekrutmen\Models\JobPosting;
 use Cesa\Rekrutmen\Models\RekrutmenPipeline;
 use Cesa\Rekrutmen\Models\RekrutmenStage;
 use Cesa\Rekrutmen\Models\RequestManPower;
+use Cesa\Rekrutmen\Services\CandidateWhatsAppNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -1384,7 +1385,7 @@ PROMPT;
      */
     public static function callGeminiApi(string $apiKey, string $prompt, int $timeout = 25): ?string
     {
-        $models = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+        $models = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3-flash-preview'];
 
         foreach ($models as $model) {
             try {
@@ -1429,7 +1430,7 @@ PROMPT;
             ], 422);
         }
 
-        $models = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+        $models = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3-flash-preview'];
         $lastError = 'Tidak dapat terhubung ke endpoint Gemini';
 
         foreach ($models as $model) {
@@ -1475,53 +1476,53 @@ PROMPT;
         return [
             'psikotes' => [
                 'id'           => 'psikotes',
-                'name'         => 'Undangan Tes Psikotes & Kompetensi',
+                'name'         => 'Tes & Asesmen Online',
                 'stage'        => 'Psikotes',
                 'badge'        => 'Tes Online',
-                'subject'      => '[OCEAN SPACE] Undangan Tes Psikotes Online - {posisi} - {nama_pelamar}',
-                'body'         => "Terima kasih atas minat Anda bergabung dengan OCEAN SPACE untuk posisi {posisi}.\n\nBerdasarkan hasil peninjauan awal berkas & CV Anda, kami mengundang Anda untuk mengikuti tahapan Tes Psikotes & Penilaian Kompetensi Online.",
-                'info_title'   => 'Informasi Pelaksanaan Tes',
-                'action_label' => 'Mulai Tes Psikotes Online',
+                'subject'      => 'Undangan Tes Psikotes Online - {posisi}',
+                'body'         => "Terima kasih atas minat Anda bergabung dengan {perusahaan} untuk posisi {posisi}.\n\nBerdasarkan peninjauan awal berkas CV Anda, kami mengundang Anda untuk mengikuti tahapan Tes Psikotes & Asesmen secara online.",
+                'info_title'   => 'Informasi Pelaksanaan',
+                'action_label' => 'Mulai Tes Online',
                 'has_link'     => true,
                 'has_schedule' => true,
                 'has_note'     => true,
-                'default_note' => 'Pastikan koneksi internet stabil dan gunakan browser Google Chrome di perangkat PC/Laptop. Kerjakan secara mandiri sebelum batas waktu berakhir.',
+                'default_note' => 'Pastikan koneksi internet stabil dan gunakan browser di komputer/laptop untuk pengerjaan tes.',
             ],
             'interview' => [
                 'id'           => 'interview',
-                'name'         => 'Undangan Wawancara (Interview HR / User)',
+                'name'         => 'Wawancara Kerja',
                 'stage'        => 'Interview User',
-                'badge'        => 'Wawancara Kerja',
-                'subject'      => '[OCEAN SPACE] Undangan Wawancara Kerja - {posisi} - {nama_pelamar}',
-                'body'         => 'Sehubungan dengan proses seleksi rekrutmen posisi {posisi} di OCEAN SPACE, kami mengundang Anda untuk menghadiri sesi Wawancara Kerja.',
+                'badge'        => 'Wawancara',
+                'subject'      => 'Undangan Wawancara Kerja - {posisi}',
+                'body'         => 'Sehubungan dengan proses seleksi rekrutmen posisi {posisi} di {perusahaan}, kami mengundang Anda untuk mengikuti sesi wawancara kerja.',
                 'info_title'   => 'Jadwal & Lokasi Wawancara',
-                'action_label' => 'Buka Link Google Meet / Video Call',
+                'action_label' => 'Buka Tautan Wawancara',
                 'has_link'     => true,
                 'has_schedule' => true,
                 'has_note'     => true,
-                'default_note' => 'Mohon hadir 10 menit sebelum waktu yang ditentukan dan persiapkan kartu identitas serta resume Anda.',
+                'default_note' => 'Mohon bergabung tepat waktu dan siapkan resume serta koneksi internet yang stabil.',
             ],
             'offering' => [
                 'id'           => 'offering',
-                'name'         => 'Offering Letter & Penawaran Kerja',
+                'name'         => 'Offering Letter',
                 'stage'        => 'Offering Letter',
-                'badge'        => 'Job Offer',
-                'subject'      => '[OCEAN SPACE] Job Offer & Offering Letter - {posisi} - {nama_pelamar}',
-                'body'         => "Selamat! Berdasarkan seluruh rangkaian proses seleksi yang telah Anda lalui, kami dengan bangga menyampaikan Penawaran Kerja (Job Offer) untuk bergabung sebagai {posisi} di OCEAN SPACE.\n\nSilakan tinjau rincian penawaran kerja dan lakukan konfirmasi penerimaan melalui tautan berikut:",
+                'badge'        => 'Offering Letter',
+                'subject'      => 'Penawaran Kerja (Offering Letter) - {posisi}',
+                'body'         => "Selamat! Berdasarkan rangkaian proses seleksi yang telah dilalui, kami bermaksud menyampaikan Penawaran Kerja (Offering Letter) untuk posisi {posisi} di {perusahaan}.\n\nSilakan tinjau rincian penawaran kerja terlampir dan konfirmasi penerimaan Anda.",
                 'info_title'   => 'Rincian Penawaran Kerja',
-                'action_label' => 'Lihat & Konfirmasi Offering Letter',
+                'action_label' => 'Lihat Offering Letter',
                 'has_link'     => true,
                 'has_schedule' => true,
                 'has_note'     => true,
-                'default_note' => 'Harap memberikan konfirmasi penerimaan penawaran kerja sebelum batas waktu yang ditentukan.',
+                'default_note' => 'Harap melakukan konfirmasi penerimaan sebelum batas waktu yang ditentukan.',
             ],
             'rejection' => [
                 'id'           => 'rejection',
-                'name'         => 'Pemberitahuan Status (Polite Rejection)',
+                'name'         => 'Pemberitahuan Status',
                 'stage'        => 'Ditolak',
                 'badge'        => 'Status Lamaran',
-                'subject'      => '[OCEAN SPACE] Pembaruan Status Rekrutmen - {posisi} - {nama_pelamar}',
-                'body'         => "Terima kasih atas waktu dan dedikasi Anda dalam mengikuti proses seleksi posisi {posisi} di OCEAN SPACE.\n\nSetelah melalui pertimbangan yang mendalam, saat ini kami memutuskan untuk melanjutkan proses dengan kandidat yang profilnya lebih sesuai dengan kebutuhan spesifik posisi ini. Profil Anda akan tetap tersimpan di database talenta kami untuk peluang yang sesuai di masa mendatang.",
+                'subject'      => 'Pembaruan Status Rekrutmen - {posisi}',
+                'body'         => "Terima kasih atas waktu dan partisipasi Anda dalam proses seleksi posisi {posisi} di {perusahaan}.\n\nSetelah pertimbangan menyeluruh, saat ini kami memutuskan untuk melanjutkan proses dengan kandidat lain yang kualifikasinya lebih selaras dengan kebutuhan posisi saat ini. Profil Anda akan tetap tersimpan dalam database kami untuk peluang mendatang yang relevan.",
                 'info_title'   => 'Informasi Lamaran',
                 'action_label' => '',
                 'has_link'     => false,
@@ -1589,7 +1590,7 @@ PROMPT;
     }
 
     /**
-     * Send email directly to candidate using template.
+     * Send notification (email and/or WhatsApp) directly to candidate using template.
      */
     public function sendCandidateEmail(Request $request, $id): JsonResponse
     {
@@ -1600,100 +1601,308 @@ PROMPT;
 
         $application = JobApplication::with(['jobPosting', 'currentStage'])->findOrFail($id);
 
-        if (empty($application->email)) {
+        $channels = (array) $request->input('channels', ['email']);
+        if (empty($channels)) {
+            $channels = ['email'];
+        }
+
+        $results = [
+            'email'    => null,
+            'whatsapp' => null,
+        ];
+
+        $hasSuccess = false;
+        $messages = [];
+
+        // 1. Send WhatsApp if requested
+        if (in_array('whatsapp', $channels, true)) {
+            $waResult = app(CandidateWhatsAppNotifier::class)->send($application, $request->all());
+            $results['whatsapp'] = $waResult;
+            if ($waResult['success']) {
+                $hasSuccess = true;
+                $messages[] = "WhatsApp terkirim ke {$waResult['phone']}";
+            } else {
+                $messages[] = "WhatsApp: {$waResult['message']}";
+            }
+        }
+
+        // 2. Send Email if requested
+        if (in_array('email', $channels, true)) {
+            if (empty($application->email)) {
+                $results['email'] = [
+                    'success' => false,
+                    'message' => 'Kandidat ini tidak memiliki alamat email yang terdaftar.',
+                ];
+                $messages[] = 'Email tidak terdaftar';
+            } else {
+                $jobTitle = $application->jobPosting?->title ?? ($application->position ?? 'Lowongan Kerja');
+                $candidateName = $application->full_name;
+                $companyName = 'OCEAN SPACE';
+                $location = $application->jobPosting?->location ?? 'Indonesia';
+
+                $subject = str_replace(
+                    ['{nama_pelamar}', '{posisi}', '{perusahaan}', '{lokasi}'],
+                    [$candidateName, $jobTitle, $companyName, $location],
+                    $request->input('subject')
+                );
+
+                $actionUrl = trim($request->input('action_url', ''));
+                if (! empty($actionUrl) && ! str_starts_with($actionUrl, 'http://') && ! str_starts_with($actionUrl, 'https://')) {
+                    $actionUrl = 'https://'.$actionUrl;
+                }
+
+                $bodyMessage = str_replace(
+                    ['{nama_pelamar}', '{posisi}', '{perusahaan}', '{lokasi}', '{link_aksi}'],
+                    [$candidateName, $jobTitle, $companyName, $location, $actionUrl],
+                    $request->input('body_message')
+                );
+
+                $badgeText = $request->input('badge_text', 'Notifikasi Rekrutmen');
+                $infoBoxTitle = $request->input('info_box_title', 'Detail Informasi');
+                $actionLabel = $request->input('action_label');
+                $specialNote = $request->input('special_note');
+
+                // Compile Info Items Table
+                $infoItems = [];
+                $infoItems[] = ['label' => 'Posisi Lowongan', 'value' => $jobTitle];
+                $infoItems[] = ['label' => 'Perusahaan', 'value' => $companyName];
+                if (! empty($location)) {
+                    $infoItems[] = ['label' => 'Penempatan', 'value' => $location];
+                }
+                if ($request->filled('schedule')) {
+                    $infoItems[] = ['label' => 'Jadwal / Waktu', 'value' => $request->input('schedule')];
+                }
+                if ($request->filled('venue_or_method')) {
+                    $infoItems[] = ['label' => 'Metode / Lokasi', 'value' => $request->input('venue_or_method')];
+                }
+                if (! empty($actionUrl)) {
+                    $infoItems[] = ['label' => 'Tautan / Link Akses', 'value' => $actionUrl];
+                }
+
+                $logoUrl = 'https://oceanspace.co.id/images/logo-color.png';
+
+                $attachmentFile = ($request->hasFile('attachment') && $request->file('attachment')->isValid())
+                    ? $request->file('attachment')
+                    : null;
+
+                try {
+                    Mail::send('rekrutmen::mail.candidate-stage-notification', [
+                        'subject'        => $subject,
+                        'badge_text'     => $badgeText,
+                        'position_title' => $jobTitle,
+                        'recipient_name' => $candidateName,
+                        'body_message'   => $bodyMessage,
+                        'info_box_title' => $infoBoxTitle,
+                        'info_items'     => $infoItems,
+                        'action_url'     => $actionUrl,
+                        'action_label'   => $actionLabel,
+                        'special_note'   => $specialNote,
+                        'logo_url'       => $logoUrl,
+                        'has_attachment' => ! empty($attachmentFile),
+                    ], function ($message) use ($application, $subject, $attachmentFile) {
+                        $message->to($application->email, $application->full_name)
+                            ->subject($subject);
+
+                        if ($attachmentFile) {
+                            $message->attach($attachmentFile->getRealPath(), [
+                                'as'   => $attachmentFile->getClientOriginalName(),
+                                'mime' => $attachmentFile->getMimeType(),
+                            ]);
+                        }
+                    });
+
+                    $results['email'] = [
+                        'success' => true,
+                        'message' => "Email notifikasi berhasil dikirimkan ke {$application->email}!",
+                    ];
+                    $hasSuccess = true;
+                    $messages[] = "Email terkirim ke {$application->email}";
+                } catch (\Throwable $e) {
+                    Log::error('Failed sending candidate stage email: '.$e->getMessage());
+
+                    $results['email'] = [
+                        'success' => false,
+                        'message' => 'Gagal mengirim email: '.$e->getMessage(),
+                    ];
+                    $messages[] = "Gagal kirim email: {$e->getMessage()}";
+                }
+            }
+        }
+
+        return response()->json([
+            'success' => $hasSuccess,
+            'message' => implode(' | ', $messages),
+            'results' => $results,
+        ], $hasSuccess ? 200 : 422);
+    }
+
+    /**
+     * Send bulk notification (Email and/or WhatsApp) to multiple candidates.
+     */
+    public function bulkSendCandidateNotification(Request $request): JsonResponse
+    {
+        $request->validate([
+            'application_ids'   => 'required|array|min:1',
+            'application_ids.*' => 'integer',
+            'channels'          => 'required|array|min:1',
+            'subject'           => 'required|string|max:255',
+            'body_message'      => 'required|string',
+        ]);
+
+        $applications = JobApplication::with(['jobPosting', 'currentStage'])
+            ->whereIn('id', $request->input('application_ids'))
+            ->get();
+
+        if ($applications->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Kandidat ini tidak memiliki alamat email yang terdaftar.',
+                'message' => 'Tidak ada kandidat valid yang ditemukan untuk dikirimi notifikasi.',
             ], 422);
         }
 
-        $jobTitle = $application->jobPosting?->title ?? 'Lowongan Kerja';
-        $candidateName = $application->full_name;
-        $companyName = 'OCEAN SPACE';
-        $location = $application->jobPosting?->location ?? 'Indonesia';
-
-        $subject = str_replace(
-            ['{nama_pelamar}', '{posisi}', '{perusahaan}', '{lokasi}'],
-            [$candidateName, $jobTitle, $companyName, $location],
-            $request->input('subject')
-        );
-
-        $actionUrl = trim($request->input('action_url', ''));
-        if (! empty($actionUrl) && ! str_starts_with($actionUrl, 'http://') && ! str_starts_with($actionUrl, 'https://')) {
-            $actionUrl = 'https://'.$actionUrl;
-        }
-
-        $bodyMessage = str_replace(
-            ['{nama_pelamar}', '{posisi}', '{perusahaan}', '{lokasi}', '{link_aksi}'],
-            [$candidateName, $jobTitle, $companyName, $location, $actionUrl],
-            $request->input('body_message')
-        );
-
-        $badgeText = $request->input('badge_text', 'Notifikasi Rekrutmen');
-        $infoBoxTitle = $request->input('info_box_title', 'Detail Informasi');
-        $actionLabel = $request->input('action_label');
-        $specialNote = $request->input('special_note');
-
-        // Compile Info Items Table
-        $infoItems = [];
-        $infoItems[] = ['label' => 'Posisi Lowongan', 'value' => $jobTitle];
-        $infoItems[] = ['label' => 'Perusahaan', 'value' => $companyName];
-        if (! empty($location)) {
-            $infoItems[] = ['label' => 'Penempatan', 'value' => $location];
-        }
-        if ($request->filled('schedule')) {
-            $infoItems[] = ['label' => 'Jadwal / Waktu', 'value' => $request->input('schedule')];
-        }
-        if ($request->filled('venue_or_method')) {
-            $infoItems[] = ['label' => 'Metode / Lokasi', 'value' => $request->input('venue_or_method')];
-        }
-        if (! empty($actionUrl)) {
-            $infoItems[] = ['label' => 'Tautan / Link Akses', 'value' => $actionUrl];
-        }
-
-        $logoUrl = 'https://oceanspace.co.id/images/logo-color.png';
-
+        $channels = (array) $request->input('channels', ['email']);
         $attachmentFile = ($request->hasFile('attachment') && $request->file('attachment')->isValid())
             ? $request->file('attachment')
             : null;
 
-        try {
-            Mail::send('rekrutmen::mail.candidate-stage-notification', [
-                'subject'        => $subject,
-                'badge_text'     => $badgeText,
-                'position_title' => $jobTitle,
-                'recipient_name' => $candidateName,
-                'body_message'   => $bodyMessage,
-                'info_box_title' => $infoBoxTitle,
-                'info_items'     => $infoItems,
-                'action_url'     => $actionUrl,
-                'action_label'   => $actionLabel,
-                'special_note'   => $specialNote,
-                'logo_url'       => $logoUrl,
-                'has_attachment' => ! empty($attachmentFile),
-            ], function ($message) use ($application, $subject, $attachmentFile) {
-                $message->to($application->email, $application->full_name)
-                    ->subject($subject);
+        $stats = [
+            'total'            => $applications->count(),
+            'email_success'    => 0,
+            'email_failed'     => 0,
+            'whatsapp_success' => 0,
+            'whatsapp_failed'  => 0,
+            'skipped_no_email' => 0,
+            'skipped_no_phone' => 0,
+        ];
 
-                if ($attachmentFile) {
-                    $message->attach($attachmentFile->getRealPath(), [
-                        'as'   => $attachmentFile->getClientOriginalName(),
-                        'mime' => $attachmentFile->getMimeType(),
-                    ]);
+        $details = [];
+        $waNotifier = app(CandidateWhatsAppNotifier::class);
+
+        foreach ($applications as $application) {
+            $candidateName = $application->full_name;
+            $jobTitle = $application->jobPosting?->title ?? ($application->position ?? 'Lowongan Kerja');
+            $companyName = 'OCEAN SPACE';
+            $location = $application->jobPosting?->location ?? 'Indonesia';
+
+            $actionUrl = trim($request->input('action_url', ''));
+            if (! empty($actionUrl) && ! str_starts_with($actionUrl, 'http://') && ! str_starts_with($actionUrl, 'https://')) {
+                $actionUrl = 'https://'.$actionUrl;
+            }
+
+            $subject = str_replace(
+                ['{nama_pelamar}', '{posisi}', '{perusahaan}', '{lokasi}'],
+                [$candidateName, $jobTitle, $companyName, $location],
+                $request->input('subject')
+            );
+
+            $bodyMessage = str_replace(
+                ['{nama_pelamar}', '{posisi}', '{perusahaan}', '{lokasi}', '{link_aksi}'],
+                [$candidateName, $jobTitle, $companyName, $location, $actionUrl],
+                $request->input('body_message')
+            );
+
+            $badgeText = $request->input('badge_text', 'Notifikasi Rekrutmen');
+            $infoBoxTitle = $request->input('info_box_title', 'Detail Informasi');
+            $actionLabel = $request->input('action_label');
+            $specialNote = $request->input('special_note');
+
+            $appDetail = [
+                'id'       => $application->id,
+                'name'     => $candidateName,
+                'email'    => null,
+                'whatsapp' => null,
+            ];
+
+            // 1. WhatsApp
+            if (in_array('whatsapp', $channels, true)) {
+                $waResult = $waNotifier->send($application, array_merge($request->all(), [
+                    'subject'      => $subject,
+                    'body_message' => $bodyMessage,
+                    'action_url'   => $actionUrl,
+                ]));
+
+                if ($waResult['success']) {
+                    $stats['whatsapp_success']++;
+                    $appDetail['whatsapp'] = ['success' => true, 'phone' => $waResult['phone'] ?? null];
+                } else {
+                    $stats['whatsapp_failed']++;
+                    $appDetail['whatsapp'] = ['success' => false, 'message' => $waResult['message']];
                 }
-            });
+            }
 
-            return response()->json([
-                'success' => true,
-                'message' => "Email notifikasi berhasil dikirimkan ke {$application->email}!",
-            ]);
-        } catch (\Throwable $e) {
-            Log::error('Failed sending candidate stage email: '.$e->getMessage());
+            // 2. Email
+            if (in_array('email', $channels, true)) {
+                if (empty($application->email)) {
+                    $stats['skipped_no_email']++;
+                    $appDetail['email'] = ['success' => false, 'message' => 'Alamat email kosong'];
+                } else {
+                    $infoItems = [];
+                    $infoItems[] = ['label' => 'Posisi Lowongan', 'value' => $jobTitle];
+                    $infoItems[] = ['label' => 'Perusahaan', 'value' => $companyName];
+                    if (! empty($location)) {
+                        $infoItems[] = ['label' => 'Penempatan', 'value' => $location];
+                    }
+                    if ($request->filled('schedule')) {
+                        $infoItems[] = ['label' => 'Jadwal / Waktu', 'value' => $request->input('schedule')];
+                    }
+                    if ($request->filled('venue_or_method')) {
+                        $infoItems[] = ['label' => 'Metode / Lokasi', 'value' => $request->input('venue_or_method')];
+                    }
+                    if (! empty($actionUrl)) {
+                        $infoItems[] = ['label' => 'Tautan / Link Akses', 'value' => $actionUrl];
+                    }
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal mengirim email: '.$e->getMessage(),
-            ], 500);
+                    try {
+                        Mail::send('rekrutmen::mail.candidate-stage-notification', [
+                            'subject'        => $subject,
+                            'badge_text'     => $badgeText,
+                            'position_title' => $jobTitle,
+                            'recipient_name' => $candidateName,
+                            'body_message'   => $bodyMessage,
+                            'info_box_title' => $infoBoxTitle,
+                            'info_items'     => $infoItems,
+                            'action_url'     => $actionUrl,
+                            'action_label'   => $actionLabel,
+                            'special_note'   => $specialNote,
+                            'logo_url'       => 'https://oceanspace.co.id/images/logo-color.png',
+                            'has_attachment' => ! empty($attachmentFile),
+                        ], function ($message) use ($application, $subject, $attachmentFile) {
+                            $message->to($application->email, $application->full_name)
+                                ->subject($subject);
+
+                            if ($attachmentFile) {
+                                $message->attach($attachmentFile->getRealPath(), [
+                                    'as'   => $attachmentFile->getClientOriginalName(),
+                                    'mime' => $attachmentFile->getMimeType(),
+                                ]);
+                            }
+                        });
+
+                        $stats['email_success']++;
+                        $appDetail['email'] = ['success' => true, 'recipient' => $application->email];
+                    } catch (\Throwable $e) {
+                        Log::error("Failed bulk sending email to {$application->email}: ".$e->getMessage());
+                        $stats['email_failed']++;
+                        $appDetail['email'] = ['success' => false, 'message' => $e->getMessage()];
+                    }
+                }
+            }
+
+            $details[] = $appDetail;
         }
+
+        $summaryMessage = sprintf(
+            'Notifikasi massal selesai. Email terkirim: %d, WhatsApp terkirim: %d dari total %d kandidat.',
+            $stats['email_success'],
+            $stats['whatsapp_success'],
+            $stats['total']
+        );
+
+        return response()->json([
+            'success' => ($stats['email_success'] > 0 || $stats['whatsapp_success'] > 0),
+            'message' => $summaryMessage,
+            'stats'   => $stats,
+            'details' => $details,
+        ]);
     }
 }

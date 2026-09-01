@@ -76,6 +76,8 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('settings/mail-templates', [RekrutmenSpaController::class, 'getMailTemplates'])->name('rekrutmen.api.settings.mail-templates');
         Route::post('settings/mail-templates', [RekrutmenSpaController::class, 'saveMailTemplates'])->name('rekrutmen.api.settings.mail-templates.save');
         Route::post('applications/{id}/send-email', [RekrutmenSpaController::class, 'sendCandidateEmail'])->name('rekrutmen.api.applications.send-email');
+        Route::post('applications/{id}/send-notification', [RekrutmenSpaController::class, 'sendCandidateEmail'])->name('rekrutmen.api.applications.send-notification');
+        Route::post('applications/bulk-send-notification', [RekrutmenSpaController::class, 'bulkSendCandidateNotification'])->name('rekrutmen.api.applications.bulk-send-notification');
     });
 
     // Native Admin Panel URLs taken over by Vue SPA:
@@ -86,8 +88,8 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('admin/configurations{any?}', [RekrutmenSpaController::class, 'index'])->where('any', '.*');
     Route::get('admin/rekrutmen{any?}', [RekrutmenSpaController::class, 'index'])->where('any', '.*');
 
-    // SPA wildcard fallback
+    // SPA wildcard fallback (excludes api/ paths to avoid conflicts with POST API routes)
     Route::get('rekrutmen/{any?}', [RekrutmenSpaController::class, 'index'])
-        ->where('any', '.*')
+        ->where('any', '^(?!api/).*')
         ->name('rekrutmen.spa');
 });

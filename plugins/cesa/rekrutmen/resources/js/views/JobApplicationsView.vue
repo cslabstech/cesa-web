@@ -150,18 +150,75 @@
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs">
           <thead>
-            <tr class="bg-slate-50 text-slate-500 border-b border-slate-200">
+            <tr v-if="!selectedAppIds.length" class="bg-slate-50 text-slate-500 border-b border-slate-200">
+              <th class="py-3 px-3.5 w-10 text-center">
+                <input
+                  type="checkbox"
+                  :checked="isAllSelected"
+                  @change="toggleSelectAll"
+                  class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer w-3.5 h-3.5"
+                  title="Pilih Semua Pelamar"
+                />
+              </th>
               <th class="py-3 px-4 font-semibold text-[11px]">Kandidat Pelamar</th>
               <th class="py-3 px-4 font-semibold text-[11px]">Posisi Dilamar</th>
               <th class="py-3 px-4 font-semibold text-[11px]">Kualifikasi Match</th>
               <th class="py-3 px-4 font-semibold text-[11px]">Tahapan Seleksi</th>
               <th class="py-3 px-4 font-semibold text-[11px]">Status</th>
               <th class="py-3 px-4 font-semibold text-[11px]">Tanggal Masuk</th>
-              <th class="py-3 px-4 text-right font-semibold text-[11px] w-24">Aksi</th>
+              <th class="py-3 px-4 text-right font-semibold text-[11px] w-28">Aksi</th>
+            </tr>
+            <tr v-else class="bg-blue-50/90 text-blue-900 border-b border-blue-200/80">
+              <th class="py-2.5 px-3.5 w-10 text-center align-middle">
+                <input
+                  type="checkbox"
+                  :checked="isAllSelected"
+                  @change="toggleSelectAll"
+                  class="rounded border-blue-400 text-blue-600 focus:ring-blue-500 cursor-pointer w-3.5 h-3.5"
+                  title="Pilih / Batalkan Semua"
+                />
+              </th>
+              <th colspan="7" class="py-2 px-4 font-medium align-middle">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold text-xs text-blue-950">{{ selectedAppIds.length }} pelamar dipilih</span>
+                    <span class="text-blue-300">&bull;</span>
+                    <button
+                      type="button"
+                      @click="selectedAppIds = []"
+                      class="text-xs text-blue-700 hover:text-blue-950 underline cursor-pointer font-medium"
+                    >
+                      Batalkan pilihan
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    @click="openBulkNotificationModal"
+                    class="px-3.5 py-1.5 bg-[#0c2340] hover:bg-[#15325b] text-white font-medium rounded-lg text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                  >
+                    <Send class="w-3.5 h-3.5" />
+                    <span>Kirim Notifikasi Massal</span>
+                  </button>
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
-            <tr v-for="app in filteredApplications" :key="app.id" class="hover:bg-slate-50 transition-colors group">
+            <tr
+              v-for="app in filteredApplications"
+              :key="app.id"
+              :class="['hover:bg-slate-50 transition-colors group', isSelected(app.id) ? 'bg-blue-50/40' : '']"
+            >
+              <!-- Checkbox -->
+              <td class="py-3.5 px-3.5 align-middle text-center" @click.stop>
+                <input
+                  type="checkbox"
+                  :value="app.id"
+                  v-model="selectedAppIds"
+                  class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer w-3.5 h-3.5"
+                />
+              </td>
+
               <!-- Name & Contact -->
               <td class="py-3.5 px-4 align-middle">
                 <div class="flex items-center gap-3">
@@ -172,7 +229,7 @@
                     <div class="font-bold text-xs text-slate-900 hover:text-blue-600 transition-colors cursor-pointer" @click="openDetail(app)">
                       {{ app.full_name }}
                     </div>
-                    <div class="text-[11px] text-slate-400 mt-0.5">{{ app.email }} &bull; {{ app.phone }}</div>
+                    <div class="text-[11px] text-slate-400 mt-0.5">{{ app.email || '-' }} &bull; {{ app.whatsapp_number || app.phone || '-' }}</div>
                   </div>
                 </div>
               </td>
@@ -221,10 +278,10 @@
                 <div class="flex items-center justify-end gap-1.5">
                   <button
                     @click.stop="openSendEmailModal(app)"
-                    class="p-1.5 text-slate-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
-                    title="Kirim Notifikasi Email"
+                    class="p-1.5 text-slate-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1"
+                    title="Kirim Notifikasi (Email / WhatsApp)"
                   >
-                    <Mail class="w-3.5 h-3.5" />
+                    <Send class="w-3.5 h-3.5" />
                   </button>
                   <button
                     @click="openDetail(app)"
@@ -236,7 +293,7 @@
               </td>
             </tr>
             <tr v-if="!filteredApplications.length">
-              <td colspan="7" class="py-12 text-center text-xs text-slate-500">
+              <td colspan="8" class="py-12 text-center text-xs text-slate-500">
                 Tidak ada data kandidat pelamar yang sesuai kriteria filter.
               </td>
             </tr>
@@ -332,46 +389,46 @@
     <!-- CANDIDATE ATS DETAIL MODAL -->
     <div
       v-if="selectedApp"
-      class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5"
+      class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 md:p-8"
       @click.self="selectedApp = null"
     >
-      <div class="bg-white rounded-2xl border border-slate-200 w-full max-w-7xl h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="bg-white rounded-xl border border-slate-200 w-full max-w-5xl h-[86vh] max-h-[860px] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         
-        <!-- Top Header Bar matching reference -->
-        <div class="px-8 py-5 border-b border-slate-200 bg-white flex items-center justify-between shrink-0">
-          <div class="flex items-center gap-4 min-w-0">
+        <!-- Top Header Bar -->
+        <div class="px-6 py-3.5 border-b border-slate-200 bg-white flex items-center justify-between shrink-0">
+          <div class="flex items-center gap-3 min-w-0">
             <button
               @click="selectedApp = null"
-              class="p-1 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+              class="p-1 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
               title="Kembali"
             >
-              <ArrowLeft class="w-5 h-5" />
+              <ArrowLeft class="w-4 h-4" />
             </button>
             <div class="min-w-0">
-              <h2 class="text-lg font-black text-slate-900 tracking-tight uppercase leading-tight truncate">
+              <h2 class="text-sm font-bold text-slate-900 leading-tight truncate">
                 {{ selectedApp.full_name }}
               </h2>
-              <p class="text-xs text-slate-400 font-medium mt-0.5">
+              <p class="text-[11px] text-slate-400 font-normal mt-0.5">
                 ID #{{ selectedApp.id }} &bull; Melamar pada {{ selectedApp.created_at }}
               </p>
             </div>
           </div>
 
-          <!-- Top Right: Stage Selector, Buka CV, Close -->
-          <div class="flex items-center gap-3 shrink-0">
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-semibold text-slate-500">Tahap:</span>
+          <!-- Top Right: Stage Selector, Kirim Notifikasi, Buka CV, Close -->
+          <div class="flex items-center gap-2.5 shrink-0">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-medium text-slate-500">Tahap:</span>
               <div class="relative">
                 <select
                   :value="selectedApp.current_stage_id || selectedApp.stage?.id || 1"
                   @change="moveCandidateStage(selectedApp, $event.target.value)"
-                  class="appearance-none bg-white border border-slate-300 hover:border-slate-400 text-xs font-semibold rounded-lg pl-3 pr-8 py-1.5 text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs"
+                  class="appearance-none bg-white border border-slate-200 hover:border-slate-300 text-xs font-medium rounded-lg pl-2.5 pr-7 py-1.5 text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs"
                 >
                   <option v-for="stg in stages" :key="stg.id" :value="stg.id">
                     {{ stg.name }}
                   </option>
                 </select>
-                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
                   <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
                 </div>
               </div>
@@ -379,27 +436,28 @@
 
             <button
               @click="openSendEmailModal(selectedApp)"
-              class="px-3.5 py-1.5 rounded-lg bg-[#0c2340] hover:bg-[#07172b] text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+              class="px-3 py-1.5 rounded-lg bg-[#0c2340] hover:bg-[#15325b] text-white text-xs font-medium flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
             >
-              <Mail class="w-3.5 h-3.5" />
-              <span>Kirim Email</span>
+              <Send class="w-3.5 h-3.5" />
+              <span>Kirim Notifikasi</span>
             </button>
 
             <a
               v-if="selectedApp.resume_url"
               :href="selectedApp.resume_url"
               target="_blank"
-              class="px-3.5 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-xs font-bold text-slate-800 flex items-center gap-1.5 shadow-2xs transition-colors"
+              class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-medium text-slate-700 flex items-center gap-1.5 shadow-2xs transition-colors"
             >
               <span>Buka CV</span>
-              <ExternalLink class="w-3.5 h-3.5 text-slate-500" />
+              <ExternalLink class="w-3.5 h-3.5 text-slate-400" />
             </a>
 
             <button
               @click="selectedApp = null"
-              class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg text-xl font-bold cursor-pointer transition-colors leading-none"
+              class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              title="Tutup"
             >
-              &times;
+              <X class="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -407,19 +465,19 @@
         <!-- Main Body: 2 Columns Layout -->
         <div class="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
           
-          <!-- LEFT COLUMN: Candidate Data Tables (42% Width) -->
-          <div class="w-full lg:w-[42%] p-7 overflow-y-auto no-scrollbar border-r border-slate-200 bg-white space-y-6">
+          <!-- LEFT COLUMN: Candidate Data & Evaluation (45% Width) -->
+          <div class="w-full lg:w-[45%] p-5 overflow-y-auto custom-scrollbar border-r border-slate-200 bg-white space-y-4">
             
-            <!-- 0. Evaluasi Kualifikasi & Kesesuaian (AI Screening) -->
-            <div class="p-4 rounded-xl bg-slate-50/90 border border-slate-200/90 shadow-2xs space-y-3">
+            <!-- 0. Evaluasi Kualifikasi & Kesesuaian -->
+            <div class="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-2.5">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <Sparkles class="w-4 h-4 text-indigo-600" />
-                  <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Hasil Evaluasi Kualifikasi</h3>
+                  <CheckCircle2 class="w-4 h-4 text-blue-700" />
+                  <h3 class="text-xs font-semibold text-slate-900">Evaluasi Kualifikasi</h3>
                 </div>
                 <span
                   v-if="selectedApp.ai_match_score !== null && selectedApp.ai_match_score !== undefined"
-                  :class="['px-2.5 py-0.5 rounded-full text-xs font-bold border', getAiBadgeClasses(selectedApp.ai_match_score)]"
+                  :class="['px-2.5 py-0.5 rounded-full text-xs font-semibold border', getAiBadgeClasses(selectedApp.ai_match_score)]"
                 >
                   {{ selectedApp.ai_match_score }}% &bull; {{ formatAiRecommendation(selectedApp.ai_recommendation) }}
                 </span>
@@ -427,29 +485,28 @@
               </div>
 
               <!-- Summary Text with line breaks -->
-              <div class="text-xs text-slate-700 leading-relaxed bg-white p-3.5 rounded-lg border border-slate-200/80 whitespace-pre-line">
-                {{ selectedApp.ai_summary || 'Evaluasi kualifikasi akan membandingkan data CV dengan persyaratan posisi lowongan ini.' }}
+              <div class="text-xs text-slate-700 leading-relaxed bg-white p-3 rounded-lg border border-slate-200/70 whitespace-pre-line">
+                {{ selectedApp.ai_summary || 'Evaluasi kualifikasi membandingkan kriteria posisi dengan berkas CV pelamar.' }}
               </div>
 
               <!-- Footer with Re-screen button -->
-              <div class="flex items-center justify-between pt-1">
-                <div class="text-[10.5px] text-slate-400">
-                  <span v-if="selectedApp.ai_analyzed_at">Diperbarui: {{ selectedApp.ai_analyzed_at }}</span>
-                </div>
-                <div class="flex items-center gap-2">
+              <div class="flex items-center justify-between pt-0.5 text-[11px] text-slate-400">
+                <span v-if="selectedApp.ai_analyzed_at">Diperbarui: {{ selectedApp.ai_analyzed_at }}</span>
+                <span v-else></span>
+                <div class="flex items-center gap-1.5">
                   <button
                     type="button"
                     @click="rescreenSingleCandidate(selectedApp)"
                     :disabled="isScreening"
-                    class="px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-200 bg-white rounded-md border border-slate-300 flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                    class="px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 bg-white rounded-md border border-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
                   >
-                    <RefreshCw class="w-3 h-3 text-slate-500" :class="{ 'animate-spin': isScreening }" />
+                    <RefreshCw class="w-3 h-3 text-slate-400" :class="{ 'animate-spin': isScreening }" />
                     <span>Evaluasi Ulang</span>
                   </button>
                   <button
                     type="button"
                     @click="openAnalysisModal(selectedApp)"
-                    class="px-2.5 py-1 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 bg-white rounded-md border border-blue-200 transition-colors cursor-pointer"
+                    class="px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50 bg-white rounded-md border border-blue-200 transition-colors cursor-pointer"
                   >
                     Detail Komparasi
                   </button>
@@ -459,33 +516,33 @@
 
             <!-- 1. Data Pribadi -->
             <div>
-              <h3 class="text-sm font-bold text-slate-900 mb-2.5">Data Pribadi</h3>
-              <div class="border border-slate-200 rounded-lg overflow-hidden">
+              <h3 class="text-xs font-semibold text-slate-800 mb-1.5">Data Pribadi</h3>
+              <div class="border border-slate-200/80 rounded-lg overflow-hidden">
                 <table class="w-full text-xs text-left">
-                  <tbody class="divide-y divide-slate-200">
+                  <tbody class="divide-y divide-slate-100">
                     <tr>
-                      <td class="py-2.5 px-3.5 text-slate-500 font-medium w-40 bg-slate-50/40">Nama Lengkap (KTP)</td>
-                      <td class="py-2.5 px-3.5 text-slate-900 font-bold uppercase">{{ selectedApp.full_name }}</td>
+                      <td class="py-2 px-3 text-slate-500 font-medium w-36 bg-slate-50/50">Nama Lengkap</td>
+                      <td class="py-2 px-3 text-slate-900 font-semibold">{{ selectedApp.full_name }}</td>
                     </tr>
                     <tr>
-                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40">Email</td>
-                      <td class="py-2.5 px-3.5 text-slate-900 font-medium">{{ selectedApp.email || '-' }}</td>
+                      <td class="py-2 px-3 text-slate-500 font-medium bg-slate-50/50">Email</td>
+                      <td class="py-2 px-3 text-slate-800">{{ selectedApp.email || '-' }}</td>
                     </tr>
                     <tr>
-                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40">Jenis Kelamin</td>
-                      <td class="py-2.5 px-3.5 text-slate-900 font-medium">{{ selectedApp.gender || '-' }}</td>
+                      <td class="py-2 px-3 text-slate-500 font-medium bg-slate-50/50">Jenis Kelamin</td>
+                      <td class="py-2 px-3 text-slate-800">{{ selectedApp.gender || '-' }}</td>
                     </tr>
                     <tr>
-                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40">Tanggal Lahir</td>
-                      <td class="py-2.5 px-3.5 text-slate-900 font-medium">{{ selectedApp.birth_date || '-' }}</td>
+                      <td class="py-2 px-3 text-slate-500 font-medium bg-slate-50/50">Tanggal Lahir</td>
+                      <td class="py-2 px-3 text-slate-800">{{ selectedApp.birth_date || '-' }}</td>
                     </tr>
                     <tr>
-                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40">Status Pernikahan</td>
-                      <td class="py-2.5 px-3.5 text-slate-900 font-medium">{{ selectedApp.marital_status || '-' }}</td>
+                      <td class="py-2 px-3 text-slate-500 font-medium bg-slate-50/50">Status Pernikahan</td>
+                      <td class="py-2 px-3 text-slate-800">{{ selectedApp.marital_status || '-' }}</td>
                     </tr>
                     <tr>
-                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40">Sumber Lamaran</td>
-                      <td class="py-2.5 px-3.5 text-slate-900 font-medium">{{ selectedApp.source || 'Website' }}</td>
+                      <td class="py-2 px-3 text-slate-500 font-medium bg-slate-50/50">Sumber Lamaran</td>
+                      <td class="py-2 px-3 text-slate-800">{{ selectedApp.source || 'Website' }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -494,17 +551,17 @@
 
             <!-- 2. Kontak & Komunikasi -->
             <div>
-              <h3 class="text-sm font-bold text-slate-900 mb-2.5">Kontak & Komunikasi</h3>
-              <div class="border border-slate-200 rounded-lg overflow-hidden">
+              <h3 class="text-xs font-semibold text-slate-800 mb-1.5">Kontak &amp; Komunikasi</h3>
+              <div class="border border-slate-200/80 rounded-lg overflow-hidden">
                 <table class="w-full text-xs text-left">
-                  <tbody class="divide-y divide-slate-200">
+                  <tbody class="divide-y divide-slate-100">
                     <tr>
-                      <td class="py-2.5 px-3.5 text-slate-500 font-medium w-40 bg-slate-50/40">No. WhatsApp</td>
-                      <td class="py-2.5 px-3.5 text-slate-900 font-semibold">{{ selectedApp.whatsapp_number || selectedApp.phone || '-' }}</td>
+                      <td class="py-2 px-3 text-slate-500 font-medium w-36 bg-slate-50/50">No. WhatsApp</td>
+                      <td class="py-2 px-3 text-slate-900 font-medium">{{ selectedApp.whatsapp_number || selectedApp.phone || '-' }}</td>
                     </tr>
                     <tr>
-                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40">No. Telepon Aktif</td>
-                      <td class="py-2.5 px-3.5 text-slate-900 font-medium">{{ selectedApp.active_phone || selectedApp.phone || '-' }}</td>
+                      <td class="py-2 px-3 text-slate-500 font-medium bg-slate-50/50">No. Telepon</td>
+                      <td class="py-2 px-3 text-slate-800">{{ selectedApp.active_phone || selectedApp.phone || '-' }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -513,21 +570,21 @@
 
             <!-- 3. Kontak Darurat -->
             <div>
-              <h3 class="text-sm font-bold text-slate-900 mb-2.5">Kontak Darurat</h3>
-              <div class="border border-slate-200 rounded-lg overflow-hidden">
+              <h3 class="text-xs font-semibold text-slate-800 mb-1.5">Kontak Darurat</h3>
+              <div class="border border-slate-200/80 rounded-lg overflow-hidden">
                 <table class="w-full text-xs text-left">
-                  <tbody class="divide-y divide-slate-200">
+                  <tbody class="divide-y divide-slate-100">
                     <tr>
-                      <td class="py-2.5 px-3.5 text-slate-500 font-medium w-40 bg-slate-50/40">Nama</td>
-                      <td class="py-2.5 px-3.5 text-slate-900 font-bold uppercase">{{ selectedApp.emergency_contact_name || '-' }}</td>
+                      <td class="py-2 px-3 text-slate-500 font-medium w-36 bg-slate-50/50">Nama</td>
+                      <td class="py-2 px-3 text-slate-900 font-medium">{{ selectedApp.emergency_contact_name || '-' }}</td>
                     </tr>
                     <tr>
-                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40">Hubungan</td>
-                      <td class="py-2.5 px-3.5 text-slate-900 font-bold uppercase">{{ selectedApp.emergency_contact_relation || '-' }}</td>
+                      <td class="py-2 px-3 text-slate-500 font-medium bg-slate-50/50">Hubungan</td>
+                      <td class="py-2 px-3 text-slate-800">{{ selectedApp.emergency_contact_relation || '-' }}</td>
                     </tr>
                     <tr>
-                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40">No. Kontak</td>
-                      <td class="py-2.5 px-3.5 text-slate-900 font-semibold">{{ selectedApp.emergency_contact_phone || '-' }}</td>
+                      <td class="py-2 px-3 text-slate-500 font-medium bg-slate-50/50">No. Kontak</td>
+                      <td class="py-2 px-3 text-slate-800">{{ selectedApp.emergency_contact_phone || '-' }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -536,17 +593,17 @@
 
             <!-- 4. Alamat Pelamar -->
             <div>
-              <h3 class="text-sm font-bold text-slate-900 mb-2.5">Alamat Pelamar</h3>
-              <div class="border border-slate-200 rounded-lg overflow-hidden">
+              <h3 class="text-xs font-semibold text-slate-800 mb-1.5">Alamat Pelamar</h3>
+              <div class="border border-slate-200/80 rounded-lg overflow-hidden">
                 <table class="w-full text-xs text-left">
-                  <tbody class="divide-y divide-slate-200">
+                  <tbody class="divide-y divide-slate-100">
                     <tr>
-                      <td class="py-2.5 px-3.5 text-slate-500 font-medium w-40 bg-slate-50/40 align-top">Alamat Sesuai KTP</td>
-                      <td class="py-2.5 px-3.5 text-slate-900 font-bold uppercase leading-relaxed">{{ selectedApp.address_ktp || '-' }}</td>
+                      <td class="py-2 px-3 text-slate-500 font-medium w-36 bg-slate-50/50 align-top">Alamat KTP</td>
+                      <td class="py-2 px-3 text-slate-800 leading-relaxed">{{ selectedApp.address_ktp || '-' }}</td>
                     </tr>
                     <tr>
-                      <td class="py-2.5 px-3.5 text-slate-500 font-medium bg-slate-50/40 align-top">Alamat Sesuai Domisili</td>
-                      <td class="py-2.5 px-3.5 text-slate-900 font-bold uppercase leading-relaxed">{{ selectedApp.address_domicile || '-' }}</td>
+                      <td class="py-2 px-3 text-slate-500 font-medium bg-slate-50/50 align-top">Alamat Domisili</td>
+                      <td class="py-2 px-3 text-slate-800 leading-relaxed">{{ selectedApp.address_domicile || '-' }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -555,28 +612,18 @@
 
           </div>
 
-          <!-- RIGHT COLUMN: CV / Document Viewer (58% Width) -->
-          <div class="w-full lg:w-[58%] bg-slate-50/70 p-7 flex flex-col h-full overflow-hidden">
+          <!-- RIGHT COLUMN: CV / Document Viewer (55% Width) -->
+          <div class="w-full lg:w-[55%] bg-slate-50/50 p-5 flex flex-col h-full overflow-hidden">
             
-            <div class="flex items-center justify-between mb-3 shrink-0">
-              <h3 class="text-sm font-bold text-slate-900">Pratinjau Dokumen CV / Resume</h3>
-              <div class="flex items-center gap-2.5">
-                <button
-                  v-if="selectedApp.ai_match_score !== null && selectedApp.ai_match_score !== undefined"
-                  type="button"
-                  @click.stop="openAnalysisModal(selectedApp)"
-                  :class="['px-2.5 py-0.5 rounded-full text-xs font-bold border hover:shadow-xs cursor-pointer transition-transform hover:scale-105 active:scale-95', getAiBadgeClasses(selectedApp.ai_match_score)]"
-                  title="Klik untuk melihat detail analisis kualifikasi"
-                >
-                  {{ selectedApp.ai_match_score }}% Match
-                </button>
-
+            <div class="flex items-center justify-between mb-2.5 shrink-0">
+              <h3 class="text-xs font-semibold text-slate-800">Pratinjau Dokumen CV</h3>
+              <div class="flex items-center gap-2">
                 <!-- Upload / Ganti CV Button -->
                 <label
-                  class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+                  class="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg border border-slate-200 flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
                   title="Upload / Ganti Dokumen CV asli pelamar"
                 >
-                  <Upload class="w-3.5 h-3.5 text-blue-600" />
+                  <Upload class="w-3.5 h-3.5 text-slate-500" />
                   <span>{{ isUploadingCv ? 'Mengunggah...' : 'Upload CV Asli' }}</span>
                   <input
                     type="file"
@@ -591,7 +638,7 @@
                   v-if="selectedApp.resume_url"
                   :href="selectedApp.resume_url"
                   target="_blank"
-                  class="text-xs font-semibold text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 ml-1"
+                  class="text-xs font-medium text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 ml-1"
                 >
                   <span>Unduh Berkas</span>
                   <ExternalLink class="w-3 h-3" />
@@ -600,22 +647,22 @@
             </div>
 
             <!-- Embedded PDF Document Container -->
-            <div class="flex-1 rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs flex flex-col relative">
+            <div class="flex-1 rounded-lg border border-slate-200 bg-white overflow-hidden shadow-2xs flex flex-col relative">
               <iframe
                 v-if="selectedApp.resume_url"
                 :src="selectedApp.resume_url"
                 class="w-full h-full border-0"
               ></iframe>
               <div v-else class="flex-1 flex flex-col items-center justify-center text-center p-8 bg-slate-50/50">
-                <FileText class="w-12 h-12 text-slate-300 mb-3" />
-                <p class="text-sm font-bold text-slate-700">Belum Ada Dokumen CV Asli</p>
-                <p class="text-xs text-slate-400 mt-1 max-w-sm">Anda dapat mengunggah file CV asli pelamar (format PDF/DOC) agar muncul di pratinjau ini.</p>
+                <FileText class="w-10 h-10 text-slate-300 mb-2.5" />
+                <p class="text-xs font-bold text-slate-700">Belum Ada Dokumen CV Asli</p>
+                <p class="text-[11px] text-slate-400 mt-1 max-w-sm">Anda dapat mengunggah file CV asli pelamar (format PDF/DOC) agar muncul di pratinjau ini.</p>
                 
                 <label
-                  class="mt-4 px-4 py-2 bg-[#0c2340] hover:bg-[#07172b] text-white font-semibold text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-2 transition-all hover:scale-102"
+                  class="mt-3.5 px-3.5 py-1.5 bg-[#0c2340] hover:bg-[#15325b] text-white font-medium text-xs rounded-lg shadow-2xs cursor-pointer flex items-center gap-2 transition-colors"
                 >
-                  <Upload class="w-4 h-4" />
-                  <span>{{ isUploadingCv ? 'Mengunggah File...' : 'Upload File CV (PDF)' }}</span>
+                  <Upload class="w-3.5 h-3.5" />
+                  <span>{{ isUploadingCv ? 'Mengunggah...' : 'Upload File CV (PDF)' }}</span>
                   <input
                     type="file"
                     accept="application/pdf,.pdf,.doc,.docx"
@@ -643,11 +690,11 @@
         <!-- Modal Header -->
         <div class="px-6 py-4.5 border-b border-slate-200 flex items-center justify-between bg-white shrink-0">
           <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
-              <Sparkles class="w-4 h-4" />
+            <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-700 shrink-0">
+              <CheckCircle2 class="w-4 h-4" />
             </div>
             <div>
-              <h3 class="text-sm font-bold text-slate-900">Hasil Evaluasi Kualifikasi &amp; Persyaratan</h3>
+              <h3 class="text-sm font-bold text-slate-900">Detail Komparasi Kualifikasi</h3>
               <p class="text-xs text-slate-500 mt-0.5">{{ analysisModalApp.full_name }} &bull; {{ analysisModalApp.job_posting?.title || 'Posisi Lowongan' }}</p>
             </div>
           </div>
@@ -735,243 +782,267 @@
       </div>
     </div>
 
-    <!-- SEND EMAIL MODAL (Clean HR Style matching mockup) -->
+    <!-- SEND NOTIFICATION MODAL (Email & WhatsApp, Single & Bulk) -->
     <div
       v-if="sendEmailModalApp"
-      class="fixed inset-0 z-[120] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
-      @click.self="sendEmailModalApp = null"
+      class="fixed inset-0 z-[120] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+      @click.self="closeNotificationModal"
     >
-      <div class="bg-white rounded-2xl border border-slate-200/90 w-full max-w-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col my-6 max-h-[92vh]">
+      <div class="bg-white rounded-xl border border-slate-200 w-full max-w-2xl shadow-xl overflow-hidden flex flex-col my-6 max-h-[92vh]">
         <!-- Modal Header -->
-        <div class="px-7 py-4.5 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
-          <div class="flex items-center gap-3.5">
-            <img :src="oceanSpaceLogoUrl" alt="OCEAN SPACE" class="h-6 w-auto object-contain" />
-            <div>
-              <h3 class="text-sm font-bold text-slate-900">
-                Kirim Undangan / Email Pelamar
-              </h3>
-              <p class="text-xs text-slate-500 mt-0.5">
-                Penerima: <strong class="text-slate-800">{{ sendEmailModalApp.full_name }}</strong> <span v-if="sendEmailModalApp.email">({{ sendEmailModalApp.email }})</span>
-              </p>
-            </div>
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">
+              {{ isBulkMode ? 'Kirim Notifikasi Massal' : 'Kirim Undangan / Notifikasi' }}
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">
+              <template v-if="isBulkMode">
+                Target: <strong class="text-slate-800">{{ selectedAppIds.length }} Pelamar</strong> &bull; Pesan disesuaikan per nama pelamar
+              </template>
+              <template v-else>
+                Penerima: <strong class="text-slate-800">{{ sendEmailModalApp.full_name }}</strong>
+                <span v-if="sendEmailModalApp.email" class="text-slate-400 ml-1.5">&bull; {{ sendEmailModalApp.email }}</span>
+                <span v-if="sendEmailModalApp.whatsapp_number || sendEmailModalApp.phone" class="text-emerald-700 font-medium ml-1.5">&bull; WA: {{ sendEmailModalApp.whatsapp_number || sendEmailModalApp.phone }}</span>
+              </template>
+            </p>
           </div>
           <button
-            @click="sendEmailModalApp = null"
-            class="text-slate-400 hover:text-slate-700 rounded-lg p-1 text-xl font-bold cursor-pointer leading-none"
+            type="button"
+            @click="closeNotificationModal"
+            class="text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg p-1.5 transition-colors cursor-pointer"
+            title="Tutup"
           >
-            &times;
+            <X class="w-4 h-4" />
           </button>
         </div>
 
         <!-- Modal Body (Scrollable) -->
-        <div class="p-7 space-y-4 text-xs overflow-y-auto flex-1 custom-scrollbar">
-          <!-- Category Tabs (Clean Underline Style) -->
-          <div>
-            <div class="text-[10.5px] font-bold uppercase tracking-wider text-slate-400 mb-2">KATEGORI EMAIL</div>
-            <div class="flex items-center gap-6 border-b border-slate-200/80 overflow-x-auto">
+        <div class="p-6 space-y-4 text-xs overflow-y-auto flex-1 custom-scrollbar">
+          <!-- Template Selector: Full Width 4-Column Grid (NO Horizontal Scroll) -->
+          <div class="space-y-1.5">
+            <div class="grid grid-cols-4 gap-1 p-1 bg-slate-100 rounded-lg w-full">
               <button
+                v-for="tpl in [
+                  { key: 'psikotes', label: 'Tes Online', icon: FileText },
+                  { key: 'interview', label: 'Wawancara', icon: Users },
+                  { key: 'offering', label: 'Offering Letter', icon: Mail },
+                  { key: 'rejection', label: 'Penolakan', icon: Bell },
+                ]"
+                :key="tpl.key"
                 type="button"
-                @click="applyEmailTemplate('psikotes')"
+                @click="applyEmailTemplate(tpl.key)"
                 :class="[
-                  'flex items-center gap-2 pb-2.5 text-xs cursor-pointer transition-colors border-b-2 whitespace-nowrap',
-                  activeEmailTemplateKey === 'psikotes'
-                    ? 'border-[#0c2340] text-[#0c2340] font-bold'
-                    : 'border-transparent text-slate-500 hover:text-slate-800 font-medium'
+                  'py-2 px-2 rounded-md text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer text-center select-none',
+                  activeEmailTemplateKey === tpl.key
+                    ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900'
                 ]"
               >
-                <FileText class="w-3.5 h-3.5" />
-                <span>Tes &amp; Kompetensi</span>
-              </button>
-
-              <button
-                type="button"
-                @click="applyEmailTemplate('interview')"
-                :class="[
-                  'flex items-center gap-2 pb-2.5 text-xs cursor-pointer transition-colors border-b-2 whitespace-nowrap',
-                  activeEmailTemplateKey === 'interview'
-                    ? 'border-[#0c2340] text-[#0c2340] font-bold'
-                    : 'border-transparent text-slate-500 hover:text-slate-800 font-medium'
-                ]"
-              >
-                <Users class="w-3.5 h-3.5" />
-                <span>Wawancara</span>
-              </button>
-
-              <button
-                type="button"
-                @click="applyEmailTemplate('offering')"
-                :class="[
-                  'flex items-center gap-2 pb-2.5 text-xs cursor-pointer transition-colors border-b-2 whitespace-nowrap',
-                  activeEmailTemplateKey === 'offering'
-                    ? 'border-[#0c2340] text-[#0c2340] font-bold'
-                    : 'border-transparent text-slate-500 hover:text-slate-800 font-medium'
-                ]"
-              >
-                <Mail class="w-3.5 h-3.5" />
-                <span>Offering Letter</span>
-              </button>
-
-              <button
-                type="button"
-                @click="applyEmailTemplate('rejection')"
-                :class="[
-                  'flex items-center gap-2 pb-2.5 text-xs cursor-pointer transition-colors border-b-2 whitespace-nowrap',
-                  activeEmailTemplateKey === 'rejection'
-                    ? 'border-[#0c2340] text-[#0c2340] font-bold'
-                    : 'border-transparent text-slate-500 hover:text-slate-800 font-medium'
-                ]"
-              >
-                <Bell class="w-3.5 h-3.5" />
-                <span>Pemberitahuan Status</span>
+                <component :is="tpl.icon" class="w-3.5 h-3.5 shrink-0 text-slate-500" />
+                <span class="truncate">{{ tpl.label }}</span>
               </button>
             </div>
           </div>
 
+          <!-- Channel Selector: Clean Dedicated Row -->
+          <div class="flex items-center justify-between py-2 px-3 bg-slate-50 border border-slate-200/80 rounded-lg">
+            <span class="text-xs font-medium text-slate-700">Kanal Pengiriman:</span>
+            <div class="flex items-center gap-2">
+              <label
+                :class="[
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border cursor-pointer transition-all select-none',
+                  selectedChannels.includes('email')
+                    ? 'bg-white text-blue-700 border-blue-300 shadow-2xs font-semibold'
+                    : 'bg-transparent text-slate-400 border-transparent hover:text-slate-600'
+                ]"
+                title="Kirim via Email"
+              >
+                <input
+                  type="checkbox"
+                  value="email"
+                  v-model="selectedChannels"
+                  class="rounded border-slate-300 text-blue-600 focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                />
+                <Mail class="w-3.5 h-3.5 text-blue-600" />
+                <span>Email</span>
+              </label>
+
+              <label
+                :class="[
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border cursor-pointer transition-all select-none',
+                  selectedChannels.includes('whatsapp')
+                    ? 'bg-white text-emerald-700 border-emerald-300 shadow-2xs font-semibold'
+                    : 'bg-transparent text-slate-400 border-transparent hover:text-slate-600'
+                ]"
+                title="Kirim via WhatsApp"
+              >
+                <input
+                  type="checkbox"
+                  value="whatsapp"
+                  v-model="selectedChannels"
+                  class="rounded border-slate-300 text-emerald-600 focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                />
+                <MessageSquare class="w-3.5 h-3.5 text-emerald-600" />
+                <span>WhatsApp</span>
+              </label>
+            </div>
+          </div>
+
+          <div v-if="!selectedChannels.length" class="text-rose-600 text-[11px] font-medium">
+            Pilih minimal salah satu kanal pengiriman (Email atau WhatsApp).
+          </div>
+
           <!-- Subject Input -->
           <div>
-            <label class="block font-bold text-xs text-slate-800 mb-1.5">Subjek Email</label>
+            <label class="block font-medium text-xs text-slate-700 mb-1">Subjek</label>
             <input
               type="text"
               v-model="emailForm.subject"
-              class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400 font-medium"
+              class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-2xs font-medium transition-all"
             />
           </div>
 
           <!-- Body Message Textarea -->
           <div>
-            <label class="block font-bold text-xs text-slate-800 mb-1.5">Pesan Pembuka</label>
+            <label class="block font-medium text-xs text-slate-700 mb-1">Isi Pesan</label>
             <textarea
               v-model="emailForm.body_message"
               rows="4"
-              class="w-full bg-white border border-slate-200 rounded-lg p-3 text-xs text-slate-900 focus:outline-none focus:border-slate-400 leading-relaxed font-sans"
+              class="w-full bg-white border border-slate-200 rounded-lg p-3 text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 leading-relaxed font-sans shadow-2xs transition-all"
             ></textarea>
           </div>
 
-          <!-- Section: Detail Pelaksanaan -->
-          <div class="space-y-3.5 pt-1">
-            <div class="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">DETAIL PELAKSANAAN</div>
+          <!-- Detail Pelaksanaan (Symmetric 2x2 Grid with matching icons) -->
+          <div class="pt-2 border-t border-slate-100 space-y-2.5">
+            <div class="text-[11px] font-semibold text-slate-500">Detail Pelaksanaan</div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label class="block font-bold text-xs text-slate-800 mb-1.5">Jadwal / Batas Waktu</label>
+                <label class="block text-xs font-medium text-slate-700 mb-1">Jadwal / Batas Waktu</label>
                 <div class="relative">
+                  <Calendar class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
                     v-model="emailForm.schedule"
-                    placeholder="Contoh: Batas Pengerjaan: 3x24 Jam"
-                    class="w-full bg-white border border-slate-200 rounded-lg pl-3.5 pr-8 py-2 text-xs text-slate-900 focus:outline-none focus:border-slate-400"
+                    placeholder="Contoh: Batas pengerjaan 3 hari kerja"
+                    class="w-full bg-white border border-slate-200 rounded-lg pl-8.5 pr-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-2xs transition-all"
                   />
-                  <ChevronDown class="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
 
               <div>
-                <label class="block font-bold text-xs text-slate-800 mb-1.5">Metode / Lokasi Penempatan</label>
+                <label class="block text-xs font-medium text-slate-700 mb-1">Lokasi / Media</label>
                 <div class="relative">
+                  <MapPin class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
                     v-model="emailForm.venue_or_method"
-                    placeholder="Contoh: Online Assessment"
-                    class="w-full bg-white border border-slate-200 rounded-lg pl-3.5 pr-8 py-2 text-xs text-slate-900 focus:outline-none focus:border-slate-400"
+                    placeholder="Contoh: Google Meet / Online Assessment"
+                    class="w-full bg-white border border-slate-200 rounded-lg pl-8.5 pr-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-2xs transition-all"
                   />
-                  <ChevronDown class="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-slate-700 mb-1">Tautan Akses (Opsional)</label>
+                <div class="relative">
+                  <Link2 class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="url"
+                    v-model="emailForm.action_url"
+                    placeholder="https://..."
+                    class="w-full bg-white border border-slate-200 rounded-lg pl-8.5 pr-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-2xs font-mono text-[11px] transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-slate-700 mb-1">Catatan Tambahan (Opsional)</label>
+                <div class="relative">
+                  <FileText class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    v-model="emailForm.special_note"
+                    placeholder="Contoh: Siapkan kartu identitas saat tes"
+                    class="w-full bg-white border border-slate-200 rounded-lg pl-8.5 pr-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-2xs transition-all"
+                  />
                 </div>
               </div>
             </div>
+          </div>
 
-            <div>
-              <label class="block font-bold text-xs text-slate-800 mb-1.5">Tautan / Link Akses (Link Tes / Meet / Portal)</label>
-              <div class="relative">
-                <Link2 class="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="url"
-                  v-model="emailForm.action_url"
-                  placeholder="https://assessment.oceanspace.co.id"
-                  class="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-slate-400 font-mono"
-                />
-              </div>
+          <!-- Offering Letter PDF Upload -->
+          <div v-if="activeEmailTemplateKey === 'offering'" class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="block font-semibold text-xs text-slate-800 flex items-center gap-1.5">
+                <FileText class="w-3.5 h-3.5 text-blue-600" />
+                <span>Dokumen Lampiran (PDF)</span>
+              </label>
+              <span class="text-[10.5px] text-slate-500">Maks. 15MB &bull; Khusus Email</span>
             </div>
 
-            <div>
-              <label class="block font-bold text-xs text-slate-800 mb-1.5">Teks Tombol Aksi (Tombol di Surat)</label>
+            <div v-if="!emailForm.attachment" class="relative border border-dashed border-slate-300 hover:border-slate-400 bg-white rounded-lg p-3 text-center cursor-pointer transition-colors group">
               <input
-                type="text"
-                v-model="emailForm.action_label"
-                placeholder="Contoh: Mulai Tes Psikotes Online"
-                class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-slate-400"
+                type="file"
+                accept="application/pdf,.pdf"
+                @change="handleAttachmentUpload"
+                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
+              <div class="flex items-center justify-center gap-2 text-slate-500 group-hover:text-slate-800">
+                <Upload class="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
+                <span class="text-xs font-medium">Unggah file PDF Offering Letter</span>
+              </div>
             </div>
 
-            <!-- PDF Document Upload for Offering Letter -->
-            <div v-if="activeEmailTemplateKey === 'offering'" class="p-4 bg-slate-50/90 rounded-xl border border-slate-200 space-y-2">
-              <div class="flex items-center justify-between">
-                <label class="block font-bold text-xs text-slate-800 flex items-center gap-1.5">
-                  <FileText class="w-3.5 h-3.5 text-blue-600" />
-                  <span>Lampiran Dokumen Offering Letter (PDF)</span>
-                </label>
-                <span class="text-[10.5px] text-slate-500 font-medium">Format .PDF (Maks. 15MB)</span>
-              </div>
-
-              <div v-if="!emailForm.attachment" class="relative border-2 border-dashed border-slate-200 hover:border-blue-500 bg-white rounded-xl p-4 text-center cursor-pointer transition-colors group">
-                <input
-                  type="file"
-                  accept="application/pdf,.pdf"
-                  @change="handleAttachmentUpload"
-                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-                <div class="flex flex-col items-center justify-center gap-1 text-slate-500 group-hover:text-blue-600">
-                  <Upload class="w-5 h-5 text-blue-600 mb-0.5" />
-                  <span class="text-xs font-semibold text-slate-700">Pilih atau Tarik File PDF Offering Letter ke sini</span>
-                  <span class="text-[10.5px] text-slate-400">File PDF ini akan otomatis dilampirkan dan dikirim ke email kandidat</span>
+            <div v-else class="flex items-center justify-between bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
+              <div class="flex items-center gap-2 overflow-hidden">
+                <div class="w-7 h-7 rounded bg-red-50 text-red-600 flex items-center justify-center font-bold text-[10px] shrink-0">
+                  PDF
+                </div>
+                <div class="truncate">
+                  <div class="text-xs font-medium text-slate-800 truncate">{{ emailForm.attachment_name }}</div>
+                  <div class="text-[10px] text-slate-400">{{ formatFileSize(emailForm.attachment?.size) }}</div>
                 </div>
               </div>
-
-              <div v-else class="flex items-center justify-between bg-white p-3 rounded-lg border border-blue-200 shadow-2xs">
-                <div class="flex items-center gap-2.5 overflow-hidden">
-                  <div class="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center font-bold text-[10px] shrink-0">
-                    PDF
-                  </div>
-                  <div class="truncate">
-                    <div class="text-xs font-bold text-slate-800 truncate">{{ emailForm.attachment_name }}</div>
-                    <div class="text-[10px] text-slate-400">{{ formatFileSize(emailForm.attachment?.size) }}</div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  @click="removeAttachment"
-                  class="text-slate-400 hover:text-red-600 p-1.5 rounded-md hover:bg-red-50 transition-colors cursor-pointer text-sm font-bold leading-none"
-                  title="Hapus Lampiran"
-                >
-                  &times;
-                </button>
-              </div>
+              <button
+                type="button"
+                @click="removeAttachment"
+                class="text-slate-400 hover:text-red-600 p-1 rounded transition-colors cursor-pointer"
+                title="Hapus Lampiran"
+              >
+                <X class="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </div>
 
         <!-- Modal Footer -->
-        <div class="px-7 py-3.5 border-t border-slate-200/80 bg-slate-50/50 flex items-center justify-between sticky bottom-0 z-10">
+        <div class="px-6 py-3.5 border-t border-slate-200/80 bg-slate-50 flex items-center justify-between sticky bottom-0 z-10">
           <button
             type="button"
-            @click="sendEmailModalApp = null"
-            class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+            @click="closeNotificationModal"
+            class="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 rounded-lg transition-colors cursor-pointer"
           >
             Batal
           </button>
 
           <button
             type="button"
-            @click="executeSendEmail"
-            :disabled="isSendingEmail || !sendEmailModalApp.email"
-            class="px-5 py-2.5 bg-[#0c2340] hover:bg-[#07172b] text-white font-semibold rounded-lg text-xs transition-colors cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-2"
+            @click="executeSendNotification"
+            :disabled="isSendingEmail || !selectedChannels.length"
+            class="px-5 py-2 bg-[#0c2340] hover:bg-[#15325b] text-white font-medium rounded-lg text-xs transition-colors cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-2"
           >
             <span v-if="isSendingEmail" class="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-            <Mail v-else class="w-3.5 h-3.5" />
-            <span>{{ isSendingEmail ? 'Mengirim...' : 'Kirim Email' }}</span>
+            <Send v-else class="w-3.5 h-3.5" />
+            <span>
+              {{ isSendingEmail ? 'Mengirim...' : (isBulkMode ? `Kirim ke ${selectedAppIds.length} Pelamar` : 'Kirim Notifikasi') }}
+            </span>
           </button>
         </div>
       </div>
     </div>
+
+
   </div>
 </template>
 
@@ -985,7 +1056,8 @@ import axios from 'axios';
 import { 
   Search, ListFilter, Kanban, ArrowLeft, ExternalLink,
   CheckCircle2, AlertCircle, Mail, Phone, FileText, RefreshCw, User, Sparkles,
-  Link2, Users, Bell, ChevronDown, Upload
+  Link2, Users, Bell, ChevronDown, Upload, MessageSquare, Send, CheckSquare,
+  Calendar, MapPin, X
 } from 'lucide-vue-next';
 
 const store = useRekrutmenStore();
@@ -1003,6 +1075,26 @@ const selectedApp = ref(null);
 const analysisModalApp = ref(null);
 const dragOverStageId = ref(null);
 const isScreening = ref(false);
+
+// Bulk selection state
+const selectedAppIds = ref([]);
+const isBulkMode = ref(false);
+const selectedChannels = ref(['email', 'whatsapp']);
+
+const isAllSelected = computed(() => {
+  if (!filteredApplications.value.length) return false;
+  return filteredApplications.value.every(app => selectedAppIds.value.includes(app.id));
+});
+
+const isSelected = (id) => selectedAppIds.value.includes(id);
+
+const toggleSelectAll = () => {
+  if (isAllSelected.value) {
+    selectedAppIds.value = [];
+  } else {
+    selectedAppIds.value = filteredApplications.value.map(app => app.id);
+  }
+};
 
 const defaultStages = [
   { id: 1, name: 'Screening CV', color: '#2563eb' },
@@ -1428,7 +1520,11 @@ const fetchEmailTemplates = async () => {
 
 const openSendEmailModal = async (app) => {
   if (!app) return;
+  isBulkMode.value = false;
   sendEmailModalApp.value = app;
+  if (!selectedChannels.value.length) {
+    selectedChannels.value = ['email', 'whatsapp'];
+  }
   emailForm.value.attachment = null;
   emailForm.value.attachment_name = '';
   
@@ -1445,19 +1541,51 @@ const openSendEmailModal = async (app) => {
   applyEmailTemplate(defaultKey);
 };
 
+const openBulkNotificationModal = async () => {
+  if (!selectedAppIds.value.length) return;
+  isBulkMode.value = true;
+  
+  // Use first selected app for template variable preview
+  const firstApp = applications.value.find(a => a.id === selectedAppIds.value[0]) || applications.value[0];
+  sendEmailModalApp.value = firstApp || { full_name: 'Pelamar Terpilih', email: 'multi@pelamar' };
+  
+  if (!selectedChannels.value.length) {
+    selectedChannels.value = ['email', 'whatsapp'];
+  }
+  emailForm.value.attachment = null;
+  emailForm.value.attachment_name = '';
+
+  if (!Object.keys(emailTemplatesList.value).length) {
+    await fetchEmailTemplates();
+  }
+
+  applyEmailTemplate('psikotes');
+};
+
+const closeNotificationModal = () => {
+  sendEmailModalApp.value = null;
+  isBulkMode.value = false;
+};
+
 const applyEmailTemplate = (key) => {
   activeEmailTemplateKey.value = key;
   const tpl = emailTemplatesList.value[key];
   if (!tpl || !sendEmailModalApp.value) return;
 
   const app = sendEmailModalApp.value;
-  const name = app.full_name || 'Pelamar';
+  const name = isBulkMode.value ? '{nama_pelamar}' : (app.full_name || 'Pelamar');
   const pos = app.job_posting?.title || 'Posisi Lowongan';
   const comp = 'OCEAN SPACE';
   const loc = app.job_posting?.location || 'Indonesia';
 
   const replaceTags = (text) => {
     if (!text) return '';
+    if (isBulkMode.value) {
+      return text
+        .replaceAll('{posisi}', pos)
+        .replaceAll('{perusahaan}', comp)
+        .replaceAll('{lokasi}', loc);
+    }
     return text
       .replaceAll('{nama_pelamar}', name)
       .replaceAll('{posisi}', pos)
@@ -1474,15 +1602,15 @@ const applyEmailTemplate = (key) => {
 
   if (key === 'interview') {
     emailForm.value.venue_or_method = 'Online (Google Meet)';
-    emailForm.value.schedule = 'Senin, ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ' pukul 10:00 WIB';
-    emailForm.value.action_url = 'https://meet.google.com/new';
+    emailForm.value.schedule = '';
+    emailForm.value.action_url = '';
   } else if (key === 'psikotes') {
     emailForm.value.venue_or_method = 'Online Assessment';
-    emailForm.value.schedule = 'Batas Pengerjaan: 3x24 Jam';
-    emailForm.value.action_url = 'https://assessment.oceanspace.co.id';
+    emailForm.value.schedule = 'Batas Pengerjaan: 3 hari kerja';
+    emailForm.value.action_url = '';
   } else if (key === 'offering') {
     emailForm.value.venue_or_method = loc;
-    emailForm.value.schedule = 'Mulai Kerja: 1 Bulan Setelah Konfirmasi';
+    emailForm.value.schedule = '';
     emailForm.value.action_url = '';
   } else {
     emailForm.value.action_url = '';
@@ -1491,21 +1619,29 @@ const applyEmailTemplate = (key) => {
   }
 };
 
-const executeSendEmail = async () => {
-  if (!sendEmailModalApp.value) return;
-  const app = sendEmailModalApp.value;
+const insertTag = (tag) => {
+  if (!emailForm.value.body_message) {
+    emailForm.value.body_message = tag;
+  } else {
+    emailForm.value.body_message += ' ' + tag;
+  }
+};
 
-  if (!app.email) {
+const executeSendNotification = async () => {
+  if (!sendEmailModalApp.value) return;
+
+  if (!selectedChannels.value.length) {
     Swal.fire({
       icon: 'warning',
-      title: 'Email Tidak Ditemukan',
-      text: 'Kandidat ini belum memiliki alamat email yang tersimpan di sistem.',
+      title: 'Pilih Kanal Notifikasi',
+      text: 'Harap centang minimal salah satu kanal: Email atau WhatsApp.',
       confirmButtonColor: '#0c2340',
     });
     return;
   }
 
   isSendingEmail.value = true;
+
   try {
     const formData = new FormData();
     formData.append('subject', emailForm.value.subject || '');
@@ -1517,35 +1653,89 @@ const executeSendEmail = async () => {
     formData.append('special_note', emailForm.value.special_note || '');
     formData.append('badge_text', emailForm.value.badge_text || '');
     formData.append('info_box_title', emailForm.value.info_box_title || '');
+
+    selectedChannels.value.forEach((ch) => {
+      formData.append('channels[]', ch);
+    });
+
     if (emailForm.value.attachment) {
       formData.append('attachment', emailForm.value.attachment);
     }
 
-    const res = await axios.post(`/rekrutmen/api/applications/${app.id}/send-email`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    if (isBulkMode.value) {
+      selectedAppIds.value.forEach((id) => {
+        formData.append('application_ids[]', id);
+      });
 
-    isSendingEmail.value = false;
-    sendEmailModalApp.value = null;
+      const res = await axios.post('/rekrutmen/api/applications/bulk-send-notification', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
 
-    Swal.fire({
-      icon: 'success',
-      title: 'Email Terkirim!',
-      html: `<div class="text-xs text-slate-600 mt-1">${res.data.message || 'Notifikasi email berhasil dikirim ke kandidat.'}</div>`,
-      timer: 2500,
-      showConfirmButton: false,
-      iconColor: '#10b981',
-      customClass: {
-        popup: 'rounded-2xl border border-slate-100 shadow-2xl p-6 font-sans',
-        title: 'text-sm font-bold text-slate-900',
+      isSendingEmail.value = false;
+      closeNotificationModal();
+      const count = selectedAppIds.value.length;
+      selectedAppIds.value = [];
+
+      const stats = res.data.stats || {};
+      let recapHtml = `
+        <div class="text-xs text-left space-y-1.5 mt-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <div><strong>Total Sasaran:</strong> ${stats.total || count} pelamar</div>
+      `;
+
+      if (selectedChannels.value.includes('email')) {
+        recapHtml += `
+          <div class="text-blue-700">📧 <strong>Email:</strong> ${stats.email_success || 0} berhasil terkirim (Gagal: ${stats.email_failed || 0}, Email Kosong: ${stats.skipped_no_email || 0})</div>
+        `;
       }
-    });
+
+      if (selectedChannels.value.includes('whatsapp')) {
+        recapHtml += `
+          <div class="text-emerald-700">💬 <strong>WhatsApp (WAG Hub):</strong> ${stats.whatsapp_success || 0} berhasil terkirim (Gagal: ${stats.whatsapp_failed || 0})</div>
+        `;
+      }
+
+      recapHtml += `</div>`;
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Notifikasi Massal Berhasil Dikirim!',
+        html: recapHtml,
+        confirmButtonColor: '#0c2340',
+        customClass: {
+          popup: 'rounded-2xl border border-slate-100 shadow-2xl p-6 font-sans',
+          title: 'text-sm font-bold text-slate-900',
+        }
+      });
+    } else {
+      // Single candidate notification
+      const app = sendEmailModalApp.value;
+
+      const res = await axios.post(`/rekrutmen/api/applications/${app.id}/send-notification`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      isSendingEmail.value = false;
+      closeNotificationModal();
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Notifikasi Berhasil Terkirim!',
+        html: `<div class="text-xs text-slate-600 mt-1">${res.data.message || 'Notifikasi berhasil dikirimkan ke kandidat.'}</div>`,
+        timer: 3000,
+        showConfirmButton: false,
+        iconColor: '#10b981',
+        customClass: {
+          popup: 'rounded-2xl border border-slate-100 shadow-2xl p-6 font-sans',
+          title: 'text-sm font-bold text-slate-900',
+        }
+      });
+    }
   } catch (err) {
     isSendingEmail.value = false;
     Swal.fire({
       icon: 'error',
-      title: 'Gagal Mengirim Email',
-      text: err.response?.data?.message || 'Terjadi kesalahan saat mengirim email.',
+      title: 'Gagal Mengirim Notifikasi',
+      text: err.response?.data?.message || 'Terjadi kesalahan saat mengirim notifikasi.',
       confirmButtonColor: '#e11d48',
       customClass: {
         popup: 'rounded-2xl border border-slate-100 shadow-2xl p-6 font-sans',

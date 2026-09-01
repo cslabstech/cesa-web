@@ -169,53 +169,119 @@
       </div>
     </div>
 
-    <!-- Mobile Drawer Menu -->
-    <div v-if="mobileMenuOpen" class="md:hidden border-t border-white/20 bg-[#638db4] px-4 pt-2 pb-4 space-y-1">
-      <router-link
-        to="/admin/job-postings"
-        @click="mobileMenuOpen = false"
-        class="block px-3 py-2 rounded-md text-xs font-semibold"
-        :class="isActive('/admin/job-postings') ? 'text-white font-bold border-l-2 border-white pl-2' : 'text-white/90 hover:bg-white/10'"
-      >
-        Lowongan Kerja
-      </router-link>
+    <!-- Mobile Drawer Menu (Magenta BUMN Style: Clean White Offcanvas Drawer, No Slop Icons) -->
+    <Teleport to="body">
+      <!-- Backdrop Overlay -->
+      <transition name="drawer-fade">
+        <div
+          v-if="mobileMenuOpen"
+          class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs md:hidden"
+          @click="mobileMenuOpen = false"
+        ></div>
+      </transition>
 
-      <router-link
-        to="/admin/job-applications"
-        @click="mobileMenuOpen = false"
-        class="block px-3 py-2 rounded-md text-xs font-semibold"
-        :class="isActive('/admin/job-applications') ? 'text-white font-bold border-l-2 border-white pl-2' : 'text-white/90 hover:bg-white/10'"
-      >
-        Data Pelamar
-      </router-link>
+      <!-- Sidebar Drawer -->
+      <transition name="drawer-slide">
+        <div
+          v-if="mobileMenuOpen"
+          class="fixed inset-y-0 left-0 z-50 w-72 sm:w-80 bg-white shadow-2xl flex flex-col md:hidden font-sans text-slate-800"
+        >
+          <!-- Drawer Header -->
+          <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
+            <div class="flex items-center gap-2.5">
+              <img :src="logoUrl" alt="CESA Logo" class="h-7 w-7 object-contain" />
+              <div class="flex flex-col leading-none">
+                <span class="text-sm font-black tracking-wider text-slate-900 uppercase">CESA</span>
+                <span class="text-[9px] font-bold tracking-widest text-slate-400 uppercase mt-0.5">REKRUTMEN</span>
+              </div>
+            </div>
+            <button
+              @click="mobileMenuOpen = false"
+              class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              title="Tutup Menu"
+            >
+              <X class="w-5 h-5" />
+            </button>
+          </div>
 
-      <router-link
-        to="/admin/request-man-powers"
-        @click="mobileMenuOpen = false"
-        class="block px-3 py-2 rounded-md text-xs font-semibold"
-        :class="isActive('/admin/request-man-powers') ? 'text-white font-bold border-l-2 border-white pl-2' : 'text-white/90 hover:bg-white/10'"
-      >
-        Permintaan FPTK
-      </router-link>
+          <!-- Drawer Navigation (Pure Typography, Staggered Smooth Entrance) -->
+          <nav class="p-4 space-y-1 overflow-y-auto flex-1">
+            <router-link
+              to="/admin/job-postings"
+              @click="mobileMenuOpen = false"
+              class="menu-item block px-3.5 py-2.5 rounded-lg text-sm transition-colors"
+              :class="isActive('/admin/job-postings') ? 'text-[#0c2340] bg-slate-100 font-bold' : 'font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900'"
+            >
+              Lowongan Kerja
+            </router-link>
 
-      <router-link
-        to="/admin/recruitment-progress"
-        @click="mobileMenuOpen = false"
-        class="block px-3 py-2 rounded-md text-xs font-semibold"
-        :class="isActive('/admin/recruitment-progress') ? 'text-white font-bold border-l-2 border-white pl-2' : 'text-white/90 hover:bg-white/10'"
-      >
-        Monitoring & Progress
-      </router-link>
+            <router-link
+              to="/admin/job-applications"
+              @click="mobileMenuOpen = false"
+              class="menu-item block px-3.5 py-2.5 rounded-lg text-sm transition-colors"
+              :class="isActive('/admin/job-applications') ? 'text-[#0c2340] bg-slate-100 font-bold' : 'font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900'"
+            >
+              Data Pelamar
+            </router-link>
 
-      <router-link
-        to="/admin/configurations"
-        @click="mobileMenuOpen = false"
-        class="block px-3 py-2 rounded-md text-xs font-semibold"
-        :class="isActive('/admin/configurations') ? 'text-white font-bold border-l-2 border-white pl-2' : 'text-white/90 hover:bg-white/10'"
-      >
-        Master Data
-      </router-link>
-    </div>
+            <router-link
+              to="/admin/request-man-powers"
+              @click="mobileMenuOpen = false"
+              class="menu-item block px-3.5 py-2.5 rounded-lg text-sm transition-colors"
+              :class="isActive('/admin/request-man-powers') ? 'text-[#0c2340] bg-slate-100 font-bold' : 'font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900'"
+            >
+              Permintaan FPTK
+            </router-link>
+
+            <router-link
+              to="/admin/recruitment-progress"
+              @click="mobileMenuOpen = false"
+              class="menu-item block px-3.5 py-2.5 rounded-lg text-sm transition-colors"
+              :class="isActive('/admin/recruitment-progress') ? 'text-[#0c2340] bg-slate-100 font-bold' : 'font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900'"
+            >
+              Monitoring &amp; Progress
+            </router-link>
+
+            <div class="my-2 border-t border-slate-100"></div>
+
+            <router-link
+              to="/admin/configurations"
+              @click="mobileMenuOpen = false"
+              class="menu-item block px-3.5 py-2.5 rounded-lg text-sm transition-colors"
+              :class="isActive('/admin/configurations') ? 'text-[#0c2340] bg-slate-100 font-bold' : 'font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900'"
+            >
+              Master Data
+            </router-link>
+
+            <a
+              href="/admin"
+              class="menu-item block px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+            >
+              Panel Admin Filament
+            </a>
+          </nav>
+
+          <!-- Drawer Footer: User Profile & Sign Out -->
+          <div class="p-4 border-t border-slate-100 bg-slate-50/70">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
+                {{ userInitials }}
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="text-xs font-bold text-slate-900 truncate">{{ user?.name || 'User' }}</div>
+                <div class="text-[11px] text-slate-400 truncate">{{ user?.email || '-' }}</div>
+              </div>
+            </div>
+            <button
+              @click="logout"
+              class="w-full mt-3 py-2 px-3 bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 hover:border-rose-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer text-center"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
   </header>
 </template>
 
@@ -282,3 +348,51 @@ const logout = () => {
   }
 };
 </script>
+
+<style>
+/* Mobile Drawer Backdrop Fade */
+.drawer-fade-enter-active {
+  transition: opacity 0.35s ease-out;
+}
+.drawer-fade-leave-active {
+  transition: opacity 0.22s ease-in;
+}
+.drawer-fade-enter-from,
+.drawer-fade-leave-to {
+  opacity: 0 !important;
+}
+
+/* Mobile Drawer Slide - Smooth Spring Physics (iOS/Linear curve) */
+.drawer-slide-enter-active {
+  transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.drawer-slide-leave-active {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 1, 1) !important;
+}
+.drawer-slide-enter-from,
+.drawer-slide-leave-to {
+  transform: translateX(-100%) !important;
+}
+
+/* Cascading Staggered Entrance for Drawer Menu Items */
+.drawer-slide-enter-active .menu-item {
+  animation: drawerItemEnter 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.drawer-slide-enter-active .menu-item:nth-child(1) { animation-delay: 0.08s; }
+.drawer-slide-enter-active .menu-item:nth-child(2) { animation-delay: 0.12s; }
+.drawer-slide-enter-active .menu-item:nth-child(3) { animation-delay: 0.16s; }
+.drawer-slide-enter-active .menu-item:nth-child(4) { animation-delay: 0.20s; }
+.drawer-slide-enter-active .menu-item:nth-child(6) { animation-delay: 0.24s; }
+.drawer-slide-enter-active .menu-item:nth-child(7) { animation-delay: 0.28s; }
+
+@keyframes drawerItemEnter {
+  0% {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+</style>
