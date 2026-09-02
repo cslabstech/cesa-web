@@ -2,6 +2,7 @@
 
 namespace Cesa\Rekrutmen\Tests\Feature;
 
+use Cesa\Rekrutmen\Enums\JobApplicationStatus;
 use Cesa\Rekrutmen\Models\JobApplication;
 use Cesa\Rekrutmen\Models\JobPosting;
 use Cesa\Rekrutmen\Models\RekrutmenPipeline;
@@ -129,5 +130,90 @@ class RekrutmenSpaApplicationsTest extends RekrutmenTestCase
                 && $sheets[2]->title() === 'Detail Posisi'
                 && $sheets[3]->title() === 'Aktivitas Rekrutmen';
         });
+    }
+
+    public function test_can_update_application_stage_to_rejected(): void
+    {
+        $user = User::factory()->create(['is_active' => true]);
+        $this->actingAs($user);
+
+        $posting = JobPosting::create([
+            'title'        => 'Test Job',
+            'slug'         => 'test-job-'.uniqid(),
+            'is_published' => true,
+        ]);
+
+        $app = JobApplication::create([
+            'job_posting_id' => $posting->id,
+            'full_name'      => 'Kandidat Ditolak',
+            'email'          => 'ditolak@example.com',
+            'status'         => 'in_progress',
+        ]);
+
+        $response = $this->patchJson("/rekrutmen/api/applications/{$app->id}/stage", [
+            'stage_id' => 'rejected',
+        ]);
+
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
+        $this->assertEquals(JobApplicationStatus::REJECTED, $app->fresh()->status);
+    }
+
+    public function test_can_batch_reject_applications_without_notifications(): void
+    {
+        $user = User::factory()->create(['is_active' => true]);
+        $this->actingAs($user);
+
+        $posting = JobPosting::create([
+            'title'        => 'Batch Reject Job',
+            'slug'         => 'batch-reject-job-'.uniqid(),
+            'is_published' => true,
+        ]);
+
+        $app1 = JobApplication::create([
+            'job_posting_id' => $posting->id,
+            'full_name'      => 'Kandidat 1',
+            'email'          => 'kandidat1@example.com',
+            'status'         => 'in_progress',
+        ]);
+
+        $app2 = JobApplication::create([
+            'job_posting_id' => $posting->id,
+            'full_name'      => 'Kandidat 2',
+            'email'          => 'kandidat2@example.com',
+            'status'         => 'in_progress',
+        ]);
+
+        $response = $this->postJson('/rekrutmen/api/applications/batch-reject', [
+            'ids' => [$app1->id, $app2->id],
+        ]);
+
+        $response->assertOk();
+        $response->assertJson([
+            'success' => true,
+            'count'   => 2,
+        ]);
+
+        $this->assertEquals(JobApplicationStatus::REJECTED, $app1->fresh()->status);
+        $this->assertEquals(JobApplicationStatus::REJECTED, $app2->fresh()->status);
+    }
+
+    public function test_requests_api_returns_aligned_fields_for_fptk_table(): void
+    {
+        $user = User::factory()->create(['is_active' => true]);
+        $this->actingAs($user);
+
+        $response = $this->getJson('/rekrutmen/api/requests');
+
+        $response->assertOk();
+        if (! empty($response->json('data'))) {
+            $first = $response->json('data.0');
+            $this->assertArrayHasKey('posisi_dibutuhkan', $first);
+            $this->assertArrayHasKey('division_name', $first);
+            $this->assertArrayHasKey('lokasi_penempatan', $first);
+            $this->assertArrayHasKey('tanggal_pengajuan', $first);
+            $this->assertArrayHasKey('fulfilled_count', $first);
+            $this->assertArrayHasKey('quantity', $first);
+        }
     }
 }

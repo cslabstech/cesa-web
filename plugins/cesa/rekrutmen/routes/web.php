@@ -49,6 +49,7 @@ Route::middleware(['web', 'auth', 'signed'])->group(function () {
 Route::middleware(['web', 'auth'])->group(function () {
     // API endpoints consumed by Vue SPA
     Route::prefix('rekrutmen/api')->group(function () {
+        Route::get('installed-plugins', [RekrutmenSpaController::class, 'getInstalledPluginsApi'])->name('rekrutmen.api.installed-plugins');
         Route::get('dashboard', [RekrutmenSpaController::class, 'dashboard'])->name('rekrutmen.api.dashboard');
         Route::get('requests', [RekrutmenSpaController::class, 'getRequests'])->name('rekrutmen.api.requests');
         Route::post('requests/{id}/approve', [RekrutmenSpaController::class, 'approveRequest'])->name('rekrutmen.api.requests.approve');
@@ -65,6 +66,8 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::post('applications/{id}/upload-cv', [RekrutmenSpaController::class, 'uploadCv'])->name('rekrutmen.api.applications.upload-cv');
         Route::get('applications/{id}/photo', [RekrutmenSpaController::class, 'viewPhoto'])->name('rekrutmen.api.applications.photo');
         Route::patch('applications/{id}/stage', [RekrutmenSpaController::class, 'updateApplicationStage'])->name('rekrutmen.api.applications.stage');
+        Route::patch('applications/{id}/status', [RekrutmenSpaController::class, 'updateApplicationStatus'])->name('rekrutmen.api.applications.status');
+        Route::post('applications/batch-reject', [RekrutmenSpaController::class, 'batchRejectApplications'])->name('rekrutmen.api.applications.batch-reject');
         Route::post('applications/{id}/analyze-ai', [RekrutmenSpaController::class, 'analyzeWithAi'])->name('rekrutmen.api.applications.analyze-ai');
         Route::post('applications/batch-analyze-ai', [RekrutmenSpaController::class, 'batchAnalyzeWithAi'])->name('rekrutmen.api.applications.batch-analyze-ai');
         Route::get('progress-report', [RekrutmenSpaController::class, 'getProgressReport'])->name('rekrutmen.api.progress-report');

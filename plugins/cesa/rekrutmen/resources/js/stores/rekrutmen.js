@@ -152,9 +152,28 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
 
     async updateApplicationStage(appId, newStageId) {
       const app = this.applications.find(a => String(a.id) === String(appId));
+
+      if (String(newStageId) === 'rejected') {
+        if (app) {
+          app.status = 'rejected';
+        }
+        try {
+          const res = await axios.patch(`/rekrutmen/api/applications/${appId}/stage`, {
+            stage_id: 'rejected'
+          });
+          return res.data || { success: true };
+        } catch (err) {
+          console.error('Failed to reject candidate', err);
+          throw err;
+        }
+      }
+
       const stage = this.stages.find(s => String(s.id) === String(newStageId));
       if (app) {
         app.current_stage_id = parseInt(newStageId);
+        if (app.status === 'rejected') {
+          app.status = 'in_progress';
+        }
         if (stage) {
           app.stage = { id: stage.id, name: stage.name, color: stage.color };
         }
@@ -166,6 +185,24 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
         return res.data || { success: true };
       } catch (err) {
         console.error('Failed to update stage', err);
+        throw err;
+      }
+    },
+
+    async batchRejectApplications(ids) {
+      try {
+        const res = await axios.post('/rekrutmen/api/applications/batch-reject', {
+          ids: ids
+        });
+        ids.forEach(id => {
+          const app = this.applications.find(a => String(a.id) === String(id));
+          if (app) {
+            app.status = 'rejected';
+          }
+        });
+        return res.data || { success: true };
+      } catch (err) {
+        console.error('Failed to batch reject applications', err);
         throw err;
       }
     },

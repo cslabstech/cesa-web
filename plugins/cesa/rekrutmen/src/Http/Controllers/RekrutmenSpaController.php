@@ -49,6 +49,55 @@ class RekrutmenSpaController extends Controller
     }
 
     /**
+     * Get installed CESA plugins navigation items.
+     *
+     * @return array<int, array{key: string, label: string, url: string, icon: string, svg: ?string}>
+     */
+    public function getInstalledPlugins(): array
+    {
+        try {
+            $panel = filament()->getPanel('admin');
+            filament()->setCurrentPanel($panel);
+
+            $navigation = filament()->getNavigation();
+
+            return collect($navigation)->map(function ($group) {
+                $label = $group->getLabel();
+                $icon = $group->getIcon();
+                $url = $group->getItems()->first()?->getUrl();
+
+                if (! $label || ! $url || ! $icon) {
+                    return null;
+                }
+
+                $svgName = str_replace('icon-', '', $icon);
+                $svgPath = resource_path("svg/{$svgName}.svg");
+                $svgContent = file_exists($svgPath) ? file_get_contents($svgPath) : null;
+
+                return [
+                    'key'   => $svgName,
+                    'label' => $label,
+                    'url'   => $url,
+                    'icon'  => $icon,
+                    'svg'   => $svgContent,
+                ];
+            })->filter()->values()->all();
+        } catch (\Throwable $e) {
+            Log::warning('Failed to load installed plugins for Rekrutmen navbar: '.$e->getMessage());
+
+            return [];
+        }
+    }
+
+    /**
+     * Get installed CESA plugins as a JSON response.
+     */
+    public function getInstalledPluginsApi(): JsonResponse
+    {
+        return response()->json($this->getInstalledPlugins());
+    }
+
+    /**
      * Render the single-page application entry view.
      */
     public function index(): View
@@ -63,6 +112,7 @@ class RekrutmenSpaController extends Controller
                 'name'  => $user->name,
                 'email' => $user->email,
             ],
+            'plugins' => $this->getInstalledPlugins(),
         ]);
     }
 
@@ -98,18 +148,28 @@ class RekrutmenSpaController extends Controller
             $fulfillmentStatus = $record->fulfillmentStatus();
             $approvalDesc = RequestManPowerResource::formatApprovalDescription($record);
             $positionDesc = RequestManPowerResource::formatTablePositionDescription($record);
+            $hiredCount = $record->hiredCandidatesCount();
+            $neededCount = $record->neededHeadcount();
 
             return [
                 'id'                         => $record->id,
+                'request_number'             => $record->id,
                 'nama_pengaju'               => $record->nama_pengaju,
                 'posisi_pengaju'             => $record->posisi_pengaju,
                 'posisi_dibutuhkan'          => $record->posisi_dibutuhkan,
+                'position_name'              => $record->posisi_dibutuhkan,
+                'position_title'             => $record->posisi_dibutuhkan,
                 'position_description'       => $positionDesc,
-                'division_name'              => $record->division?->name ?? $record->division_name ?? '-',
+                'division_name'              => $record->division?->name ?? $record->divisi ?? '-',
+                'department'                 => $record->division?->name ?? $record->divisi ?? '-',
                 'company_name'               => $record->company?->name ?? '-',
                 'lokasi_penempatan'          => $record->lokasi_penempatan ?? '-',
+                'branch'                     => $record->lokasi_penempatan ?? '-',
+                'location'                   => $record->lokasi_penempatan ?? '-',
                 'status_kebutuhan'           => $record->status_kebutuhan?->getLabel() ?? (string) $record->status_kebutuhan,
-                'jumlah_karyawan_dibutuhkan' => $record->jumlah_karyawan_dibutuhkan ?? 1,
+                'jumlah_karyawan_dibutuhkan' => $neededCount,
+                'quantity'                   => $neededCount,
+                'fulfilled_count'            => $hiredCount,
                 'estimasi_tanggal_join'      => $record->estimasi_tanggal_join ? $record->estimasi_tanggal_join->format('d/m/Y') : '-',
                 'requirements_kualifikasi'   => $record->requirements_kualifikasi,
                 'job_description'            => $record->job_description,
@@ -117,10 +177,13 @@ class RekrutmenSpaController extends Controller
                 'fulfillment_status'         => $fulfillmentStatus ? $fulfillmentStatus->getLabel() : 'No Candidate Yet',
                 'fulfillment_color'          => $fulfillmentStatus ? $fulfillmentStatus->getColor() : 'danger',
                 'fulfillment_summary'        => $record->fulfillmentSummary(),
-                'tanggal_pengajuan'          => $record->tanggal_pengajuan ? $record->tanggal_pengajuan->format('d/m/Y') : '-',
+                'tanggal_pengajuan'          => $record->tanggal_pengajuan ? $record->tanggal_pengajuan->format('d/m/Y') : ($record->created_at ? $record->created_at->format('d/m/Y') : '-'),
+                'submission_date'            => $record->tanggal_pengajuan ? $record->tanggal_pengajuan->format('d/m/Y') : ($record->created_at ? $record->created_at->format('d/m/Y') : '-'),
+                'created_at'                 => $record->created_at ? $record->created_at->format('d/m/Y') : '-',
                 'raw_status'                 => $record->status ? (is_object($record->status) ? $record->status->value : $record->status) : 'pending',
                 'status'                     => $record->status ? $record->status->getLabel() : 'Pending',
                 'status_color'               => $record->status ? $record->status->getColor() : 'warning',
+                'approval_status'            => $record->status ? $record->status->getLabel() : 'Pending',
                 'approval_description'       => $approvalDesc,
                 'public_progress_url'        => $record->getPublicProgressUrl(),
                 'can_approve_reject'         => in_array($record->status, [
@@ -1222,18 +1285,63 @@ PROMPT;
      */
     public function updateApplicationStage(Request $request, $id): JsonResponse
     {
+        $application = JobApplication::findOrFail($id);
+        $stageInput = $request->input('stage_id');
+
+        if ($stageInput === 'rejected' || $stageInput === 'reject') {
+            $application->status = 'rejected';
+            $application->save();
+
+            return response()->json([
+                'success'     => true,
+                'message'     => 'Kandidat berhasil ditolak (tanpa notifikasi)',
+                'application' => $application->load(['currentStage', 'jobPosting']),
+            ]);
+        }
+
         $request->validate([
             'stage_id' => 'required|exists:rekrutmen_stages,id',
         ]);
 
-        $application = JobApplication::findOrFail($id);
         $application->current_stage_id = $request->input('stage_id');
+        if ($application->status === 'rejected') {
+            $application->status = 'in_progress';
+        }
         $application->save();
 
         return response()->json([
             'success'     => true,
             'message'     => 'Status tahapan berhasil diperbarui',
             'application' => $application->load(['currentStage', 'jobPosting']),
+        ]);
+    }
+
+    /**
+     * Batch reject selected applications without sending WA or email notifications.
+     */
+    public function batchRejectApplications(Request $request): JsonResponse
+    {
+        $request->validate([
+            'ids'   => 'required|array',
+            'ids.*' => 'required|integer|exists:rekrutmen_job_applications,id',
+        ]);
+
+        $ids = $request->input('ids', []);
+        $count = 0;
+
+        foreach ($ids as $appId) {
+            $application = JobApplication::find($appId);
+            if ($application) {
+                $application->status = 'rejected';
+                $application->save();
+                $count++;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'count'   => $count,
+            'message' => "{$count} pelamar berhasil ditolak (tanpa notifikasi WA maupun email).",
         ]);
     }
 

@@ -86,41 +86,41 @@
               </td>
 
               <!-- Kebutuhan -->
-              <td class="py-4 px-4 font-semibold text-gray-900">
+              <td class="py-3.5 px-4 font-medium text-slate-800">
                 {{ item.needed }} orang
               </td>
 
               <!-- Total Pelamar -->
-              <td class="py-4 px-4 font-semibold text-blue-600">
+              <td class="py-3.5 px-4 font-medium text-slate-800">
                 {{ item.total_applicants }} kandidat
               </td>
 
               <!-- Dalam Proses -->
-              <td class="py-4 px-4 font-semibold text-amber-600">
+              <td class="py-3.5 px-4 font-medium text-slate-800">
                 {{ item.in_process }} kandidat
               </td>
 
               <!-- Hired -->
-              <td class="py-4 px-4 font-semibold text-emerald-600">
+              <td class="py-3.5 px-4 font-medium text-slate-800">
                 {{ item.hired }} orang
               </td>
 
               <!-- Progress Bar -->
-              <td class="py-4 px-4 w-44">
-                <div class="flex items-center gap-2">
-                  <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden border border-gray-200">
+              <td class="py-3.5 px-4 w-44">
+                <div class="flex items-center gap-2.5">
+                  <div class="flex-1 bg-slate-100 rounded-full h-1.5 overflow-hidden">
                     <div
                       class="bg-blue-600 h-full rounded-full transition-all"
                       :style="{ width: `${Math.min(item.fulfillment_percentage || 0, 100)}%` }"
                     ></div>
                   </div>
-                  <span class="text-[11px] font-bold text-gray-700">{{ item.fulfillment_percentage || 0 }}%</span>
+                  <span class="text-[11px] font-semibold text-slate-600 font-mono">{{ item.fulfillment_percentage || 0 }}%</span>
                 </div>
               </td>
 
               <!-- Status Health -->
-              <td class="py-4 px-4">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <td class="py-3.5 px-4">
+                <span :class="['inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-medium border', getHealthBadge(item.cycle_health)]">
                   {{ item.cycle_health || 'Normal' }}
                 </span>
               </td>
@@ -159,6 +159,14 @@ const filteredPositions = computed(() => {
     p.company?.toLowerCase().includes(q)
   );
 });
+
+const getHealthBadge = (health) => {
+  const h = String(health || '').toLowerCase();
+  if (h.includes('cleanup') || h.includes('attention') || h.includes('warning')) {
+    return 'bg-amber-50 text-amber-700 border-amber-200';
+  }
+  return 'bg-slate-50 text-slate-600 border-slate-200';
+};
 
 const isExporting = ref(false);
 

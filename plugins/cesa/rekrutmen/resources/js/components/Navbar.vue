@@ -101,21 +101,66 @@
           </router-link>
         </nav>
 
-        <!-- Right: Admin Panel Icon Button + Profile Icon Button -->
+        <!-- Right: Admin Panel Launcher + Profile Dropdown -->
         <div class="flex items-center gap-3 shrink-0 z-10">
-          <!-- 1. Admin Panel Icon Button (Outside) -->
-          <a
-            href="/admin"
-            class="w-9 h-9 rounded-xl flex items-center justify-center bg-white/15 hover:bg-white/25 text-white border border-white/25 shadow-2xs transition-all cursor-pointer"
-            title="Panel Admin Filament"
-          >
-            <LayoutDashboard class="w-4 h-4" />
-          </a>
+          <!-- 1. CESA Apps & Plugin Launcher Trigger -->
+          <div class="relative" ref="launcherRef">
+            <button
+              @click="toggleLauncher"
+              class="w-9 h-9 rounded-xl flex items-center justify-center bg-white/15 hover:bg-white/25 text-white border border-white/25 shadow-2xs transition-all cursor-pointer focus:outline-none"
+              :class="{ 'ring-2 ring-white/50 bg-white/30': launcherOpen }"
+              title="Aplikasi CESA"
+              aria-label="Aplikasi CESA"
+            >
+              <LayoutDashboard class="w-4 h-4" />
+            </button>
+
+            <!-- Apps Launcher Dropdown Panel (Photo 2 design) -->
+            <div
+              v-if="launcherOpen"
+              class="absolute right-0 top-full mt-2.5 w-[330px] sm:w-[360px] bg-white rounded-2xl shadow-xl border border-slate-100 p-3.5 sm:p-4 z-50 text-slate-800 animate-in fade-in zoom-in-95 duration-100"
+            >
+              <div class="grid grid-cols-3 gap-2 sm:gap-2.5 max-h-[75vh] overflow-y-auto p-1">
+                <a
+                  v-for="plugin in pluginsList"
+                  :key="plugin.key || plugin.label"
+                  :href="plugin.url"
+                  class="group flex flex-col items-center justify-start p-2 rounded-xl transition-all duration-150 text-center hover:bg-slate-100/70 cursor-pointer text-decoration-none"
+                  :class="[
+                    isCurrentPlugin(plugin)
+                      ? 'bg-slate-100/90 ring-1 ring-slate-200'
+                      : ''
+                  ]"
+                >
+                  <!-- 64x64 Tile SVG Icon -->
+                  <div
+                    v-if="plugin.svg"
+                    class="w-14 h-14 sm:w-16 sm:h-16 shrink-0 flex items-center justify-center transition-transform duration-150 group-hover:scale-105"
+                    v-html="plugin.svg"
+                  ></div>
+                  <img
+                    v-else
+                    :src="'/svg/' + plugin.key + '.svg'"
+                    :alt="plugin.label"
+                    class="w-14 h-14 sm:w-16 sm:h-16 shrink-0 object-contain transition-transform duration-150 group-hover:scale-105"
+                  />
+
+                  <!-- Label -->
+                  <span
+                    class="mt-1 text-xs font-semibold text-slate-800 tracking-tight leading-tight text-center max-w-[96px] truncate"
+                    :class="{ 'text-slate-950 font-bold': isCurrentPlugin(plugin) }"
+                  >
+                    {{ plugin.label }}
+                  </span>
+                </a>
+              </div>
+            </div>
+          </div>
 
           <!-- 2. Profile Icon Trigger -->
           <div class="relative" ref="dropdownRef">
             <button
-              @click="dropdownOpen = !dropdownOpen"
+              @click="toggleUserDropdown"
               class="w-9 h-9 rounded-xl flex items-center justify-center bg-white/15 hover:bg-white/25 text-white border border-white/25 shadow-2xs transition-all cursor-pointer focus:outline-none"
               :class="{ 'ring-2 ring-white/50 bg-white/30': dropdownOpen }"
               title="Profil Pengguna"
@@ -253,12 +298,36 @@
               Master Data
             </router-link>
 
-            <a
-              href="/admin"
-              class="menu-item block px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
-            >
-              Panel Admin Filament
-            </a>
+            <!-- Mobile Drawer: CESA Apps Grid -->
+            <div class="pt-3 pb-1">
+              <div class="px-3.5 pb-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Aplikasi CESA
+              </div>
+              <div class="grid grid-cols-3 gap-2 px-2">
+                <a
+                  v-for="plugin in pluginsList"
+                  :key="'mob-' + (plugin.key || plugin.label)"
+                  :href="plugin.url"
+                  class="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-white text-center transition-all text-decoration-none"
+                  :class="{ 'bg-white shadow-xs border-blue-200 ring-1 ring-blue-300 font-bold': isCurrentPlugin(plugin) }"
+                >
+                  <div
+                    v-if="plugin.svg"
+                    class="w-10 h-10 shrink-0 flex items-center justify-center"
+                    v-html="plugin.svg"
+                  ></div>
+                  <img
+                    v-else
+                    :src="'/svg/' + plugin.key + '.svg'"
+                    :alt="plugin.label"
+                    class="w-10 h-10 shrink-0 object-contain"
+                  />
+                  <span class="mt-1 text-[10px] font-semibold text-slate-700 truncate max-w-[72px] leading-tight">
+                    {{ plugin.label }}
+                  </span>
+                </a>
+              </div>
+            </div>
           </nav>
 
           <!-- Drawer Footer: User Profile & Sign Out -->
@@ -288,6 +357,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
+import axios from 'axios';
 import { LayoutDashboard, User, LogOut, Menu, X } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -300,8 +370,68 @@ const props = defineProps({
 const logoUrl = '/images/logo.png';
 const dropdownOpen = ref(false);
 const dropdownRef = ref(null);
+const launcherOpen = ref(false);
+const launcherRef = ref(null);
 const mobileMenuOpen = ref(false);
 const route = useRoute();
+
+const defaultPlugins = [
+  { key: 'exit-clearance', label: 'Exit Clearance', url: '/admin/requests', icon: 'icon-exit-clearance' },
+  { key: 'form-transfer', label: 'Form Transfer', url: '/admin/transfer-requests', icon: 'icon-form-transfer' },
+  { key: 'rekrutmen', label: 'Rekrutmen', url: '/admin/request-man-powers', icon: 'icon-rekrutmen' },
+  { key: 'padelnis', label: 'Padelnis', url: '/admin/reservations', icon: 'icon-padelnis' },
+  { key: 'lead', label: 'Leads', url: '/admin/leads', icon: 'icon-lead' },
+  { key: 'document', label: 'Documents', url: '/admin/documents', icon: 'icon-document' },
+  { key: 'plugin', label: 'Plugins', url: '/admin/plugins', icon: 'icon-plugin' },
+  { key: 'settings', label: 'Settings', url: '/admin/shield/roles', icon: 'icon-settings' },
+];
+
+const pluginsList = ref(defaultPlugins);
+
+const isCurrentPlugin = (plugin) => {
+  if (!plugin) return false;
+  const key = (plugin.key || '').toLowerCase();
+  const label = (plugin.label || '').toLowerCase();
+  return key.includes('rekrutmen') || label.includes('rekrutmen');
+};
+
+const toggleLauncher = () => {
+  launcherOpen.value = !launcherOpen.value;
+  if (launcherOpen.value) {
+    dropdownOpen.value = false;
+  }
+};
+
+const toggleUserDropdown = () => {
+  dropdownOpen.value = !dropdownOpen.value;
+  if (dropdownOpen.value) {
+    launcherOpen.value = false;
+  }
+};
+
+const loadPlugins = async () => {
+  const mountEl = document.getElementById('rekrutmen-app');
+  if (mountEl && mountEl.dataset.plugins) {
+    try {
+      const parsed = JSON.parse(mountEl.dataset.plugins);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        pluginsList.value = parsed;
+        return;
+      }
+    } catch (e) {
+      console.warn('Failed to parse plugins dataset', e);
+    }
+  }
+
+  try {
+    const res = await axios.get('/rekrutmen/api/installed-plugins');
+    if (Array.isArray(res.data) && res.data.length > 0) {
+      pluginsList.value = res.data;
+    }
+  } catch (err) {
+    // Keep default plugins
+  }
+};
 
 const isActive = (path) => {
   return route.path.startsWith(path);
@@ -320,9 +450,13 @@ const handleClickOutside = (event) => {
   if (dropdownRef.value && !dropdownRef.value.contains(event.target)) {
     dropdownOpen.value = false;
   }
+  if (launcherRef.value && !launcherRef.value.contains(event.target)) {
+    launcherOpen.value = false;
+  }
 };
 
 onMounted(() => {
+  loadPlugins();
   document.addEventListener('click', handleClickOutside);
 });
 

@@ -227,14 +227,25 @@
                       Batalkan pilihan
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    @click="openBulkNotificationModal"
-                    class="px-3 py-1 bg-[#0c2340] hover:bg-[#15325b] text-white font-medium rounded-lg text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-                  >
-                    <Send class="w-3.5 h-3.5" />
-                    <span>Kirim Notifikasi Massal</span>
-                  </button>
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      @click="bulkRejectSelected"
+                      class="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-lg text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                      title="Tolak pelamar terpilih"
+                    >
+                      <UserX class="w-3.5 h-3.5" />
+                      <span>Tolak</span>
+                    </button>
+                    <button
+                      type="button"
+                      @click="openBulkNotificationModal"
+                      class="px-3 py-1 bg-[#0c2340] hover:bg-[#15325b] text-white font-medium rounded-lg text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                    >
+                      <Send class="w-3.5 h-3.5" />
+                      <span>Kirim Notifikasi Massal</span>
+                    </button>
+                  </div>
                 </div>
               </th>
             </tr>
@@ -298,13 +309,21 @@
               <td class="py-2.5 px-2 align-middle text-center" @click.stop>
                 <div class="flex items-center justify-center">
                   <select
-                    :value="app.current_stage_id || app.stage?.id || 1"
-                    @change="moveCandidateStage(app, $event.target.value)"
-                    class="text-xs font-medium rounded-lg px-2 py-1 bg-white border border-slate-200 text-slate-700 hover:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer transition-all shadow-2xs"
+                    :value="app.status === 'rejected' ? 'rejected' : (app.current_stage_id || app.stage?.id || 1)"
+                    @change="handleStageChange(app, $event.target.value)"
+                    :class="[
+                      'text-xs font-medium rounded-lg px-2 py-1 border cursor-pointer transition-all shadow-2xs',
+                      app.status === 'rejected'
+                        ? 'bg-rose-50 border-rose-300 text-rose-700 font-semibold'
+                        : 'bg-white border-slate-200 text-slate-700 hover:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500'
+                    ]"
                     title="Ubah tahapan kandidat"
                   >
                     <option v-for="stg in stages" :key="stg.id" :value="stg.id">
                       {{ stg.name }}
+                    </option>
+                    <option value="rejected" class="text-rose-600 font-semibold">
+                      Ditolak
                     </option>
                   </select>
                 </div>
@@ -439,6 +458,80 @@
           </div>
         </div>
       </div>
+
+        <!-- Ditolak Kanban Column -->
+        <div
+          class="w-80 shrink-0 bg-rose-50/40 border rounded-2xl flex flex-col max-h-[calc(100vh-280px)] transition-all shadow-2xs"
+          :class="dragOverStageId === 'rejected' ? 'border-rose-500 bg-rose-100/50 ring-2 ring-rose-400/30' : 'border-rose-200/80'"
+          @dragover.prevent="handleDragOver('rejected')"
+          @dragleave="handleDragLeave('rejected')"
+          @drop.prevent="handleDrop('rejected', $event)"
+        >
+          <!-- Column Header -->
+          <div class="p-3.5 border-b border-rose-200/80 bg-white/80 backdrop-blur-xs rounded-t-2xl flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+              <span class="text-xs font-bold text-rose-900 tracking-tight">Ditolak</span>
+            </div>
+            <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+              {{ rejectedCandidateCount }}
+            </span>
+          </div>
+
+          <!-- Kanban Cards List for Rejected -->
+          <div class="p-3 space-y-3 overflow-y-auto flex-1 custom-scrollbar">
+            <div
+              v-for="app in rejectedApplications"
+              :key="app.id"
+              class="bg-white p-4 rounded-xl border border-rose-200/90 shadow-2xs hover:shadow-xs transition-all cursor-grab active:cursor-grabbing hover:border-rose-300 group opacity-90"
+              draggable="true"
+              @dragstart="handleDragStart(app, $event)"
+              @dragend="handleDragEnd"
+              @click="openDetail(app)"
+            >
+              <!-- Top: Candidate Name & Match Pill -->
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <div class="w-7 h-7 rounded-full bg-rose-50 flex items-center justify-center shrink-0 border border-rose-200">
+                    <User class="w-3.5 h-3.5 text-rose-500" />
+                  </div>
+                  <div class="min-w-0">
+                    <h4 class="font-bold text-xs text-slate-900 group-hover:text-rose-600 transition-colors truncate">
+                      {{ app.full_name }}
+                    </h4>
+                    <p class="text-[11px] text-slate-400 truncate">{{ app.email }}</p>
+                  </div>
+                </div>
+
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border shrink-0 bg-rose-50 text-rose-700 border-rose-200">
+                  Ditolak
+                </span>
+              </div>
+
+              <!-- Role / Details Subtitle -->
+              <div v-if="!activeJobId && app.job_posting?.title" class="text-[11px] font-medium text-slate-600 mt-2.5 pt-2 border-t border-slate-100 line-clamp-1">
+                {{ app.job_posting.title }}
+              </div>
+
+              <!-- Card Footer -->
+              <div class="flex items-center justify-between text-[10px] text-slate-400 mt-2.5 pt-2 border-t border-slate-100">
+                <span>{{ app.created_at }}</span>
+                <span class="px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-100 font-medium">
+                  {{ app.source || 'Portal' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Empty State in Column -->
+            <div
+              v-if="!rejectedApplications.length"
+              class="py-10 text-center text-xs text-slate-400 border border-dashed border-rose-200/80 rounded-xl flex flex-col items-center justify-center gap-1"
+            >
+              <span class="text-rose-300 text-sm">&empty;</span>
+              <span>Tidak ada kandidat ditolak</span>
+            </div>
+          </div>
+        </div>
     </div>
 
     <!-- CANDIDATE ATS DETAIL MODAL -->
@@ -463,19 +556,8 @@
               {{ getInitials(selectedApp.full_name) }}
             </div>
             <div class="min-w-0">
-              <div class="flex items-center gap-2">
-                <h2 class="text-sm font-bold text-slate-900 leading-tight truncate">
-                  {{ selectedApp.full_name }}
-                </h2>
-                <span v-if="selectedApp.job_posting?.title" class="px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-slate-100 text-slate-700 border border-slate-200/60 truncate max-w-[200px]">
-                  {{ selectedApp.job_posting.title }}
-                </span>
-              </div>
-              <p class="text-[11px] text-slate-400 font-normal mt-0.5 flex items-center gap-1.5">
-                <span>ID #{{ selectedApp.id }}</span>
-                <span>&bull;</span>
-                <span>Melamar pada {{ selectedApp.created_at }}</span>
-              </p>
+              <h3 class="text-sm font-bold text-slate-900 truncate">{{ selectedApp.full_name }}</h3>
+              <p class="text-[11px] text-slate-400 truncate">{{ selectedApp.email || '-' }} &bull; {{ selectedApp.whatsapp_number || selectedApp.phone || '-' }}</p>
             </div>
           </div>
 
@@ -485,12 +567,16 @@
               <span class="text-xs font-medium text-slate-500">Tahap:</span>
               <div class="relative">
                 <select
-                  :value="selectedApp.current_stage_id || selectedApp.stage?.id || 1"
-                  @change="moveCandidateStage(selectedApp, $event.target.value)"
+                  :value="selectedApp.status === 'rejected' ? 'rejected' : (selectedApp.current_stage_id || selectedApp.stage?.id || 1)"
+                  @change="handleStageChange(selectedApp, $event.target.value)"
                   class="appearance-none bg-white border border-slate-200 hover:border-slate-300 text-xs font-medium rounded-lg pl-3 pr-7 py-1.5 text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs"
+                  :class="{ 'text-rose-600 font-semibold border-rose-300': selectedApp.status === 'rejected' }"
                 >
                   <option v-for="stg in stages" :key="stg.id" :value="stg.id">
                     {{ stg.name }}
+                  </option>
+                  <option value="rejected" class="text-rose-600 font-semibold">
+                    Ditolak
                   </option>
                 </select>
                 <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
@@ -1167,7 +1253,7 @@ import {
   Search, ListFilter, Kanban, ArrowLeft, ExternalLink, Eye,
   CheckCircle2, AlertCircle, Mail, Phone, FileText, RefreshCw, User, Sparkles,
   Link2, Users, Bell, ChevronDown, Upload, MessageSquare, Send, CheckSquare,
-  Calendar, MapPin, X, Clock, CalendarClock
+  Calendar, MapPin, X, Clock, CalendarClock, UserX
 } from 'lucide-vue-next';
 
 const store = useRekrutmenStore();
@@ -1321,10 +1407,15 @@ const filteredApplications = computed(() => {
 
 const getStageApplications = (stageId) => {
   return filteredApplications.value.filter(a => {
+    if (a.status === 'rejected') return false;
     const currentStage = a.current_stage_id || a.stage?.id || 1;
     return String(currentStage) === String(stageId);
   });
 };
+
+const rejectedApplications = computed(() => {
+  return filteredApplications.value.filter(a => a.status === 'rejected');
+});
 
 const getInitials = (name) => {
   if (!name) return 'PL';
@@ -1588,9 +1679,95 @@ const handleDrop = async (stageId, event) => {
   if (!appId) return;
 
   const app = store.applications.find(a => String(a.id) === String(appId));
-  const currentStageId = app ? (app.current_stage_id || app.stage?.id || 1) : null;
-  if (app && String(currentStageId) !== String(stageId)) {
+  if (!app) return;
+
+  if (String(stageId) === 'rejected') {
+    if (app.status !== 'rejected') {
+      await rejectCandidate(app);
+    }
+    return;
+  }
+
+  const currentStageId = app.current_stage_id || app.stage?.id || 1;
+  if (app.status === 'rejected' || String(currentStageId) !== String(stageId)) {
     await moveCandidateStage(app, stageId);
+  }
+};
+
+const handleStageChange = async (app, stageId) => {
+  if (String(stageId) === 'rejected') {
+    await rejectCandidate(app);
+  } else {
+    await moveCandidateStage(app, stageId);
+  }
+};
+
+const rejectCandidate = async (app) => {
+  try {
+    const res = await store.updateApplicationStage(app.id, 'rejected');
+    if (res && res.success) {
+      app.status = 'rejected';
+      if (selectedApp.value && String(selectedApp.value.id) === String(app.id)) {
+        selectedApp.value.status = 'rejected';
+      }
+      toastType.value = 'success';
+      toastMessage.value = `Kandidat "${app.full_name}" telah ditolak.`;
+      setTimeout(() => { toastMessage.value = null; }, 3000);
+    }
+  } catch (e) {
+    toastType.value = 'error';
+    toastMessage.value = 'Gagal mengubah status kandidat menjadi Ditolak.';
+  }
+};
+
+const bulkRejectSelected = async () => {
+  if (!selectedAppIds.value.length) return;
+
+  const count = selectedAppIds.value.length;
+
+  const confirm = await Swal.fire({
+    title: `Tolak ${count} Pelamar?`,
+    text: `Apakah Anda yakin ingin menolak ${count} pelamar yang dipilih?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#e11d48',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: `Ya, Tolak (${count})`,
+    cancelButtonText: 'Batal',
+    reverseButtons: true,
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    const res = await store.batchRejectApplications(selectedAppIds.value);
+    const rejectedCount = res.count || count;
+
+    selectedAppIds.value = [];
+
+    // Immediately refresh data
+    await store.fetchApplications('', false).catch(() => {});
+
+    toastType.value = 'success';
+    toastMessage.value = `${rejectedCount} pelamar berhasil ditolak.`;
+    setTimeout(() => { toastMessage.value = null; }, 3000);
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Pelamar Berhasil Ditolak',
+      text: `${rejectedCount} pelamar telah diubah statusnya menjadi Ditolak.`,
+      timer: 2000,
+      showConfirmButton: false,
+    });
+  } catch (err) {
+    toastType.value = 'error';
+    toastMessage.value = 'Gagal memproses penolakan pelamar.';
+    Swal.fire({
+      icon: 'error',
+      title: 'Gagal',
+      text: 'Terjadi kesalahan saat memproses penolakan pelamar.',
+      confirmButtonColor: '#e11d48',
+    });
   }
 };
 
@@ -1599,12 +1776,18 @@ const moveCandidateStage = async (app, stageId) => {
     const res = await store.moveStage(app.id, stageId);
     if (res && res.success) {
       app.current_stage_id = parseInt(stageId);
+      if (app.status === 'rejected') {
+        app.status = 'in_progress';
+      }
       const targetStage = stages.value.find(s => String(s.id) === String(stageId));
       if (targetStage) {
         app.stage = { id: targetStage.id, name: targetStage.name, color: targetStage.color };
       }
       if (selectedApp.value && String(selectedApp.value.id) === String(app.id)) {
         selectedApp.value.current_stage_id = parseInt(stageId);
+        if (selectedApp.value.status === 'rejected') {
+          selectedApp.value.status = 'in_progress';
+        }
         if (targetStage) {
           selectedApp.value.stage = { id: targetStage.id, name: targetStage.name, color: targetStage.color };
         }

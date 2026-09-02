@@ -115,36 +115,36 @@
           <tbody class="divide-y divide-slate-100">
             <tr v-for="item in filteredRequests" :key="item.id" class="hover:bg-slate-50 transition-colors">
               <td class="py-3.5 px-4 align-middle">
-                <div class="font-bold text-xs text-slate-900">{{ item.position_name || item.position_title || 'Staff' }}</div>
-                <div class="text-[11px] text-slate-400 font-mono mt-0.5">#{{ item.request_number || item.id }}</div>
+                <div class="font-bold text-xs text-slate-900">{{ item.posisi_dibutuhkan || item.position_name || item.position_title || 'Staff' }}</div>
+                <div class="text-[11px] text-slate-400 font-mono mt-0.5">#{{ item.id || item.request_number }}</div>
               </td>
               <td class="py-3.5 px-4 align-middle text-slate-700">
-                <div class="font-medium">{{ item.division?.name || item.department || '-' }}</div>
-                <div class="text-[11px] text-slate-400">{{ item.branch || item.location || 'Indonesia' }}</div>
+                <div class="font-medium">{{ item.division_name || item.department || item.division?.name || '-' }}</div>
+                <div class="text-[11px] text-slate-400">{{ item.lokasi_penempatan || item.branch || item.location || '-' }}</div>
               </td>
               <td class="py-3.5 px-4 align-middle font-bold text-slate-900">
-                {{ item.quantity || 1 }} Orang
+                {{ item.jumlah_karyawan_dibutuhkan || item.quantity || 1 }} Orang
               </td>
               <td class="py-3.5 px-4 align-middle">
                 <div class="w-32 space-y-1">
                   <div class="flex items-center justify-between text-[10px] font-semibold text-slate-600">
-                    <span>{{ item.fulfilled_count || 0 }}/{{ item.quantity || 1 }}</span>
-                    <span>{{ Math.min(100, Math.round(((item.fulfilled_count || 0) / (item.quantity || 1)) * 100)) }}%</span>
+                    <span>{{ item.fulfilled_count || 0 }}/{{ item.jumlah_karyawan_dibutuhkan || item.quantity || 1 }}</span>
+                    <span>{{ Math.min(100, Math.round(((item.fulfilled_count || 0) / (item.jumlah_karyawan_dibutuhkan || item.quantity || 1)) * 100)) }}%</span>
                   </div>
                   <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                     <div
                       class="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
-                      :style="{ width: `${Math.min(100, Math.round(((item.fulfilled_count || 0) / (item.quantity || 1)) * 100))}%` }"
+                      :style="{ width: `${Math.min(100, Math.round(((item.fulfilled_count || 0) / (item.jumlah_karyawan_dibutuhkan || item.quantity || 1)) * 100))}%` }"
                     ></div>
                   </div>
                 </div>
               </td>
               <td class="py-3.5 px-4 align-middle text-slate-600 whitespace-nowrap text-xs">
-                {{ item.submission_date || item.created_at || '-' }}
+                {{ item.tanggal_pengajuan || item.submission_date || item.created_at || '-' }}
               </td>
               <td class="py-3.5 px-4 align-middle">
-                <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold border', getApprovalBadge(item.approval_status || item.status)]">
-                  {{ item.approval_status || item.status || 'Pending' }}
+                <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold border', getApprovalBadge(item.status || item.approval_status)]">
+                  {{ item.status || item.approval_status || 'Pending' }}
                 </span>
               </td>
               <td class="py-3.5 px-4 align-middle text-right whitespace-nowrap">
@@ -176,7 +176,7 @@
         <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div>
             <h3 class="text-sm font-bold text-slate-900">Detail Permintaan FPTK</h3>
-            <p class="text-[11px] text-slate-500 mt-0.5">Nomor FPTK: #{{ selectedRequest.request_number || selectedRequest.id }}</p>
+            <p class="text-[11px] text-slate-500 mt-0.5">Nomor FPTK: #{{ selectedRequest.id || selectedRequest.request_number }}</p>
           </div>
           <button @click="selectedRequest = null" class="text-slate-400 hover:text-slate-600 text-xl font-bold cursor-pointer">&times;</button>
         </div>
@@ -185,23 +185,35 @@
           <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2.5">
             <div class="flex justify-between border-b border-slate-200/60 pb-2">
               <span class="text-slate-500">Posisi:</span>
-              <span class="font-bold text-slate-900">{{ selectedRequest.position_name || selectedRequest.position_title }}</span>
+              <span class="font-bold text-slate-900">{{ selectedRequest.posisi_dibutuhkan || selectedRequest.position_name || selectedRequest.position_title }}</span>
             </div>
             <div class="flex justify-between border-b border-slate-200/60 pb-2">
               <span class="text-slate-500">Divisi / Departemen:</span>
-              <span class="font-semibold text-slate-800">{{ selectedRequest.division?.name || selectedRequest.department || '-' }}</span>
+              <span class="font-semibold text-slate-800">{{ selectedRequest.division_name || selectedRequest.department || selectedRequest.division?.name || '-' }}</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-200/60 pb-2">
+              <span class="text-slate-500">Cabang / Lokasi:</span>
+              <span class="font-semibold text-slate-800">{{ selectedRequest.lokasi_penempatan || selectedRequest.branch || selectedRequest.location || '-' }}</span>
             </div>
             <div class="flex justify-between border-b border-slate-200/60 pb-2">
               <span class="text-slate-500">Jumlah Kebutuhan:</span>
-              <span class="font-bold text-slate-900">{{ selectedRequest.quantity || 1 }} Orang</span>
+              <span class="font-bold text-slate-900">{{ selectedRequest.jumlah_karyawan_dibutuhkan || selectedRequest.quantity || 1 }} Orang</span>
             </div>
             <div class="flex justify-between border-b border-slate-200/60 pb-2">
               <span class="text-slate-500">Status Persetujuan:</span>
-              <span class="font-bold text-emerald-600">{{ selectedRequest.approval_status || selectedRequest.status }}</span>
+              <span class="font-bold text-emerald-600">{{ selectedRequest.status || selectedRequest.approval_status }}</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-200/60 pb-2">
+              <span class="text-slate-500">Tanggal Pengajuan:</span>
+              <span class="font-semibold text-slate-800">{{ selectedRequest.tanggal_pengajuan || selectedRequest.submission_date || selectedRequest.created_at || '-' }}</span>
+            </div>
+            <div v-if="selectedRequest.nama_pengaju" class="flex justify-between border-b border-slate-200/60 pb-2">
+              <span class="text-slate-500">Diajukan Oleh:</span>
+              <span class="font-semibold text-slate-800">{{ selectedRequest.nama_pengaju }} ({{ selectedRequest.posisi_pengaju || '-' }})</span>
             </div>
             <div>
-              <span class="text-slate-500 block mb-1">Alasan Penambahan:</span>
-              <p class="text-slate-800 leading-relaxed">{{ selectedRequest.reason || selectedRequest.justification || 'Kebutuhan operasional penambahan personil' }}</p>
+              <span class="text-slate-500 block mb-1">Keterangan / Kualifikasi:</span>
+              <p class="text-slate-800 leading-relaxed whitespace-pre-line">{{ selectedRequest.requirements_kualifikasi || selectedRequest.keterangan || selectedRequest.reason || selectedRequest.justification || 'Kebutuhan operasional penambahan personil' }}</p>
             </div>
           </div>
         </div>
@@ -239,26 +251,41 @@ onMounted(() => {
 
 const requests = computed(() => store.requests || []);
 
-const approvedCount = computed(() => requests.value.filter(r => (r.approval_status === 'Approved' || r.status === 'Approved')).length);
-const pendingCount = computed(() => requests.value.filter(r => (r.approval_status === 'Pending' || r.status === 'Pending')).length);
+const approvedCount = computed(() => requests.value.filter(r => {
+  const s = String(r.status || r.approval_status || r.raw_status || '').toLowerCase();
+  return s.includes('approv') || s.includes('setuju');
+}).length);
+
+const pendingCount = computed(() => requests.value.filter(r => {
+  const s = String(r.status || r.approval_status || r.raw_status || '').toLowerCase();
+  return s.includes('pend') || s.includes('tunggu');
+}).length);
 
 const filteredRequests = computed(() => {
   let list = requests.value;
 
   if (statusFilter.value === 'approved') {
-    list = list.filter(r => (r.approval_status === 'Approved' || r.status === 'Approved'));
+    list = list.filter(r => {
+      const s = String(r.status || r.approval_status || r.raw_status || '').toLowerCase();
+      return s.includes('approv') || s.includes('setuju');
+    });
   } else if (statusFilter.value === 'pending') {
-    list = list.filter(r => (r.approval_status === 'Pending' || r.status === 'Pending'));
+    list = list.filter(r => {
+      const s = String(r.status || r.approval_status || r.raw_status || '').toLowerCase();
+      return s.includes('pend') || s.includes('tunggu');
+    });
   }
 
   if (!searchQuery.value) return list;
   const q = searchQuery.value.toLowerCase();
-  return list.filter(r => 
-    (r.position_name && r.position_name.toLowerCase().includes(q)) ||
-    (r.position_title && r.position_title.toLowerCase().includes(q)) ||
-    (r.request_number && r.request_number.toLowerCase().includes(q)) ||
-    (r.department && r.department.toLowerCase().includes(q))
-  );
+  return list.filter(r => {
+    const pos = String(r.posisi_dibutuhkan || r.position_name || r.position_title || '').toLowerCase();
+    const num = String(r.id || r.request_number || '').toLowerCase();
+    const div = String(r.division_name || r.department || '').toLowerCase();
+    const loc = String(r.lokasi_penempatan || r.branch || r.location || '').toLowerCase();
+    const name = String(r.nama_pengaju || '').toLowerCase();
+    return pos.includes(q) || num.includes(q) || div.includes(q) || loc.includes(q) || name.includes(q);
+  });
 });
 
 const getApprovalBadge = (status) => {
