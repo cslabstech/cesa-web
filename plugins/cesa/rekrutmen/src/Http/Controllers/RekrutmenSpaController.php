@@ -4,8 +4,8 @@ namespace Cesa\Rekrutmen\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Cesa\Rekrutmen\Enums\RequestManPowerStatus;
-use Cesa\Rekrutmen\Exports\RecruitmentProgressExport;
 use Cesa\Rekrutmen\Filament\Resources\JobPostingResource;
 use Cesa\Rekrutmen\Filament\Resources\RequestManPowerResource;
 use Cesa\Rekrutmen\Models\Approver;
@@ -16,9 +16,13 @@ use Cesa\Rekrutmen\Models\RekrutmenPipeline;
 use Cesa\Rekrutmen\Models\RekrutmenStage;
 use Cesa\Rekrutmen\Models\RequestManPower;
 use Cesa\Rekrutmen\Services\CandidateWhatsAppNotifier;
+use Cesa\Rekrutmen\Services\RecruitmentProgressReportExport;
+use Cesa\Rekrutmen\Services\RecruitmentProgressReportService;
+use Cesa\Rekrutmen\Services\ScheduledNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -31,10 +35,26 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 class RekrutmenSpaController extends Controller
 {
     /**
+     * Check and process due scheduled notifications with a 15-second throttle.
+     */
+    protected function checkAndProcessDueNotifications(): void
+    {
+        if (Cache::add('rekrutmen_scheduled_due_lock', 1, 15)) {
+            try {
+                app(ScheduledNotificationService::class)->processDueNotifications();
+            } catch (\Throwable $e) {
+                Log::warning('Auto-processing scheduled notifications failed: '.$e->getMessage());
+            }
+        }
+    }
+
+    /**
      * Render the single-page application entry view.
      */
     public function index(): View
     {
+        $this->checkAndProcessDueNotifications();
+
         $user = auth()->user();
 
         return view('rekrutmen::spa', [
@@ -51,6 +71,8 @@ class RekrutmenSpaController extends Controller
      */
     public function getRequests(Request $request): JsonResponse
     {
+        $this->checkAndProcessDueNotifications();
+
         $query = RequestManPower::with([
             'approver',
             'currentPendingApproval',
@@ -306,6 +328,8 @@ class RekrutmenSpaController extends Controller
      */
     public function getApplications(Request $request): JsonResponse
     {
+        $this->checkAndProcessDueNotifications();
+
         $query = JobApplication::with([
             'jobPosting',
             'currentStage',
@@ -1238,41 +1262,93 @@ PROMPT;
      */
     public function getProgressReport(Request $request): JsonResponse
     {
-        $postings = JobPosting::withCount(['applications'])->latest('created_at')->get();
+        $reportData = app(RecruitmentProgressReportService::class)->build([
+            'date_from'      => $request->input('date_from'),
+            'date_to'        => $request->input('date_to'),
+            'job_posting_id' => $request->filled('job_posting_id') ? (int) $request->input('job_posting_id') : null,
+            'company_id'     => $request->filled('company_id') ? (int) $request->input('company_id') : null,
+        ]);
 
-        $positions = $postings->map(function ($p) {
-            $total = $p->applications_count ?? 0;
+        $positions = $reportData['positions']->map(function ($item) {
+            $posting = $item['posting'];
+            $request = $item['request'];
+            $stats = $item['statistics'];
+            $cycleHealth = $item['cycle_health'];
 
             return [
-                'job_posting_id'         => $p->id,
-                'position'               => $p->title,
-                'company'                => 'Complete Selular',
-                'location'               => $p->location ?? 'Indonesia',
-                'needed'                 => 1,
-                'total_applicants'       => $total,
-                'hired'                  => 0,
-                'in_process'             => $total,
-                'rejected'               => 0,
-                'request_status_label'   => $p->is_published ? 'Published' : 'Draft',
-                'cycle_health'           => 'Normal',
-                'fulfillment_percentage' => 0,
+                'job_posting_id'         => $posting->id,
+                'position'               => $posting->title,
+                'company'                => $request?->company?->name ?? 'PT Complete Selular Group',
+                'location'               => $posting->location ?? 'Indonesia',
+                'needed'                 => $item['needed'] ?? 1,
+                'total_applicants'       => $stats['total_applicants'] ?? 0,
+                'hired'                  => $stats['hired'] ?? 0,
+                'in_process'             => $stats['in_progress'] ?? 0,
+                'rejected'               => $stats['rejected'] ?? 0,
+                'request_status_label'   => $item['request_status_label'] ?? ($posting->is_published ? 'Published' : 'Draft'),
+                'cycle_health'           => is_array($cycleHealth) ? ($cycleHealth['status_label'] ?? 'Normal') : 'Normal',
+                'fulfillment_percentage' => $item['fulfillment_percentage'] ?? 0,
             ];
         });
 
         return response()->json([
-            'summary'   => ['total_postings' => $postings->count()],
+            'summary'   => $reportData['summary'],
             'positions' => $positions,
+            'overview'  => $reportData['overview'] ?? [],
+            'timeline'  => $reportData['timeline'] ?? [],
         ]);
     }
 
     /**
-     * Export Recruitment Progress Report to Excel with professional corporate styling.
+     * Export Recruitment Progress Report to Excel with the authentic 4-sheet enterprise template.
      */
-    public function exportProgressReport(): BinaryFileResponse
+    public function exportProgressReport(Request $request): BinaryFileResponse
     {
-        $filename = 'Laporan_Recruitment_Progress_'.date('Ymd_His').'.xlsx';
+        ini_set('memory_limit', '512M');
+        set_time_limit(180);
 
-        return Excel::download(new RecruitmentProgressExport, $filename);
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+        $jobPostingId = $request->filled('job_posting_id') ? (int) $request->input('job_posting_id') : null;
+        $companyId = $request->filled('company_id') ? (int) $request->input('company_id') : null;
+
+        $reportData = app(RecruitmentProgressReportService::class)->build([
+            'date_from'      => $dateFrom,
+            'date_to'        => $dateTo,
+            'job_posting_id' => $jobPostingId,
+            'company_id'     => $companyId,
+        ]);
+
+        $periodLabel = 'Semua Periode';
+        if (filled($dateFrom) && filled($dateTo)) {
+            $periodLabel = sprintf(
+                'Periode %s s/d %s',
+                Carbon::parse($dateFrom)->format('d M Y'),
+                Carbon::parse($dateTo)->format('d M Y')
+            );
+        } elseif (filled($dateFrom)) {
+            $periodLabel = 'Mulai '.Carbon::parse($dateFrom)->format('d M Y');
+        } elseif (filled($dateTo)) {
+            $periodLabel = 'Sampai '.Carbon::parse($dateTo)->format('d M Y');
+        }
+
+        $from = filled($dateFrom) ? Carbon::parse($dateFrom)->format('Ymd') : 'all';
+        $to = filled($dateTo) ? Carbon::parse($dateTo)->format('Ymd') : 'all';
+        $filename = "recruitment-progress-mpp-{$from}-to-{$to}.xlsx";
+
+        return Excel::download(
+            new RecruitmentProgressReportExport(
+                $reportData,
+                [
+                    'date_from'      => $dateFrom,
+                    'date_to'        => $dateTo,
+                    'period_label'   => $periodLabel,
+                    'position_label' => 'Semua Posisi',
+                    'company_label'  => 'Semua Perusahaan',
+                ]
+            ),
+            $filename
+        );
     }
 
     /**
@@ -1474,61 +1550,131 @@ PROMPT;
     public static function getDefaultMailTemplates(): array
     {
         return [
+            'screening' => [
+                'id'           => 'screening',
+                'name'         => '1. Screening CV',
+                'stage'        => 'Screening CV',
+                'badge'        => 'Screening CV',
+                'subject'      => 'Konfirmasi Penerimaan Lamaran - {posisi}',
+                'body'         => "Halo {nama_pelamar},\n\nTerima kasih atas minat Anda bergabung dengan {perusahaan} untuk posisi {posisi}.\n\nBerkas lamaran dan CV Anda telah kami terima dan saat ini sedang dalam proses peninjauan (Screening CV) oleh tim rekrutmen kami. Kami akan menginformasikan perkembangan seleksi Anda selanjutnya.",
+                'info_title'   => 'Informasi Lamaran',
+                'action_label' => 'Cek Status Lamaran',
+                'has_link'     => false,
+                'has_schedule' => false,
+                'has_note'     => true,
+                'default_note' => 'Pastikan kontak WhatsApp dan email Anda aktif untuk menerima pembaruan informasi proses seleksi.',
+            ],
+            'interview_hr' => [
+                'id'           => 'interview_hr',
+                'name'         => '2. Interview HR',
+                'stage'        => 'Interview HR',
+                'badge'        => 'Interview HR',
+                'subject'      => 'Undangan Wawancara HR (Interview HR) - {posisi}',
+                'body'         => "Halo {nama_pelamar},\n\nSelamat! Berdasarkan hasil peninjauan berkas lamaran Anda untuk posisi {posisi} di {perusahaan}, kami mengundang Anda untuk mengikuti sesi Wawancara HR (Interview HR).\n\nSesi wawancara ini bertujuan untuk saling mengenal lebih dalam mengenai profil, pengalaman, serta aspirasi karier Anda.",
+                'info_title'   => 'Jadwal & Detail Wawancara HR',
+                'action_label' => 'Buka Link Wawancara HR',
+                'has_link'     => true,
+                'has_schedule' => true,
+                'has_note'     => true,
+                'default_note' => 'Mohon hadir 5-10 menit sebelum waktu wawancara dengan koneksi internet yang stabil dan berpakaian rapi.',
+            ],
             'psikotes' => [
                 'id'           => 'psikotes',
-                'name'         => 'Tes & Asesmen Online',
+                'name'         => '3. Psikotes',
                 'stage'        => 'Psikotes',
-                'badge'        => 'Tes Online',
+                'badge'        => 'Psikotes Online',
                 'subject'      => 'Undangan Tes Psikotes Online - {posisi}',
-                'body'         => "Terima kasih atas minat Anda bergabung dengan {perusahaan} untuk posisi {posisi}.\n\nBerdasarkan peninjauan awal berkas CV Anda, kami mengundang Anda untuk mengikuti tahapan Tes Psikotes & Asesmen secara online.",
-                'info_title'   => 'Informasi Pelaksanaan',
-                'action_label' => 'Mulai Tes Online',
+                'body'         => "Halo {nama_pelamar},\n\nSelamat! Anda berhasil melangkah ke tahapan selanjutnya untuk posisi {posisi} di {perusahaan}.\n\nKami mengundang Anda untuk mengikuti rangkaian Tes Psikotes & Asesmen secara online. Silakan akses tautan ujian yang tertera dan selesaikan tes sebelum batas waktu yang ditentukan.",
+                'info_title'   => 'Informasi Pelaksanaan Psikotes',
+                'action_label' => 'Mulai Tes Psikotes',
                 'has_link'     => true,
                 'has_schedule' => true,
                 'has_note'     => true,
                 'default_note' => 'Pastikan koneksi internet stabil dan gunakan browser di komputer/laptop untuk pengerjaan tes.',
             ],
-            'interview' => [
-                'id'           => 'interview',
-                'name'         => 'Wawancara Kerja',
-                'stage'        => 'Interview User',
-                'badge'        => 'Wawancara',
-                'subject'      => 'Undangan Wawancara Kerja - {posisi}',
-                'body'         => 'Sehubungan dengan proses seleksi rekrutmen posisi {posisi} di {perusahaan}, kami mengundang Anda untuk mengikuti sesi wawancara kerja.',
-                'info_title'   => 'Jadwal & Lokasi Wawancara',
-                'action_label' => 'Buka Tautan Wawancara',
+            'kompetensi' => [
+                'id'           => 'kompetensi',
+                'name'         => '4. Tes Kompetensi (Optional)',
+                'stage'        => 'Tes Kompetensi (Optional)',
+                'badge'        => 'Tes Kompetensi',
+                'subject'      => 'Undangan Tes Kompetensi & Studi Kasus - {posisi}',
+                'body'         => "Halo {nama_pelamar},\n\nSebagai bagian dari tahapan seleksi posisi {posisi} di {perusahaan}, kami mengundang Anda untuk menyelesaikan Tes Kompetensi Teknis (Skill Assessment / Case Study).\n\nInstruksi lengkap, brief tugas, serta lembar pengumpulan hasil dapat Anda akses melalui tautan di bawah.",
+                'info_title'   => 'Detail Tugas / Tes Kompetensi',
+                'action_label' => 'Buka Lembar Soal & Brief',
                 'has_link'     => true,
                 'has_schedule' => true,
                 'has_note'     => true,
-                'default_note' => 'Mohon bergabung tepat waktu dan siapkan resume serta koneksi internet yang stabil.',
+                'default_note' => 'Kumpulkan hasil pengerjaan sebelum batas waktu yang ditentukan sesuai dengan petunjuk instruksi.',
+            ],
+            'interview_user' => [
+                'id'           => 'interview_user',
+                'name'         => '5. Interview User',
+                'stage'        => 'Interview User',
+                'badge'        => 'Interview User',
+                'subject'      => 'Undangan Wawancara User (User Interview) - {posisi}',
+                'body'         => "Halo {nama_pelamar},\n\nSelamat! Anda telah dinyatakan lolos dan berhak mengikuti tahapan Wawancara User untuk posisi {posisi} di {perusahaan}.\n\nPada sesi ini Anda akan berdiskusi langsung dengan tim User / Departemen terkait mengenai ruang lingkup teknis pekerjaan dan proyek yang akan dikerjakan.",
+                'info_title'   => 'Jadwal & Detail Wawancara User',
+                'action_label' => 'Buka Link Wawancara User',
+                'has_link'     => true,
+                'has_schedule' => true,
+                'has_note'     => true,
+                'default_note' => 'Siapkan portofolio atau materi presentasi terkait pengalaman atau proyek Anda yang relevan.',
+            ],
+            'background_check' => [
+                'id'           => 'background_check',
+                'name'         => '6. Background Check',
+                'stage'        => 'Backgrond Check',
+                'badge'        => 'Background Check',
+                'subject'      => 'Verifikasi Data & Referensi Kerja (Background Check) - {posisi}',
+                'body'         => "Halo {nama_pelamar},\n\nTerima kasih atas partisipasi Anda dalam seluruh proses seleksi posisi {posisi} di {perusahaan}. Saat ini proses rekrutmen Anda telah memasuki tahap Verifikasi Latar Belakang (Background Check).\n\nMohon bantuannya untuk melengkapi data kontak referensi kerja profesional dan dokumen pendukung melalui tautan tertera.",
+                'info_title'   => 'Informasi Kelengkapan Dokumen',
+                'action_label' => 'Lengkapi Form Background Check',
+                'has_link'     => true,
+                'has_schedule' => true,
+                'has_note'     => true,
+                'default_note' => 'Seluruh data yang Anda berikan bersifat rahasia dan hanya digunakan untuk keperluan verifikasi proses seleksi.',
             ],
             'offering' => [
                 'id'           => 'offering',
-                'name'         => 'Offering Letter',
+                'name'         => '7. Offering Letter',
                 'stage'        => 'Offering Letter',
                 'badge'        => 'Offering Letter',
-                'subject'      => 'Penawaran Kerja (Offering Letter) - {posisi}',
-                'body'         => "Selamat! Berdasarkan rangkaian proses seleksi yang telah dilalui, kami bermaksud menyampaikan Penawaran Kerja (Offering Letter) untuk posisi {posisi} di {perusahaan}.\n\nSilakan tinjau rincian penawaran kerja terlampir dan konfirmasi penerimaan Anda.",
+                'subject'      => 'Penawaran Kerja Resmi (Offering Letter) - {posisi}',
+                'body'         => "Halo {nama_pelamar},\n\nSelamat! Berdasarkan hasil evaluasi dari seluruh tahapan seleksi yang telah Anda lalui, Manajemen {perusahaan} bermaksud menyampaikan Penawaran Kerja Resmi (Offering Letter) untuk posisi {posisi}.\n\nSilakan tinjau rincian penawaran kerja terlampir dan berikan konfirmasi penerimaan Anda sebelum batas waktu yang ditentukan.",
                 'info_title'   => 'Rincian Penawaran Kerja',
-                'action_label' => 'Lihat Offering Letter',
+                'action_label' => 'Lihat Dokumen Offering Letter',
                 'has_link'     => true,
                 'has_schedule' => true,
                 'has_note'     => true,
-                'default_note' => 'Harap melakukan konfirmasi penerimaan sebelum batas waktu yang ditentukan.',
+                'default_note' => 'Harap melakukan konfirmasi penerimaan dan menandatangani dokumen sebelum batas waktu berakhir.',
+            ],
+            'hired' => [
+                'id'           => 'hired',
+                'name'         => '8. Hired & Onboarding',
+                'stage'        => 'Hired',
+                'badge'        => 'Selamat Bergabung',
+                'subject'      => 'Selamat Bergabung di {perusahaan}! (Onboarding) - {posisi}',
+                'body'         => "Halo {nama_pelamar},\n\nSelamat Bergabung di {perusahaan}! Kami sangat bangga menyambut Anda sebagai bagian resmi dari tim kami untuk posisi {posisi}.\n\nInformasi mengenai jadwal hari pertama masuk kerja (First Day Onboarding), perlengkapan kerja, serta agenda pengenalan tim tertera pada rincian berikut.",
+                'info_title'   => 'Jadwal Hari Pertama & Onboarding',
+                'action_label' => 'Buka Panduan Onboarding',
+                'has_link'     => true,
+                'has_schedule' => true,
+                'has_note'     => true,
+                'default_note' => 'Selamat memulai perjalanan baru bersama kami! Jangan ragu menghubungi HR jika ada pertanyaan.',
             ],
             'rejection' => [
                 'id'           => 'rejection',
-                'name'         => 'Pemberitahuan Status',
+                'name'         => 'Pemberitahuan Status (Penolakan)',
                 'stage'        => 'Ditolak',
                 'badge'        => 'Status Lamaran',
-                'subject'      => 'Pembaruan Status Rekrutmen - {posisi}',
-                'body'         => "Terima kasih atas waktu dan partisipasi Anda dalam proses seleksi posisi {posisi} di {perusahaan}.\n\nSetelah pertimbangan menyeluruh, saat ini kami memutuskan untuk melanjutkan proses dengan kandidat lain yang kualifikasinya lebih selaras dengan kebutuhan posisi saat ini. Profil Anda akan tetap tersimpan dalam database kami untuk peluang mendatang yang relevan.",
+                'subject'      => 'Pembaruan Status Proses Seleksi - {posisi}',
+                'body'         => "Halo {nama_pelamar},\n\nTerima kasih atas waktu dan dedikasi Anda dalam mengikuti proses seleksi posisi {posisi} di {perusahaan}.\n\nSetelah pertimbangan menyeluruh, saat ini kami memutuskan untuk melanjutkan proses dengan kandidat lain yang kualifikasinya lebih mendekati kebutuhan posisi saat ini. Profil Anda akan tetap tersimpan dalam talent database kami untuk peluang mendatang yang relevan.",
                 'info_title'   => 'Informasi Lamaran',
                 'action_label' => '',
                 'has_link'     => false,
                 'has_schedule' => false,
                 'has_note'     => false,
-                'default_note' => '',
+                'default_note' => 'Kami mendoakan yang terbaik untuk perjalanan karier profesional Anda.',
             ],
         ];
     }
@@ -1597,9 +1743,38 @@ PROMPT;
         $request->validate([
             'subject'      => 'required|string|max:255',
             'body_message' => 'required|string',
+            'send_type'    => 'nullable|string|in:immediate,scheduled',
+            'scheduled_at' => 'required_if:send_type,scheduled|nullable|date',
         ]);
 
         $application = JobApplication::with(['jobPosting', 'currentStage'])->findOrFail($id);
+        $templateKey = $request->input('template_key');
+        $newStage = $this->autoAdvanceApplicationStage($application, $templateKey);
+
+        if ($request->input('send_type') === 'scheduled') {
+            $scheduledNotification = app(ScheduledNotificationService::class)->schedule(
+                array_merge($request->all(), [
+                    'application_ids' => [$application->id],
+                ]),
+                $request->hasFile('attachment') ? $request->file('attachment') : null,
+                auth()->id()
+            );
+
+            $dt = Carbon::parse($scheduledNotification->scheduled_at)->locale('id');
+            $formattedDate = $dt->translatedFormat('l, d F Y').' pukul '.$dt->format('H:i').' WIB';
+
+            return response()->json([
+                'success'                => true,
+                'scheduled'              => true,
+                'message'                => "Notifikasi berhasil dijadwalkan untuk dikirimkan ke {$application->full_name} pada {$formattedDate}.",
+                'formatted_scheduled_at' => $formattedDate,
+                'data'                   => $scheduledNotification,
+                'new_stage'              => $newStage ? [
+                    'id'   => $newStage->id,
+                    'name' => $newStage->name,
+                ] : null,
+            ], 200);
+        }
 
         $channels = (array) $request->input('channels', ['email']);
         if (empty($channels)) {
@@ -1730,9 +1905,13 @@ PROMPT;
         }
 
         return response()->json([
-            'success' => $hasSuccess,
-            'message' => implode(' | ', $messages),
-            'results' => $results,
+            'success'   => $hasSuccess,
+            'message'   => implode(' | ', $messages),
+            'results'   => $results,
+            'new_stage' => $newStage ? [
+                'id'   => $newStage->id,
+                'name' => $newStage->name,
+            ] : null,
         ], $hasSuccess ? 200 : 422);
     }
 
@@ -1747,6 +1926,8 @@ PROMPT;
             'channels'          => 'required|array|min:1',
             'subject'           => 'required|string|max:255',
             'body_message'      => 'required|string',
+            'send_type'         => 'nullable|string|in:immediate,scheduled',
+            'scheduled_at'      => 'required_if:send_type,scheduled|nullable|date',
         ]);
 
         $applications = JobApplication::with(['jobPosting', 'currentStage'])
@@ -1758,6 +1939,31 @@ PROMPT;
                 'success' => false,
                 'message' => 'Tidak ada kandidat valid yang ditemukan untuk dikirimi notifikasi.',
             ], 422);
+        }
+
+        $templateKey = $request->input('template_key');
+        foreach ($applications as $app) {
+            $this->autoAdvanceApplicationStage($app, $templateKey);
+        }
+
+        if ($request->input('send_type') === 'scheduled') {
+            $scheduledNotification = app(ScheduledNotificationService::class)->schedule(
+                $request->all(),
+                $request->hasFile('attachment') ? $request->file('attachment') : null,
+                auth()->id()
+            );
+
+            $dt = Carbon::parse($scheduledNotification->scheduled_at)->locale('id');
+            $formattedDate = $dt->translatedFormat('l, d F Y').' pukul '.$dt->format('H:i').' WIB';
+            $count = count($scheduledNotification->application_ids);
+
+            return response()->json([
+                'success'                => true,
+                'scheduled'              => true,
+                'message'                => "Notifikasi massal berhasil dijadwalkan untuk {$count} pelamar pada {$formattedDate}.",
+                'formatted_scheduled_at' => $formattedDate,
+                'data'                   => $scheduledNotification,
+            ], 200);
         }
 
         $channels = (array) $request->input('channels', ['email']);
@@ -1904,5 +2110,106 @@ PROMPT;
             'stats'   => $stats,
             'details' => $details,
         ]);
+    }
+
+    /**
+     * Heartbeat endpoint called by frontend to trigger due scheduled notifications and return state.
+     */
+    public function heartbeatScheduled(): JsonResponse
+    {
+        $processed = app(ScheduledNotificationService::class)->processDueNotifications();
+        $hasPending = ScheduledNotification::where('status', ScheduledNotification::STATUS_PENDING)->exists();
+
+        return response()->json([
+            'success'     => true,
+            'processed'   => $processed,
+            'has_pending' => $hasPending,
+            'server_time' => now()->format('Y-m-d H:i:s'),
+        ]);
+    }
+
+    /**
+     * Automatically advance candidate stage based on notification template.
+     */
+    protected function autoAdvanceApplicationStage(JobApplication $application, ?string $templateKey): ?RekrutmenStage
+    {
+        if (empty($templateKey)) {
+            return null;
+        }
+
+        if ($templateKey === 'rejection') {
+            $application->status = 'rejected';
+            $application->save();
+
+            return null;
+        }
+
+        $pipelineId = $application->jobPosting?->rekrutmen_pipeline_id ?? 1;
+
+        $targetStage = null;
+        if ($templateKey === 'screening') {
+            $targetStage = RekrutmenStage::where('rekrutmen_pipeline_id', $pipelineId)
+                ->where('name', 'like', '%screening%')
+                ->orderBy('order_column')
+                ->first();
+        } elseif ($templateKey === 'interview_hr' || $templateKey === 'interview') {
+            $targetStage = RekrutmenStage::where('rekrutmen_pipeline_id', $pipelineId)
+                ->where('name', 'like', '%interview hr%')
+                ->orderBy('order_column')
+                ->first();
+            if (! $targetStage) {
+                $targetStage = RekrutmenStage::where('rekrutmen_pipeline_id', $pipelineId)
+                    ->where('name', 'like', '%interview%')
+                    ->orderBy('order_column')
+                    ->first();
+            }
+        } elseif ($templateKey === 'psikotes') {
+            $targetStage = RekrutmenStage::where('rekrutmen_pipeline_id', $pipelineId)
+                ->where('name', 'like', '%psikotes%')
+                ->orderBy('order_column')
+                ->first();
+        } elseif ($templateKey === 'kompetensi') {
+            $targetStage = RekrutmenStage::where('rekrutmen_pipeline_id', $pipelineId)
+                ->where(function ($q) {
+                    $q->where('name', 'like', '%kompetensi%')
+                        ->orWhere('name', 'like', '%skill%');
+                })
+                ->orderBy('order_column')
+                ->first();
+        } elseif ($templateKey === 'interview_user') {
+            $targetStage = RekrutmenStage::where('rekrutmen_pipeline_id', $pipelineId)
+                ->where('name', 'like', '%interview user%')
+                ->orderBy('order_column')
+                ->first();
+        } elseif ($templateKey === 'background_check') {
+            $targetStage = RekrutmenStage::where('rekrutmen_pipeline_id', $pipelineId)
+                ->where(function ($q) {
+                    $q->where('name', 'like', '%backgro%')
+                        ->orWhere('name', 'like', '%check%');
+                })
+                ->orderBy('order_column')
+                ->first();
+        } elseif ($templateKey === 'offering') {
+            $targetStage = RekrutmenStage::where('rekrutmen_pipeline_id', $pipelineId)
+                ->where('name', 'like', '%offering%')
+                ->orderBy('order_column')
+                ->first();
+        } elseif ($templateKey === 'hired') {
+            $targetStage = RekrutmenStage::where('rekrutmen_pipeline_id', $pipelineId)
+                ->where('name', 'like', '%hired%')
+                ->orderBy('order_column')
+                ->first();
+            $application->status = 'hired';
+        }
+
+        if ($targetStage && (int) $application->current_stage_id !== (int) $targetStage->id) {
+            $application->current_stage_id = $targetStage->id;
+            if ($application->status === 'rejected') {
+                $application->status = 'in_progress';
+            }
+            $application->save();
+        }
+
+        return $targetStage;
     }
 }

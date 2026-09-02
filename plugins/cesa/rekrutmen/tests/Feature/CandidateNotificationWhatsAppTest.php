@@ -22,6 +22,7 @@ class CandidateNotificationWhatsAppTest extends RekrutmenTestCase
                 'message' => 'Message queued',
             ], 200),
         ]);
+        config(['rekrutmen.notifications.whatsapp.api_key' => 'fake-key']);
 
         $pipeline = RekrutmenPipeline::firstOrCreate(['id' => 1], ['name' => 'Default Pipeline']);
         $stage = RekrutmenStage::firstOrCreate([

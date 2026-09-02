@@ -3,6 +3,7 @@
 namespace Cesa\Rekrutmen;
 
 use Cesa\DatabaseSnapshot\Services\DatabaseSnapshotManager;
+use Cesa\Rekrutmen\Console\Commands\ProcessScheduledNotificationsCommand;
 use Cesa\Rekrutmen\Database\Seeders\DatabaseSeeder;
 use Cesa\Rekrutmen\Livewire\PublicRequestManPowerApprovalPage;
 use Cesa\Rekrutmen\Livewire\PublicRequestManPowerForm;
@@ -23,6 +24,7 @@ use Cesa\Rekrutmen\Policies\RekrutmenPipelinePolicy;
 use Cesa\Rekrutmen\Policies\RequestManPowerPolicy;
 use Cesa\Rekrutmen\Services\MailThrottleService;
 use Cesa\Rekrutmen\Services\RequestManPowerApprovalWhatsAppNotifier;
+use Cesa\Rekrutmen\Services\ScheduledNotificationService;
 use Cesa\Rekrutmen\Services\WhatsAppThrottleService;
 use Filament\Panel;
 use Illuminate\Support\Facades\Gate;
@@ -77,10 +79,14 @@ class RekrutmenServiceProvider extends PackageServiceProvider
                 '2026_05_02_115102_rekrutmen_add_job_posting_id_to_request_man_powers_table',
                 '2026_05_15_010600_add_creator_id_to_rekrutmen_tables',
                 '2026_05_15_011200_rekrutmen_rename_legacy_creator_columns',
+                '2026_09_02_000000_rekrutmen_create_scheduled_notifications_table',
             ])
             ->runsMigrations()
             ->runsSeeders()
             ->hasSeeder(DatabaseSeeder::class)
+            ->hasCommands([
+                ProcessScheduledNotificationsCommand::class,
+            ])
             ->hasInstallCommand(function (InstallCommand $command) {
                 $command
                     ->runsMigrations()
@@ -99,6 +105,7 @@ class RekrutmenServiceProvider extends PackageServiceProvider
         $this->app->singleton(MailThrottleService::class);
         $this->app->singleton(WhatsAppThrottleService::class);
         $this->app->singleton(RequestManPowerApprovalWhatsAppNotifier::class);
+        $this->app->singleton(ScheduledNotificationService::class);
     }
 
     public function packageBooted(): void
@@ -143,6 +150,7 @@ class RekrutmenServiceProvider extends PackageServiceProvider
                 'rekrutmen_job_postings',
                 'rekrutmen_job_applications',
                 'rekrutmen_job_application_histories',
+                'rekrutmen_scheduled_notifications',
             ],
         ]);
     }

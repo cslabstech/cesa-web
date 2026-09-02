@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('rekrutmen_job_applications', function (Blueprint $table) {
-            if (! Schema::hasColumn('rekrutmen_job_applications', 'ai_match_score')) {
-                $table->unsignedTinyInteger('ai_match_score')->nullable()->after('status');
-                $table->string('ai_recommendation')->nullable()->after('ai_match_score');
-                $table->text('ai_summary')->nullable()->after('ai_recommendation');
-                $table->timestamp('ai_analyzed_at')->nullable()->after('ai_summary');
-            }
-        });
+        if (Schema::hasTable('rekrutmen_job_applications')) {
+            Schema::table('rekrutmen_job_applications', function (Blueprint $table) {
+                if (! Schema::hasColumn('rekrutmen_job_applications', 'ai_match_score')) {
+                    $table->unsignedTinyInteger('ai_match_score')->nullable()->after('status');
+                    $table->string('ai_recommendation')->nullable()->after('ai_match_score');
+                    $table->text('ai_summary')->nullable()->after('ai_recommendation');
+                    $table->timestamp('ai_analyzed_at')->nullable()->after('ai_summary');
+                }
+            });
+        }
     }
 
     /**

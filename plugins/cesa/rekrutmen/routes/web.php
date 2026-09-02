@@ -78,6 +78,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::post('applications/{id}/send-email', [RekrutmenSpaController::class, 'sendCandidateEmail'])->name('rekrutmen.api.applications.send-email');
         Route::post('applications/{id}/send-notification', [RekrutmenSpaController::class, 'sendCandidateEmail'])->name('rekrutmen.api.applications.send-notification');
         Route::post('applications/bulk-send-notification', [RekrutmenSpaController::class, 'bulkSendCandidateNotification'])->name('rekrutmen.api.applications.bulk-send-notification');
+        Route::post('notifications/heartbeat', [RekrutmenSpaController::class, 'heartbeatScheduled'])->name('rekrutmen.api.notifications.heartbeat');
     });
 
     // Native Admin Panel URLs taken over by Vue SPA:

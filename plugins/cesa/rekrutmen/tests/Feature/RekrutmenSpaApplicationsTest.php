@@ -6,7 +6,9 @@ use Cesa\Rekrutmen\Models\JobApplication;
 use Cesa\Rekrutmen\Models\JobPosting;
 use Cesa\Rekrutmen\Models\RekrutmenPipeline;
 use Cesa\Rekrutmen\Models\RekrutmenStage;
+use Cesa\Rekrutmen\Services\RecruitmentProgressReportExport;
 use Cesa\Rekrutmen\Tests\RekrutmenTestCase;
+use Maatwebsite\Excel\Facades\Excel;
 use Webkul\Security\Models\User;
 
 class RekrutmenSpaApplicationsTest extends RekrutmenTestCase
@@ -90,5 +92,42 @@ class RekrutmenSpaApplicationsTest extends RekrutmenTestCase
         $this->assertEquals($posting->id, $response->json('active_job.id'));
         $this->assertEquals('Web App Developer Cirebon', $response->json('active_job.title'));
         $this->assertNotNull($response->json('applications.0.ai_match_score'));
+    }
+
+    public function test_can_fetch_progress_report_via_spa_api(): void
+    {
+        $user = User::factory()->create(['is_active' => true]);
+        $this->actingAs($user);
+
+        $response = $this->getJson('/rekrutmen/api/progress-report');
+
+        $response->assertOk();
+        $response->assertJsonStructure([
+            'summary',
+            'positions',
+            'overview',
+            'timeline',
+        ]);
+    }
+
+    public function test_can_export_progress_report_with_authentic_template(): void
+    {
+        Excel::fake();
+
+        $user = User::factory()->create(['is_active' => true]);
+        $this->actingAs($user);
+
+        $response = $this->get('/rekrutmen/api/progress-report/export');
+
+        $response->assertOk();
+        Excel::assertDownloaded('recruitment-progress-mpp-all-to-all.xlsx', function (RecruitmentProgressReportExport $export): bool {
+            $sheets = $export->sheets();
+
+            return count($sheets) === 4
+                && $sheets[0]->title() === 'Overview MPP'
+                && $sheets[1]->title() === 'Ringkasan Bulanan'
+                && $sheets[2]->title() === 'Detail Posisi'
+                && $sheets[3]->title() === 'Aktivitas Rekrutmen';
+        });
     }
 }

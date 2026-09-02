@@ -140,6 +140,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import axios from 'axios';
 import { ChevronRight, Search, FileSpreadsheet } from 'lucide-vue-next';
 import { useRekrutmenStore } from '../stores/rekrutmen';
 import LoadingState from '../components/LoadingState.vue';
@@ -161,17 +162,41 @@ const filteredPositions = computed(() => {
 
 const isExporting = ref(false);
 
-const exportExcel = () => {
+const exportExcel = async () => {
+  if (isExporting.value) return;
   isExporting.value = true;
-  const link = document.createElement('a');
-  link.href = '/rekrutmen/api/progress-report/export';
-  link.setAttribute('download', '');
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  setTimeout(() => {
+  try {
+    const response = await axios.get('/rekrutmen/api/progress-report/export', {
+      responseType: 'blob',
+    });
+
+    let filename = 'recruitment-progress-mpp.xlsx';
+    const disposition = response.headers['content-disposition'];
+    if (disposition && disposition.includes('filename=')) {
+      const filenameMatch = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      if (filenameMatch && filenameMatch[1]) {
+        filename = filenameMatch[1].replace(/['"]/g, '');
+      }
+    }
+
+    const blob = new Blob([response.data], { 
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Export failed', err);
+    // Fallback direct link
+    window.location.href = '/rekrutmen/api/progress-report/export';
+  } finally {
     isExporting.value = false;
-  }, 1500);
+  }
 };
 
 onMounted(() => {
