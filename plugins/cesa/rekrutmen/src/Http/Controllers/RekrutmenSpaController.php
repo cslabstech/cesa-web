@@ -163,7 +163,8 @@ class RekrutmenSpaController extends Controller
                 'position_description'       => $positionDesc,
                 'division_name'              => $record->division?->name ?? $record->divisi ?? '-',
                 'department'                 => $record->division?->name ?? $record->divisi ?? '-',
-                'company_name'               => $record->company?->name ?? '-',
+                'company_name'               => $record->company?->name ?? $record->business_entity_name ?? '-',
+                'business_entity_name'       => $record->business_entity_name ?? $record->company?->name ?? '-',
                 'lokasi_penempatan'          => $record->lokasi_penempatan ?? '-',
                 'branch'                     => $record->lokasi_penempatan ?? '-',
                 'location'                   => $record->lokasi_penempatan ?? '-',
@@ -1505,10 +1506,30 @@ PROMPT;
      */
     public function getConfigurations(): JsonResponse
     {
+        $divisions = Division::query()
+            ->with('company:id,name')
+            ->orderBy('name')
+            ->get()
+            ->map(static function (Division $division): array {
+                $companyName = $division->company?->name;
+
+                return [
+                    'id'           => $division->id,
+                    'name'         => $division->name,
+                    'display_name' => $division->nameWithCompany(),
+                    'is_active'    => (bool) $division->is_active,
+                    'company_id'   => $division->company_id,
+                    'company_name' => $companyName,
+                    'badan_usaha'  => $companyName,
+                ];
+            })
+            ->sortBy(fn (array $division): string => mb_strtolower(($division['company_name'] ?? '').' '.$division['name']))
+            ->values();
+
         return response()->json([
             'stages'     => RekrutmenStage::where('rekrutmen_pipeline_id', 1)->orderBy('order_column')->get(),
-            'divisions'  => Division::orderBy('name')->get(),
-            'approvers'  => Approver::with('division')->latest()->get(),
+            'divisions'  => $divisions,
+            'approvers'  => Approver::with(['division.company:id,name', 'company:id,name'])->latest()->get(),
             'pipelines'  => RekrutmenPipeline::with('stages')->get(),
         ]);
     }

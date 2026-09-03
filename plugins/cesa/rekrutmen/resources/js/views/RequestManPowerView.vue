@@ -104,7 +104,7 @@
           <thead>
             <tr class="bg-slate-50 text-slate-500 border-b border-slate-200">
               <th class="py-3 px-4 font-semibold text-[11px]">No. FPTK & Posisi</th>
-              <th class="py-3 px-4 font-semibold text-[11px]">Divisi & Cabang</th>
+              <th class="py-3 px-4 font-semibold text-[11px]">Divisi & Badan Usaha</th>
               <th class="py-3 px-4 font-semibold text-[11px]">Kebutuhan</th>
               <th class="py-3 px-4 font-semibold text-[11px]">Progres Pemenuhan</th>
               <th class="py-3 px-4 font-semibold text-[11px]">Tanggal Pengajuan</th>
@@ -120,6 +120,7 @@
               </td>
               <td class="py-3.5 px-4 align-middle text-slate-700">
                 <div class="font-medium">{{ item.division_name || item.department || item.division?.name || '-' }}</div>
+                <div class="text-[11px] text-slate-500">{{ item.business_entity_name || item.company_name || '-' }}</div>
                 <div class="text-[11px] text-slate-400">{{ item.lokasi_penempatan || item.branch || item.location || '-' }}</div>
               </td>
               <td class="py-3.5 px-4 align-middle font-bold text-slate-900">
@@ -190,6 +191,10 @@
             <div class="flex justify-between border-b border-slate-200/60 pb-2">
               <span class="text-slate-500">Divisi / Departemen:</span>
               <span class="font-semibold text-slate-800">{{ selectedRequest.division_name || selectedRequest.department || selectedRequest.division?.name || '-' }}</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-200/60 pb-2">
+              <span class="text-slate-500">Badan Usaha:</span>
+              <span class="font-semibold text-slate-800">{{ selectedRequest.business_entity_name || selectedRequest.company_name || '-' }}</span>
             </div>
             <div class="flex justify-between border-b border-slate-200/60 pb-2">
               <span class="text-slate-500">Cabang / Lokasi:</span>
@@ -282,9 +287,10 @@ const filteredRequests = computed(() => {
     const pos = String(r.posisi_dibutuhkan || r.position_name || r.position_title || '').toLowerCase();
     const num = String(r.id || r.request_number || '').toLowerCase();
     const div = String(r.division_name || r.department || '').toLowerCase();
+    const company = String(r.business_entity_name || r.company_name || '').toLowerCase();
     const loc = String(r.lokasi_penempatan || r.branch || r.location || '').toLowerCase();
     const name = String(r.nama_pengaju || '').toLowerCase();
-    return pos.includes(q) || num.includes(q) || div.includes(q) || loc.includes(q) || name.includes(q);
+    return pos.includes(q) || num.includes(q) || div.includes(q) || company.includes(q) || loc.includes(q) || name.includes(q);
   });
 });
 

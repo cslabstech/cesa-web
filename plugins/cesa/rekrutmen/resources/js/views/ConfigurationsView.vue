@@ -107,10 +107,19 @@
         v-if="activeTab === 'divisions'"
         class="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden"
       >
-        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+        <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div class="text-xs font-bold text-slate-800 uppercase tracking-wider">
-            Daftar Master Divisi Perusahaan
+            Daftar Master Divisi per Badan Usaha
           </div>
+          <select
+            v-model="divisionCompanyFilter"
+            class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-slate-400 cursor-pointer min-w-[220px]"
+          >
+            <option value="all">Semua Badan Usaha</option>
+            <option v-for="company in divisionCompanies" :key="company.id" :value="String(company.id)">
+              {{ company.name }}
+            </option>
+          </select>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
@@ -118,25 +127,27 @@
               <tr class="bg-slate-50/70 text-slate-500 border-b border-slate-200/80">
                 <th class="py-3 px-4 font-bold uppercase tracking-wider w-20">ID</th>
                 <th class="py-3 px-4 font-bold uppercase tracking-wider">Nama Divisi</th>
+                <th class="py-3 px-4 font-bold uppercase tracking-wider">Badan Usaha</th>
                 <th class="py-3 px-4 font-bold uppercase tracking-wider">Status Operasional</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
               <tr
-                v-for="div in divisions"
+                v-for="div in filteredDivisions"
                 :key="div.id"
                 class="hover:bg-slate-50/70 transition-colors"
               >
                 <td class="py-3.5 px-4 font-mono text-slate-400 font-semibold">#{{ div.id }}</td>
                 <td class="py-3.5 px-4 font-bold text-slate-900">{{ div.name }}</td>
+                <td class="py-3.5 px-4 text-slate-700 font-medium">{{ div.company_name || div.badan_usaha || div.company?.name || '-' }}</td>
                 <td class="py-3.5 px-4">
                   <span class="inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
                     {{ div.is_active ? 'Aktif' : 'Nonaktif' }}
                   </span>
                 </td>
               </tr>
-              <tr v-if="!divisions.length">
-                <td colspan="3" class="py-12 text-center text-xs text-slate-400">Belum ada master divisi terdaftar.</td>
+              <tr v-if="!filteredDivisions.length">
+                <td colspan="4" class="py-12 text-center text-xs text-slate-400">Belum ada master divisi terdaftar.</td>
               </tr>
             </tbody>
           </table>
@@ -210,6 +221,7 @@
                 <th class="py-3 px-4 font-bold uppercase tracking-wider w-20">Level</th>
                 <th class="py-3 px-4 font-bold uppercase tracking-wider">Nama Approver</th>
                 <th class="py-3 px-4 font-bold uppercase tracking-wider">Jabatan / Role</th>
+                <th class="py-3 px-4 font-bold uppercase tracking-wider">Divisi / Badan Usaha</th>
                 <th class="py-3 px-4 font-bold uppercase tracking-wider">Email Notifikasi</th>
               </tr>
             </thead>
@@ -221,11 +233,15 @@
               >
                 <td class="py-3.5 px-4 font-bold text-slate-700">Level {{ appr.level || 1 }}</td>
                 <td class="py-3.5 px-4 font-bold text-slate-900">{{ appr.name }}</td>
-                <td class="py-3.5 px-4 text-slate-600 font-medium">{{ appr.role || appr.position || 'Head of Dept' }}</td>
+                <td class="py-3.5 px-4 text-slate-600 font-medium">{{ appr.role || appr.position || appr.title || 'Head of Dept' }}</td>
+                <td class="py-3.5 px-4">
+                  <div class="font-medium text-slate-800">{{ appr.division?.name || appr.divisi || '-' }}</div>
+                  <div class="text-[11px] text-slate-400">{{ appr.company?.name || appr.division?.company?.name || '-' }}</div>
+                </td>
                 <td class="py-3.5 px-4 text-slate-500 font-mono text-[11px]">{{ appr.email }}</td>
               </tr>
               <tr v-if="!approvers.length">
-                <td colspan="4" class="py-12 text-center text-xs text-slate-400">Belum ada approver terdaftar.</td>
+                <td colspan="5" class="py-12 text-center text-xs text-slate-400">Belum ada approver terdaftar.</td>
               </tr>
             </tbody>
           </table>
@@ -680,6 +696,7 @@ import 'sweetalert2/dist/sweetalert2.min.css';
 
 const store = useRekrutmenStore();
 const activeTab = ref('divisions');
+const divisionCompanyFilter = ref('all');
 
 const aiSettings = ref({
   api_key: '',
@@ -1311,4 +1328,31 @@ onUnmounted(() => {
 const divisions = computed(() => store.configurations?.divisions || []);
 const stages = computed(() => store.stages || store.configurations?.stages || []);
 const approvers = computed(() => store.configurations?.approvers || []);
+
+const divisionCompanies = computed(() => {
+  const seen = new Map();
+
+  for (const division of divisions.value) {
+    if (!division?.company_id) {
+      continue;
+    }
+
+    const name = division.company_name || division.badan_usaha || division.company?.name;
+    if (!name || seen.has(division.company_id)) {
+      continue;
+    }
+
+    seen.set(division.company_id, { id: division.company_id, name });
+  }
+
+  return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
+});
+
+const filteredDivisions = computed(() => {
+  if (divisionCompanyFilter.value === 'all') {
+    return divisions.value;
+  }
+
+  return divisions.value.filter((division) => String(division.company_id) === String(divisionCompanyFilter.value));
+});
 </script>

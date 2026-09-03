@@ -45,7 +45,10 @@
             :key="div.id"
             class="flex items-center justify-between p-3 bg-slate-800/40 border border-slate-800 rounded-xl"
           >
-            <span class="text-xs font-bold text-slate-200">{{ div.name }}</span>
+            <div>
+              <span class="text-xs font-bold text-slate-200">{{ div.name }}</span>
+              <div class="text-[10px] text-slate-500 mt-0.5">{{ div.company_name || div.badan_usaha || div.company?.name || '-' }}</div>
+            </div>
             <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
               Aktif
             </span>
@@ -61,9 +64,9 @@ import { computed, onMounted } from 'vue';
 import { useRekrutmenStore } from '../stores/rekrutmen';
 
 const store = useRekrutmenStore();
-const masterData = computed(() => store.masterData);
+const masterData = computed(() => store.configurations);
 
 onMounted(() => {
-  store.fetchMasterData();
+  store.fetchConfigurations();
 });
 </script>
