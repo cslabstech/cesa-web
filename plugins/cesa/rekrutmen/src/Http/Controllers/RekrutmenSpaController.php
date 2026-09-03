@@ -1526,11 +1526,130 @@ PROMPT;
             ->sortBy(fn (array $division): string => mb_strtolower(($division['company_name'] ?? '').' '.$division['name']))
             ->values();
 
+        $companies = Company::query()->whereNull('deleted_at')->orderBy('name')->get(['id', 'name']);
+
         return response()->json([
             'stages'     => RekrutmenStage::where('rekrutmen_pipeline_id', 1)->orderBy('order_column')->get(),
             'divisions'  => $divisions,
             'approvers'  => Approver::with(['division.company:id,name', 'company:id,name'])->latest()->get(),
             'pipelines'  => RekrutmenPipeline::with('stages')->get(),
+            'companies'  => $companies,
+        ]);
+    }
+
+    /**
+     * Store a new division.
+     */
+    public function storeDivision(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name'       => 'required|string|max:255',
+            'company_id' => 'required|integer|exists:companies,id',
+            'is_active'  => 'nullable|boolean',
+        ]);
+
+        $name = trim($validated['name']);
+        $companyId = (int) $validated['company_id'];
+
+        $exists = Division::where('company_id', $companyId)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($name)])
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Divisi dengan nama tersebut sudah terdaftar pada badan usaha ini.',
+            ], 422);
+        }
+
+        $division = Division::create([
+            'company_id' => $companyId,
+            'name'       => $name,
+            'is_active'  => $request->has('is_active') ? (bool) $request->input('is_active') : true,
+            'creator_id' => Auth::id(),
+        ]);
+
+        $division->load('company:id,name');
+
+        return response()->json([
+            'success'  => true,
+            'message'  => "Divisi \"{$division->name}\" berhasil ditambahkan.",
+            'division' => [
+                'id'           => $division->id,
+                'name'         => $division->name,
+                'display_name' => $division->nameWithCompany(),
+                'is_active'    => (bool) $division->is_active,
+                'company_id'   => $division->company_id,
+                'company_name' => $division->company?->name,
+                'badan_usaha'  => $division->company?->name,
+            ],
+        ]);
+    }
+
+    /**
+     * Update an existing division.
+     */
+    public function updateDivision(Request $request, $id): JsonResponse
+    {
+        $division = Division::findOrFail($id);
+
+        $validated = $request->validate([
+            'name'       => 'required|string|max:255',
+            'company_id' => 'required|integer|exists:companies,id',
+            'is_active'  => 'nullable|boolean',
+        ]);
+
+        $name = trim($validated['name']);
+        $companyId = (int) $validated['company_id'];
+
+        $exists = Division::where('company_id', $companyId)
+            ->where('id', '!=', $division->id)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($name)])
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Divisi dengan nama tersebut sudah terdaftar pada badan usaha ini.',
+            ], 422);
+        }
+
+        $division->update([
+            'company_id' => $companyId,
+            'name'       => $name,
+            'is_active'  => $request->has('is_active') ? (bool) $request->input('is_active') : $division->is_active,
+        ]);
+
+        $division->load('company:id,name');
+
+        return response()->json([
+            'success'  => true,
+            'message'  => "Divisi \"{$division->name}\" berhasil diperbarui.",
+            'division' => [
+                'id'           => $division->id,
+                'name'         => $division->name,
+                'display_name' => $division->nameWithCompany(),
+                'is_active'    => (bool) $division->is_active,
+                'company_id'   => $division->company_id,
+                'company_name' => $division->company?->name,
+                'badan_usaha'  => $division->company?->name,
+            ],
+        ]);
+    }
+
+    /**
+     * Delete a division.
+     */
+    public function destroyDivision($id): JsonResponse
+    {
+        $division = Division::findOrFail($id);
+        $name = $division->name;
+
+        $division->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Divisi \"{$name}\" berhasil dihapus.",
         ]);
     }
 

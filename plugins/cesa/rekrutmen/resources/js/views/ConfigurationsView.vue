@@ -111,15 +111,24 @@
           <div class="text-xs font-bold text-slate-800 uppercase tracking-wider">
             Daftar Master Divisi per Badan Usaha
           </div>
-          <select
-            v-model="divisionCompanyFilter"
-            class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-slate-400 cursor-pointer min-w-[220px]"
-          >
-            <option value="all">Semua Badan Usaha</option>
-            <option v-for="company in divisionCompanies" :key="company.id" :value="String(company.id)">
-              {{ company.name }}
-            </option>
-          </select>
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <select
+              v-model="divisionCompanyFilter"
+              class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-slate-400 cursor-pointer min-w-[200px]"
+            >
+              <option value="all">Semua Badan Usaha</option>
+              <option v-for="company in divisionCompanies" :key="company.id" :value="String(company.id)">
+                {{ company.name }}
+              </option>
+            </select>
+            <button
+              @click="openDivisionModal()"
+              class="px-3.5 py-1.5 bg-[#0c2340] hover:bg-[#15325b] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+            >
+              <Plus class="w-3.5 h-3.5" />
+              <span>Tambah Divisi</span>
+            </button>
+          </div>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
@@ -129,6 +138,7 @@
                 <th class="py-3 px-4 font-bold uppercase tracking-wider">Nama Divisi</th>
                 <th class="py-3 px-4 font-bold uppercase tracking-wider">Badan Usaha</th>
                 <th class="py-3 px-4 font-bold uppercase tracking-wider">Status Operasional</th>
+                <th class="py-3 px-4 font-bold uppercase tracking-wider text-right w-28">Aksi</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -141,13 +151,34 @@
                 <td class="py-3.5 px-4 font-bold text-slate-900">{{ div.name }}</td>
                 <td class="py-3.5 px-4 text-slate-700 font-medium">{{ div.company_name || div.badan_usaha || div.company?.name || '-' }}</td>
                 <td class="py-3.5 px-4">
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span
+                    class="inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border"
+                    :class="div.is_active ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'"
+                  >
                     {{ div.is_active ? 'Aktif' : 'Nonaktif' }}
                   </span>
                 </td>
+                <td class="py-3.5 px-4 text-right">
+                  <div class="flex items-center justify-end gap-1.5">
+                    <button
+                      @click="openDivisionModal(div)"
+                      class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                      title="Edit Divisi"
+                    >
+                      <Pencil class="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      @click="confirmDeleteDivision(div)"
+                      class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                      title="Hapus Divisi"
+                    >
+                      <Trash2 class="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </td>
               </tr>
               <tr v-if="!filteredDivisions.length">
-                <td colspan="4" class="py-12 text-center text-xs text-slate-400">Belum ada master divisi terdaftar.</td>
+                <td colspan="5" class="py-12 text-center text-xs text-slate-400">Belum ada master divisi terdaftar.</td>
               </tr>
             </tbody>
           </table>
@@ -683,6 +714,99 @@
         </div>
       </div>
     </template>
+
+    <!-- MODAL TAMBAH / EDIT DIVISI -->
+    <div
+      v-if="divisionModal.open"
+      class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5"
+      @click.self="divisionModal.open = false"
+    >
+      <div class="bg-white rounded-2xl border border-slate-200 w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col">
+        <!-- Modal Header -->
+        <div class="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 leading-tight">
+              {{ divisionModal.isEdit ? 'Edit Master Divisi' : 'Tambah Master Divisi' }}
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5 font-normal">
+              Kelola nama divisi dan keterkaitannya dengan badan usaha (PT / CV).
+            </p>
+          </div>
+          <button
+            @click="divisionModal.open = false"
+            class="text-slate-400 hover:text-slate-700 p-1 text-xl font-bold cursor-pointer transition-colors leading-none"
+          >
+            &times;
+          </button>
+        </div>
+
+        <!-- Form Body -->
+        <form @submit.prevent="saveDivision" class="p-6 space-y-4 text-xs bg-white">
+          <!-- Badan Usaha -->
+          <div>
+            <label class="block font-bold text-slate-800 mb-1.5">Badan Usaha / Perusahaan <span class="text-rose-500">*</span></label>
+            <div class="relative">
+              <select
+                v-model="divisionModal.form.company_id"
+                required
+                class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400 appearance-none transition-all pr-9 cursor-pointer"
+              >
+                <option :value="null" disabled>-- Pilih Badan Usaha / PT --</option>
+                <option v-for="c in divisionCompanies" :key="c.id" :value="c.id">
+                  {{ c.name }}
+                </option>
+              </select>
+              <ChevronDown class="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+          <!-- Nama Divisi -->
+          <div>
+            <label class="block font-bold text-slate-800 mb-1.5">Nama Divisi <span class="text-rose-500">*</span></label>
+            <input
+              v-model="divisionModal.form.name"
+              type="text"
+              required
+              placeholder="Contoh: FINANCE ACCOUNTING, HCM, IT, dll"
+              class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs font-normal text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-400 transition-all"
+            />
+          </div>
+
+          <!-- Status Aktif -->
+          <div class="pt-1">
+            <label class="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                v-model="divisionModal.form.is_active"
+                class="rounded border-slate-300 text-blue-600 focus:ring-0 w-4 h-4 cursor-pointer"
+              />
+              <div>
+                <span class="text-xs font-semibold text-slate-800">Status Aktif</span>
+                <p class="text-[11px] text-slate-400 font-normal">Divisi dapat dipilih pada saat pengajuan FPTK / MPP.</p>
+              </div>
+            </label>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              @click="divisionModal.open = false"
+              class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              :disabled="divisionModal.isSubmitting"
+              class="px-5 py-2 text-xs font-semibold text-white bg-[#0c2340] hover:bg-[#15325b] rounded-lg transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+            >
+              {{ divisionModal.isSubmitting ? 'Menyimpan...' : (divisionModal.isEdit ? 'Simpan Perubahan' : 'Tambah Divisi') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -693,10 +817,23 @@ import LoadingState from '../components/LoadingState.vue';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
+import { Plus, Pencil, Trash2, ChevronDown } from 'lucide-vue-next';
 
 const store = useRekrutmenStore();
 const activeTab = ref('divisions');
 const divisionCompanyFilter = ref('all');
+
+const divisionModal = ref({
+  open: false,
+  isEdit: false,
+  isSubmitting: false,
+  divisionId: null,
+  form: {
+    name: '',
+    company_id: null,
+    is_active: true,
+  },
+});
 
 const aiSettings = ref({
   api_key: '',
@@ -1330,6 +1467,9 @@ const stages = computed(() => store.stages || store.configurations?.stages || []
 const approvers = computed(() => store.configurations?.approvers || []);
 
 const divisionCompanies = computed(() => {
+  if (store.configurations?.companies?.length) {
+    return store.configurations.companies;
+  }
   const seen = new Map();
 
   for (const division of divisions.value) {
@@ -1355,4 +1495,117 @@ const filteredDivisions = computed(() => {
 
   return divisions.value.filter((division) => String(division.company_id) === String(divisionCompanyFilter.value));
 });
+
+const openDivisionModal = (div = null) => {
+  if (div) {
+    divisionModal.value = {
+      open: true,
+      isEdit: true,
+      isSubmitting: false,
+      divisionId: div.id,
+      form: {
+        name: div.name || '',
+        company_id: div.company_id || null,
+        is_active: div.is_active !== false,
+      },
+    };
+  } else {
+    const defaultCompanyId = divisionCompanyFilter.value !== 'all' ? Number(divisionCompanyFilter.value) : (divisionCompanies.value[0]?.id || null);
+    divisionModal.value = {
+      open: true,
+      isEdit: false,
+      isSubmitting: false,
+      divisionId: null,
+      form: {
+        name: '',
+        company_id: defaultCompanyId,
+        is_active: true,
+      },
+    };
+  }
+};
+
+const saveDivision = async () => {
+  if (!divisionModal.value.form.name || !divisionModal.value.form.company_id) {
+    Swal.fire({
+      title: 'Data Belum Lengkap',
+      text: 'Harap pilih Badan Usaha dan masukkan Nama Divisi.',
+      icon: 'warning',
+      confirmButtonColor: '#0c2340',
+      customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-lg px-4 py-2 text-xs font-semibold' },
+    });
+    return;
+  }
+
+  divisionModal.value.isSubmitting = true;
+  try {
+    let res;
+    if (divisionModal.value.isEdit) {
+      res = await store.updateDivision(divisionModal.value.divisionId, divisionModal.value.form);
+    } else {
+      res = await store.createDivision(divisionModal.value.form);
+    }
+    divisionModal.value.open = false;
+    Swal.fire({
+      title: 'Berhasil!',
+      text: res.message || 'Data divisi berhasil disimpan.',
+      icon: 'success',
+      confirmButtonColor: '#0c2340',
+      timer: 2000,
+      customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-lg px-4 py-2 text-xs font-semibold' },
+    });
+  } catch (err) {
+    Swal.fire({
+      title: 'Gagal Menyimpan',
+      text: err.response?.data?.message || 'Terjadi kesalahan saat menyimpan divisi.',
+      icon: 'error',
+      confirmButtonColor: '#e11d48',
+      customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-lg px-4 py-2 text-xs font-semibold' },
+    });
+  } finally {
+    divisionModal.value.isSubmitting = false;
+  }
+};
+
+const confirmDeleteDivision = async (div) => {
+  const companyName = div.company_name || div.badan_usaha || div.company?.name || 'Badan Usaha';
+  const result = await Swal.fire({
+    title: 'Hapus Divisi Ini?',
+    html: `Apakah Anda yakin ingin menghapus divisi <strong>${div.name}</strong> (${companyName})?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Ya, Hapus',
+    cancelButtonText: 'Batal',
+    confirmButtonColor: '#e11d48',
+    cancelButtonColor: '#64748b',
+    reverseButtons: true,
+    customClass: {
+      popup: 'rounded-2xl',
+      confirmButton: 'rounded-lg px-4 py-2 text-xs font-semibold',
+      cancelButton: 'rounded-lg px-4 py-2 text-xs font-semibold',
+    }
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    const res = await store.deleteDivision(div.id);
+    Swal.fire({
+      title: 'Berhasil Dihapus!',
+      text: res.message || `Divisi ${div.name} berhasil dihapus.`,
+      icon: 'success',
+      confirmButtonColor: '#0c2340',
+      timer: 2000,
+      customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-lg px-4 py-2 text-xs font-semibold' },
+    });
+  } catch (err) {
+    Swal.fire({
+      title: 'Gagal Menghapus',
+      text: err.response?.data?.message || 'Terjadi kesalahan saat menghapus divisi.',
+      icon: 'error',
+      confirmButtonColor: '#e11d48',
+      customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-lg px-4 py-2 text-xs font-semibold' },
+    });
+  }
+};
 </script>

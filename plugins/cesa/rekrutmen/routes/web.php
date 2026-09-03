@@ -75,6 +75,9 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('progress-report', [RekrutmenSpaController::class, 'getProgressReport'])->name('rekrutmen.api.progress-report');
         Route::get('progress-report/export', [RekrutmenSpaController::class, 'exportProgressReport'])->name('rekrutmen.api.progress-report.export');
         Route::get('configurations', [RekrutmenSpaController::class, 'getConfigurations'])->name('rekrutmen.api.configurations');
+        Route::post('divisions', [RekrutmenSpaController::class, 'storeDivision'])->name('rekrutmen.api.divisions.store');
+        Route::put('divisions/{id}', [RekrutmenSpaController::class, 'updateDivision'])->name('rekrutmen.api.divisions.update');
+        Route::delete('divisions/{id}', [RekrutmenSpaController::class, 'destroyDivision'])->name('rekrutmen.api.divisions.destroy');
         Route::get('settings/ai', [RekrutmenSpaController::class, 'getAiSettings'])->name('rekrutmen.api.settings.ai');
         Route::post('settings/ai', [RekrutmenSpaController::class, 'saveAiSettings'])->name('rekrutmen.api.settings.ai.save');
         Route::post('settings/ai/test', [RekrutmenSpaController::class, 'testAiConnection'])->name('rekrutmen.api.settings.ai.test');

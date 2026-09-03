@@ -305,6 +305,24 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
         this.loading.configurations = false;
       }
       return this.configurations;
+    },
+
+    async createDivision(payload) {
+      const res = await axios.post('/rekrutmen/api/divisions', payload);
+      await this.fetchConfigurations(true);
+      return res.data;
+    },
+
+    async updateDivision(id, payload) {
+      const res = await axios.put(`/rekrutmen/api/divisions/${id}`, payload);
+      await this.fetchConfigurations(true);
+      return res.data;
+    },
+
+    async deleteDivision(id) {
+      const res = await axios.delete(`/rekrutmen/api/divisions/${id}`);
+      await this.fetchConfigurations(true);
+      return res.data;
     }
   }
 });

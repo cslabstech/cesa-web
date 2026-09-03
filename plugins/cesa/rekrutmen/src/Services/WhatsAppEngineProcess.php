@@ -59,6 +59,22 @@ class WhatsAppEngineProcess
         File::ensureDirectoryExists(dirname($this->logPath()));
 
         $port = (string) (parse_url($this->client->baseUrl(), PHP_URL_PORT) ?: '3318');
+
+        if (PHP_OS_FAMILY === 'Windows') {
+            $cmd = sprintf(
+                'start "" /B cmd /C "set REKRUTMEN_WA_ENGINE_PORT=%s& set REKRUTMEN_WA_ENGINE_HOST=127.0.0.1& set REKRUTMEN_WA_SESSION_ROOT=%s& set REKRUTMEN_WA_LOG_LEVEL=error& "%s" "%s" >> "%s" 2>&1"',
+                $port,
+                $this->sessionRoot(),
+                $this->nodeBinary(),
+                $this->scriptPath(),
+                $this->logPath()
+            );
+
+            pclose(popen($cmd, 'r'));
+
+            return;
+        }
+
         $command = sprintf(
             'REKRUTMEN_WA_ENGINE_PORT=%s REKRUTMEN_WA_ENGINE_HOST=%s REKRUTMEN_WA_SESSION_ROOT=%s REKRUTMEN_WA_LOG_LEVEL=error nohup %s %s >> %s 2>&1 & echo $!',
             escapeshellarg($port),
@@ -88,6 +104,12 @@ class WhatsAppEngineProcess
         $pid = (int) trim((string) File::get($this->pidPath()));
         if ($pid <= 1) {
             return false;
+        }
+
+        if (PHP_OS_FAMILY === 'Windows') {
+            exec('tasklist /FI "PID eq '.((int) $pid).'"', $output);
+
+            return count($output) > 1 && ! str_contains(implode(' ', $output), 'No tasks');
         }
 
         if (function_exists('posix_kill')) {
