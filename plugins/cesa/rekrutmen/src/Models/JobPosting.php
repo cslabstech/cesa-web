@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Webkul\Security\Traits\HasNullableCreator;
+use Webkul\Support\Models\Company;
 
 class JobPosting extends Model
 {
@@ -22,6 +23,7 @@ class JobPosting extends Model
     protected $table = 'rekrutmen_job_postings';
 
     protected $fillable = [
+        'company_id',
         'request_man_power_id',
         'rekrutmen_pipeline_id',
         'title',
@@ -35,6 +37,7 @@ class JobPosting extends Model
     ];
 
     protected $casts = [
+        'company_id'   => 'integer',
         'is_published' => 'boolean',
         'closing_date' => 'date',
         'created_at'   => 'datetime',
@@ -59,6 +62,11 @@ class JobPosting extends Model
         });
     }
 
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'company_id')->withTrashed();
+    }
+
     public function requestManPower(): BelongsTo
     {
         return $this->belongsTo(RequestManPower::class, 'request_man_power_id')->withTrashed();
@@ -67,6 +75,62 @@ class JobPosting extends Model
     public function requestManPowers(): HasMany
     {
         return $this->hasMany(RequestManPower::class, 'job_posting_id')->withTrashed();
+    }
+
+    public function resolveCompany(): ?Company
+    {
+        if ($this->relationLoaded('company') && $this->company) {
+            return $this->company;
+        }
+
+        if ($this->company_id) {
+            $company = $this->company()->first();
+            if ($company) {
+                return $company;
+            }
+        }
+
+        $requests = $this->relationLoaded('requestManPowers')
+            ? $this->requestManPowers->filter(fn (RequestManPower $r): bool => $r->deleted_at === null)->values()
+            : $this->requestManPowers()->with('company')->whereNull('deleted_at')->get();
+
+        $sourceRequest = $this->relationLoaded('requestManPower')
+            ? $this->requestManPower
+            : $this->requestManPower()->with('company')->first();
+
+        if ($requests->isEmpty() && $sourceRequest && ! $sourceRequest->trashed()) {
+            $requests = collect([$sourceRequest]);
+        }
+
+        $approved = $requests->first(
+            fn (RequestManPower $r): bool => $r->status === RequestManPowerStatus::APPROVED && $r->company !== null
+        );
+
+        if ($approved?->company) {
+            return $approved->company;
+        }
+
+        $withCompany = $requests->first(fn (RequestManPower $r): bool => $r->company !== null);
+
+        if ($withCompany?->company) {
+            return $withCompany->company;
+        }
+
+        if ($sourceRequest && ! $sourceRequest->trashed() && $sourceRequest->company) {
+            return $sourceRequest->company;
+        }
+
+        return null;
+    }
+
+    public function resolveCompanyName(): string
+    {
+        return $this->resolveCompany()?->name ?? 'PT Complete Selular Group';
+    }
+
+    public function getCompanyNameAttribute(): string
+    {
+        return $this->resolveCompanyName();
     }
 
     public function rekrutmenPipeline(): BelongsTo

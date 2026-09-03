@@ -31,6 +31,7 @@ use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Webkul\Support\Models\Company;
 
 class RekrutmenSpaController extends Controller
 {
@@ -276,8 +277,9 @@ class RekrutmenSpaController extends Controller
     public function getJobPostings(Request $request): JsonResponse
     {
         $query = JobPosting::with([
-            'requestManPower',
-            'requestManPowers',
+            'company',
+            'requestManPower.company',
+            'requestManPowers.company',
             'rekrutmenPipeline',
         ])
             ->withCount(['applications', 'requestManPowers'])
@@ -287,7 +289,16 @@ class RekrutmenSpaController extends Controller
             $search = trim($request->input('search'));
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('location', 'like', "%{$search}%");
+                    ->orWhere('location', 'like', "%{$search}%")
+                    ->orWhereHas('company', function ($cq) use ($search) {
+                        $cq->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('requestManPower.company', function ($cq) use ($search) {
+                        $cq->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('requestManPowers.company', function ($cq) use ($search) {
+                        $cq->where('name', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -298,6 +309,8 @@ class RekrutmenSpaController extends Controller
                 'id'                     => $record->id,
                 'title'                  => $record->title,
                 'slug'                   => $record->slug,
+                'company_id'             => $record->company_id ?? $record->resolveCompany()?->id,
+                'company_name'           => $record->resolveCompanyName(),
                 'description'            => $record->description,
                 'requirements'           => $record->requirements,
                 'context_description'    => JobPostingResource::formatJobPostingContext($record),
@@ -313,7 +326,20 @@ class RekrutmenSpaController extends Controller
             ];
         });
 
-        return response()->json($postings);
+        $responseData = $postings->toArray();
+        $responseData['companies'] = Company::query()->whereNull('deleted_at')->orderBy('name')->get(['id', 'name']);
+
+        return response()->json($responseData);
+    }
+
+    /**
+     * Get list of active companies for selection.
+     */
+    public function getCompanies(): JsonResponse
+    {
+        return response()->json(
+            Company::query()->whereNull('deleted_at')->orderBy('name')->get(['id', 'name'])
+        );
     }
 
     /**
@@ -346,6 +372,7 @@ class RekrutmenSpaController extends Controller
     {
         $request->validate([
             'title'            => 'required|string|max:255',
+            'company_id'       => 'nullable',
             'location'         => 'nullable|string|max:255',
             'description'      => 'nullable|string',
             'requirements'     => 'nullable|string',
@@ -357,6 +384,17 @@ class RekrutmenSpaController extends Controller
 
         $posting = JobPosting::findOrFail($id);
         $posting->title = $request->input('title');
+
+        if ($request->has('company_id')) {
+            $companyId = $request->input('company_id');
+            $posting->company_id = filled($companyId) ? (int) $companyId : null;
+
+            if ($posting->request_man_power_id) {
+                RequestManPower::whereKey($posting->request_man_power_id)->update(['company_id' => $posting->company_id]);
+            }
+            RequestManPower::where('job_posting_id', $posting->id)->update(['company_id' => $posting->company_id]);
+        }
+
         $posting->location = $request->input('location');
         $posting->description = $request->input('description');
         $posting->requirements = $request->input('requirements');
@@ -382,6 +420,8 @@ class RekrutmenSpaController extends Controller
                 'title'         => $posting->title,
                 'thumbnail_url' => $posting->thumbnail_url,
                 'is_published'  => $posting->is_published,
+                'company_id'    => $posting->company_id ?? $posting->resolveCompany()?->id,
+                'company_name'  => $posting->resolveCompanyName(),
             ],
         ]);
     }
@@ -394,7 +434,8 @@ class RekrutmenSpaController extends Controller
         $this->checkAndProcessDueNotifications();
 
         $query = JobApplication::with([
-            'jobPosting',
+            'jobPosting.requestManPower.company',
+            'jobPosting.requestManPowers.company',
             'currentStage',
         ])->latest('created_at');
 
@@ -510,7 +551,7 @@ class RekrutmenSpaController extends Controller
                 'photo_url'                  => $app->photo_path ? url("/rekrutmen/api/applications/{$app->id}/photo") : null,
                 'source'                     => $app->source ?? 'Website',
                 'job_posting_id'             => $app->job_posting_id,
-                'job_posting'                => $app->jobPosting ? ['id' => $app->jobPosting->id, 'title' => $app->jobPosting->title, 'location' => $app->jobPosting->location] : null,
+                'job_posting'                => $app->jobPosting ? ['id' => $app->jobPosting->id, 'title' => $app->jobPosting->title, 'location' => $app->jobPosting->location, 'company_name' => $app->jobPosting->resolveCompanyName()] : null,
                 'current_stage_id'           => $app->current_stage_id ?? 1,
                 'stage'                      => $stageData,
                 'status'                     => $app->status ? (is_object($app->status) ? $app->status->value : $app->status) : 'in_progress',
@@ -529,7 +570,7 @@ class RekrutmenSpaController extends Controller
         return response()->json([
             'stages'       => $stages,
             'applications' => $applications,
-            'active_job'   => $activeJob ? ['id' => $activeJob->id, 'title' => $activeJob->title, 'location' => $activeJob->location] : null,
+            'active_job'   => $activeJob ? ['id' => $activeJob->id, 'title' => $activeJob->title, 'location' => $activeJob->location, 'company_name' => $activeJob->resolveCompanyName()] : null,
             'total'        => $applications->count(),
         ]);
     }

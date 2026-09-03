@@ -3,8 +3,10 @@
 namespace Cesa\Rekrutmen\Tests;
 
 use Cesa\Rekrutmen\RekrutmenServiceProvider;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 use Tests\UsesSqliteInMemoryDatabase;
 use Webkul\PluginManager\Package;
@@ -53,5 +55,14 @@ abstract class RekrutmenTestCase extends TestCase
             '--path'     => 'plugins/cesa/rekrutmen/database/migrations',
             '--realpath' => false,
         ]);
+
+        if (Schema::hasTable('rekrutmen_job_applications') && ! Schema::hasColumn('rekrutmen_job_applications', 'ai_match_score')) {
+            Schema::table('rekrutmen_job_applications', function (Blueprint $table) {
+                $table->unsignedTinyInteger('ai_match_score')->nullable()->after('status');
+                $table->string('ai_recommendation')->nullable()->after('ai_match_score');
+                $table->text('ai_summary')->nullable()->after('ai_recommendation');
+                $table->timestamp('ai_analyzed_at')->nullable()->after('ai_summary');
+            });
+        }
     }
 }

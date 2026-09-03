@@ -1401,7 +1401,8 @@ const filteredApplications = computed(() => {
     (a.email && a.email.toLowerCase().includes(q)) ||
     (a.phone && a.phone.includes(q)) ||
     (a.whatsapp_number && a.whatsapp_number.includes(q)) ||
-    (a.job_posting && a.job_posting.title && a.job_posting.title.toLowerCase().includes(q))
+    (a.job_posting && a.job_posting.title && a.job_posting.title.toLowerCase().includes(q)) ||
+    (a.job_posting && a.job_posting.company_name && a.job_posting.company_name.toLowerCase().includes(q))
   );
 });
 

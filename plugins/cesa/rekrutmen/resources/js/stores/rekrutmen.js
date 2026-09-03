@@ -5,6 +5,7 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
   state: () => ({
     requests: [],
     postings: [],
+    companies: [],
     applications: [],
     stages: [],
     activeJob: null,
@@ -78,6 +79,9 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
         const res = await axios.get('/rekrutmen/api/job-postings', { params: { search } });
         if (res.data) {
           this.postings = Array.isArray(res.data.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []);
+          if (res.data.companies && Array.isArray(res.data.companies)) {
+            this.companies = res.data.companies;
+          }
         }
       } catch (err) {
         console.error('Failed fetching postings', err);
@@ -85,6 +89,19 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
         this.loading.postings = false;
       }
       return this.postings;
+    },
+
+    async fetchCompanies() {
+      if (this.companies && this.companies.length) return this.companies;
+      try {
+        const res = await axios.get('/rekrutmen/api/companies');
+        if (res.data) {
+          this.companies = Array.isArray(res.data) ? res.data : (res.data.data || []);
+        }
+      } catch (err) {
+        console.error('Failed fetching companies', err);
+      }
+      return this.companies;
     },
 
     async togglePublishPosting(id) {

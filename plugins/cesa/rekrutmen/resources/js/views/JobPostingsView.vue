@@ -187,7 +187,7 @@
           <thead>
             <tr class="bg-slate-50 text-slate-500 border-b border-slate-200">
               <th class="py-3 px-4 font-semibold text-[11px]">Posisi Lowongan</th>
-              <th class="py-3 px-4 font-semibold text-[11px]">Lokasi</th>
+              <th class="py-3 px-4 font-semibold text-[11px]">Perusahaan & Lokasi</th>
               <th class="py-3 px-4 font-semibold text-[11px]">Status</th>
               <th class="py-3 px-4 font-semibold text-[11px]">Batas Waktu</th>
               <th class="py-3 px-4 font-semibold text-[11px]">Pelamar</th>
@@ -203,7 +203,8 @@
                 <div class="text-[11px] text-slate-400 font-mono mt-0.5">#{{ job.id }}</div>
               </td>
               <td class="py-3.5 px-4 align-middle text-slate-700">
-                {{ job.location || 'Indonesia' }}
+                <div class="font-medium text-slate-900">{{ job.company_name || 'PT Complete Selular Group' }}</div>
+                <div class="text-[11px] text-slate-400">{{ job.location || 'Indonesia' }}</div>
               </td>
               <td class="py-3.5 px-4 align-middle">
                 <button
@@ -258,7 +259,12 @@
         <!-- Modal Header -->
         <div class="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
           <div>
-            <h3 class="text-sm font-bold text-slate-900 leading-tight">Edit Lowongan Pekerjaan</h3>
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-bold text-slate-900 leading-tight">Edit Lowongan Pekerjaan</h3>
+              <span v-if="selectedCompanyName" class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                {{ selectedCompanyName }}
+              </span>
+            </div>
             <p class="text-xs text-slate-400 mt-0.5 font-normal">Perbarui informasi posisi, kualifikasi, dan detail lainnya.</p>
           </div>
           <button
@@ -271,16 +277,33 @@
 
         <!-- Form Body -->
         <form @submit.prevent="saveEditJob" class="p-6 space-y-4.5 text-xs overflow-y-auto no-scrollbar flex-1 bg-white">
-          <!-- Position Title -->
-          <div>
-            <label class="block font-bold text-slate-800 mb-1.5">Judul Posisi</label>
-            <input
-              v-model="editForm.title"
-              type="text"
-              required
-              placeholder="ADMIN GA (GENERAL AFFAIR)"
-              class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs font-normal text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-400 transition-all"
-            />
+          <!-- Judul Posisi & Perusahaan / PT -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block font-bold text-slate-800 mb-1.5">Judul Posisi</label>
+              <input
+                v-model="editForm.title"
+                type="text"
+                required
+                placeholder="ADMIN GA (GENERAL AFFAIR)"
+                class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs font-normal text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-400 transition-all"
+              />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-800 mb-1.5">Perusahaan / PT</label>
+              <div class="relative">
+                <select
+                  v-model="editForm.company_id"
+                  class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400 appearance-none transition-all pr-9 cursor-pointer"
+                >
+                  <option :value="null">-- Gunakan Default (PT Complete Selular Group) --</option>
+                  <option v-for="c in companies" :key="c.id" :value="c.id">
+                    {{ c.name }}
+                  </option>
+                </select>
+                <ChevronDown class="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
           </div>
 
           <!-- Location & Closing Date -->
@@ -467,6 +490,7 @@ const isThumbnailRemoved = ref(false);
 
 const editForm = ref({
   title: '',
+  company_id: null,
   location: '',
   description: '',
   requirements: '',
@@ -477,9 +501,19 @@ const editForm = ref({
 
 onMounted(() => {
   store.fetchPostings('', false).catch(() => {});
+  store.fetchCompanies().catch(() => {});
 });
 
 const postings = computed(() => store.postings || []);
+const companies = computed(() => store.companies || []);
+
+const selectedCompanyName = computed(() => {
+  if (editForm.value.company_id) {
+    const found = companies.value.find(c => String(c.id) === String(editForm.value.company_id));
+    if (found) return found.name;
+  }
+  return editingJob.value?.company_name || 'PT Complete Selular Group';
+});
 
 const publishedCount = computed(() => postings.value.filter(p => p.is_published).length);
 const draftCount = computed(() => postings.value.filter(p => !p.is_published).length);
@@ -497,6 +531,7 @@ const filteredPostings = computed(() => {
   const q = searchQuery.value.toLowerCase();
   return list.filter(p => 
     (p.title && p.title.toLowerCase().includes(q)) ||
+    (p.company_name && p.company_name.toLowerCase().includes(q)) ||
     (p.location && p.location.toLowerCase().includes(q)) ||
     (p.description && p.description.toLowerCase().includes(q)) ||
     (p.requirements && p.requirements.toLowerCase().includes(q))
@@ -530,6 +565,7 @@ const openEditModal = (job) => {
   isThumbnailRemoved.value = false;
   editForm.value = {
     title: job.title || '',
+    company_id: job.company_id || null,
     location: job.location || '',
     description: job.description || '',
     requirements: job.requirements || '',
@@ -585,6 +621,11 @@ const saveEditJob = async () => {
   try {
     const formData = new FormData();
     formData.append('title', editForm.value.title);
+    if (editForm.value.company_id) {
+      formData.append('company_id', editForm.value.company_id);
+    } else {
+      formData.append('company_id', '');
+    }
     formData.append('location', editForm.value.location || '');
     formData.append('description', editForm.value.description || '');
     formData.append('requirements', editForm.value.requirements || '');
