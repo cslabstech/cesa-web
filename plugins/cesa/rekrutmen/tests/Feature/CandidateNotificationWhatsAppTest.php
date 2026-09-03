@@ -14,16 +14,16 @@ use Webkul\Security\Models\User;
 
 class CandidateNotificationWhatsAppTest extends RekrutmenTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->fakeRekrutmenWhatsAppEngine();
+        $this->makeConnectedWhatsAppAccount();
+    }
+
     public function test_candidate_whatsapp_notifier_normalizes_phone_and_builds_message(): void
     {
-        Http::fake([
-            'https://waghub.mekayastudio.com/*' => Http::response([
-                'status'  => 'success',
-                'message' => 'Message queued',
-            ], 200),
-        ]);
-        config(['rekrutmen.notifications.whatsapp.api_key' => 'fake-key']);
-
         $pipeline = RekrutmenPipeline::firstOrCreate(['id' => 1], ['name' => 'Default Pipeline']);
         $stage = RekrutmenStage::firstOrCreate([
             'id'                    => 1,
@@ -50,7 +50,7 @@ class CandidateNotificationWhatsAppTest extends RekrutmenTestCase
             'status'           => 'in_progress',
         ]);
 
-        $notifier = new CandidateWhatsAppNotifier;
+        $notifier = app(CandidateWhatsAppNotifier::class);
         $res = $notifier->send($app, [
             'subject'         => 'Undangan Psikotes',
             'body_message'    => 'Selamat, Anda diundang ke tahap psikotes.',
@@ -62,19 +62,19 @@ class CandidateNotificationWhatsAppTest extends RekrutmenTestCase
         $this->assertTrue($res['success']);
         $this->assertSame('6281234567890', $res['phone']);
 
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/api/v1/messages')
-                && $request['recipient']['value'] === '6281234567890'
-                && str_contains($request['message']['text'], 'Budi Pratama')
-                && str_contains($request['message']['text'], 'Web Developer');
+        Http::assertSent(function ($request) use ($app) {
+            $data = $request->data();
+
+            return str_contains($request->url(), '/sessions/')
+                && str_contains($request->url(), '/send')
+                && ($data['phone'] ?? null) === '6281234567890'
+                && str_contains((string) ($data['text'] ?? ''), $app->full_name)
+                && str_contains((string) ($data['text'] ?? ''), 'Web Developer');
         });
     }
 
     public function test_can_send_single_candidate_notification_via_api(): void
     {
-        Http::fake([
-            'https://waghub.mekayastudio.com/*' => Http::response(['status' => 'success'], 200),
-        ]);
         Mail::fake();
 
         $user = User::factory()->create(['is_active' => true]);
@@ -123,9 +123,6 @@ class CandidateNotificationWhatsAppTest extends RekrutmenTestCase
 
     public function test_can_send_bulk_candidate_notification_via_api(): void
     {
-        Http::fake([
-            'https://waghub.mekayastudio.com/*' => Http::response(['status' => 'success'], 200),
-        ]);
         Mail::fake();
 
         $user = User::factory()->create(['is_active' => true]);

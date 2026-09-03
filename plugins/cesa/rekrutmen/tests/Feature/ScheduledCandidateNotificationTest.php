@@ -21,12 +21,8 @@ class ScheduledCandidateNotificationTest extends RekrutmenTestCase
 
         Mail::fake();
 
-        Http::fake([
-            'https://waghub.mekayastudio.com/*' => Http::response([
-                'status'  => 'success',
-                'message' => 'Message queued',
-            ], 200),
-        ]);
+        $this->fakeRekrutmenWhatsAppEngine();
+        $this->makeConnectedWhatsAppAccount();
     }
 
     public function test_can_schedule_single_candidate_notification(): void

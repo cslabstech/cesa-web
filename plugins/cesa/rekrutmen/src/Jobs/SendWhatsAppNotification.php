@@ -2,10 +2,12 @@
 
 namespace Cesa\Rekrutmen\Jobs;
 
+use Cesa\Rekrutmen\Models\WhatsAppAccount;
+use Cesa\Rekrutmen\Services\WhatsAppGateway;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use Throwable;
 
 class SendWhatsAppNotification implements ShouldQueue
@@ -22,11 +24,9 @@ class SendWhatsAppNotification implements ShouldQueue
     protected array $backoff;
 
     public function __construct(
+        protected int $accountId,
         protected string $phone,
         protected string $message,
-        protected string $endpoint,
-        protected string $apiKey,
-        ?int $timeout = null,
     ) {
         $queue = config('rekrutmen.notifications.whatsapp.queue')
             ?? config('rekrutmen.notifications.queue')
@@ -39,42 +39,28 @@ class SendWhatsAppNotification implements ShouldQueue
         }
 
         $this->tries = (int) (config('rekrutmen.notifications.whatsapp.tries') ?? 3);
-        $this->timeout = $timeout ?? (int) (config('rekrutmen.notifications.whatsapp.timeout') ?? 10);
+        $this->timeout = (int) (config('rekrutmen.notifications.whatsapp.timeout') ?? 20);
         $this->backoff = $this->resolveBackoff();
     }
 
-    public function handle(): void
+    public function handle(WhatsAppGateway $gateway): void
     {
         try {
-            $idempotencyKey = 'rekrutmen-' . ($this->job ? $this->job->getJobId() : (string) str()->uuid());
+            $account = WhatsAppAccount::query()->find($this->accountId);
+            $result = $gateway->sendText($account, $this->phone, $this->message, [
+                'mode'             => 'async',
+                'client_reference' => 'rekrutmen',
+            ]);
 
-            $response = Http::timeout($this->timeout)
-                ->acceptJson()
-                ->withHeaders([
-                    'Authorization' => 'Bearer ' . $this->apiKey,
-                    'Idempotency-Key' => $idempotencyKey,
-                ])
-                ->post(rtrim($this->endpoint, '/') . '/api/v1/messages', [
-                    'recipient' => [
-                        'type' => 'phone',
-                        'value' => $this->phone,
-                    ],
-                    'message' => [
-                        'type' => 'text',
-                        'text' => $this->message,
-                    ],
-                    'purpose' => 'notification',
-                    'mode' => 'async',
-                    'route_key' => 'default',
-                    'client_reference' => 'rekrutmen',
-                ]);
-
-            $response->throw();
+            if (! ($result['success'] ?? false)) {
+                throw new RuntimeException($result['message'] ?? 'Gagal mengirim WhatsApp rekrutmen.');
+            }
         } catch (Throwable $exception) {
             Log::error('Failed to send WhatsApp notification for recruitment approval.', [
-                'provider' => 'waghub',
-                'phone'    => $this->phone,
-                'error'    => $exception->getMessage(),
+                'provider'   => 'rekrutmen-engine',
+                'account_id' => $this->accountId,
+                'phone'      => $this->phone,
+                'error'      => $exception->getMessage(),
             ]);
 
             throw $exception;
@@ -114,5 +100,4 @@ class SendWhatsAppNotification implements ShouldQueue
 
         return [10, 30, 60];
     }
-
 }

@@ -30,6 +30,7 @@ class ScheduledNotification extends Model
         'creator_id',
         'application_ids',
         'channels',
+        'whatsapp_account_id',
         'subject',
         'body_message',
         'schedule',
@@ -57,14 +58,15 @@ class ScheduledNotification extends Model
     protected function casts(): array
     {
         return [
-            'application_ids' => 'array',
-            'channels'        => 'array',
-            'results'         => 'array',
-            'scheduled_at'    => 'datetime',
-            'sent_at'         => 'datetime',
-            'created_at'      => 'datetime',
-            'updated_at'      => 'datetime',
-            'deleted_at'      => 'datetime',
+            'application_ids'      => 'array',
+            'channels'             => 'array',
+            'whatsapp_account_id'  => 'integer',
+            'results'              => 'array',
+            'scheduled_at'         => 'datetime',
+            'sent_at'              => 'datetime',
+            'created_at'           => 'datetime',
+            'updated_at'           => 'datetime',
+            'deleted_at'           => 'datetime',
         ];
     }
 

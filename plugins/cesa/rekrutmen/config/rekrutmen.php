@@ -16,7 +16,10 @@ return [
             ],
         ],
         'whatsapp' => [
-            'enabled'      => ! empty(env('WAG_URL')) && ! empty(env('WAG_TOKEN')),
+            'enabled'      => env('REKRUTMEN_WHATSAPP_ENABLED', true),
+            'engine_url'   => env('REKRUTMEN_WHATSAPP_ENGINE_URL', 'http://127.0.0.1:3318'),
+            'auto_start'   => env('REKRUTMEN_WHATSAPP_ENGINE_AUTO_START', true),
+            'node_binary'  => env('REKRUTMEN_WHATSAPP_NODE_BINARY', 'node'),
             'endpoint'     => env('WAG_URL', 'https://waghub.mekayastudio.com'),
             'api_key'      => env('WAG_TOKEN'),
 
@@ -29,7 +32,7 @@ return [
             ],
             'queue'      => env('WHATSAPP_QUEUE', 'whatsapp'),
             'connection' => env('WHATSAPP_CONNECTION'),
-            'timeout'    => (int) env('WHATSAPP_TIMEOUT', 10),
+            'timeout'    => (int) env('WHATSAPP_TIMEOUT', 20),
             'tries'      => (int) env('WHATSAPP_TRIES', 3),
             'backoff'    => array_values(array_filter(
                 array_map('intval', explode(',', env('WHATSAPP_BACKOFF', '10,30,60'))),

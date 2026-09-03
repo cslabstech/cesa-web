@@ -18,6 +18,7 @@ use Cesa\Rekrutmen\Models\RequestManPower;
 use Cesa\Rekrutmen\Services\CandidateWhatsAppNotifier;
 use Cesa\Rekrutmen\Services\RecruitmentProgressReportExport;
 use Cesa\Rekrutmen\Services\RecruitmentProgressReportService;
+use Cesa\Rekrutmen\Services\RekrutmenMailer;
 use Cesa\Rekrutmen\Services\ScheduledNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,7 +27,6 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
@@ -2010,7 +2010,7 @@ PROMPT;
                     : null;
 
                 try {
-                    Mail::send('rekrutmen::mail.candidate-stage-notification', [
+                    app(RekrutmenMailer::class)->send('rekrutmen::mail.candidate-stage-notification', [
                         'subject'        => $subject,
                         'badge_text'     => $badgeText,
                         'position_title' => $jobTitle,
@@ -2208,7 +2208,7 @@ PROMPT;
                     }
 
                     try {
-                        Mail::send('rekrutmen::mail.candidate-stage-notification', [
+                        app(RekrutmenMailer::class)->send('rekrutmen::mail.candidate-stage-notification', [
                             'subject'        => $subject,
                             'badge_text'     => $badgeText,
                             'position_title' => $jobTitle,

@@ -1011,6 +1011,19 @@
             </div>
           </div>
 
+          <div v-if="selectedChannels.includes('whatsapp')" class="space-y-1.5">
+            <label class="block font-semibold text-xs text-slate-800">Kirim dari nomor WhatsApp</label>
+            <select
+              v-model="selectedWhatsappAccountId"
+              class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400 cursor-pointer"
+            >
+              <option v-if="!connectedWhatsappAccounts.length" :value="null">Belum ada nomor terhubung. Scan QR di Pengaturan Rekrutmen.</option>
+              <option v-for="account in connectedWhatsappAccounts" :key="account.id" :value="account.id">
+                {{ account.name }}{{ account.phone_number ? ` • ${account.phone_number}` : '' }}{{ account.is_default ? ' (default)' : '' }}
+              </option>
+            </select>
+          </div>
+
           <!-- Jadwalkan Pengiriman Inputs (Horizontal Integrated Bar) -->
           <div v-if="sendType === 'scheduled'" class="space-y-1.5">
             <label class="block font-semibold text-xs text-slate-800">Jadwalkan Pengiriman</label>
@@ -1276,6 +1289,9 @@ const isScreening = ref(false);
 const selectedAppIds = ref([]);
 const isBulkMode = ref(false);
 const selectedChannels = ref(['email', 'whatsapp']);
+const whatsappAccounts = ref([]);
+const selectedWhatsappAccountId = ref(null);
+const connectedWhatsappAccounts = computed(() => (whatsappAccounts.value || []).filter((account) => account.is_active && account.status === 'connected'));
 
 const isAllSelected = computed(() => {
   if (!filteredApplications.value.length) return false;
@@ -1884,6 +1900,18 @@ const formatFileSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 };
 
+const fetchWhatsappAccounts = async () => {
+  try {
+    const res = await axios.get('/rekrutmen/api/settings/whatsapp');
+    whatsappAccounts.value = res.data?.accounts || [];
+    const current = connectedWhatsappAccounts.value.find((account) => account.id === selectedWhatsappAccountId.value);
+    const fallback = connectedWhatsappAccounts.value.find((account) => account.is_default) || connectedWhatsappAccounts.value[0];
+    selectedWhatsappAccountId.value = current ? current.id : (fallback ? fallback.id : null);
+  } catch (err) {
+    console.error('Failed to fetch WhatsApp accounts', err);
+  }
+};
+
 const fetchEmailTemplates = async () => {
   try {
     const res = await axios.get('/rekrutmen/api/settings/mail-templates');
@@ -1922,11 +1950,12 @@ const openSendEmailModal = async (app) => {
   }
   emailForm.value.attachment = null;
   emailForm.value.attachment_name = '';
-  
+
   if (!Object.keys(emailTemplatesList.value).length) {
     await fetchEmailTemplates();
   }
-  
+  await fetchWhatsappAccounts();
+
   const stgName = (app.stage?.name || '').toLowerCase();
   let defaultKey = 'interview_hr';
   if (stgName.includes('screen')) defaultKey = 'interview_hr';
@@ -1964,6 +1993,7 @@ const openBulkNotificationModal = async () => {
   if (!Object.keys(emailTemplatesList.value).length) {
     await fetchEmailTemplates();
   }
+  await fetchWhatsappAccounts();
 
   applyEmailTemplate('interview_hr');
 };
@@ -2126,6 +2156,10 @@ const executeSendNotification = async () => {
     selectedChannels.value.forEach((ch) => {
       formData.append('channels[]', ch);
     });
+
+    if (selectedWhatsappAccountId.value) {
+      formData.append('whatsapp_account_id', selectedWhatsappAccountId.value);
+    }
 
     if (emailForm.value.attachment) {
       formData.append('attachment', emailForm.value.attachment);

@@ -1,6 +1,7 @@
 <?php
 
 use Cesa\Rekrutmen\Http\Controllers\JobApplicationAttachmentDownloadController;
+use Cesa\Rekrutmen\Http\Controllers\RekrutmenCommunicationSettingsController;
 use Cesa\Rekrutmen\Http\Controllers\RekrutmenSpaController;
 use Cesa\Rekrutmen\Livewire\PublicRequestManPowerApprovalPage;
 use Cesa\Rekrutmen\Livewire\PublicRequestManPowerForm;
@@ -79,6 +80,19 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::post('settings/ai/test', [RekrutmenSpaController::class, 'testAiConnection'])->name('rekrutmen.api.settings.ai.test');
         Route::get('settings/mail-templates', [RekrutmenSpaController::class, 'getMailTemplates'])->name('rekrutmen.api.settings.mail-templates');
         Route::post('settings/mail-templates', [RekrutmenSpaController::class, 'saveMailTemplates'])->name('rekrutmen.api.settings.mail-templates.save');
+        Route::get('settings/mail', [RekrutmenCommunicationSettingsController::class, 'getMailSettings'])->name('rekrutmen.api.settings.mail');
+        Route::put('settings/mail', [RekrutmenCommunicationSettingsController::class, 'saveMailSettings'])->name('rekrutmen.api.settings.mail.save');
+        Route::post('settings/mail/test', [RekrutmenCommunicationSettingsController::class, 'testMailSettings'])->name('rekrutmen.api.settings.mail.test');
+        Route::get('settings/whatsapp', [RekrutmenCommunicationSettingsController::class, 'getWhatsAppSettings'])->name('rekrutmen.api.settings.whatsapp');
+        Route::put('settings/whatsapp', [RekrutmenCommunicationSettingsController::class, 'saveWhatsAppSettings'])->name('rekrutmen.api.settings.whatsapp.save');
+        Route::post('settings/whatsapp/accounts/connect', [RekrutmenCommunicationSettingsController::class, 'connectWhatsAppAccount'])->name('rekrutmen.api.settings.whatsapp.accounts.connect');
+        Route::put('settings/whatsapp/accounts/{account}', [RekrutmenCommunicationSettingsController::class, 'updateWhatsAppAccount'])->name('rekrutmen.api.settings.whatsapp.accounts.update');
+        Route::delete('settings/whatsapp/accounts/{account}', [RekrutmenCommunicationSettingsController::class, 'destroyWhatsAppAccount'])->name('rekrutmen.api.settings.whatsapp.accounts.destroy');
+        Route::post('settings/whatsapp/accounts/{account}/default', [RekrutmenCommunicationSettingsController::class, 'makeDefaultWhatsAppAccount'])->name('rekrutmen.api.settings.whatsapp.accounts.default');
+        Route::post('settings/whatsapp/accounts/{account}/test', [RekrutmenCommunicationSettingsController::class, 'testWhatsAppAccount'])->name('rekrutmen.api.settings.whatsapp.accounts.test');
+        Route::post('settings/whatsapp/accounts/{account}/connect', [RekrutmenCommunicationSettingsController::class, 'reconnectWhatsAppAccount'])->name('rekrutmen.api.settings.whatsapp.accounts.reconnect');
+        Route::get('settings/whatsapp/accounts/{account}/session', [RekrutmenCommunicationSettingsController::class, 'sessionWhatsAppAccount'])->name('rekrutmen.api.settings.whatsapp.accounts.session');
+        Route::post('settings/whatsapp/accounts/{account}/disconnect', [RekrutmenCommunicationSettingsController::class, 'disconnectWhatsAppAccount'])->name('rekrutmen.api.settings.whatsapp.accounts.disconnect');
         Route::post('applications/{id}/send-email', [RekrutmenSpaController::class, 'sendCandidateEmail'])->name('rekrutmen.api.applications.send-email');
         Route::post('applications/{id}/send-notification', [RekrutmenSpaController::class, 'sendCandidateEmail'])->name('rekrutmen.api.applications.send-notification');
         Route::post('applications/bulk-send-notification', [RekrutmenSpaController::class, 'bulkSendCandidateNotification'])->name('rekrutmen.api.applications.bulk-send-notification');

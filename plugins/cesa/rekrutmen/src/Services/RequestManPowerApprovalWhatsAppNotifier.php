@@ -5,7 +5,7 @@ namespace Cesa\Rekrutmen\Services;
 use Cesa\Rekrutmen\Jobs\SendWhatsAppNotification;
 use Cesa\Rekrutmen\Models\RequestManPower;
 use Cesa\Rekrutmen\Models\RequestManPowerApproval;
-use Illuminate\Support\Arr;
+use Cesa\Rekrutmen\Models\WhatsAppAccount;
 use Illuminate\Support\Facades\Log;
 
 class RequestManPowerApprovalWhatsAppNotifier
@@ -20,24 +20,21 @@ class RequestManPowerApprovalWhatsAppNotifier
             return;
         }
 
-        $config = config('rekrutmen.notifications.whatsapp', []);
+        $gateway = app(WhatsAppGateway::class);
 
-        if (! Arr::get($config, 'enabled')) {
+        if (! $gateway->isEnabled()) {
             return;
         }
 
-        $endpoint = Arr::get($config, 'endpoint');
-        $apiKey = Arr::get($config, 'api_key');
-        if (! $endpoint || ! $apiKey) {
-            Log::warning('Recruitment WhatsApp approval notification skipped due to missing configuration.', [
-                'endpoint' => $endpoint,
-                'api_key'  => $apiKey ? 'configured' : 'missing',
-            ]);
+        $account = WhatsAppAccount::resolveForSend();
+
+        if (! $account) {
+            Log::warning('Recruitment WhatsApp approval notification skipped because no connected number exists.');
 
             return;
         }
 
-        $formattedPhone = $this->formatPhone((string) $phone);
+        $formattedPhone = $gateway->formatPhone((string) $phone);
 
         if (! $formattedPhone) {
             Log::warning('Recruitment WhatsApp approval notification skipped due to invalid phone.', [
@@ -49,15 +46,12 @@ class RequestManPowerApprovalWhatsAppNotifier
         }
 
         $message = $this->buildApprovalRequestMessage($requestManPower, $approval);
-        $timeout = (int) ($config['timeout'] ?? 10);
         $delaySeconds = app(WhatsAppThrottleService::class)->getDispatchDelaySeconds();
 
         $pendingDispatch = SendWhatsAppNotification::dispatch(
+            (int) $account->getKey(),
             $formattedPhone,
             $message,
-            $endpoint,
-            $apiKey,
-            $timeout,
         );
 
         if ($delaySeconds > 0) {
@@ -87,30 +81,6 @@ class RequestManPowerApprovalWhatsAppNotifier
 
     protected function formatPhone(string $phone): ?string
     {
-        $trimmed = trim($phone);
-
-        if ($trimmed === '') {
-            return null;
-        }
-
-        $digitsOnly = preg_replace('/[^\d]/', '', $trimmed);
-
-        if (! is_string($digitsOnly) || $digitsOnly === '') {
-            return null;
-        }
-
-        if (str_starts_with($digitsOnly, '62')) {
-            return $digitsOnly;
-        }
-
-        if (str_starts_with($digitsOnly, '0')) {
-            return '62'.substr($digitsOnly, 1);
-        }
-
-        if (str_starts_with($digitsOnly, '8')) {
-            return '62'.$digitsOnly;
-        }
-
-        return $digitsOnly;
+        return app(WhatsAppGateway::class)->formatPhone($phone);
     }
 }

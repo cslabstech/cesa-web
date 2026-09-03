@@ -8,7 +8,6 @@ use Cesa\Rekrutmen\Models\JobApplication;
 use Cesa\Rekrutmen\Models\ScheduledNotification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
@@ -44,9 +43,12 @@ class ScheduledNotificationService
         }
 
         $notification = ScheduledNotification::create([
-            'creator_id'       => $creatorId,
-            'application_ids'  => array_values(array_map('intval', $applicationIds)),
-            'channels'         => array_values($channels),
+            'creator_id'           => $creatorId,
+            'application_ids'      => array_values(array_map('intval', $applicationIds)),
+            'channels'             => array_values($channels),
+            'whatsapp_account_id'  => isset($data['whatsapp_account_id']) && is_numeric($data['whatsapp_account_id'])
+                ? (int) $data['whatsapp_account_id']
+                : null,
             'subject'          => (string) ($data['subject'] ?? ''),
             'body_message'     => (string) ($data['body_message'] ?? ''),
             'schedule'         => $data['schedule'] ?? null,
@@ -145,13 +147,14 @@ class ScheduledNotificationService
             // 1. WhatsApp Channel
             if (in_array('whatsapp', $channels, true)) {
                 $waResult = $waNotifier->send($application, [
-                    'subject'         => $subject,
-                    'body_message'    => $bodyMessage,
-                    'schedule'        => $notification->schedule,
-                    'venue_or_method' => $notification->venue_or_method,
-                    'action_url'      => $actionUrl,
-                    'action_label'    => $notification->action_label,
-                    'special_note'    => $notification->special_note,
+                    'subject'              => $subject,
+                    'body_message'         => $bodyMessage,
+                    'schedule'             => $notification->schedule,
+                    'venue_or_method'      => $notification->venue_or_method,
+                    'action_url'           => $actionUrl,
+                    'action_label'         => $notification->action_label,
+                    'special_note'         => $notification->special_note,
+                    'whatsapp_account_id'  => $notification->whatsapp_account_id,
                 ]);
 
                 if ($waResult['success']) {
@@ -186,7 +189,7 @@ class ScheduledNotificationService
                     }
 
                     try {
-                        Mail::send('rekrutmen::mail.candidate-stage-notification', [
+                        app(RekrutmenMailer::class)->send('rekrutmen::mail.candidate-stage-notification', [
                             'subject'        => $subject,
                             'badge_text'     => $notification->badge_text ?? 'Notifikasi Rekrutmen',
                             'position_title' => $jobTitle,

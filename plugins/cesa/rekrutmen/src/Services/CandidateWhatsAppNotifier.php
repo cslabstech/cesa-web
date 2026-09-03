@@ -3,18 +3,19 @@
 namespace Cesa\Rekrutmen\Services;
 
 use Cesa\Rekrutmen\Models\JobApplication;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-use Throwable;
+use Cesa\Rekrutmen\Models\WhatsAppAccount;
 
 class CandidateWhatsAppNotifier
 {
+    public function __construct(
+        protected WhatsAppGateway $gateway,
+    ) {}
+
     /**
-     * Send WhatsApp notification to candidate via WAG Hub gateway.
+     * Send WhatsApp notification to candidate via the rekrutmen WhatsApp gateway.
      *
-     * @return array{success: bool, message: string, phone?: string, data?: mixed}
+     * @param  array<string, mixed>  $data
+     * @return array{success: bool, message: string, phone?: string, data?: mixed, account_id?: int|null, route_key?: string}
      */
     public function send(JobApplication $application, array $data): array
     {
@@ -27,81 +28,19 @@ class CandidateWhatsAppNotifier
             ];
         }
 
-        $config = config('rekrutmen.notifications.whatsapp', []);
-        $endpoint = Arr::get($config, 'endpoint', env('WAG_URL', 'https://waghub.mekayastudio.com'));
-        $apiKey = Arr::get($config, 'api_key', env('WAG_TOKEN'));
+        $accountId = isset($data['whatsapp_account_id']) && is_numeric($data['whatsapp_account_id'])
+            ? (int) $data['whatsapp_account_id']
+            : null;
 
-        if (empty($endpoint) || empty($apiKey)) {
-            Log::warning('Candidate WhatsApp notification skipped due to missing WAG Hub configuration.', [
-                'endpoint' => $endpoint,
-                'has_key'  => ! empty($apiKey),
-            ]);
-
-            return [
-                'success' => false,
-                'message' => 'Konfigurasi WAG Hub (WAG_URL atau WAG_TOKEN) belum disetel di file .env.',
-            ];
-        }
+        $account = WhatsAppAccount::resolveForSend($accountId);
 
         $messageText = $this->buildCandidateMessage($application, $data);
-        $timeout = (int) ($config['timeout'] ?? 10);
-        $idempotencyKey = 'candidate-wa-'.$application->id.'-'.Str::random(8);
 
-        try {
-            $response = Http::timeout($timeout)
-                ->acceptJson()
-                ->withHeaders([
-                    'Authorization'   => 'Bearer '.$apiKey,
-                    'Idempotency-Key' => $idempotencyKey,
-                ])
-                ->post(rtrim($endpoint, '/').'/api/v1/messages', [
-                    'recipient' => [
-                        'type'  => 'phone',
-                        'value' => $phone,
-                    ],
-                    'message' => [
-                        'type' => 'text',
-                        'text' => $messageText,
-                    ],
-                    'purpose'          => 'notification',
-                    'mode'             => 'sync',
-                    'route_key'        => 'default',
-                    'client_reference' => 'rekrutmen-candidate-'.$application->id,
-                ]);
-
-            if (! $response->successful()) {
-                $errorMsg = $response->json('message') ?? $response->body();
-                Log::error('WAG Hub returned error when sending candidate WhatsApp notification.', [
-                    'phone'    => $phone,
-                    'status'   => $response->status(),
-                    'response' => $response->json() ?? $response->body(),
-                ]);
-
-                return [
-                    'success' => false,
-                    'message' => 'Gagal mengirim WhatsApp ke '.$phone.': '.$errorMsg,
-                    'phone'   => $phone,
-                ];
-            }
-
-            return [
-                'success' => true,
-                'message' => 'Pesan WhatsApp berhasil dikirim ke '.$phone,
-                'phone'   => $phone,
-                'data'    => $response->json(),
-            ];
-        } catch (Throwable $e) {
-            Log::error('Exception occurred while sending candidate WhatsApp via WAG Hub.', [
-                'phone' => $phone,
-                'error' => $e->getMessage(),
-            ]);
-
-            return [
-                'success' => false,
-                'message' => 'Gagal menghubungi server WhatsApp gateway: '.$e->getMessage(),
-                'phone'   => $phone,
-            ];
-        }
+        return $this->gateway->sendText($account, $phone, $messageText, [
+            'purpose'          => 'notification',
+            'mode'             => 'sync',
+            'client_reference' => 'rekrutmen-candidate-'.$application->id,
+        ]);
     }
 
     /**
@@ -118,7 +57,7 @@ class CandidateWhatsAppNotifier
             return null;
         }
 
-        return $this->formatPhone($raw);
+        return $this->gateway->formatPhone($raw);
     }
 
     /**
@@ -126,39 +65,13 @@ class CandidateWhatsAppNotifier
      */
     public function formatPhone(string $phone): ?string
     {
-        $trimmed = trim($phone);
-
-        if ($trimmed === '') {
-            return null;
-        }
-
-        // Remove all non-digits
-        $digits = preg_replace('/[^\d]/', '', $trimmed);
-
-        if (! is_string($digits) || strlen($digits) < 8) {
-            return null;
-        }
-
-        // Handle 62 prefix
-        if (str_starts_with($digits, '62')) {
-            return $digits;
-        }
-
-        // Handle leading 0 (e.g. 0812... -> 62812...)
-        if (str_starts_with($digits, '0')) {
-            return '62'.substr($digits, 1);
-        }
-
-        // Handle leading 8 (e.g. 812... -> 62812...)
-        if (str_starts_with($digits, '8')) {
-            return '62'.$digits;
-        }
-
-        return $digits;
+        return $this->gateway->formatPhone($phone);
     }
 
     /**
      * Construct formatted WhatsApp message text with clear hierarchy and readable formatting.
+     *
+     * @param  array<string, mixed>  $data
      */
     protected function buildCandidateMessage(JobApplication $application, array $data): string
     {
@@ -179,7 +92,6 @@ class CandidateWhatsAppNotifier
             $body
         );
 
-        $badgeText = strtoupper(trim($data['badge_text'] ?? 'NOTIFIKASI REKRUTMEN'));
         $schedule = trim($data['schedule'] ?? '');
         $venueOrMethod = trim($data['venue_or_method'] ?? '');
         $actionLabel = trim($data['action_label'] ?? '');
