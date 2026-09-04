@@ -4,7 +4,7 @@
     <Navbar :user="user" />
 
     <!-- Main Content Area -->
-    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
+    <main class="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6">
       <router-view v-slot="{ Component, route }">
         <keep-alive>
           <component :is="Component" :key="route.name" />

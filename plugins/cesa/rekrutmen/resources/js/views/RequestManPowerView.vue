@@ -87,11 +87,11 @@
       <Card class="hover:border-zinc-300">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Disetujui</span>
-          <CheckCircle2 class="w-4 h-4 text-emerald-600" />
+          <CheckCircle2 class="w-4 h-4 text-zinc-400" />
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-emerald-700">{{ approvedCount }}</div>
-          <p class="text-[11px] text-zinc-500 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ approvedCount }}</div>
+          <p class="text-[11px] text-zinc-400 mt-0.5">
             Siap/sedang diproses rekrutmen
           </p>
         </CardContent>
@@ -100,11 +100,11 @@
       <Card class="hover:border-zinc-300">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Menunggu Approval</span>
-          <Clock class="w-4 h-4 text-amber-500" />
+          <Clock class="w-4 h-4 text-zinc-400" />
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-amber-700">{{ pendingCount }}</div>
-          <p class="text-[11px] text-zinc-500 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ pendingCount }}</div>
+          <p class="text-[11px] text-zinc-400 mt-0.5">
             Perlu persetujuan manajemen
           </p>
         </CardContent>
@@ -116,8 +116,8 @@
           <Users class="w-4 h-4 text-zinc-400" />
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-[#0c2340]">{{ totalNeededPersonnel }}</div>
-          <p class="text-[11px] text-zinc-500 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ totalNeededPersonnel }}</div>
+          <p class="text-[11px] text-zinc-400 mt-0.5">
             Total orang yang diajukan
           </p>
         </CardContent>
@@ -127,44 +127,68 @@
     <!-- Filters & Toolbar -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white rounded-xl border border-zinc-200 shadow-2xs">
       <!-- Status Filter Tabs -->
-      <div class="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+      <div class="inline-flex items-center p-1 bg-zinc-100/90 border border-zinc-200/80 rounded-lg text-xs overflow-x-auto no-scrollbar">
         <button
           type="button"
           @click="statusFilter = 'all'"
           :class="[
-            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none',
+            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             statusFilter === 'all'
-              ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
-              : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
-          Semua FPTK <span class="ml-1 opacity-70">({{ requests.length }})</span>
+          <span>Semua FPTK</span>
+          <span
+            :class="[
+              'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
+              statusFilter === 'all' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+            ]"
+          >
+            {{ requests.length }}
+          </span>
         </button>
 
         <button
           type="button"
           @click="statusFilter = 'approved'"
           :class="[
-            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none',
+            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             statusFilter === 'approved'
-              ? 'bg-emerald-600 text-white shadow-2xs font-semibold'
-              : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
-          Disetujui <span class="ml-1 opacity-70">({{ approvedCount }})</span>
+          <span>Disetujui</span>
+          <span
+            :class="[
+              'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
+              statusFilter === 'approved' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+            ]"
+          >
+            {{ approvedCount }}
+          </span>
         </button>
 
         <button
           type="button"
           @click="statusFilter = 'pending'"
           :class="[
-            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none',
+            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             statusFilter === 'pending'
-              ? 'bg-amber-600 text-white shadow-2xs font-semibold'
-              : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
-          Menunggu <span class="ml-1 opacity-70">({{ pendingCount }})</span>
+          <span>Menunggu</span>
+          <span
+            :class="[
+              'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
+              statusFilter === 'pending' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+            ]"
+          >
+            {{ pendingCount }}
+          </span>
         </button>
       </div>
 
@@ -358,10 +382,44 @@
           </div>
         </div>
 
-        <SheetFooter>
-          <Button variant="outline" size="sm" @click="selectedRequest = null">
+        <SheetFooter class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between w-full border-t border-zinc-200 bg-zinc-50/50 p-4 gap-2">
+          <Button variant="outline" size="sm" @click="selectedRequest = null" :disabled="isActionLoading" class="text-xs h-8 text-zinc-700">
             Tutup
           </Button>
+
+          <div v-if="selectedRequest && canTakeAction(selectedRequest)" class="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              class="border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 text-xs h-8 gap-1.5"
+              @click="handleReject(selectedRequest)"
+              :disabled="isActionLoading"
+            >
+              <XCircle class="w-3.5 h-3.5" />
+              <span>Tolak</span>
+            </Button>
+
+            <Button
+              size="sm"
+              class="bg-zinc-900 hover:bg-zinc-800 text-white text-xs h-8 gap-1.5"
+              @click="handleApprove(selectedRequest)"
+              :disabled="isActionLoading"
+            >
+              <CheckCircle2 class="w-3.5 h-3.5" />
+              <span>Setujui (Approve)</span>
+            </Button>
+          </div>
+
+          <div v-else-if="selectedRequest" class="flex items-center gap-1.5 text-xs text-zinc-500 font-medium">
+            <span v-if="String(selectedRequest.status || selectedRequest.approval_status || '').toLowerCase().includes('approv')" class="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+              <CheckCircle2 class="w-3.5 h-3.5 text-emerald-600" />
+              <span>Sudah Disetujui</span>
+            </span>
+            <span v-else-if="String(selectedRequest.status || selectedRequest.approval_status || '').toLowerCase().includes('reject')" class="text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+              <XCircle class="w-3.5 h-3.5 text-rose-600" />
+              <span>Permintaan Ditolak</span>
+            </span>
+          </div>
         </SheetFooter>
       </SheetContent>
     </Sheet>
@@ -371,6 +429,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRekrutmenStore } from '../stores/rekrutmen';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 
 // Shadcn UI Components
 import { Button } from '../components/ui/button';
@@ -392,12 +452,14 @@ import {
   FileSpreadsheet,
   RotateCw,
   MapPin,
+  XCircle,
 } from 'lucide-vue-next';
 
 const store = useRekrutmenStore();
 
 const isLoading = ref(true);
 const isRefreshing = ref(false);
+const isActionLoading = ref(false);
 const statusFilter = ref('all');
 const searchQuery = ref('');
 const toastMessage = ref(null);
@@ -481,6 +543,153 @@ const getBadgeVariant = (status) => {
 
 const openRequestDetail = (item) => {
   selectedRequest.value = item;
+};
+
+const canTakeAction = (req) => {
+  if (!req) return false;
+  if (typeof req.can_approve_reject === 'boolean') {
+    return req.can_approve_reject;
+  }
+  const s = String(req.raw_status || req.status || req.approval_status || '').toLowerCase();
+  return !s.includes('approv') && !s.includes('setuju') && !s.includes('reject') && !s.includes('tolak');
+};
+
+const handleApprove = async (req) => {
+  if (!req || isActionLoading.value) return;
+
+  const result = await Swal.fire({
+    title: 'Setujui Permintaan FPTK?',
+    text: `Apakah Anda yakin ingin menyetujui permintaan posisi "${req.posisi_dibutuhkan || req.position_name || 'ini'}"? Lowongan kerja akan otomatis dibuat bila belum ada.`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Ya, Setujui',
+    cancelButtonText: 'Batal',
+    confirmButtonColor: '#18181b',
+    cancelButtonColor: '#71717a',
+    reverseButtons: true,
+    customClass: {
+      popup: 'rounded-xl border border-zinc-200 shadow-lg text-xs',
+      title: 'text-sm font-semibold text-zinc-900',
+      htmlContainer: 'text-xs text-zinc-500',
+      confirmButton: 'rounded-md px-3.5 py-1.5 text-xs font-medium',
+      cancelButton: 'rounded-md px-3.5 py-1.5 text-xs font-medium',
+    },
+  });
+
+  if (!result.isConfirmed) return;
+
+  isActionLoading.value = true;
+  try {
+    const res = await store.approveRequest(req.id);
+    await store.fetchRequests('', true);
+
+    const updated = (store.requests || []).find(r => String(r.id) === String(req.id));
+    if (updated) {
+      selectedRequest.value = updated;
+    } else {
+      req.status = 'Approved';
+      req.approval_status = 'Approved';
+      req.can_approve_reject = false;
+    }
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Berhasil Disetujui',
+      text: res?.message || 'Permintaan FPTK telah berhasil disetujui dan lowongan telah dibuat.',
+      confirmButtonColor: '#18181b',
+      customClass: {
+        popup: 'rounded-xl border border-zinc-200 shadow-lg text-xs',
+        title: 'text-sm font-semibold text-zinc-900',
+        htmlContainer: 'text-xs text-zinc-500',
+        confirmButton: 'rounded-md px-3.5 py-1.5 text-xs font-medium',
+      },
+    });
+  } catch (err) {
+    const msg = err.response?.data?.message || err.message || 'Gagal menyetujui permintaan.';
+    Swal.fire({
+      icon: 'error',
+      title: 'Gagal',
+      text: msg,
+      confirmButtonColor: '#18181b',
+      customClass: {
+        popup: 'rounded-xl border border-zinc-200 shadow-lg text-xs',
+        title: 'text-sm font-semibold text-zinc-900',
+        htmlContainer: 'text-xs text-zinc-500',
+        confirmButton: 'rounded-md px-3.5 py-1.5 text-xs font-medium',
+      },
+    });
+  } finally {
+    isActionLoading.value = false;
+  }
+};
+
+const handleReject = async (req) => {
+  if (!req || isActionLoading.value) return;
+
+  const result = await Swal.fire({
+    title: 'Tolak Permintaan FPTK?',
+    text: `Apakah Anda yakin ingin menolak permintaan posisi "${req.posisi_dibutuhkan || req.position_name || 'ini'}"?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Ya, Tolak Permintaan',
+    cancelButtonText: 'Batal',
+    confirmButtonColor: '#e11d48',
+    cancelButtonColor: '#71717a',
+    reverseButtons: true,
+    customClass: {
+      popup: 'rounded-xl border border-zinc-200 shadow-lg text-xs',
+      title: 'text-sm font-semibold text-zinc-900',
+      htmlContainer: 'text-xs text-zinc-500',
+      confirmButton: 'rounded-md px-3.5 py-1.5 text-xs font-medium',
+      cancelButton: 'rounded-md px-3.5 py-1.5 text-xs font-medium',
+    },
+  });
+
+  if (!result.isConfirmed) return;
+
+  isActionLoading.value = true;
+  try {
+    const res = await store.rejectRequest(req.id);
+    await store.fetchRequests('', true);
+
+    const updated = (store.requests || []).find(r => String(r.id) === String(req.id));
+    if (updated) {
+      selectedRequest.value = updated;
+    } else {
+      req.status = 'Rejected';
+      req.approval_status = 'Rejected';
+      req.can_approve_reject = false;
+    }
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Permintaan Ditolak',
+      text: res?.message || 'Permintaan FPTK telah ditolak.',
+      confirmButtonColor: '#18181b',
+      customClass: {
+        popup: 'rounded-xl border border-zinc-200 shadow-lg text-xs',
+        title: 'text-sm font-semibold text-zinc-900',
+        htmlContainer: 'text-xs text-zinc-500',
+        confirmButton: 'rounded-md px-3.5 py-1.5 text-xs font-medium',
+      },
+    });
+  } catch (err) {
+    const msg = err.response?.data?.message || err.message || 'Gagal menolak permintaan.';
+    Swal.fire({
+      icon: 'error',
+      title: 'Gagal',
+      text: msg,
+      confirmButtonColor: '#18181b',
+      customClass: {
+        popup: 'rounded-xl border border-zinc-200 shadow-lg text-xs',
+        title: 'text-sm font-semibold text-zinc-900',
+        htmlContainer: 'text-xs text-zinc-500',
+        confirmButton: 'rounded-md px-3.5 py-1.5 text-xs font-medium',
+      },
+    });
+  } finally {
+    isActionLoading.value = false;
+  }
 };
 </script>
 

@@ -1,6 +1,6 @@
 <template>
   <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-xs border-b border-zinc-200 shadow-2xs select-none font-sans text-zinc-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="w-full px-4 sm:px-6 lg:px-8">
       <div class="relative flex items-center justify-between h-14">
         
         <!-- Left: Brand Logo -->

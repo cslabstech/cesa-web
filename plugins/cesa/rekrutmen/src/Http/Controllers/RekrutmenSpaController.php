@@ -367,6 +367,74 @@ class RekrutmenSpaController extends Controller
     }
 
     /**
+     * Store a new Job Posting.
+     */
+    public function storeJobPosting(Request $request): JsonResponse
+    {
+        $request->validate([
+            'title'        => 'required|string|max:255',
+            'company_id'   => 'nullable',
+            'location'     => 'nullable|string|max:255',
+            'description'  => 'nullable|string',
+            'requirements' => 'nullable|string',
+            'closing_date' => 'nullable|date',
+            'is_published' => 'nullable',
+            'thumbnail'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ]);
+
+        $title = trim($request->input('title'));
+        $baseSlug = Str::slug($title);
+        $baseSlug = $baseSlug !== '' ? $baseSlug : 'job-posting';
+        $slug = $baseSlug;
+        $counter = 1;
+        while (JobPosting::where('slug', $slug)->exists()) {
+            $slug = $baseSlug.'-'.$counter++;
+        }
+
+        $pipeline = RekrutmenPipeline::firstOrCreate(['id' => 1], ['name' => 'Standard Recruitment Pipeline']);
+
+        $companyId = $request->input('company_id');
+        $companyId = filled($companyId) ? (int) $companyId : null;
+
+        $isPublished = false;
+        if ($request->has('is_published')) {
+            $isPublished = filter_var($request->input('is_published'), FILTER_VALIDATE_BOOLEAN);
+        }
+
+        $thumbnailPath = null;
+        if ($request->hasFile('thumbnail')) {
+            $thumbnailPath = $request->file('thumbnail')->store(JobPosting::THUMBNAIL_DIRECTORY, JobPosting::thumbnailDisk());
+        }
+
+        $posting = JobPosting::create([
+            'company_id'            => $companyId,
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'title'                 => $title,
+            'slug'                  => $slug,
+            'location'              => $request->input('location'),
+            'description'           => $request->input('description'),
+            'requirements'          => $request->input('requirements'),
+            'closing_date'          => $request->input('closing_date'),
+            'is_published'          => $isPublished,
+            'thumbnail_path'        => $thumbnailPath,
+            'creator_id'            => Auth::id(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Lowongan \"{$posting->title}\" berhasil ditambahkan!",
+            'posting' => [
+                'id'            => $posting->id,
+                'title'         => $posting->title,
+                'thumbnail_url' => $posting->thumbnail_url,
+                'is_published'  => $posting->is_published,
+                'company_id'    => $posting->company_id ?? $posting->resolveCompany()?->id,
+                'company_name'  => $posting->resolveCompanyName(),
+            ],
+        ], 201);
+    }
+
+    /**
      * Update a Job Posting.
      */
     public function updateJobPosting(Request $request, $id): JsonResponse
@@ -424,6 +492,33 @@ class RekrutmenSpaController extends Controller
                 'company_id'    => $posting->company_id ?? $posting->resolveCompany()?->id,
                 'company_name'  => $posting->resolveCompanyName(),
             ],
+        ]);
+    }
+
+    /**
+     * Delete a Job Posting.
+     */
+    public function destroyJobPosting($id): JsonResponse
+    {
+        $posting = JobPosting::findOrFail($id);
+
+        $hasApplications = DB::table('rekrutmen_job_applications')
+            ->where('job_posting_id', $posting->id)
+            ->whereNull('deleted_at')
+            ->exists();
+
+        if ($hasApplications) {
+            return response()->json([
+                'success' => false,
+                'message' => "Lowongan \"{$posting->title}\" masih memiliki kandidat pelamar. Tidak dapat dihapus.",
+            ], 422);
+        }
+
+        $posting->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Lowongan \"{$posting->title}\" berhasil dihapus.",
         ]);
     }
 
@@ -522,14 +617,7 @@ class RekrutmenSpaController extends Controller
                     : (string) $app->gender;
             }
 
-            $hasResumeOnDisk = false;
-            if (filled($app->resume_path)) {
-                $rel = ltrim($app->resume_path, '/');
-                $hasResumeOnDisk = file_exists(storage_path('app/'.$rel))
-                    || file_exists(storage_path('app/public/'.$rel))
-                    || file_exists(public_path('storage/'.$rel))
-                    || file_exists(public_path($rel));
-            }
+            $hasResumeOnDisk = $this->resolveAndSyncCandidateCv($app);
 
             return [
                 'id'                         => $app->id,
@@ -638,6 +726,7 @@ class RekrutmenSpaController extends Controller
     public function viewCv(Request $request, $id)
     {
         $application = JobApplication::with('jobPosting')->findOrFail($id);
+        $this->resolveAndSyncCandidateCv($application);
 
         if (empty($application->resume_path)) {
             abort(404, 'Berkas CV belum diunggah oleh kandidat ini.');
@@ -845,6 +934,8 @@ class RekrutmenSpaController extends Controller
         $application = JobApplication::with('jobPosting')->findOrFail($id);
         $job = $application->jobPosting;
 
+        $this->resolveAndSyncCandidateCv($application);
+
         $result = $this->performAiCvScreening($application, $job, true);
 
         $application->update([
@@ -868,6 +959,8 @@ class RekrutmenSpaController extends Controller
     {
         $jobId = $request->input('job_id');
         $force = $request->boolean('force', true);
+        $chunkSize = (int) $request->input('chunk_size', 8);
+        $offset = (int) $request->input('offset', 0);
 
         $query = JobApplication::with('jobPosting');
         if ($jobId) {
@@ -877,24 +970,39 @@ class RekrutmenSpaController extends Controller
             $query->whereNull('ai_match_score');
         }
 
-        $applications = $query->limit(200)->get();
+        $total = $query->count();
+        $applications = $query->skip($offset)->limit($chunkSize)->get();
 
         $count = 0;
         foreach ($applications as $app) {
-            $result = $this->performAiCvScreening($app, $app->jobPosting, false);
-            $app->update([
-                'ai_match_score'    => $result['score'],
-                'ai_recommendation' => $result['recommendation'],
-                'ai_summary'        => $result['summary'],
-                'ai_analyzed_at'    => now(),
-            ]);
-            $count++;
+            try {
+                $this->resolveAndSyncCandidateCv($app);
+                $result = $this->performAiCvScreening($app, $app->jobPosting, false);
+                $app->update([
+                    'ai_match_score'    => $result['score'],
+                    'ai_recommendation' => $result['recommendation'],
+                    'ai_summary'        => $result['summary'],
+                    'ai_analyzed_at'    => now(),
+                ]);
+                $count++;
+            } catch (\Throwable $e) {
+                Log::warning("AI screening failed for application #{$app->id}: ".$e->getMessage());
+            }
         }
 
+        $nextOffset = $offset + $chunkSize;
+        $hasMore = $nextOffset < $total;
+
         return response()->json([
-            'success' => true,
-            'message' => "Berhasil memproses screening ulang AI untuk {$count} kandidat!",
-            'count'   => $count,
+            'success'     => true,
+            'message'     => $hasMore
+                ? "Memproses {$count} kandidat (offset {$offset}). Lanjutkan batch berikutnya..."
+                : "Berhasil menyelesaikan screening AI untuk {$total} kandidat!",
+            'count'       => $count,
+            'total'       => $total,
+            'offset'      => $offset,
+            'next_offset' => $nextOffset,
+            'has_more'    => $hasMore,
         ]);
     }
 
@@ -1175,6 +1283,8 @@ PROMPT;
      */
     private function extractTextFromCvDocument(JobApplication $application): string
     {
+        $this->resolveAndSyncCandidateCv($application);
+
         if (empty($application->resume_path)) {
             return '';
         }
@@ -1532,8 +1642,41 @@ PROMPT;
 
         $companies = Company::query()->whereNull('deleted_at')->orderBy('name')->get(['id', 'name']);
 
+        $colors = [
+            'Screening CV'              => '#2563eb',
+            'Interview HR'              => '#d97706',
+            'Psikotes'                  => '#7c3aed',
+            'Tes Kompetensi (Optional)' => '#4f46e5',
+            'Interview User'            => '#0284c7',
+            'Background Check'          => '#0d9488',
+            'Backgrond Check'           => '#0d9488',
+            'Offering Letter'           => '#ea580c',
+            'Hired'                     => '#059669',
+        ];
+
+        $stageCandidateCounts = DB::table('rekrutmen_job_applications')
+            ->whereNull('deleted_at')
+            ->where('status', '!=', 'rejected')
+            ->select('current_stage_id', DB::raw('count(*) as total'))
+            ->groupBy('current_stage_id')
+            ->pluck('total', 'current_stage_id');
+
+        $stages = RekrutmenStage::where('rekrutmen_pipeline_id', 1)
+            ->orderBy('order_column')
+            ->get()
+            ->map(function (RekrutmenStage $s) use ($colors, $stageCandidateCounts): array {
+                return [
+                    'id'                 => $s->id,
+                    'name'               => $s->name,
+                    'order_column'       => $s->order_column,
+                    'color'              => $colors[$s->name] ?? '#3b82f6',
+                    'applications_count' => (int) ($stageCandidateCounts[$s->id] ?? 0),
+                    'is_locked'          => $s->isLockedFinalStage(),
+                ];
+            });
+
         return response()->json([
-            'stages'     => RekrutmenStage::where('rekrutmen_pipeline_id', 1)->orderBy('order_column')->get(),
+            'stages'     => $stages,
             'divisions'  => $divisions,
             'approvers'  => Approver::with(['division.company:id,name', 'company:id,name'])->latest()->get(),
             'pipelines'  => RekrutmenPipeline::with('stages')->get(),
@@ -1654,6 +1797,101 @@ PROMPT;
         return response()->json([
             'success' => true,
             'message' => "Divisi \"{$name}\" berhasil dihapus.",
+        ]);
+    }
+
+    /**
+     * Store a new recruitment pipeline stage.
+     */
+    public function storeStage(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        $name = trim($validated['name']);
+
+        $pipeline = RekrutmenPipeline::firstOrCreate(['id' => 1], ['name' => 'Standard Recruitment Pipeline']);
+
+        $maxOrder = (int) RekrutmenStage::where('rekrutmen_pipeline_id', $pipeline->id)->max('order_column');
+
+        $stage = RekrutmenStage::create([
+            'rekrutmen_pipeline_id' => $pipeline->id,
+            'name'                  => $name,
+            'order_column'          => $maxOrder + 1,
+            'creator_id'            => Auth::id(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Tahapan \"{$stage->name}\" berhasil ditambahkan.",
+            'stage'   => $stage,
+        ]);
+    }
+
+    /**
+     * Update an existing recruitment pipeline stage.
+     */
+    public function updateStage(Request $request, $id): JsonResponse
+    {
+        $stage = RekrutmenStage::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        $name = trim($validated['name']);
+
+        if ($stage->isLockedFinalStage() && ! RekrutmenStage::isFinalHiredStageName($name)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tahapan final Hired tidak dapat diubah namanya.',
+            ], 422);
+        }
+
+        $stage->update([
+            'name' => $name,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Tahapan \"{$stage->name}\" berhasil diperbarui.",
+            'stage'   => $stage,
+        ]);
+    }
+
+    /**
+     * Delete a recruitment pipeline stage.
+     */
+    public function destroyStage($id): JsonResponse
+    {
+        $stage = RekrutmenStage::findOrFail($id);
+
+        if ($stage->isLockedFinalStage()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tahapan final Hired tidak dapat dihapus.',
+            ], 422);
+        }
+
+        $hasActiveCandidates = DB::table('rekrutmen_job_applications')
+            ->where('current_stage_id', $stage->id)
+            ->where('status', '!=', 'rejected')
+            ->whereNull('deleted_at')
+            ->exists();
+
+        if ($hasActiveCandidates) {
+            return response()->json([
+                'success' => false,
+                'message' => "Tahapan \"{$stage->name}\" masih memiliki kandidat aktif. Pindahkan kandidat terlebih dahulu.",
+            ], 422);
+        }
+
+        $stage->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Tahapan \"{$stage->name}\" berhasil dihapus.",
         ]);
     }
 
@@ -2410,15 +2648,26 @@ PROMPT;
      */
     public function heartbeatScheduled(): JsonResponse
     {
-        $processed = app(ScheduledNotificationService::class)->processDueNotifications();
-        $hasPending = ScheduledNotification::where('status', ScheduledNotification::STATUS_PENDING)->exists();
+        try {
+            $processed = app(ScheduledNotificationService::class)->processDueNotifications();
+            $hasPending = ScheduledNotification::where('status', ScheduledNotification::STATUS_PENDING)->exists();
 
-        return response()->json([
-            'success'     => true,
-            'processed'   => $processed,
-            'has_pending' => $hasPending,
-            'server_time' => now()->format('Y-m-d H:i:s'),
-        ]);
+            return response()->json([
+                'success'     => true,
+                'processed'   => $processed,
+                'has_pending' => $hasPending,
+                'server_time' => now()->format('Y-m-d H:i:s'),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Heartbeat notification check failed: '.$e->getMessage());
+
+            return response()->json([
+                'success'     => true,
+                'processed'   => 0,
+                'has_pending' => false,
+                'server_time' => now()->format('Y-m-d H:i:s'),
+            ]);
+        }
     }
 
     /**
@@ -2504,5 +2753,137 @@ PROMPT;
         }
 
         return $targetStage;
+    }
+
+    /**
+     * Helper to auto-locate and match candidate CV in storage if missing or not on disk.
+     */
+    private function resolveAndSyncCandidateCv(JobApplication $app): bool
+    {
+        $hasResumeOnDisk = false;
+        if (filled($app->resume_path)) {
+            $rel = ltrim($app->resume_path, '/');
+            $candidatePaths = [
+                storage_path('app/'.$rel),
+                storage_path('app/public/'.$rel),
+                public_path('storage/'.$rel),
+                public_path($rel),
+            ];
+            foreach ($candidatePaths as $cp) {
+                if (file_exists($cp)) {
+                    $hasResumeOnDisk = true;
+                    break;
+                }
+            }
+        }
+
+        if ($hasResumeOnDisk) {
+            return true;
+        }
+
+        // Search by ID pattern: storage/app/public/rekrutmen/cv/CV-{id}-*
+        $matches = glob(storage_path('app/public/rekrutmen/cv/CV-'.$app->id.'-*'));
+        if (! empty($matches) && file_exists($matches[0])) {
+            $foundRel = 'rekrutmen/cv/'.basename($matches[0]);
+            $app->resume_path = $foundRel;
+            DB::table('rekrutmen_job_applications')->where('id', $app->id)->update([
+                'resume_path' => $foundRel,
+                'updated_at'  => now(),
+            ]);
+
+            return true;
+        }
+
+        // Search by candidate name slug
+        if (filled($app->full_name)) {
+            $nameSlug = Str::slug($app->full_name);
+            if ($nameSlug !== '') {
+                $nameMatches = glob(storage_path('app/public/rekrutmen/cv/*'.$nameSlug.'*'));
+                if (! empty($nameMatches) && file_exists($nameMatches[0])) {
+                    $foundRel = 'rekrutmen/cv/'.basename($nameMatches[0]);
+                    $app->resume_path = $foundRel;
+                    DB::table('rekrutmen_job_applications')->where('id', $app->id)->update([
+                        'resume_path' => $foundRel,
+                        'updated_at'  => now(),
+                    ]);
+
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Batch match candidate CVs in storage with database records.
+     */
+    public function syncCandidateCvsFromStorage(): JsonResponse
+    {
+        $cvDirectory = storage_path('app/public/rekrutmen/cv');
+        if (! is_dir($cvDirectory)) {
+            return response()->json([
+                'success' => false,
+                'message' => "Direktori CV tidak ditemukan di {$cvDirectory}",
+            ], 404);
+        }
+
+        $files = scandir($cvDirectory);
+        $filesById = [];
+        $allFiles = [];
+        foreach ($files as $f) {
+            if ($f === '.' || $f === '..') {
+                continue;
+            }
+            $allFiles[] = $f;
+            if (preg_match('/^CV-(\d+)-/i', $f, $m)) {
+                $filesById[(int) $m[1]] = $f;
+            }
+        }
+
+        $apps = JobApplication::query()->get(['id', 'full_name', 'resume_path', 'job_posting_id']);
+        $matched = 0;
+        $updated = 0;
+
+        foreach ($apps as $app) {
+            $matchedFile = null;
+            if (isset($filesById[$app->id])) {
+                $matchedFile = $filesById[$app->id];
+            } elseif (! empty($app->resume_path) && in_array(basename($app->resume_path), $allFiles, true)) {
+                $matchedFile = basename($app->resume_path);
+            } elseif (! empty($app->full_name)) {
+                $nameSlug = Str::slug($app->full_name);
+                if ($nameSlug !== '') {
+                    foreach ($allFiles as $fn) {
+                        if (str_contains(strtolower($fn), $nameSlug)) {
+                            $matchedFile = $fn;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if ($matchedFile) {
+                $targetPath = 'rekrutmen/cv/'.$matchedFile;
+                $matched++;
+                if ($app->resume_path !== $targetPath) {
+                    DB::table('rekrutmen_job_applications')
+                        ->where('id', $app->id)
+                        ->update([
+                            'resume_path' => $targetPath,
+                            'updated_at'  => now(),
+                        ]);
+                    $updated++;
+                }
+            }
+        }
+
+        return response()->json([
+            'success'     => true,
+            'message'     => "Berhasil mencocokkan {$matched} berkas CV ({$updated} baru diperbarui) dari total ".count($allFiles).' berkas di storage.',
+            'matched'     => $matched,
+            'updated'     => $updated,
+            'total_files' => count($allFiles),
+        ]);
     }
 }

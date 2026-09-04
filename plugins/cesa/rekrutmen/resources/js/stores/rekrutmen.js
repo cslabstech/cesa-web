@@ -119,6 +119,24 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
       }
     },
 
+    async createJobPosting(payload) {
+      try {
+        let res;
+        if (payload instanceof FormData) {
+          res = await axios.post('/rekrutmen/api/job-postings', payload, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+        } else {
+          res = await axios.post('/rekrutmen/api/job-postings', payload);
+        }
+        await this.fetchPostings('', true);
+        return res.data;
+      } catch (err) {
+        console.error('Failed to create job posting', err);
+        throw err;
+      }
+    },
+
     async updateJobPosting(id, payload) {
       try {
         let res;
@@ -133,6 +151,17 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
         return res.data;
       } catch (err) {
         console.error('Failed to update job posting', err);
+        throw err;
+      }
+    },
+
+    async deleteJobPosting(id) {
+      try {
+        const res = await axios.delete(`/rekrutmen/api/job-postings/${id}`);
+        await this.fetchPostings('', true);
+        return res.data;
+      } catch (err) {
+        console.error('Failed to delete job posting', err);
         throw err;
       }
     },
@@ -256,16 +285,54 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
       }
     },
 
-    async batchAnalyzeWithAi(jobId = null) {
+    async batchAnalyzeWithAi(jobId = null, onProgress = null) {
+      const chunkSize = 8;
+      let offset = 0;
+      let totalProcessed = 0;
+      let total = null;
+      let lastRes = null;
+
       try {
-        const res = await axios.post('/rekrutmen/api/applications/batch-analyze-ai', {
-          job_id: jobId,
-          force: true,
-        });
+        while (true) {
+          const res = await axios.post('/rekrutmen/api/applications/batch-analyze-ai', {
+            job_id: jobId,
+            force: true,
+            chunk_size: chunkSize,
+            offset: offset,
+          });
+
+          lastRes = res.data;
+          totalProcessed += res.data.count || 0;
+          total = res.data.total;
+
+          if (onProgress) {
+            onProgress({ processed: totalProcessed, total, offset });
+          }
+
+          if (!res.data.has_more) {
+            break;
+          }
+          offset = res.data.next_offset;
+        }
+
         await this.fetchApplications(jobId ? { job_id: jobId } : {}, true);
-        return res.data;
+        return {
+          ...lastRes,
+          message: `Berhasil menyelesaikan screening AI untuk ${totalProcessed} dari ${total} kandidat!`,
+        };
       } catch (err) {
         console.error('Failed batch AI analysis', err);
+        throw err;
+      }
+    },
+
+    async syncCandidateCvs() {
+      try {
+        const res = await axios.post('/rekrutmen/api/applications/sync-cvs');
+        await this.fetchApplications('', true);
+        return res.data;
+      } catch (err) {
+        console.error('Failed syncing candidate CVs', err);
         throw err;
       }
     },
@@ -321,6 +388,24 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
 
     async deleteDivision(id) {
       const res = await axios.delete(`/rekrutmen/api/divisions/${id}`);
+      await this.fetchConfigurations(true);
+      return res.data;
+    },
+
+    async createStage(payload) {
+      const res = await axios.post('/rekrutmen/api/stages', payload);
+      await this.fetchConfigurations(true);
+      return res.data;
+    },
+
+    async updateStage(id, payload) {
+      const res = await axios.put(`/rekrutmen/api/stages/${id}`, payload);
+      await this.fetchConfigurations(true);
+      return res.data;
+    },
+
+    async deleteStage(id) {
+      const res = await axios.delete(`/rekrutmen/api/stages/${id}`);
       await this.fetchConfigurations(true);
       return res.data;
     }

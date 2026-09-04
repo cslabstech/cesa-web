@@ -12,45 +12,69 @@
       </div>
     </div>
 
-    <!-- Navigation Tabs (New York Style) -->
-    <div class="flex items-center gap-1 overflow-x-auto no-scrollbar border-b border-zinc-200 pb-2">
+    <!-- Navigation Tabs -->
+    <div class="inline-flex items-center p-1 bg-zinc-100/90 border border-zinc-200/80 rounded-lg text-xs overflow-x-auto no-scrollbar gap-1 max-w-full">
       <button
         type="button"
         @click="activeTab = 'divisions'"
         :class="[
-          'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
+          'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0 flex items-center gap-1.5',
           activeTab === 'divisions'
-            ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
-            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+            ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
         ]"
       >
-        Divisi <span class="ml-1 opacity-70">({{ divisions.length }})</span>
+        <span>Divisi</span>
+        <span
+          :class="[
+            'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
+            activeTab === 'divisions' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+          ]"
+        >
+          {{ divisions.length }}
+        </span>
       </button>
 
       <button
         type="button"
         @click="activeTab = 'stages'"
         :class="[
-          'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
+          'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0 flex items-center gap-1.5',
           activeTab === 'stages'
-            ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
-            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+            ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
         ]"
       >
-        Pipeline Stages <span class="ml-1 opacity-70">({{ stages.length }})</span>
+        <span>Pipeline Stages</span>
+        <span
+          :class="[
+            'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
+            activeTab === 'stages' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+          ]"
+        >
+          {{ stages.length }}
+        </span>
       </button>
 
       <button
         type="button"
         @click="activeTab = 'approvers'"
         :class="[
-          'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
+          'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0 flex items-center gap-1.5',
           activeTab === 'approvers'
-            ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
-            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+            ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
         ]"
       >
-        Approvers <span class="ml-1 opacity-70">({{ approvers.length }})</span>
+        <span>Approvers</span>
+        <span
+          :class="[
+            'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
+            activeTab === 'approvers' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+          ]"
+        >
+          {{ approvers.length }}
+        </span>
       </button>
 
       <button
@@ -59,8 +83,8 @@
         :class="[
           'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
           activeTab === 'ai'
-            ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
-            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+            ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
         ]"
       >
         Integrasi AI
@@ -72,8 +96,8 @@
         :class="[
           'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
           activeTab === 'mail_gateway'
-            ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
-            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+            ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
         ]"
       >
         Gateway Email
@@ -85,8 +109,8 @@
         :class="[
           'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
           activeTab === 'whatsapp_gateway'
-            ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
-            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+            ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
         ]"
       >
         Gateway WhatsApp
@@ -98,8 +122,8 @@
         :class="[
           'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
           activeTab === 'mail_templates'
-            ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
-            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+            ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
         ]"
       >
         Template Email
@@ -214,9 +238,25 @@
         v-else-if="activeTab === 'stages'"
         class="bg-white rounded-xl border border-zinc-200 shadow-2xs overflow-hidden"
       >
-        <div class="p-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
-          <div class="text-xs font-semibold text-zinc-800 uppercase tracking-wider">
-            Daftar Tahapan Seleksi Pelamar (Pipeline Stages)
+        <div class="p-4 border-b border-zinc-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-zinc-50/50">
+          <div>
+            <div class="text-xs font-semibold text-zinc-800 uppercase tracking-wider">
+              Daftar Tahapan Seleksi Pelamar (Pipeline Stages)
+            </div>
+            <p class="text-[11px] text-zinc-500 mt-0.5">
+              Kelola nama dan alur tahapan seleksi kandidat pada pipeline rekrutmen.
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="default"
+              @click="openCreateStageModal"
+              class="h-8 text-xs bg-zinc-900 hover:bg-zinc-800 text-white gap-1.5 cursor-pointer"
+            >
+              <Plus class="w-3.5 h-3.5" />
+              <span>Tambah Tahap</span>
+            </Button>
           </div>
         </div>
         <Table>
@@ -226,6 +266,7 @@
               <TableHead>Nama Tahap</TableHead>
               <TableHead>Warna Badge</TableHead>
               <TableHead>Total Kandidat Saat Ini</TableHead>
+              <TableHead class="text-right w-24 pr-4">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -239,7 +280,18 @@
                   {{ idx + 1 }}
                 </span>
               </TableCell>
-              <TableCell class="font-semibold text-zinc-900 text-xs">{{ stage.name }}</TableCell>
+              <TableCell>
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold text-zinc-900 text-xs">{{ stage.name }}</span>
+                  <span
+                    v-if="stage.is_locked"
+                    class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 text-zinc-600 border border-zinc-200"
+                    title="Tahapan final terkunci secara sistem"
+                  >
+                    Final
+                  </span>
+                </div>
+              </TableCell>
               <TableCell>
                 <div class="flex items-center gap-2">
                   <span class="w-3 h-3 rounded-full border border-zinc-300 shadow-2xs shrink-0" :style="{ backgroundColor: stage.color || '#3b82f6' }"></span>
@@ -251,9 +303,41 @@
                   {{ stage.applications_count || 0 }} Orang
                 </Badge>
               </TableCell>
+              <TableCell class="text-right whitespace-nowrap pr-4">
+                <div class="flex items-center justify-end gap-1">
+                  <button
+                    type="button"
+                    @click="openEditStageModal(stage)"
+                    :disabled="stage.is_locked"
+                    :class="[
+                      'p-1.5 rounded-md transition-colors',
+                      stage.is_locked
+                        ? 'text-zinc-300 cursor-not-allowed'
+                        : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 cursor-pointer'
+                    ]"
+                    :title="stage.is_locked ? 'Tahapan final tidak dapat diubah namanya' : 'Edit Nama Tahapan'"
+                  >
+                    <Pencil class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    @click="handleDeleteStage(stage)"
+                    :disabled="stage.is_locked"
+                    :class="[
+                      'p-1.5 rounded-md transition-colors',
+                      stage.is_locked
+                        ? 'text-zinc-300 cursor-not-allowed'
+                        : 'text-zinc-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer'
+                    ]"
+                    :title="stage.is_locked ? 'Tahapan final tidak dapat dihapus' : 'Hapus Tahapan'"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </TableCell>
             </TableRow>
             <TableRow v-if="!stages.length">
-              <TableCell colspan="4" class="py-12 text-center text-xs text-zinc-500">
+              <TableCell colspan="5" class="py-12 text-center text-xs text-zinc-500">
                 Belum ada tahapan pipeline terdaftar.
               </TableCell>
             </TableRow>
@@ -909,6 +993,59 @@
         </form>
       </DialogContent>
     </Dialog>
+
+    <!-- MODAL TAMBAH / EDIT TAHAP PIPELINE -->
+    <Dialog :open="stageModal.open" @update:open="stageModal.open = $event">
+      <DialogContent class="sm:max-w-[440px] p-6 bg-white rounded-2xl">
+        <DialogHeader class="space-y-1 pb-2">
+          <DialogTitle class="text-base font-bold text-zinc-900">
+            {{ stageModal.isEdit ? 'Edit Tahapan Pipeline' : 'Tambah Tahapan Pipeline' }}
+          </DialogTitle>
+          <DialogDescription class="text-xs text-zinc-500">
+            {{ stageModal.isEdit ? 'Perbarui nama tahapan seleksi dalam alur rekrutmen.' : 'Tambahkan tahapan baru ke dalam alur seleksi rekrutmen.' }}
+          </DialogDescription>
+        </DialogHeader>
+
+        <form @submit.prevent="saveStage" class="space-y-4 pt-2">
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-zinc-700">Nama Tahap <span class="text-rose-500">*</span></label>
+            <Input
+              v-model="stageModal.form.name"
+              placeholder="Contoh: Technical Test / FGD"
+              class="h-9 text-xs"
+              required
+              autofocus
+            />
+          </div>
+
+          <div class="p-3 bg-zinc-50 rounded-lg border border-zinc-100 text-[11px] text-zinc-500 space-y-1">
+            <p class="font-medium text-zinc-700">Catatan:</p>
+            <p>Tahapan baru akan ditambahkan sebelum tahapan final (Hired). Warna badge dan urutan disesuaikan otomatis.</p>
+          </div>
+
+          <DialogFooter class="pt-4 border-t border-zinc-100">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              @click="stageModal.open = false"
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              variant="default"
+              :disabled="stageModal.isSubmitting"
+              class="bg-zinc-900 hover:bg-zinc-800 text-white min-w-[110px]"
+            >
+              <RotateCw v-if="stageModal.isSubmitting" class="w-3.5 h-3.5 mr-1.5 animate-spin" />
+              <span>{{ stageModal.isSubmitting ? 'Menyimpan...' : (stageModal.isEdit ? 'Simpan Perubahan' : 'Tambah Tahap') }}</span>
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -943,6 +1080,16 @@ const divisionModal = ref({
     name: '',
     company_id: null,
     is_active: true,
+  },
+});
+
+const stageModal = ref({
+  open: false,
+  isEdit: false,
+  isSubmitting: false,
+  stageId: null,
+  form: {
+    name: '',
   },
 });
 
@@ -1713,6 +1860,136 @@ const confirmDeleteDivision = async (div) => {
     Swal.fire({
       title: 'Gagal Menghapus',
       text: err.response?.data?.message || 'Terjadi kesalahan saat menghapus divisi.',
+      icon: 'error',
+      confirmButtonColor: '#e11d48',
+      customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-lg px-4 py-2 text-xs font-semibold' },
+    });
+  }
+};
+
+const openCreateStageModal = () => {
+  stageModal.value = {
+    open: true,
+    isEdit: false,
+    isSubmitting: false,
+    stageId: null,
+    form: {
+      name: '',
+    },
+  };
+};
+
+const openEditStageModal = (stage) => {
+  if (stage.is_locked) {
+    Swal.fire({
+      title: 'Tahap Terkunci',
+      text: 'Tahapan final Hired tidak dapat diubah namanya.',
+      icon: 'info',
+      confirmButtonColor: '#0c2340',
+      customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-lg px-4 py-2 text-xs font-semibold' },
+    });
+    return;
+  }
+
+  stageModal.value = {
+    open: true,
+    isEdit: true,
+    isSubmitting: false,
+    stageId: stage.id,
+    form: {
+      name: stage.name || '',
+    },
+  };
+};
+
+const saveStage = async () => {
+  const name = stageModal.value.form.name?.trim();
+  if (!name) {
+    Swal.fire({
+      title: 'Nama Tahap Wajib Diisi',
+      text: 'Harap masukkan nama tahapan seleksi.',
+      icon: 'warning',
+      confirmButtonColor: '#0c2340',
+      customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-lg px-4 py-2 text-xs font-semibold' },
+    });
+    return;
+  }
+
+  stageModal.value.isSubmitting = true;
+  try {
+    let res;
+    if (stageModal.value.isEdit) {
+      res = await store.updateStage(stageModal.value.stageId, { name });
+    } else {
+      res = await store.createStage({ name });
+    }
+    stageModal.value.open = false;
+    Swal.fire({
+      title: 'Berhasil!',
+      text: res.message || 'Tahapan seleksi berhasil disimpan.',
+      icon: 'success',
+      confirmButtonColor: '#0c2340',
+      timer: 2000,
+      customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-lg px-4 py-2 text-xs font-semibold' },
+    });
+  } catch (err) {
+    Swal.fire({
+      title: 'Gagal Menyimpan',
+      text: err.response?.data?.message || 'Terjadi kesalahan saat menyimpan tahapan.',
+      icon: 'error',
+      confirmButtonColor: '#e11d48',
+      customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-lg px-4 py-2 text-xs font-semibold' },
+    });
+  } finally {
+    stageModal.value.isSubmitting = false;
+  }
+};
+
+const handleDeleteStage = async (stage) => {
+  if (stage.is_locked) {
+    Swal.fire({
+      title: 'Tahap Terkunci',
+      text: 'Tahapan final Hired tidak dapat dihapus.',
+      icon: 'info',
+      confirmButtonColor: '#0c2340',
+      customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-lg px-4 py-2 text-xs font-semibold' },
+    });
+    return;
+  }
+
+  const result = await Swal.fire({
+    title: 'Hapus Tahap Seleksi?',
+    html: `Apakah Anda yakin ingin menghapus tahapan <strong>${stage.name}</strong>?<br><span class="text-xs text-zinc-500">Tahapan hanya dapat dihapus jika tidak ada kandidat aktif di dalamnya.</span>`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Ya, Hapus',
+    cancelButtonText: 'Batal',
+    confirmButtonColor: '#e11d48',
+    cancelButtonColor: '#64748b',
+    reverseButtons: true,
+    customClass: {
+      popup: 'rounded-2xl',
+      confirmButton: 'rounded-lg px-4 py-2 text-xs font-semibold',
+      cancelButton: 'rounded-lg px-4 py-2 text-xs font-semibold',
+    }
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    const res = await store.deleteStage(stage.id);
+    Swal.fire({
+      title: 'Berhasil Dihapus!',
+      text: res.message || `Tahapan ${stage.name} berhasil dihapus.`,
+      icon: 'success',
+      confirmButtonColor: '#0c2340',
+      timer: 2000,
+      customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-lg px-4 py-2 text-xs font-semibold' },
+    });
+  } catch (err) {
+    Swal.fire({
+      title: 'Gagal Menghapus',
+      text: err.response?.data?.message || 'Terjadi kesalahan saat menghapus tahapan.',
       icon: 'error',
       confirmButtonColor: '#e11d48',
       customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-lg px-4 py-2 text-xs font-semibold' },

@@ -105,11 +105,11 @@
       <Card class="hover:border-zinc-300">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Dalam Proses</span>
-          <Clock class="w-4 h-4 text-amber-500" />
+          <Clock class="w-4 h-4 text-zinc-400" />
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-amber-700">{{ totalInProcess }}</div>
-          <p class="text-[11px] text-zinc-500 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ totalInProcess }}</div>
+          <p class="text-[11px] text-zinc-400 mt-0.5">
             Kandidat sedang diseleksi
           </p>
         </CardContent>
@@ -118,11 +118,11 @@
       <Card class="hover:border-zinc-300">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Terpenuhi (Hired)</span>
-          <CheckCircle2 class="w-4 h-4 text-emerald-600" />
+          <CheckCircle2 class="w-4 h-4 text-zinc-400" />
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-emerald-700">{{ totalHired }}</div>
-          <p class="text-[11px] text-zinc-500 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ totalHired }}</div>
+          <p class="text-[11px] text-zinc-400 mt-0.5">
             Kandidat telah diterima kerja
           </p>
         </CardContent>

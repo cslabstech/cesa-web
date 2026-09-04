@@ -58,10 +58,12 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::post('requests/{id}/hold', [RekrutmenSpaController::class, 'holdRequest'])->name('rekrutmen.api.requests.hold');
 
         Route::get('job-postings', [RekrutmenSpaController::class, 'getJobPostings'])->name('rekrutmen.api.job-postings');
+        Route::post('job-postings', [RekrutmenSpaController::class, 'storeJobPosting'])->name('rekrutmen.api.job-postings.store');
         Route::get('companies', [RekrutmenSpaController::class, 'getCompanies'])->name('rekrutmen.api.companies');
         Route::patch('job-postings/{id}/publish', [RekrutmenSpaController::class, 'togglePublishJobPosting'])->name('rekrutmen.api.job-postings.publish');
         Route::put('job-postings/{id}', [RekrutmenSpaController::class, 'updateJobPosting'])->name('rekrutmen.api.job-postings.update');
         Route::post('job-postings/{id}', [RekrutmenSpaController::class, 'updateJobPosting'])->name('rekrutmen.api.job-postings.update-post');
+        Route::delete('job-postings/{id}', [RekrutmenSpaController::class, 'destroyJobPosting'])->name('rekrutmen.api.job-postings.destroy');
 
         Route::get('applications', [RekrutmenSpaController::class, 'getApplications'])->name('rekrutmen.api.applications');
         Route::get('applications/{id}/cv', [RekrutmenSpaController::class, 'viewCv'])->name('rekrutmen.api.applications.cv');
@@ -70,6 +72,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::patch('applications/{id}/stage', [RekrutmenSpaController::class, 'updateApplicationStage'])->name('rekrutmen.api.applications.stage');
         Route::patch('applications/{id}/status', [RekrutmenSpaController::class, 'updateApplicationStatus'])->name('rekrutmen.api.applications.status');
         Route::post('applications/batch-reject', [RekrutmenSpaController::class, 'batchRejectApplications'])->name('rekrutmen.api.applications.batch-reject');
+        Route::post('applications/sync-cvs', [RekrutmenSpaController::class, 'syncCandidateCvsFromStorage'])->name('rekrutmen.api.applications.sync-cvs');
         Route::post('applications/{id}/analyze-ai', [RekrutmenSpaController::class, 'analyzeWithAi'])->name('rekrutmen.api.applications.analyze-ai');
         Route::post('applications/batch-analyze-ai', [RekrutmenSpaController::class, 'batchAnalyzeWithAi'])->name('rekrutmen.api.applications.batch-analyze-ai');
         Route::get('progress-report', [RekrutmenSpaController::class, 'getProgressReport'])->name('rekrutmen.api.progress-report');
@@ -78,6 +81,9 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::post('divisions', [RekrutmenSpaController::class, 'storeDivision'])->name('rekrutmen.api.divisions.store');
         Route::put('divisions/{id}', [RekrutmenSpaController::class, 'updateDivision'])->name('rekrutmen.api.divisions.update');
         Route::delete('divisions/{id}', [RekrutmenSpaController::class, 'destroyDivision'])->name('rekrutmen.api.divisions.destroy');
+        Route::post('stages', [RekrutmenSpaController::class, 'storeStage'])->name('rekrutmen.api.stages.store');
+        Route::put('stages/{id}', [RekrutmenSpaController::class, 'updateStage'])->name('rekrutmen.api.stages.update');
+        Route::delete('stages/{id}', [RekrutmenSpaController::class, 'destroyStage'])->name('rekrutmen.api.stages.destroy');
         Route::get('settings/ai', [RekrutmenSpaController::class, 'getAiSettings'])->name('rekrutmen.api.settings.ai');
         Route::post('settings/ai', [RekrutmenSpaController::class, 'saveAiSettings'])->name('rekrutmen.api.settings.ai.save');
         Route::post('settings/ai/test', [RekrutmenSpaController::class, 'testAiConnection'])->name('rekrutmen.api.settings.ai.test');

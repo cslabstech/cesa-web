@@ -25,6 +25,17 @@
           <span class="text-zinc-500 font-bold">&times;</span>
         </button>
 
+        <!-- Sinkronkan Berkas CV Action Button -->
+        <button
+          @click="startSyncCvs"
+          :disabled="isSyncingCvs"
+          class="px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+          title="Cocokkan berkas CV di folder storage dengan data kandidat pelamar"
+        >
+          <FileText class="w-3.5 h-3.5 text-slate-500" :class="{ 'animate-pulse': isSyncingCvs }" />
+          <span>Cocokkan CV Storage</span>
+        </button>
+
         <!-- Evaluasi Kualifikasi Action Button -->
         <Button
           variant="outline"
@@ -86,11 +97,11 @@
       <Card class="hover:border-zinc-300">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Sangat Sesuai</span>
-          <UserCheck class="w-4 h-4 text-emerald-600" />
+          <UserCheck class="w-4 h-4 text-zinc-400" />
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-emerald-700">{{ recommendedCount }}</div>
-          <p class="text-[11px] text-zinc-500 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ recommendedCount }}</div>
+          <p class="text-[11px] text-zinc-400 mt-0.5">
             Skor kecocokan &ge; 75%
           </p>
         </CardContent>
@@ -100,11 +111,11 @@
       <Card class="hover:border-zinc-300">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Dipertimbangkan</span>
-          <Clock class="w-4 h-4 text-amber-500" />
+          <Clock class="w-4 h-4 text-zinc-400" />
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-amber-700">{{ consideredCount }}</div>
-          <p class="text-[11px] text-zinc-500 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ consideredCount }}</div>
+          <p class="text-[11px] text-zinc-400 mt-0.5">
             Skor kecocokan 50% - 74%
           </p>
         </CardContent>
@@ -114,11 +125,11 @@
       <Card class="hover:border-zinc-300">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Ditolak / Kurang Sesuai</span>
-          <UserX class="w-4 h-4 text-rose-500" />
+          <UserX class="w-4 h-4 text-zinc-400" />
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-rose-700">{{ rejectedCandidateCount + notSuitableCount }}</div>
-          <p class="text-[11px] text-zinc-500 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ rejectedCandidateCount + notSuitableCount }}</div>
+          <p class="text-[11px] text-zinc-400 mt-0.5">
             {{ rejectedCandidateCount }} ditolak &bull; {{ notSuitableCount }} skor &lt; 50%
           </p>
         </CardContent>
@@ -143,58 +154,90 @@
 
     <!-- Integrated Filter Tabs, Stage Filter Dropdown & Search Bar -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 border-b border-zinc-200 pb-3">
-      <!-- Match Filter Tabs (New York Style) -->
-      <div class="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1 lg:pb-0">
+      <!-- Match Filter Tabs -->
+      <div class="inline-flex items-center p-1 bg-zinc-100/90 border border-zinc-200/80 rounded-lg text-xs overflow-x-auto no-scrollbar">
         <button
           type="button"
           @click="matchFilter = 'all'"
           :class="[
-            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none',
+            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             matchFilter === 'all'
-              ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
-              : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
+              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
-          Semua Pelamar <span class="ml-1 opacity-70">({{ applications.length }})</span>
+          <span>Semua Pelamar</span>
+          <span
+            :class="[
+              'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
+              matchFilter === 'all' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+            ]"
+          >
+            {{ applications.length }}
+          </span>
         </button>
 
         <button
           type="button"
           @click="matchFilter = 'recommended'"
           :class="[
-            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none',
+            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             matchFilter === 'recommended'
-              ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
-              : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
+              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
-          Sangat Sesuai <span class="ml-1 opacity-70 text-emerald-500 font-semibold">({{ recommendedCount }})</span>
+          <span>Sangat Sesuai</span>
+          <span
+            :class="[
+              'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
+              matchFilter === 'recommended' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+            ]"
+          >
+            {{ recommendedCount }}
+          </span>
         </button>
 
         <button
           type="button"
           @click="matchFilter = 'considered'"
           :class="[
-            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none',
+            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             matchFilter === 'considered'
-              ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
-              : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
+              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
-          Dipertimbangkan <span class="ml-1 opacity-70 text-amber-500 font-semibold">({{ consideredCount }})</span>
+          <span>Dipertimbangkan</span>
+          <span
+            :class="[
+              'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
+              matchFilter === 'considered' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+            ]"
+          >
+            {{ consideredCount }}
+          </span>
         </button>
 
         <button
           type="button"
           @click="matchFilter = 'not_suitable'"
           :class="[
-            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none',
+            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             matchFilter === 'not_suitable'
-              ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
-              : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
+              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
-          Kurang Sesuai <span class="ml-1 opacity-70 text-zinc-400 font-semibold">({{ notSuitableCount }})</span>
+          <span>Kurang Sesuai</span>
+          <span
+            :class="[
+              'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
+              matchFilter === 'not_suitable' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+            ]"
+          >
+            {{ notSuitableCount }}
+          </span>
         </button>
       </div>
 
@@ -304,7 +347,7 @@
             <TableHead class="text-center">Tahapan Seleksi</TableHead>
             <TableHead class="text-center">Status</TableHead>
             <TableHead class="text-center">Tgl Masuk</TableHead>
-            <TableHead class="text-right w-24">Aksi</TableHead>
+            <TableHead class="text-right w-28 pr-6">Aksi</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -326,8 +369,16 @@
             <!-- Name & Contact -->
             <TableCell>
               <div class="flex items-center gap-2.5 min-w-0">
-                <div class="w-7 h-7 rounded-full bg-zinc-100 flex items-center justify-center shrink-0 border border-zinc-200">
-                  <User class="w-3.5 h-3.5 text-zinc-500" />
+                <div class="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center shrink-0 border border-zinc-200 overflow-hidden relative">
+                  <img
+                    v-if="app.photo_url"
+                    :src="app.photo_url"
+                    :alt="app.full_name"
+                    class="w-full h-full object-cover"
+                    loading="lazy"
+                    @error="(e) => e.target.style.display = 'none'"
+                  />
+                  <span v-else class="text-[10px] font-bold text-zinc-600 uppercase">{{ getInitials(app.full_name) }}</span>
                 </div>
                 <div class="min-w-0">
                   <div class="font-semibold text-xs text-zinc-900 hover:text-blue-600 transition-colors cursor-pointer truncate" @click="openDetail(app)">
@@ -410,7 +461,7 @@
             </TableCell>
 
             <!-- Action Buttons -->
-            <TableCell class="text-right whitespace-nowrap">
+            <TableCell class="text-right whitespace-nowrap pr-6">
               <div class="flex items-center justify-end gap-1">
                 <Button
                   variant="ghost"
@@ -478,8 +529,16 @@
             <!-- Top: Candidate Name & Match Pill -->
             <div class="flex items-start justify-between gap-2">
               <div class="flex items-center gap-2 min-w-0">
-                <div class="w-6 h-6 rounded-full bg-zinc-100 flex items-center justify-center shrink-0 border border-zinc-200 text-zinc-500">
-                  <User class="w-3 h-3" />
+                <div class="w-7 h-7 rounded-full bg-zinc-100 flex items-center justify-center shrink-0 border border-zinc-200 text-zinc-500 overflow-hidden relative">
+                  <img
+                    v-if="app.photo_url"
+                    :src="app.photo_url"
+                    :alt="app.full_name"
+                    class="w-full h-full object-cover"
+                    loading="lazy"
+                    @error="(e) => e.target.style.display = 'none'"
+                  />
+                  <span v-else class="text-[9px] font-bold text-zinc-600 uppercase">{{ getInitials(app.full_name) }}</span>
                 </div>
                 <div class="min-w-0">
                   <h4 class="font-semibold text-xs text-zinc-900 group-hover:text-blue-600 transition-colors truncate">
@@ -620,8 +679,15 @@
             >
               <ArrowLeft class="w-4 h-4" />
             </Button>
-            <div class="w-9 h-9 rounded-full bg-zinc-900 text-white flex items-center justify-center font-semibold text-xs shrink-0">
-              {{ getInitials(selectedApp.full_name) }}
+            <div class="w-10 h-10 rounded-full bg-zinc-900 text-white flex items-center justify-center font-semibold text-xs shrink-0 overflow-hidden border border-zinc-200 relative">
+              <img
+                v-if="selectedApp.photo_url"
+                :src="selectedApp.photo_url"
+                :alt="selectedApp.full_name"
+                class="w-full h-full object-cover"
+                @error="(e) => e.target.style.display = 'none'"
+              />
+              <span v-else>{{ getInitials(selectedApp.full_name) }}</span>
             </div>
             <div class="min-w-0">
               <h3 class="text-sm font-semibold text-zinc-900 truncate">{{ selectedApp.full_name }}</h3>
@@ -743,9 +809,51 @@
 
             <!-- Biodata Pelamar -->
             <div class="space-y-3">
-              <div class="flex items-center gap-2 pb-1.5 border-b border-zinc-100">
-                <User class="w-3.5 h-3.5 text-zinc-400" />
-                <h3 class="text-xs font-semibold text-zinc-900 tracking-tight">Biodata Pelamar</h3>
+              <div class="flex items-center justify-between pb-1.5 border-b border-zinc-100">
+                <div class="flex items-center gap-2">
+                  <User class="w-3.5 h-3.5 text-zinc-400" />
+                  <h3 class="text-xs font-semibold text-zinc-900 tracking-tight">Biodata Pelamar</h3>
+                </div>
+                <a
+                  v-if="selectedApp.photo_url"
+                  :href="selectedApp.photo_url"
+                  target="_blank"
+                  class="text-[11px] text-blue-600 hover:underline flex items-center gap-1 font-medium"
+                >
+                  <span>Lihat Foto Asli</span>
+                  <ExternalLink class="w-3 h-3" />
+                </a>
+              </div>
+
+              <!-- Profile Photo Card & Snapshot -->
+              <div class="flex items-start gap-4 p-3 rounded-lg bg-zinc-50 border border-zinc-200">
+                <div class="w-20 h-24 rounded-lg bg-white border border-zinc-200 shadow-2xs overflow-hidden shrink-0 flex items-center justify-center relative">
+                  <img
+                    v-if="selectedApp.photo_url"
+                    :src="selectedApp.photo_url"
+                    :alt="selectedApp.full_name"
+                    class="w-full h-full object-cover"
+                    @error="(e) => e.target.style.display = 'none'"
+                  />
+                  <div v-else class="flex flex-col items-center justify-center text-zinc-400 p-2 text-center">
+                    <User class="w-8 h-8 text-zinc-300" />
+                    <span class="text-[9px] mt-1 text-zinc-400">Tanpa Foto</span>
+                  </div>
+                </div>
+                <div class="flex-1 min-w-0 space-y-1.5 py-0.5">
+                  <div class="text-xs font-bold text-zinc-900 leading-snug">{{ selectedApp.full_name }}</div>
+                  <div class="text-[11px] text-zinc-500 flex items-center gap-1.5">
+                    <span class="font-medium text-zinc-700">{{ selectedApp.gender || '-' }}</span>
+                    <span>&bull;</span>
+                    <span>{{ selectedApp.marital_status || '-' }}</span>
+                  </div>
+                  <div class="text-[11px] text-zinc-600">
+                    <span class="text-zinc-400">Tgl Lahir:</span> {{ selectedApp.birth_date || '-' }}
+                  </div>
+                  <div class="text-[11px] text-zinc-600 truncate">
+                    <span class="text-zinc-400">Lowongan:</span> <span class="font-medium text-zinc-800">{{ selectedApp.job_posting?.title || '-' }}</span>
+                  </div>
+                </div>
               </div>
 
               <div class="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
@@ -1672,11 +1780,78 @@ const openAnalysisModal = (app) => {
   analysisModalApp.value = app;
 };
 
+const isSyncingCvs = ref(false);
+
+const startSyncCvs = async () => {
+  isSyncingCvs.value = true;
+  Swal.fire({
+    title: 'Mencocokkan Berkas CV',
+    html: '<div class="text-xs text-slate-500 mt-2 leading-relaxed">Sedang memindai folder storage/app/public/rekrutmen/cv dan mencocokkan dokumen ke masing-masing kandidat...</div>',
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+    didOpen: () => {
+      Swal.showLoading();
+    }
+  });
+
+  try {
+    const res = await store.syncCandidateCvs();
+    isSyncingCvs.value = false;
+    Swal.fire({
+      icon: 'success',
+      title: 'Pencocokan CV Selesai',
+      html: `<div class="text-xs text-slate-600 mt-1">${res.message || 'Berkas CV berhasil dicocokkan ke kandidat.'}</div>`,
+      confirmButtonText: 'Evaluasi Sekarang',
+      showCancelButton: true,
+      cancelButtonText: 'Tutup',
+      confirmButtonColor: '#0c2340',
+      cancelButtonColor: '#64748b',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        startRescreening();
+      }
+    });
+  } catch (e) {
+    isSyncingCvs.value = false;
+    Swal.fire({
+      icon: 'error',
+      title: 'Gagal Mencocokkan CV',
+      text: e.response?.data?.message || 'Terjadi kesalahan saat memproses sinkronisasi CV.',
+      confirmButtonColor: '#e11d48',
+    });
+  }
+};
+
 const startRescreening = async () => {
+  // If no job filter, show warning first
+  if (!activeJobId.value) {
+    const confirm = await Swal.fire({
+      title: 'Evaluasi Semua Pelamar?',
+      html: `<div class="text-xs text-slate-600 mt-1 leading-relaxed">
+        Anda tidak sedang memfilter ke lowongan tertentu.<br><br>
+        Evaluasi akan tetap berjalan untuk <b>semua pelamar</b>, namun skor kualifikasi akan dibandingkan ke masing-masing lowongan yang dilamar.<br><br>
+        Untuk hasil lebih akurat, pilih lowongan terlebih dahulu dari halaman <b>Lowongan Kerja → Lihat Pelamar</b>.
+      </div>`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Lanjutkan Evaluasi',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#0c2340',
+      cancelButtonColor: '#64748b',
+      customClass: {
+        popup: 'rounded-2xl border border-slate-100 shadow-2xl p-6 font-sans',
+        title: 'text-sm font-bold text-slate-900',
+      }
+    });
+    if (!confirm.isConfirmed) return;
+  }
+
   isScreening.value = true;
   Swal.fire({
     title: 'Evaluasi Kualifikasi',
-    html: '<div class="text-xs text-slate-500 mt-2 leading-relaxed">Sedang menganalisis dan mencocokkan data berkas seluruh pelamar...</div>',
+    html: `<div class="text-xs text-slate-500 mt-2 leading-relaxed">Menyiapkan evaluasi kandidat...</div>
+           <div id="swal-progress" class="text-xs font-semibold text-slate-700 mt-2"></div>`,
     allowOutsideClick: false,
     allowEscapeKey: false,
     showConfirmButton: false,
@@ -1690,13 +1865,19 @@ const startRescreening = async () => {
   });
 
   try {
-    const res = await store.batchAnalyzeWithAi(activeJobId.value);
+    const res = await store.batchAnalyzeWithAi(activeJobId.value, ({ processed, total }) => {
+      const el = document.getElementById('swal-progress');
+      if (el) {
+        const pct = total ? Math.round((processed / total) * 100) : 0;
+        el.textContent = `Memproses ${processed} dari ${total} kandidat (${pct}%)`;
+      }
+    });
     isScreening.value = false;
     Swal.fire({
       icon: 'success',
       title: 'Evaluasi Selesai',
       html: `<div class="text-xs text-slate-600 mt-1">${res.message || 'Evaluasi kualifikasi berhasil diperbarui.'}</div>`,
-      timer: 2000,
+      timer: 3000,
       showConfirmButton: false,
       iconColor: '#10b981',
       customClass: {
@@ -1708,7 +1889,7 @@ const startRescreening = async () => {
     isScreening.value = false;
     Swal.fire({
       icon: 'error',
-      title: 'Gagal',
+      title: 'Gagal Evaluasi',
       html: '<div class="text-xs text-slate-600 mt-1">Terjadi kesalahan saat memproses evaluasi kualifikasi.</div>',
       confirmButtonColor: '#739ec5',
       customClass: {
