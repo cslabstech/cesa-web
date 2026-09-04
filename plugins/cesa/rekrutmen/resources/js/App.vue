@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased flex flex-col">
+  <div class="min-h-screen bg-zinc-50/50 font-sans text-zinc-950 antialiased flex flex-col">
     <!-- Top Navbar Navigation -->
     <Navbar :user="user" />
 

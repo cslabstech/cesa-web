@@ -1436,7 +1436,11 @@ PROMPT;
                 'in_process'             => $stats['in_progress'] ?? 0,
                 'rejected'               => $stats['rejected'] ?? 0,
                 'request_status_label'   => $item['request_status_label'] ?? ($posting->is_published ? 'Published' : 'Draft'),
-                'cycle_health'           => is_array($cycleHealth) ? ($cycleHealth['status_label'] ?? 'Normal') : 'Normal',
+                'cycle_health'           => is_array($cycleHealth) ? ($cycleHealth['status_label'] ?? 'Optimal') : 'Optimal',
+                'cycle_health_status'    => is_array($cycleHealth) ? ($cycleHealth['status'] ?? 'healthy') : 'healthy',
+                'cycle_health_summary'   => is_array($cycleHealth) ? ($cycleHealth['summary'] ?? '') : '',
+                'cycle_health_desc'      => is_array($cycleHealth) ? ($cycleHealth['description'] ?? '') : '',
+                'cycle_health_issues'    => is_array($cycleHealth) ? ($cycleHealth['issues'] ?? []) : [],
                 'fulfillment_percentage' => $item['fulfillment_percentage'] ?? 0,
             ];
         });

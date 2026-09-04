@@ -1,7 +1,7 @@
 <template>
-  <header class="sticky top-0 z-50 bg-[#739ec5] shadow-xs select-none font-sans text-white">
+  <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-xs border-b border-zinc-200 shadow-2xs select-none font-sans text-zinc-900">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="relative flex items-center justify-between h-16">
+      <div class="relative flex items-center justify-between h-14">
         
         <!-- Left: Brand Logo -->
         <div class="flex items-center shrink-0 z-10">
@@ -9,110 +9,110 @@
             <img
               :src="logoUrl"
               alt="CESA Logo"
-              class="h-8 w-8 shrink-0 object-contain drop-shadow-sm transition-transform group-hover:scale-105"
+              class="h-7 w-7 shrink-0 object-contain drop-shadow-2xs transition-transform group-hover:scale-105"
             />
             <div class="flex flex-col leading-none">
-              <span class="text-base font-black tracking-wider text-white uppercase drop-shadow-xs">CESA</span>
-              <span class="text-[9px] font-bold tracking-widest text-white/90 uppercase mt-0.5">REKRUTMEN</span>
+              <span class="text-sm font-black tracking-wider text-[#0c2340] uppercase">CESA</span>
+              <span class="text-[9px] font-bold tracking-widest text-zinc-400 uppercase mt-0.5">REKRUTMEN</span>
             </div>
           </router-link>
         </div>
 
         <!-- Center: Mathematically Centered Navigation Menu Links -->
-        <nav class="hidden md:flex items-center justify-center gap-7 lg:gap-9 text-sm absolute inset-x-0 mx-auto w-fit z-0 pointer-events-none [&>*]:pointer-events-auto">
+        <nav class="hidden md:flex items-center justify-center gap-6 lg:gap-8 text-xs absolute inset-x-0 mx-auto w-fit z-0 pointer-events-none [&>*]:pointer-events-auto">
           <router-link
             to="/admin/job-postings"
-            class="relative py-1 text-xs lg:text-sm font-semibold transition-all inline-flex flex-col items-center"
+            class="relative py-1 text-xs font-medium transition-all inline-flex flex-col items-center"
             :class="[
               isActive('/admin/job-postings')
-                ? 'text-white font-bold'
-                : 'text-white/80 hover:text-white font-medium'
+                ? 'text-zinc-950 font-semibold'
+                : 'text-zinc-500 hover:text-zinc-900'
             ]"
           >
             <span>Lowongan Kerja</span>
             <span
               v-if="isActive('/admin/job-postings')"
-              class="absolute -bottom-1 left-0 right-0 h-[2.5px] bg-white rounded-full shadow-xs"
+              class="absolute -bottom-2 left-0 right-0 h-[2px] bg-zinc-950 rounded-full"
             ></span>
           </router-link>
 
           <router-link
             to="/admin/job-applications"
-            class="relative py-1 text-xs lg:text-sm font-semibold transition-all inline-flex flex-col items-center"
+            class="relative py-1 text-xs font-medium transition-all inline-flex flex-col items-center"
             :class="[
               isActive('/admin/job-applications')
-                ? 'text-white font-bold'
-                : 'text-white/80 hover:text-white font-medium'
+                ? 'text-zinc-950 font-semibold'
+                : 'text-zinc-500 hover:text-zinc-900'
             ]"
           >
             <span>Data Pelamar</span>
             <span
               v-if="isActive('/admin/job-applications')"
-              class="absolute -bottom-1 left-0 right-0 h-[2.5px] bg-white rounded-full shadow-xs"
+              class="absolute -bottom-2 left-0 right-0 h-[2px] bg-zinc-950 rounded-full"
             ></span>
           </router-link>
 
           <router-link
             to="/admin/request-man-powers"
-            class="relative py-1 text-xs lg:text-sm font-semibold transition-all inline-flex flex-col items-center"
+            class="relative py-1 text-xs font-medium transition-all inline-flex flex-col items-center"
             :class="[
               isActive('/admin/request-man-powers')
-                ? 'text-white font-bold'
-                : 'text-white/80 hover:text-white font-medium'
+                ? 'text-zinc-950 font-semibold'
+                : 'text-zinc-500 hover:text-zinc-900'
             ]"
           >
             <span>Permintaan FPTK</span>
             <span
               v-if="isActive('/admin/request-man-powers')"
-              class="absolute -bottom-1 left-0 right-0 h-[2.5px] bg-white rounded-full shadow-xs"
+              class="absolute -bottom-2 left-0 right-0 h-[2px] bg-zinc-950 rounded-full"
             ></span>
           </router-link>
 
           <router-link
             to="/admin/recruitment-progress"
-            class="relative py-1 text-xs lg:text-sm font-semibold transition-all inline-flex flex-col items-center"
+            class="relative py-1 text-xs font-medium transition-all inline-flex flex-col items-center"
             :class="[
               isActive('/admin/recruitment-progress')
-                ? 'text-white font-bold'
-                : 'text-white/80 hover:text-white font-medium'
+                ? 'text-zinc-950 font-semibold'
+                : 'text-zinc-500 hover:text-zinc-900'
             ]"
           >
             <span>Monitoring & Progress</span>
             <span
               v-if="isActive('/admin/recruitment-progress')"
-              class="absolute -bottom-1 left-0 right-0 h-[2.5px] bg-white rounded-full shadow-xs"
+              class="absolute -bottom-2 left-0 right-0 h-[2px] bg-zinc-950 rounded-full"
             ></span>
           </router-link>
 
           <router-link
             to="/admin/configurations"
-            class="relative py-1 text-xs lg:text-sm font-semibold transition-all inline-flex flex-col items-center"
+            class="relative py-1 text-xs font-medium transition-all inline-flex flex-col items-center"
             :class="[
               isActive('/admin/configurations')
-                ? 'text-white font-bold'
-                : 'text-white/80 hover:text-white font-medium'
+                ? 'text-zinc-950 font-semibold'
+                : 'text-zinc-500 hover:text-zinc-900'
             ]"
           >
             <span>Master Data</span>
             <span
               v-if="isActive('/admin/configurations')"
-              class="absolute -bottom-1 left-0 right-0 h-[2.5px] bg-white rounded-full shadow-xs"
+              class="absolute -bottom-2 left-0 right-0 h-[2px] bg-zinc-950 rounded-full"
             ></span>
           </router-link>
         </nav>
 
         <!-- Right: Admin Panel Launcher + Profile Dropdown -->
-        <div class="flex items-center gap-3 shrink-0 z-10">
+        <div class="flex items-center gap-2.5 shrink-0 z-10">
           <!-- 1. CESA Apps & Plugin Launcher Trigger -->
           <div class="relative" ref="launcherRef">
             <button
               @click="toggleLauncher"
-              class="w-9 h-9 rounded-xl flex items-center justify-center bg-white/15 hover:bg-white/25 text-white border border-white/25 shadow-2xs transition-all cursor-pointer focus:outline-none"
-              :class="{ 'ring-2 ring-white/50 bg-white/30': launcherOpen }"
+              class="w-8 h-8 rounded-lg flex items-center justify-center bg-zinc-50 hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900 border border-zinc-200 shadow-2xs transition-all cursor-pointer focus:outline-none"
+              :class="{ 'ring-1 ring-zinc-950 bg-zinc-100 text-zinc-950': launcherOpen }"
               title="Aplikasi CESA"
               aria-label="Aplikasi CESA"
             >
-              <LayoutDashboard class="w-4 h-4" />
+              <LayoutDashboard class="w-3.5 h-3.5" />
             </button>
 
             <!-- Apps Launcher Dropdown Panel (Photo 2 design) -->
@@ -161,31 +161,31 @@
           <div class="relative" ref="dropdownRef">
             <button
               @click="toggleUserDropdown"
-              class="w-9 h-9 rounded-xl flex items-center justify-center bg-white/15 hover:bg-white/25 text-white border border-white/25 shadow-2xs transition-all cursor-pointer focus:outline-none"
-              :class="{ 'ring-2 ring-white/50 bg-white/30': dropdownOpen }"
+              class="w-8 h-8 rounded-lg flex items-center justify-center bg-zinc-50 hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900 border border-zinc-200 shadow-2xs transition-all cursor-pointer focus:outline-none"
+              :class="{ 'ring-1 ring-zinc-950 bg-zinc-100 text-zinc-950': dropdownOpen }"
               title="Profil Pengguna"
               aria-label="Profil Pengguna"
             >
-              <User class="w-4 h-4" />
+              <User class="w-3.5 h-3.5" />
             </button>
 
             <!-- Dropdown Card -->
             <div
               v-if="dropdownOpen"
-              class="absolute right-0 top-full mt-2.5 w-76 bg-white rounded-2xl shadow-xl border border-slate-100 p-5 z-50 text-slate-800 animate-in fade-in zoom-in-95 duration-100"
+              class="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-lg border border-zinc-200 p-4 z-50 text-zinc-800 animate-in fade-in zoom-in-95 duration-100"
             >
               <!-- User Info Header -->
-              <div class="flex items-center gap-3.5">
-                <div class="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 shrink-0 flex items-center justify-center text-slate-700 font-bold text-sm">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-zinc-100 border border-zinc-200 shrink-0 flex items-center justify-center text-zinc-800 font-semibold text-xs">
                   {{ userInitials }}
                 </div>
 
                 <div class="min-w-0 flex-1">
-                  <h4 class="font-bold text-slate-900 text-xs tracking-tight uppercase leading-tight truncate">
-                    {{ user?.name || 'REZA' }}
+                  <h4 class="font-semibold text-zinc-900 text-xs tracking-tight truncate">
+                    {{ user?.name || 'Admin User' }}
                   </h4>
-                  <p class="text-[11px] text-slate-400 font-medium truncate mt-0.5">
-                    {{ user?.email || 'reza@completeselular.com' }}
+                  <p class="text-[11px] text-zinc-400 font-normal truncate mt-0.5">
+                    {{ user?.email || 'admin@example.com' }}
                   </p>
                 </div>
               </div>
@@ -193,10 +193,10 @@
               <!-- Sign Out Button -->
               <button
                 @click="logout"
-                class="w-full mt-4 flex items-center justify-center gap-2 bg-[#a3c7e4] hover:bg-[#92bade] text-[#1c5d99] font-bold text-xs py-2.5 px-4 rounded-xl transition-colors cursor-pointer shadow-2xs"
+                class="w-full mt-3.5 flex items-center justify-center gap-1.5 bg-zinc-100 hover:bg-red-50 text-zinc-700 hover:text-red-700 font-medium text-xs py-1.5 px-3 rounded-md transition-colors cursor-pointer border border-zinc-200 hover:border-red-200"
               >
-                <LogOut class="w-4 h-4" />
-                <span>Sign Out</span>
+                <LogOut class="w-3.5 h-3.5" />
+                <span>Keluar (Sign Out)</span>
               </button>
             </div>
           </div>
@@ -204,10 +204,10 @@
           <!-- Mobile Hamburger Toggle -->
           <button
             @click="mobileMenuOpen = !mobileMenuOpen"
-            class="md:hidden p-2 rounded-lg text-white hover:bg-white/15 transition-colors"
+            class="md:hidden p-1.5 rounded-md text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
           >
-            <Menu v-if="!mobileMenuOpen" class="w-5 h-5" />
-            <X v-else class="w-5 h-5" />
+            <Menu v-if="!mobileMenuOpen" class="w-4 h-4" />
+            <X v-else class="w-4 h-4" />
           </button>
         </div>
 
@@ -254,8 +254,8 @@
             <router-link
               to="/admin/job-postings"
               @click="mobileMenuOpen = false"
-              class="menu-item block px-3.5 py-2.5 rounded-lg text-sm transition-colors"
-              :class="isActive('/admin/job-postings') ? 'text-[#0c2340] bg-slate-100 font-bold' : 'font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900'"
+              class="menu-item block px-3 py-2 rounded-md text-xs transition-colors"
+              :class="isActive('/admin/job-postings') ? 'text-zinc-950 bg-zinc-100 font-semibold' : 'font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900'"
             >
               Lowongan Kerja
             </router-link>
@@ -263,8 +263,8 @@
             <router-link
               to="/admin/job-applications"
               @click="mobileMenuOpen = false"
-              class="menu-item block px-3.5 py-2.5 rounded-lg text-sm transition-colors"
-              :class="isActive('/admin/job-applications') ? 'text-[#0c2340] bg-slate-100 font-bold' : 'font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900'"
+              class="menu-item block px-3 py-2 rounded-md text-xs transition-colors"
+              :class="isActive('/admin/job-applications') ? 'text-zinc-950 bg-zinc-100 font-semibold' : 'font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900'"
             >
               Data Pelamar
             </router-link>
@@ -272,8 +272,8 @@
             <router-link
               to="/admin/request-man-powers"
               @click="mobileMenuOpen = false"
-              class="menu-item block px-3.5 py-2.5 rounded-lg text-sm transition-colors"
-              :class="isActive('/admin/request-man-powers') ? 'text-[#0c2340] bg-slate-100 font-bold' : 'font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900'"
+              class="menu-item block px-3 py-2 rounded-md text-xs transition-colors"
+              :class="isActive('/admin/request-man-powers') ? 'text-zinc-950 bg-zinc-100 font-semibold' : 'font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900'"
             >
               Permintaan FPTK
             </router-link>
@@ -281,19 +281,19 @@
             <router-link
               to="/admin/recruitment-progress"
               @click="mobileMenuOpen = false"
-              class="menu-item block px-3.5 py-2.5 rounded-lg text-sm transition-colors"
-              :class="isActive('/admin/recruitment-progress') ? 'text-[#0c2340] bg-slate-100 font-bold' : 'font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900'"
+              class="menu-item block px-3 py-2 rounded-md text-xs transition-colors"
+              :class="isActive('/admin/recruitment-progress') ? 'text-zinc-950 bg-zinc-100 font-semibold' : 'font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900'"
             >
               Monitoring &amp; Progress
             </router-link>
 
-            <div class="my-2 border-t border-slate-100"></div>
+            <div class="my-2 border-t border-zinc-100"></div>
 
             <router-link
               to="/admin/configurations"
               @click="mobileMenuOpen = false"
-              class="menu-item block px-3.5 py-2.5 rounded-lg text-sm transition-colors"
-              :class="isActive('/admin/configurations') ? 'text-[#0c2340] bg-slate-100 font-bold' : 'font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900'"
+              class="menu-item block px-3 py-2 rounded-md text-xs transition-colors"
+              :class="isActive('/admin/configurations') ? 'text-zinc-950 bg-zinc-100 font-semibold' : 'font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900'"
             >
               Master Data
             </router-link>

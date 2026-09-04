@@ -1,96 +1,109 @@
 <template>
-  <div class="space-y-6">
-    <!-- Top Header Title & Action -->
+  <div class="space-y-6 pb-12">
+    <!-- Top Header Title & Subtitle -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">
+        <h1 class="text-xl font-semibold text-zinc-900 tracking-tight">
           Pengaturan & Master Data
         </h1>
-        <p class="text-xs text-slate-500 mt-1">
-          Kelola master data, SMTP rekrutmen, gateway WhatsApp multi-nomor, dan template notifikasi pelamar.
+        <p class="text-xs text-zinc-500 mt-1">
+          Kelola master data divisi, tahapan seleksi pelamar, konfigurasi approver, integrasi AI, serta gateway email & WhatsApp
         </p>
       </div>
+    </div>
 
-      <!-- Sub-tabs switcher (Pill Style) -->
-      <div class="flex items-center flex-wrap bg-slate-100 border border-slate-200 rounded-lg p-0.5">
-        <button
-          @click="activeTab = 'divisions'"
-          :class="[
-            'px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer',
-            activeTab === 'divisions'
-              ? 'bg-white text-blue-600 shadow-xs font-bold'
-              : 'text-slate-600 hover:text-slate-900'
-          ]"
-        >
-          Divisi ({{ divisions.length }})
-        </button>
-        <button
-          @click="activeTab = 'stages'"
-          :class="[
-            'px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer',
-            activeTab === 'stages'
-              ? 'bg-white text-blue-600 shadow-xs font-bold'
-              : 'text-slate-600 hover:text-slate-900'
-          ]"
-        >
-          Pipeline Stages ({{ stages.length }})
-        </button>
-        <button
-          @click="activeTab = 'approvers'"
-          :class="[
-            'px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer',
-            activeTab === 'approvers'
-              ? 'bg-white text-blue-600 shadow-xs font-bold'
-              : 'text-slate-600 hover:text-slate-900'
-          ]"
-        >
-          Approvers ({{ approvers.length }})
-        </button>
-        <button
-          @click="activeTab = 'ai'"
-          :class="[
-            'px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer',
-            activeTab === 'ai'
-              ? 'bg-white text-blue-600 shadow-xs font-bold'
-              : 'text-slate-600 hover:text-slate-900'
-          ]"
-        >
-          Integrasi AI
-        </button>
-        <button
-          @click="activeTab = 'mail_gateway'"
-          :class="[
-            'px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer',
-            activeTab === 'mail_gateway'
-              ? 'bg-white text-blue-600 shadow-xs font-bold'
-              : 'text-slate-600 hover:text-slate-900'
-          ]"
-        >
-          Email
-        </button>
-        <button
-          @click="activeTab = 'whatsapp_gateway'"
-          :class="[
-            'px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer',
-            activeTab === 'whatsapp_gateway'
-              ? 'bg-white text-blue-600 shadow-xs font-bold'
-              : 'text-slate-600 hover:text-slate-900'
-          ]"
-        >
-          WhatsApp
-        </button>
-        <button
-          @click="activeTab = 'mail_templates'"
-          :class="[
-            'px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer',
-            activeTab === 'mail_templates'
-              ? 'bg-white text-blue-600 shadow-xs font-bold'
-              : 'text-slate-600 hover:text-slate-900'
-          ]"
-        >
-          Template Email
-        </button>
-      </div>
+    <!-- Navigation Tabs (New York Style) -->
+    <div class="flex items-center gap-1 overflow-x-auto no-scrollbar border-b border-zinc-200 pb-2">
+      <button
+        type="button"
+        @click="activeTab = 'divisions'"
+        :class="[
+          'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
+          activeTab === 'divisions'
+            ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
+            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+        ]"
+      >
+        Divisi <span class="ml-1 opacity-70">({{ divisions.length }})</span>
+      </button>
+
+      <button
+        type="button"
+        @click="activeTab = 'stages'"
+        :class="[
+          'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
+          activeTab === 'stages'
+            ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
+            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+        ]"
+      >
+        Pipeline Stages <span class="ml-1 opacity-70">({{ stages.length }})</span>
+      </button>
+
+      <button
+        type="button"
+        @click="activeTab = 'approvers'"
+        :class="[
+          'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
+          activeTab === 'approvers'
+            ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
+            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+        ]"
+      >
+        Approvers <span class="ml-1 opacity-70">({{ approvers.length }})</span>
+      </button>
+
+      <button
+        type="button"
+        @click="activeTab = 'ai'"
+        :class="[
+          'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
+          activeTab === 'ai'
+            ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
+            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+        ]"
+      >
+        Integrasi AI
+      </button>
+
+      <button
+        type="button"
+        @click="activeTab = 'mail_gateway'"
+        :class="[
+          'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
+          activeTab === 'mail_gateway'
+            ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
+            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+        ]"
+      >
+        Gateway Email
+      </button>
+
+      <button
+        type="button"
+        @click="activeTab = 'whatsapp_gateway'"
+        :class="[
+          'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
+          activeTab === 'whatsapp_gateway'
+            ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
+            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+        ]"
+      >
+        Gateway WhatsApp
+      </button>
+
+      <button
+        type="button"
+        @click="activeTab = 'mail_templates'"
+        :class="[
+          'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
+          activeTab === 'mail_templates'
+            ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
+            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+        ]"
+      >
+        Template Email
+      </button>
     </div>
 
     <!-- Loading State (Only if initial load has no data yet) -->
@@ -105,553 +118,653 @@
       <!-- DIVISIONS TABLE -->
       <div
         v-if="activeTab === 'divisions'"
-        class="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden"
+        class="bg-white rounded-xl border border-zinc-200 shadow-2xs overflow-hidden"
       >
-        <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div class="text-xs font-bold text-slate-800 uppercase tracking-wider">
+        <div class="p-4 border-b border-zinc-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-zinc-50/50">
+          <div class="text-xs font-semibold text-zinc-800 uppercase tracking-wider">
             Daftar Master Divisi per Badan Usaha
           </div>
-          <div class="flex items-center gap-2.5 flex-wrap">
-            <select
-              v-model="divisionCompanyFilter"
-              class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-slate-400 cursor-pointer min-w-[200px]"
-            >
-              <option value="all">Semua Badan Usaha</option>
-              <option v-for="company in divisionCompanies" :key="company.id" :value="String(company.id)">
-                {{ company.name }}
-              </option>
-            </select>
-            <button
+          <div class="flex items-center gap-2 flex-wrap">
+            <div class="relative min-w-[200px]">
+              <select
+                v-model="divisionCompanyFilter"
+                class="w-full h-8 bg-white border border-zinc-200 rounded-md pl-3 pr-8 text-xs text-zinc-800 focus:outline-none focus:ring-1 focus:ring-zinc-950 focus:border-zinc-950 cursor-pointer appearance-none transition-colors"
+              >
+                <option value="all">Semua Badan Usaha</option>
+                <option v-for="company in divisionCompanies" :key="company.id" :value="String(company.id)">
+                  {{ company.name }}
+                </option>
+              </select>
+              <ChevronDown class="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            <Button
+              size="sm"
+              variant="default"
               @click="openDivisionModal()"
-              class="px-3.5 py-1.5 bg-[#0c2340] hover:bg-[#15325b] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+              class="h-8 text-xs bg-zinc-900 hover:bg-zinc-800 text-white gap-1.5"
             >
               <Plus class="w-3.5 h-3.5" />
               <span>Tambah Divisi</span>
-            </button>
+            </Button>
           </div>
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead>
-              <tr class="bg-slate-50/70 text-slate-500 border-b border-slate-200/80">
-                <th class="py-3 px-4 font-bold uppercase tracking-wider w-20">ID</th>
-                <th class="py-3 px-4 font-bold uppercase tracking-wider">Nama Divisi</th>
-                <th class="py-3 px-4 font-bold uppercase tracking-wider">Badan Usaha</th>
-                <th class="py-3 px-4 font-bold uppercase tracking-wider">Status Operasional</th>
-                <th class="py-3 px-4 font-bold uppercase tracking-wider text-right w-28">Aksi</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              <tr
-                v-for="div in filteredDivisions"
-                :key="div.id"
-                class="hover:bg-slate-50/70 transition-colors"
-              >
-                <td class="py-3.5 px-4 font-mono text-slate-400 font-semibold">#{{ div.id }}</td>
-                <td class="py-3.5 px-4 font-bold text-slate-900">{{ div.name }}</td>
-                <td class="py-3.5 px-4 text-slate-700 font-medium">{{ div.company_name || div.badan_usaha || div.company?.name || '-' }}</td>
-                <td class="py-3.5 px-4">
-                  <span
-                    class="inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border"
-                    :class="div.is_active ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'"
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead class="w-20">ID</TableHead>
+              <TableHead>Nama Divisi</TableHead>
+              <TableHead>Badan Usaha</TableHead>
+              <TableHead>Status Operasional</TableHead>
+              <TableHead class="text-right w-28">Aksi</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow
+              v-for="div in filteredDivisions"
+              :key="div.id"
+              class="hover:bg-zinc-50/80 transition-colors"
+            >
+              <TableCell class="font-mono text-zinc-400 font-semibold text-xs">#{{ div.id }}</TableCell>
+              <TableCell class="font-semibold text-zinc-900 text-xs">{{ div.name }}</TableCell>
+              <TableCell class="text-zinc-700 text-xs font-medium">{{ div.company_name || div.badan_usaha || div.company?.name || '-' }}</TableCell>
+              <TableCell>
+                <Badge
+                  :variant="div.is_active ? 'success' : 'secondary'"
+                  class="text-[10px] px-2 py-0.5"
+                >
+                  {{ div.is_active ? 'Aktif' : 'Nonaktif' }}
+                </Badge>
+              </TableCell>
+              <TableCell class="text-right">
+                <div class="flex items-center justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    @click="openDivisionModal(div)"
+                    class="h-7 w-7 p-0 text-zinc-500 hover:text-zinc-900"
+                    title="Edit Divisi"
                   >
-                    {{ div.is_active ? 'Aktif' : 'Nonaktif' }}
-                  </span>
-                </td>
-                <td class="py-3.5 px-4 text-right">
-                  <div class="flex items-center justify-end gap-1.5">
-                    <button
-                      @click="openDivisionModal(div)"
-                      class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                      title="Edit Divisi"
-                    >
-                      <Pencil class="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      @click="confirmDeleteDivision(div)"
-                      class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                      title="Hapus Divisi"
-                    >
-                      <Trash2 class="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              <tr v-if="!filteredDivisions.length">
-                <td colspan="5" class="py-12 text-center text-xs text-slate-400">Belum ada master divisi terdaftar.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                    <Pencil class="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    @click="confirmDeleteDivision(div)"
+                    class="h-7 w-7 p-0 text-zinc-500 hover:text-rose-600 hover:bg-rose-50"
+                    title="Hapus Divisi"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+            <TableRow v-if="!filteredDivisions.length">
+              <TableCell colspan="5" class="py-12 text-center text-xs text-zinc-500">
+                Belum ada master divisi terdaftar.
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
 
       <!-- STAGES TABLE -->
       <div
         v-else-if="activeTab === 'stages'"
-        class="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden"
+        class="bg-white rounded-xl border border-zinc-200 shadow-2xs overflow-hidden"
       >
-        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-          <div class="text-xs font-bold text-slate-800 uppercase tracking-wider">
+        <div class="p-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+          <div class="text-xs font-semibold text-zinc-800 uppercase tracking-wider">
             Daftar Tahapan Seleksi Pelamar (Pipeline Stages)
           </div>
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead>
-              <tr class="bg-slate-50/70 text-slate-500 border-b border-slate-200/80">
-                <th class="py-3 px-4 font-bold uppercase tracking-wider w-20">Urutan</th>
-                <th class="py-3 px-4 font-bold uppercase tracking-wider">Nama Tahap</th>
-                <th class="py-3 px-4 font-bold uppercase tracking-wider">Warna Badge</th>
-                <th class="py-3 px-4 font-bold uppercase tracking-wider">Total Kandidat Saat Ini</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              <tr
-                v-for="(stage, idx) in stages"
-                :key="stage.id"
-                class="hover:bg-slate-50/70 transition-colors"
-              >
-                <td class="py-3.5 px-4 font-bold text-slate-500">
-                  <span class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-xs font-mono">
-                    {{ idx + 1 }}
-                  </span>
-                </td>
-                <td class="py-3.5 px-4 font-bold text-slate-900">{{ stage.name }}</td>
-                <td class="py-3.5 px-4">
-                  <div class="flex items-center gap-2">
-                    <span class="w-3.5 h-3.5 rounded-full border border-slate-200 shadow-2xs" :style="{ backgroundColor: stage.color || '#3b82f6' }"></span>
-                    <span class="font-mono text-slate-500 text-[11px]">{{ stage.color || '#3b82f6' }}</span>
-                  </div>
-                </td>
-                <td class="py-3.5 px-4">
-                  <span class="font-bold text-blue-600">{{ stage.applications_count || 0 }} Orang</span>
-                </td>
-              </tr>
-              <tr v-if="!stages.length">
-                <td colspan="4" class="py-12 text-center text-xs text-slate-400">Belum ada tahapan pipeline terdaftar.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead class="w-20">Urutan</TableHead>
+              <TableHead>Nama Tahap</TableHead>
+              <TableHead>Warna Badge</TableHead>
+              <TableHead>Total Kandidat Saat Ini</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow
+              v-for="(stage, idx) in stages"
+              :key="stage.id"
+              class="hover:bg-zinc-50/80 transition-colors"
+            >
+              <TableCell class="font-bold text-zinc-500">
+                <span class="w-5 h-5 rounded-full bg-zinc-100 flex items-center justify-center text-[11px] font-mono text-zinc-700">
+                  {{ idx + 1 }}
+                </span>
+              </TableCell>
+              <TableCell class="font-semibold text-zinc-900 text-xs">{{ stage.name }}</TableCell>
+              <TableCell>
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full border border-zinc-300 shadow-2xs shrink-0" :style="{ backgroundColor: stage.color || '#3b82f6' }"></span>
+                  <span class="font-mono text-zinc-500 text-[11px]">{{ stage.color || '#3b82f6' }}</span>
+                </div>
+              </TableCell>
+              <TableCell>
+                <Badge variant="navy" class="text-[10px] px-2 py-0.5">
+                  {{ stage.applications_count || 0 }} Orang
+                </Badge>
+              </TableCell>
+            </TableRow>
+            <TableRow v-if="!stages.length">
+              <TableCell colspan="4" class="py-12 text-center text-xs text-zinc-500">
+                Belum ada tahapan pipeline terdaftar.
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
 
       <!-- APPROVERS TABLE -->
       <div
         v-else-if="activeTab === 'approvers'"
-        class="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden"
+        class="bg-white rounded-xl border border-zinc-200 shadow-2xs overflow-hidden"
       >
-        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-          <div class="text-xs font-bold text-slate-800 uppercase tracking-wider">
+        <div class="p-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+          <div class="text-xs font-semibold text-zinc-800 uppercase tracking-wider">
             Daftar Konfigurasi Approver FPTK
           </div>
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead>
-              <tr class="bg-slate-50/70 text-slate-500 border-b border-slate-200/80">
-                <th class="py-3 px-4 font-bold uppercase tracking-wider w-20">Level</th>
-                <th class="py-3 px-4 font-bold uppercase tracking-wider">Nama Approver</th>
-                <th class="py-3 px-4 font-bold uppercase tracking-wider">Jabatan / Role</th>
-                <th class="py-3 px-4 font-bold uppercase tracking-wider">Divisi / Badan Usaha</th>
-                <th class="py-3 px-4 font-bold uppercase tracking-wider">Email Notifikasi</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              <tr
-                v-for="appr in approvers"
-                :key="appr.id"
-                class="hover:bg-slate-50/70 transition-colors"
-              >
-                <td class="py-3.5 px-4 font-bold text-slate-700">Level {{ appr.level || 1 }}</td>
-                <td class="py-3.5 px-4 font-bold text-slate-900">{{ appr.name }}</td>
-                <td class="py-3.5 px-4 text-slate-600 font-medium">{{ appr.role || appr.position || appr.title || 'Head of Dept' }}</td>
-                <td class="py-3.5 px-4">
-                  <div class="font-medium text-slate-800">{{ appr.division?.name || appr.divisi || '-' }}</div>
-                  <div class="text-[11px] text-slate-400">{{ appr.company?.name || appr.division?.company?.name || '-' }}</div>
-                </td>
-                <td class="py-3.5 px-4 text-slate-500 font-mono text-[11px]">{{ appr.email }}</td>
-              </tr>
-              <tr v-if="!approvers.length">
-                <td colspan="5" class="py-12 text-center text-xs text-slate-400">Belum ada approver terdaftar.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead class="w-24">Level</TableHead>
+              <TableHead>Nama Approver</TableHead>
+              <TableHead>Jabatan / Role</TableHead>
+              <TableHead>Divisi / Badan Usaha</TableHead>
+              <TableHead>Email Notifikasi</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow
+              v-for="appr in approvers"
+              :key="appr.id"
+              class="hover:bg-zinc-50/80 transition-colors"
+            >
+              <TableCell>
+                <Badge variant="secondary" class="text-[10px] font-medium">Level {{ appr.level || 1 }}</Badge>
+              </TableCell>
+              <TableCell class="font-semibold text-zinc-900 text-xs">{{ appr.name }}</TableCell>
+              <TableCell class="text-zinc-600 text-xs">{{ appr.role || appr.position || appr.title || 'Head of Dept' }}</TableCell>
+              <TableCell>
+                <div class="font-medium text-xs text-zinc-800">{{ appr.division?.name || appr.divisi || '-' }}</div>
+                <div class="text-[11px] text-zinc-400">{{ appr.company?.name || appr.division?.company?.name || '-' }}</div>
+              </TableCell>
+              <TableCell class="text-zinc-500 font-mono text-xs">{{ appr.email }}</TableCell>
+            </TableRow>
+            <TableRow v-if="!approvers.length">
+              <TableCell colspan="5" class="py-12 text-center text-xs text-zinc-500">
+                Belum ada approver terdaftar.
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
 
       <!-- AI SETTINGS TAB -->
       <div
         v-else-if="activeTab === 'ai'"
-        class="bg-white rounded-xl border border-slate-200/90 shadow-xs p-6 space-y-6 max-w-3xl"
+        class="max-w-3xl"
       >
-        <div class="border-b border-slate-100 pb-4">
-          <h3 class="text-sm font-bold text-slate-900">Konfigurasi Google Gemini API</h3>
-          <p class="text-xs text-slate-500 mt-0.5">
-            Kunci API ini digunakan untuk analisis dan evaluasi kualifikasi CV pelamar otomatis.
-          </p>
-        </div>
-
-        <div class="space-y-4">
-          <div>
-            <label class="block font-bold text-xs text-slate-700 mb-1.5">Gemini API Key</label>
-            <div class="relative">
-              <input
-                :type="showApiKey ? 'text' : 'password'"
-                v-model="aiFormKey"
-                placeholder="AQ.Ab8RN... atau AIzaSy..."
-                class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400 font-mono pr-20"
-              />
-              <button
-                type="button"
-                @click="showApiKey = !showApiKey"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
-              >
-                {{ showApiKey ? 'Sembunyikan' : 'Lihat' }}
-              </button>
+        <Card>
+          <CardHeader class="border-b border-zinc-100 pb-4">
+            <CardTitle>Konfigurasi Google Gemini API</CardTitle>
+            <CardDescription>
+              Kunci API ini digunakan untuk analisis dan evaluasi kualifikasi CV kandidat pelamar secara otomatis.
+            </CardDescription>
+          </CardHeader>
+          <CardContent class="p-6 space-y-4">
+            <div>
+              <label class="block font-medium text-xs text-zinc-800 mb-1.5">Gemini API Key</label>
+              <div class="relative">
+                <Input
+                  :type="showApiKey ? 'text' : 'password'"
+                  v-model="aiFormKey"
+                  placeholder="AQ.Ab8RN... atau AIzaSy..."
+                  class="font-mono pr-24 h-9"
+                />
+                <button
+                  type="button"
+                  @click="showApiKey = !showApiKey"
+                  class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-medium text-zinc-500 hover:text-zinc-900 cursor-pointer"
+                >
+                  {{ showApiKey ? 'Sembunyikan' : 'Lihat' }}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div v-if="aiSettings.updated_at" class="text-[11px] text-slate-400">
-            Terakhir diperbarui: {{ aiSettings.updated_at }}
-          </div>
+            <div v-if="aiSettings.updated_at" class="text-[11px] text-zinc-400">
+              Terakhir diperbarui: {{ aiSettings.updated_at }}
+            </div>
 
-          <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
-            <button
-              type="button"
-              @click="testAiConnection"
-              :disabled="isTestingAi || !aiFormKey"
-              class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded-lg text-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-            >
-              <span v-if="isTestingAi" class="inline-block w-3 h-3 border-2 border-slate-600 border-t-transparent rounded-full animate-spin"></span>
-              <span>{{ isTestingAi ? 'Menguji Koneksi...' : 'Uji Koneksi API' }}</span>
-            </button>
+            <div class="pt-3 border-t border-zinc-100 flex items-center justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                @click="testAiConnection"
+                :disabled="isTestingAi || !aiFormKey"
+                class="gap-1.5"
+              >
+                <RotateCw v-if="isTestingAi" class="w-3.5 h-3.5 animate-spin" />
+                <span>{{ isTestingAi ? 'Menguji Koneksi...' : 'Uji Koneksi API' }}</span>
+              </Button>
 
-            <button
-              type="button"
-              @click="saveAiSettings"
-              :disabled="isSavingAi"
-              class="px-5 py-2 bg-[#0c2340] hover:bg-[#07172b] text-white font-medium rounded-lg text-xs transition-colors cursor-pointer shadow-2xs disabled:opacity-50 flex items-center gap-1.5"
-            >
-              <span v-if="isSavingAi" class="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-              <span>{{ isSavingAi ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
-            </button>
-          </div>
-        </div>
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                @click="saveAiSettings"
+                :disabled="isSavingAi"
+                class="bg-zinc-900 hover:bg-zinc-800 text-white gap-1.5"
+              >
+                <RotateCw v-if="isSavingAi" class="w-3.5 h-3.5 animate-spin" />
+                <span>{{ isSavingAi ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <!-- EMAIL GATEWAY TAB -->
       <div
         v-else-if="activeTab === 'mail_gateway'"
-        class="bg-white rounded-xl border border-slate-200/90 shadow-xs p-6 space-y-6 max-w-4xl"
+        class="max-w-4xl"
       >
-        <div class="border-b border-slate-100 pb-4">
-          <h3 class="text-sm font-bold text-slate-900">Gateway Email Rekrutmen</h3>
-          <p class="text-xs text-slate-500 mt-0.5">
-            SMTP ini hanya dipakai notifikasi rekrutmen. Pengaturan mail aplikasi lain tidak berubah.
-          </p>
-        </div>
+        <Card>
+          <CardHeader class="border-b border-zinc-100 pb-4">
+            <CardTitle>Gateway Email Rekrutmen</CardTitle>
+            <CardDescription>
+              SMTP ini khusus dipakai untuk notifikasi pelamar rekrutmen. Pengaturan mail modul ERP lain tidak terpengaruh.
+            </CardDescription>
+          </CardHeader>
+          <CardContent class="p-6 space-y-5">
+            <label class="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                v-model="mailForm.enabled"
+                class="rounded border-zinc-300 text-zinc-900 accent-zinc-900 focus:ring-0 w-4 h-4 cursor-pointer"
+              />
+              <span class="text-xs font-semibold text-zinc-800">Gunakan SMTP dari konfigurasi ini</span>
+            </label>
 
-        <label class="flex items-center gap-2.5 cursor-pointer select-none">
-          <input type="checkbox" v-model="mailForm.enabled" class="rounded border-slate-300 text-blue-600 focus:ring-0 w-4 h-4 cursor-pointer" />
-          <span class="text-xs font-semibold text-slate-800">Gunakan SMTP dari halaman ini</span>
-        </label>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block font-bold text-xs text-slate-700 mb-1.5">Host SMTP</label>
-            <input v-model="mailForm.host" type="text" placeholder="smtp.gmail.com" class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400" />
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block font-bold text-xs text-slate-700 mb-1.5">Port</label>
-              <input v-model="mailForm.port" type="number" placeholder="587" class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400" />
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block font-medium text-xs text-zinc-800 mb-1.5">Host SMTP</label>
+                <Input v-model="mailForm.host" type="text" placeholder="smtp.gmail.com" class="h-9" />
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block font-medium text-xs text-zinc-800 mb-1.5">Port</label>
+                  <Input v-model="mailForm.port" type="number" placeholder="587" class="h-9" />
+                </div>
+                <div>
+                  <label class="block font-medium text-xs text-zinc-800 mb-1.5">Enkripsi</label>
+                  <div class="relative">
+                    <select
+                      v-model="mailForm.encryption"
+                      class="w-full h-9 bg-white border border-zinc-200 rounded-md px-3 text-xs text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-950 focus:border-zinc-950 appearance-none pr-8 cursor-pointer"
+                    >
+                      <option value="tls">TLS</option>
+                      <option value="ssl">SSL</option>
+                      <option value="none">Tanpa enkripsi</option>
+                    </select>
+                    <ChevronDown class="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label class="block font-medium text-xs text-zinc-800 mb-1.5">Username</label>
+                <Input v-model="mailForm.username" type="text" autocomplete="off" class="h-9" />
+              </div>
+              <div>
+                <label class="block font-medium text-xs text-zinc-800 mb-1.5">Password</label>
+                <Input
+                  v-model="mailForm.password"
+                  :placeholder="mailSettings.has_password ? 'Kosongkan jika tidak diubah' : 'Password SMTP'"
+                  type="password"
+                  autocomplete="new-password"
+                  class="h-9"
+                />
+              </div>
+              <div>
+                <label class="block font-medium text-xs text-zinc-800 mb-1.5">Email Pengirim</label>
+                <Input v-model="mailForm.from_address" type="email" placeholder="rekrutmen@perusahaan.com" class="h-9" />
+              </div>
+              <div>
+                <label class="block font-medium text-xs text-zinc-800 mb-1.5">Nama Pengirim</label>
+                <Input v-model="mailForm.from_name" type="text" placeholder="Tim Rekrutmen" class="h-9" />
+              </div>
+              <div>
+                <label class="block font-medium text-xs text-zinc-800 mb-1.5">Reply-To</label>
+                <Input v-model="mailForm.reply_to_address" type="email" class="h-9" />
+              </div>
+              <div>
+                <label class="block font-medium text-xs text-zinc-800 mb-1.5">Nama Reply-To</label>
+                <Input v-model="mailForm.reply_to_name" type="text" class="h-9" />
+              </div>
             </div>
-            <div>
-              <label class="block font-bold text-xs text-slate-700 mb-1.5">Enkripsi</label>
-              <select v-model="mailForm.encryption" class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400 cursor-pointer">
-                <option value="tls">TLS</option>
-                <option value="ssl">SSL</option>
-                <option value="none">Tanpa enkripsi</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label class="block font-bold text-xs text-slate-700 mb-1.5">Username</label>
-            <input v-model="mailForm.username" type="text" autocomplete="off" class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400" />
-          </div>
-          <div>
-            <label class="block font-bold text-xs text-slate-700 mb-1.5">Password</label>
-            <input v-model="mailForm.password" :placeholder="mailSettings.has_password ? 'Kosongkan jika tidak diubah' : 'Password SMTP'" type="password" autocomplete="new-password" class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400" />
-          </div>
-          <div>
-            <label class="block font-bold text-xs text-slate-700 mb-1.5">Email Pengirim</label>
-            <input v-model="mailForm.from_address" type="email" placeholder="rekrutmen@perusahaan.com" class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400" />
-          </div>
-          <div>
-            <label class="block font-bold text-xs text-slate-700 mb-1.5">Nama Pengirim</label>
-            <input v-model="mailForm.from_name" type="text" placeholder="Tim Rekrutmen" class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400" />
-          </div>
-          <div>
-            <label class="block font-bold text-xs text-slate-700 mb-1.5">Reply-To</label>
-            <input v-model="mailForm.reply_to_address" type="email" class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400" />
-          </div>
-          <div>
-            <label class="block font-bold text-xs text-slate-700 mb-1.5">Nama Reply-To</label>
-            <input v-model="mailForm.reply_to_name" type="text" class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400" />
-          </div>
-        </div>
 
-        <div class="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end gap-3">
-          <div class="flex-1">
-            <label class="block font-bold text-xs text-slate-700 mb-1.5">Email tujuan tes</label>
-            <input v-model="mailTestRecipient" type="email" placeholder="anda@perusahaan.com" class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400" />
-          </div>
-          <div class="flex items-center gap-2">
-            <button type="button" @click="testMailSettings" :disabled="isTestingMail" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded-lg text-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5">
-              <span v-if="isTestingMail" class="inline-block w-3 h-3 border-2 border-slate-600 border-t-transparent rounded-full animate-spin"></span>
-              <span>{{ isTestingMail ? 'Menguji...' : 'Kirim Email Tes' }}</span>
-            </button>
-            <button type="button" @click="saveMailSettings" :disabled="isSavingMail" class="px-5 py-2 bg-[#0c2340] hover:bg-[#07172b] text-white font-medium rounded-lg text-xs transition-colors cursor-pointer shadow-2xs disabled:opacity-50 flex items-center gap-1.5">
-              <span v-if="isSavingMail" class="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-              <span>{{ isSavingMail ? 'Menyimpan...' : 'Simpan SMTP' }}</span>
-            </button>
-          </div>
-        </div>
+            <div class="pt-4 border-t border-zinc-100 flex flex-col sm:flex-row sm:items-end gap-3">
+              <div class="flex-1">
+                <label class="block font-medium text-xs text-zinc-800 mb-1.5">Email tujuan tes</label>
+                <Input v-model="mailTestRecipient" type="email" placeholder="anda@perusahaan.com" class="h-9" />
+              </div>
+              <div class="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  @click="testMailSettings"
+                  :disabled="isTestingMail"
+                  class="h-9 gap-1.5"
+                >
+                  <RotateCw v-if="isTestingMail" class="w-3.5 h-3.5 animate-spin" />
+                  <span>{{ isTestingMail ? 'Menguji...' : 'Kirim Email Tes' }}</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  @click="saveMailSettings"
+                  :disabled="isSavingMail"
+                  class="h-9 bg-zinc-900 hover:bg-zinc-800 text-white gap-1.5"
+                >
+                  <RotateCw v-if="isSavingMail" class="w-3.5 h-3.5 animate-spin" />
+                  <span>{{ isSavingMail ? 'Menyimpan...' : 'Simpan SMTP' }}</span>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <!-- WHATSAPP GATEWAY TAB -->
       <div
         v-else-if="activeTab === 'whatsapp_gateway'"
-        class="space-y-6"
+        class="space-y-6 max-w-4xl"
       >
-        <div class="bg-white rounded-xl border border-slate-200/90 shadow-xs p-6 space-y-5 max-w-4xl">
-          <div class="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <Card>
+          <CardHeader class="border-b border-zinc-100 pb-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div>
-              <h3 class="text-sm font-bold text-slate-900">Hubungkan WhatsApp</h3>
-              <p class="text-xs text-slate-500 mt-0.5">
-                Scan QR dari HP, atau isi nomor untuk dapat kode pairing. Tidak perlu API key.
-              </p>
+              <CardTitle>Hubungkan WhatsApp</CardTitle>
+              <CardDescription>
+                Scan QR dari HP atau gunakan nomor untuk pairing code. Menggunakan Baileys multi-device engine tanpa biaya API pihak ketiga.
+              </CardDescription>
             </div>
-            <span
-              class="inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border"
-              :class="whatsappSettings.engine_ready ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'"
+            <Badge
+              :variant="whatsappSettings.engine_ready ? 'success' : 'warning'"
+              class="text-[10px] px-2 py-0.5 self-start"
             >
-              {{ whatsappSettings.engine_ready ? 'Engine siap' : 'Engine belum jalan' }}
-            </span>
-          </div>
+              {{ whatsappSettings.engine_ready ? 'Engine Siap' : 'Engine Belum Jalan' }}
+            </Badge>
+          </CardHeader>
 
-          <label class="flex items-center gap-2.5 cursor-pointer select-none">
-            <input type="checkbox" v-model="whatsappForm.enabled" class="rounded border-slate-300 text-blue-600 focus:ring-0 w-4 h-4 cursor-pointer" />
-            <span class="text-xs font-semibold text-slate-800">Aktifkan pengiriman WhatsApp rekrutmen</span>
-          </label>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block font-bold text-xs text-slate-700 mb-1.5">Nama (opsional)</label>
-              <input v-model="whatsappConnectForm.name" type="text" placeholder="HR Recruitment" class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400" />
-            </div>
-            <div>
-              <label class="block font-bold text-xs text-slate-700 mb-1.5">Nomor HP WhatsApp (wajib untuk kode pairing)</label>
-              <input v-model="whatsappConnectForm.phone_number" type="text" placeholder="0812xxxxxxx" class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400" />
-            </div>
-          </div>
-
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-slate-100">
-            <button type="button" @click="saveWhatsappSettings" :disabled="isSavingWhatsapp" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded-lg text-xs cursor-pointer disabled:opacity-50">
-              {{ isSavingWhatsapp ? 'Menyimpan...' : 'Simpan status aktif' }}
-            </button>
-            <div class="flex items-center gap-2">
-              <button type="button" @click="startWhatsappConnect('qr')" :disabled="isConnectingWhatsapp" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-medium rounded-lg text-xs cursor-pointer disabled:opacity-50">
-                {{ isConnectingWhatsapp ? 'Menyiapkan...' : 'Scan QR' }}
-              </button>
-              <button type="button" @click="startWhatsappConnect('pairing')" :disabled="isConnectingWhatsapp" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-xs cursor-pointer disabled:opacity-50">
-                {{ isConnectingWhatsapp ? 'Membuat kode...' : 'Dapatkan Kode Pairing' }}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="whatsappConnect.open" class="bg-white rounded-xl border border-emerald-200 shadow-xs p-6 max-w-4xl">
-          <div class="flex items-start justify-between gap-3 mb-4">
-            <div>
-              <h3 class="text-sm font-bold text-slate-900">{{ whatsappConnect.pairingCode ? 'Masukkan kode pairing' : 'Scan untuk menautkan' }}</h3>
-              <p class="text-xs text-slate-500 mt-0.5">
-                WhatsApp di HP → Perangkat tertaut → Tautkan perangkat{{ whatsappConnect.pairingCode ? ' → tautkan dengan nomor telepon' : '' }}.
-              </p>
-            </div>
-            <button type="button" @click="closeWhatsappConnect" class="text-xs font-medium text-slate-500 hover:text-slate-800 cursor-pointer">Tutup</button>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-            <div class="flex justify-center">
-              <img
-                v-if="whatsappConnect.qr"
-                :src="whatsappConnect.qr"
-                alt="QR WhatsApp"
-                class="w-56 h-56 rounded-xl border border-slate-200 bg-white p-2"
-              />
-              <div v-else class="w-56 h-56 rounded-xl border border-dashed border-slate-300 flex items-center justify-center text-xs text-slate-400 text-center px-4">
-                {{ whatsappConnect.status === 'connecting' ? 'Menyiapkan QR...' : 'Menunggu QR atau kode pairing' }}
-              </div>
-            </div>
-            <div class="space-y-3">
-              <div v-if="whatsappConnect.pairingCode" class="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-center">
-                <div class="text-[11px] uppercase tracking-wider text-emerald-700 font-bold">Kode pairing</div>
-                <div class="mt-2 text-3xl font-mono font-bold tracking-[0.35em] text-slate-900">{{ whatsappConnect.pairingCode }}</div>
-                <p class="text-[11px] text-slate-600 mt-2">Di HP pilih tautkan dengan nomor telepon, lalu ketik kode ini.</p>
-                <button type="button" @click="copyPairingCode" class="mt-3 px-3 py-1.5 rounded-lg bg-white border border-emerald-200 text-emerald-700 text-xs font-semibold cursor-pointer">
-                  Salin kode
-                </button>
-              </div>
-              <div v-else-if="whatsappConnect.status === 'pairing'" class="rounded-xl bg-slate-50 border border-slate-200 p-4 text-center text-xs text-slate-500">
-                Membuat kode pairing...
-              </div>
-              <div class="text-xs text-slate-600">
-                Status: <strong>{{ whatsappStatusLabel(whatsappConnect) }}</strong>
-              </div>
-              <p v-if="whatsappConnect.engine_error" class="text-xs text-rose-600">{{ whatsappConnect.engine_error }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden max-w-4xl">
-          <div class="p-5 border-b border-slate-100">
-            <h3 class="text-sm font-bold text-slate-900">Nomor yang sudah terhubung</h3>
-            <p class="text-xs text-slate-500 mt-0.5">Saat kirim notifikasi, pilih salah satu nomor ini sebagai pengirim.</p>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead>
-                <tr class="bg-slate-50/70 text-slate-500 border-b border-slate-200/80">
-                  <th class="py-3 px-4 font-bold uppercase tracking-wider">Nama</th>
-                  <th class="py-3 px-4 font-bold uppercase tracking-wider">Nomor</th>
-                  <th class="py-3 px-4 font-bold uppercase tracking-wider">Status</th>
-                  <th class="py-3 px-4 font-bold uppercase tracking-wider text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100">
-                <tr v-for="account in whatsappAccounts" :key="account.id" class="hover:bg-slate-50/70">
-                  <td class="py-3.5 px-4">
-                    <div class="font-bold text-slate-900">{{ account.name }}</div>
-                    <div v-if="account.is_default" class="text-[10px] text-blue-600 font-semibold uppercase mt-0.5">Default</div>
-                  </td>
-                  <td class="py-3.5 px-4 font-mono text-slate-600">{{ account.phone_number || '-' }}</td>
-                  <td class="py-3.5 px-4">
-                    <span
-                      class="inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border"
-                      :class="whatsappStatusClass(account)"
-                    >
-                      {{ whatsappStatusLabel(account) }}
-                    </span>
-                  </td>
-                  <td class="py-3.5 px-4">
-                    <div class="flex items-center justify-end gap-1.5">
-                      <button v-if="account.status === 'connected'" type="button" @click="openWhatsappTest(account)" class="px-2 py-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium cursor-pointer">Tes Kirim</button>
-                      <button v-if="account.status !== 'connected'" type="button" @click="startWhatsappConnect(account, 'qr')" class="px-2 py-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium cursor-pointer">Scan</button>
-                      <button v-if="account.status !== 'connected'" type="button" @click="startWhatsappConnect(account, 'pairing')" class="px-2 py-1 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-800 font-medium cursor-pointer">Kode</button>
-                      <button v-else type="button" @click="disconnectWhatsappAccount(account)" class="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium cursor-pointer">Putuskan</button>
-                      <button v-if="!account.is_default" type="button" @click="makeDefaultWhatsappAccount(account)" class="px-2 py-1 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium cursor-pointer">Default</button>
-                      <button type="button" @click="deleteWhatsappAccount(account)" class="px-2 py-1 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-700 font-medium cursor-pointer">Hapus</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr v-if="!whatsappAccounts.length">
-                  <td colspan="4" class="py-12 text-center text-xs text-slate-400">Belum ada nomor. Klik Hubungkan WhatsApp lalu scan QR dari HP.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-xl border border-slate-200/90 shadow-xs p-6 space-y-4 max-w-4xl">
-          <div class="border-b border-slate-100 pb-4">
-            <h3 class="text-sm font-bold text-slate-900">Tes Kirim WhatsApp</h3>
-            <p class="text-xs text-slate-500 mt-0.5">
-              Kirim pesan uji dari nomor yang sudah terhubung, tanpa lewat data pelamar.
-            </p>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block font-bold text-xs text-slate-700 mb-1.5">Kirim dari</label>
-              <select
-                v-model="whatsappTest.accountId"
-                class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400 cursor-pointer"
-              >
-                <option :value="null" disabled>Pilih nomor terhubung</option>
-                <option v-for="account in connectedWhatsappAccounts" :key="account.id" :value="account.id">
-                  {{ account.name }}{{ account.phone_number ? ` • ${account.phone_number}` : '' }}
-                </option>
-              </select>
-            </div>
-            <div>
-              <label class="block font-bold text-xs text-slate-700 mb-1.5">Nomor tujuan tes</label>
+          <CardContent class="p-6 space-y-5">
+            <label class="flex items-center gap-2.5 cursor-pointer select-none">
               <input
-                v-model="whatsappTest.recipient"
-                type="text"
-                placeholder="0812xxxxxxx"
-                class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400"
+                type="checkbox"
+                v-model="whatsappForm.enabled"
+                class="rounded border-zinc-300 text-zinc-900 accent-zinc-900 focus:ring-0 w-4 h-4 cursor-pointer"
               />
-            </div>
-          </div>
+              <span class="text-xs font-semibold text-zinc-800">Aktifkan pengiriman WhatsApp rekrutmen</span>
+            </label>
 
-          <div class="flex justify-end">
-            <button
-              type="button"
-              @click="sendWhatsappTest()"
-              :disabled="isTestingWhatsapp || !whatsappTest.accountId"
-              class="px-5 py-2 bg-[#0c2340] hover:bg-[#07172b] text-white font-medium rounded-lg text-xs cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-            >
-              <span v-if="isTestingWhatsapp" class="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-              <span>{{ isTestingWhatsapp ? 'Mengirim tes...' : 'Kirim Pesan Tes' }}</span>
-            </button>
-          </div>
-        </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block font-medium text-xs text-zinc-800 mb-1.5">Nama Sesi (opsional)</label>
+                <Input v-model="whatsappConnectForm.name" type="text" placeholder="HR Recruitment" class="h-9" />
+              </div>
+              <div>
+                <label class="block font-medium text-xs text-zinc-800 mb-1.5">Nomor HP WhatsApp (wajib untuk kode pairing)</label>
+                <Input v-model="whatsappConnectForm.phone_number" type="text" placeholder="0812xxxxxxx" class="h-9" />
+              </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-zinc-100">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                @click="saveWhatsappSettings"
+                :disabled="isSavingWhatsapp"
+                class="h-9"
+              >
+                {{ isSavingWhatsapp ? 'Menyimpan...' : 'Simpan Status Aktif' }}
+              </Button>
+              <div class="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  @click="startWhatsappConnect('qr')"
+                  :disabled="isConnectingWhatsapp"
+                  class="h-9"
+                >
+                  {{ isConnectingWhatsapp ? 'Menyiapkan...' : 'Scan QR' }}
+                </Button>
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  @click="startWhatsappConnect('pairing')"
+                  :disabled="isConnectingWhatsapp"
+                  class="h-9 bg-zinc-900 hover:bg-zinc-800 text-white"
+                >
+                  {{ isConnectingWhatsapp ? 'Membuat kode...' : 'Dapatkan Kode Pairing' }}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- QR / Pairing Code Card -->
+        <Card v-if="whatsappConnect.open" class="border-emerald-200 shadow-sm">
+          <CardHeader class="border-b border-zinc-100 pb-3 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle class="text-sm font-semibold text-zinc-900">
+                {{ whatsappConnect.pairingCode ? 'Masukkan Kode Pairing' : 'Scan QR Code untuk Menautkan' }}
+              </CardTitle>
+              <CardDescription>
+                WhatsApp di HP → Perangkat tertaut → Tautkan perangkat{{ whatsappConnect.pairingCode ? ' → tautkan dengan nomor telepon' : '' }}.
+              </CardDescription>
+            </div>
+            <Button variant="ghost" size="xs" @click="closeWhatsappConnect">Tutup</Button>
+          </CardHeader>
+
+          <CardContent class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+              <div class="flex justify-center">
+                <img
+                  v-if="whatsappConnect.qr"
+                  :src="whatsappConnect.qr"
+                  alt="QR WhatsApp"
+                  class="w-52 h-52 rounded-xl border border-zinc-200 bg-white p-2 shadow-2xs"
+                />
+                <div v-else class="w-52 h-52 rounded-xl border border-dashed border-zinc-300 flex items-center justify-center text-xs text-zinc-400 text-center px-4">
+                  {{ whatsappConnect.status === 'connecting' ? 'Menyiapkan QR...' : 'Menunggu QR atau kode pairing' }}
+                </div>
+              </div>
+              <div class="space-y-3">
+                <div v-if="whatsappConnect.pairingCode" class="rounded-xl bg-emerald-50/70 border border-emerald-200 p-4 text-center">
+                  <div class="text-[11px] uppercase tracking-wider text-emerald-800 font-semibold">Kode Pairing</div>
+                  <div class="mt-2 text-2xl font-mono font-bold tracking-[0.35em] text-zinc-900">{{ whatsappConnect.pairingCode }}</div>
+                  <p class="text-[11px] text-zinc-600 mt-2">Di HP pilih tautkan dengan nomor telepon, lalu ketik kode ini.</p>
+                  <Button type="button" variant="outline" size="xs" @click="copyPairingCode" class="mt-3">
+                    Salin Kode
+                  </Button>
+                </div>
+                <div v-else-if="whatsappConnect.status === 'pairing'" class="rounded-xl bg-zinc-50 border border-zinc-200 p-4 text-center text-xs text-zinc-500">
+                  Membuat kode pairing...
+                </div>
+                <div class="text-xs text-zinc-600">
+                  Status: <strong>{{ whatsappStatusLabel(whatsappConnect) }}</strong>
+                </div>
+                <p v-if="whatsappConnect.engine_error" class="text-xs text-rose-600">{{ whatsappConnect.engine_error }}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- Connected Accounts Table -->
+        <Card>
+          <CardHeader class="border-b border-zinc-100 pb-3">
+            <CardTitle>Nomor yang Sudah Terhubung</CardTitle>
+            <CardDescription>Saat mengirim notifikasi ke pelamar, Anda dapat memilih salah satu nomor ini sebagai pengirim.</CardDescription>
+          </CardHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nama</TableHead>
+                <TableHead>Nomor Telepon</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead class="text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow v-for="account in whatsappAccounts" :key="account.id" class="hover:bg-zinc-50/80">
+                <TableCell>
+                  <div class="font-semibold text-xs text-zinc-900">{{ account.name }}</div>
+                  <Badge v-if="account.is_default" variant="navy" class="text-[9px] px-1.5 py-0 mt-0.5">Default</Badge>
+                </TableCell>
+                <TableCell class="font-mono text-xs text-zinc-600">{{ account.phone_number || '-' }}</TableCell>
+                <TableCell>
+                  <Badge
+                    :variant="account.status === 'connected' ? 'success' : (account.status === 'connecting' ? 'warning' : 'secondary')"
+                    class="text-[10px] px-2 py-0.5"
+                  >
+                    {{ whatsappStatusLabel(account) }}
+                  </Badge>
+                </TableCell>
+                <TableCell class="text-right">
+                  <div class="flex items-center justify-end gap-1.5">
+                    <Button v-if="account.status === 'connected'" variant="outline" size="xs" @click="openWhatsappTest(account)" class="h-7 text-xs">Tes</Button>
+                    <Button v-if="account.status !== 'connected'" variant="outline" size="xs" @click="startWhatsappConnect(account, 'qr')" class="h-7 text-xs">Scan</Button>
+                    <Button v-if="account.status !== 'connected'" variant="outline" size="xs" @click="startWhatsappConnect(account, 'pairing')" class="h-7 text-xs">Kode</Button>
+                    <Button v-else variant="ghost" size="xs" @click="disconnectWhatsappAccount(account)" class="h-7 text-xs text-zinc-600">Putuskan</Button>
+                    <Button v-if="!account.is_default" variant="ghost" size="xs" @click="makeDefaultWhatsappAccount(account)" class="h-7 text-xs text-blue-700">Default</Button>
+                    <Button variant="ghost" size="xs" @click="deleteWhatsappAccount(account)" class="h-7 text-xs text-rose-600 hover:bg-rose-50">Hapus</Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+              <TableRow v-if="!whatsappAccounts.length">
+                <TableCell colspan="4" class="py-12 text-center text-xs text-zinc-400">
+                  Belum ada nomor terdaftar. Klik Hubungkan WhatsApp lalu scan QR dari HP.
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </Card>
+
+        <!-- Test Send Card -->
+        <Card>
+          <CardHeader class="border-b border-zinc-100 pb-3">
+            <CardTitle>Tes Kirim WhatsApp</CardTitle>
+            <CardDescription>
+              Kirim pesan uji coba dari nomor yang sudah terhubung untuk memastikan gateway siap dipakai.
+            </CardDescription>
+          </CardHeader>
+          <CardContent class="p-6 space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block font-medium text-xs text-zinc-800 mb-1.5">Kirim dari Nomor</label>
+                <div class="relative">
+                  <select
+                    v-model="whatsappTest.accountId"
+                    class="w-full h-9 bg-white border border-zinc-200 rounded-md px-3 text-xs text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-950 focus:border-zinc-950 appearance-none pr-8 cursor-pointer"
+                  >
+                    <option :value="null" disabled>Pilih nomor terhubung</option>
+                    <option v-for="account in connectedWhatsappAccounts" :key="account.id" :value="account.id">
+                      {{ account.name }}{{ account.phone_number ? ` • ${account.phone_number}` : '' }}
+                    </option>
+                  </select>
+                  <ChevronDown class="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+              <div>
+                <label class="block font-medium text-xs text-zinc-800 mb-1.5">Nomor Tujuan Tes</label>
+                <Input
+                  v-model="whatsappTest.recipient"
+                  type="text"
+                  placeholder="0812xxxxxxx"
+                  class="h-9"
+                />
+              </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                @click="sendWhatsappTest()"
+                :disabled="isTestingWhatsapp || !whatsappTest.accountId"
+                class="h-9 bg-zinc-900 hover:bg-zinc-800 text-white gap-1.5"
+              >
+                <RotateCw v-if="isTestingWhatsapp" class="w-3.5 h-3.5 animate-spin" />
+                <span>{{ isTestingWhatsapp ? 'Mengirim tes...' : 'Kirim Pesan Tes' }}</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <!-- MAIL TEMPLATES TAB -->
       <div
         v-else-if="activeTab === 'mail_templates'"
-        class="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden"
+        class="bg-white rounded-xl border border-zinc-200 shadow-2xs overflow-hidden"
       >
-        <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-50/50">
+        <div class="p-5 border-b border-zinc-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-zinc-50/50">
           <div>
-            <h3 class="text-sm font-bold text-slate-900">Template Email Notifikasi Pelamar</h3>
-            <p class="text-xs text-slate-500 mt-0.5">
+            <h3 class="text-sm font-semibold text-zinc-900">Template Email Notifikasi Pelamar</h3>
+            <p class="text-xs text-zinc-500 mt-0.5">
               Kelola template email resmi untuk undangan psikotes, jadwal wawancara, penawaran kerja (offering), dan pengumuman.
             </p>
           </div>
-          <button
+          <Button
             type="button"
+            variant="default"
+            size="sm"
             @click="saveAllMailTemplates"
             :disabled="isSavingTemplates"
-            class="px-5 py-2 bg-[#0c2340] hover:bg-[#07172b] text-white font-semibold rounded-lg text-xs transition-colors cursor-pointer shadow-2xs disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+            class="h-9 bg-zinc-900 hover:bg-zinc-800 text-white gap-1.5 shrink-0"
           >
-            <span v-if="isSavingTemplates" class="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            <RotateCw v-if="isSavingTemplates" class="w-3.5 h-3.5 animate-spin" />
             <span>{{ isSavingTemplates ? 'Menyimpan...' : 'Simpan Semua Template' }}</span>
-          </button>
+          </Button>
         </div>
 
         <div class="p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
           <!-- Template Selector Sidebar -->
-          <div class="space-y-1.5 lg:border-r lg:border-slate-100 lg:pr-6">
-            <label class="block text-[11px] font-bold uppercase text-slate-400 tracking-wider mb-2">Pilih Kategori</label>
+          <div class="space-y-1.5 lg:border-r lg:border-zinc-100 lg:pr-6">
+            <label class="block text-[11px] font-semibold uppercase text-zinc-400 tracking-wider mb-2">Pilih Kategori</label>
             <button
               v-for="(tpl, key) in mailTemplates"
               :key="key"
               type="button"
               @click="selectedTemplateKey = key"
               :class="[
-                'w-full text-left px-3.5 py-3 rounded-xl text-xs transition-all cursor-pointer flex flex-col gap-1',
+                'w-full text-left px-3 py-2.5 rounded-lg text-xs transition-all cursor-pointer flex flex-col gap-1',
                 selectedTemplateKey === key
-                  ? 'bg-blue-50/80 text-blue-700 border border-blue-200 shadow-2xs font-bold'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent font-medium'
+                  ? 'bg-zinc-900 text-white font-semibold shadow-2xs'
+                  : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 font-medium'
               ]"
             >
               <div class="flex items-center justify-between">
                 <span>{{ tpl.name }}</span>
               </div>
-              <span class="text-[10px] px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-600 w-fit font-medium">
+              <span
+                :class="[
+                  'text-[10px] px-1.5 py-0.5 rounded w-fit',
+                  selectedTemplateKey === key ? 'bg-zinc-800 text-zinc-200' : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
+                ]"
+              >
                 Tahap: {{ tpl.stage }}
               </span>
             </button>
@@ -659,55 +772,55 @@
 
           <!-- Template Form Editor -->
           <div v-if="currentMailTemplate" class="lg:col-span-3 space-y-4">
-            <div class="bg-amber-50/60 border border-amber-200/70 rounded-xl p-3 text-[11px] text-amber-800 leading-relaxed">
-              <strong>Tag Variabel Otomatis:</strong> Gunakan <code class="bg-white px-1.5 py-0.5 rounded border border-amber-200 text-amber-900 font-mono font-bold">{nama_pelamar}</code>, <code class="bg-white px-1.5 py-0.5 rounded border border-amber-200 text-amber-900 font-mono font-bold">{posisi}</code>, <code class="bg-white px-1.5 py-0.5 rounded border border-amber-200 text-amber-900 font-mono font-bold">{perusahaan}</code>, dan <code class="bg-white px-1.5 py-0.5 rounded border border-amber-200 text-amber-900 font-mono font-bold">{lokasi}</code> yang akan otomatis tergantikan dengan data asli saat email dikirim.
+            <div class="bg-amber-50/70 border border-amber-200 rounded-lg p-3 text-[11px] text-amber-800 leading-relaxed">
+              <strong>Tag Variabel Otomatis:</strong> Gunakan <code class="bg-white px-1.5 py-0.5 rounded border border-amber-200 text-amber-900 font-mono font-semibold">{nama_pelamar}</code>, <code class="bg-white px-1.5 py-0.5 rounded border border-amber-200 text-amber-900 font-mono font-semibold">{posisi}</code>, <code class="bg-white px-1.5 py-0.5 rounded border border-amber-200 text-amber-900 font-mono font-semibold">{perusahaan}</code>, dan <code class="bg-white px-1.5 py-0.5 rounded border border-amber-200 text-amber-900 font-mono font-semibold">{lokasi}</code> yang akan otomatis digantikan dengan data asli saat email dikirim.
             </div>
 
             <div>
-              <label class="block font-bold text-xs text-slate-700 mb-1.5">Subjek Email</label>
-              <input
+              <label class="block font-medium text-xs text-zinc-800 mb-1.5">Subjek Email</label>
+              <Input
                 type="text"
                 v-model="currentMailTemplate.subject"
-                class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400 font-medium"
+                class="h-9"
               />
             </div>
 
             <div>
-              <label class="block font-bold text-xs text-slate-700 mb-1.5">Label Badge Header Email</label>
-              <input
+              <label class="block font-medium text-xs text-zinc-800 mb-1.5">Label Badge Header Email</label>
+              <Input
                 type="text"
                 v-model="currentMailTemplate.badge"
                 placeholder="Misal: Tes Online / Wawancara Kerja / Job Offer"
-                class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400"
+                class="h-9"
               />
             </div>
 
             <div>
-              <label class="block font-bold text-xs text-slate-700 mb-1.5">Isi Pesan Surat (Body)</label>
+              <label class="block font-medium text-xs text-zinc-800 mb-1.5">Isi Pesan Surat (Body)</label>
               <textarea
                 v-model="currentMailTemplate.body"
                 rows="6"
-                class="w-full bg-white border border-slate-200 rounded-lg p-3 text-xs text-slate-900 focus:outline-none focus:border-slate-400 leading-relaxed font-sans"
+                class="w-full bg-white border border-zinc-200 rounded-md p-3 text-xs text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-950 focus:border-zinc-950 leading-relaxed transition-colors font-sans resize-none"
               ></textarea>
             </div>
 
             <div v-if="currentMailTemplate.has_link">
-              <label class="block font-bold text-xs text-slate-700 mb-1.5">Teks Tombol Aksi (CTA Button)</label>
-              <input
+              <label class="block font-medium text-xs text-zinc-800 mb-1.5">Teks Tombol Aksi (CTA Button)</label>
+              <Input
                 type="text"
                 v-model="currentMailTemplate.action_label"
                 placeholder="Misal: Mulai Tes Psikotes Online"
-                class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400"
+                class="h-9"
               />
             </div>
 
             <div v-if="currentMailTemplate.has_note">
-              <label class="block font-bold text-xs text-slate-700 mb-1.5">Catatan Instruksi Default</label>
+              <label class="block font-medium text-xs text-zinc-800 mb-1.5">Catatan Instruksi Default</label>
               <textarea
                 v-model="currentMailTemplate.default_note"
                 rows="2"
                 placeholder="Petunjuk teknis pengerjaan / kehadiran..."
-                class="w-full bg-white border border-slate-200 rounded-lg p-3 text-xs text-slate-900 focus:outline-none focus:border-slate-400"
+                class="w-full bg-white border border-zinc-200 rounded-md p-3 text-xs text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-950 focus:border-zinc-950 leading-relaxed transition-colors resize-none"
               ></textarea>
             </div>
           </div>
@@ -715,60 +828,45 @@
       </div>
     </template>
 
-    <!-- MODAL TAMBAH / EDIT DIVISI -->
-    <div
-      v-if="divisionModal.open"
-      class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5"
-      @click.self="divisionModal.open = false"
-    >
-      <div class="bg-white rounded-2xl border border-slate-200 w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col">
-        <!-- Modal Header -->
-        <div class="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-          <div>
-            <h3 class="text-sm font-bold text-slate-900 leading-tight">
-              {{ divisionModal.isEdit ? 'Edit Master Divisi' : 'Tambah Master Divisi' }}
-            </h3>
-            <p class="text-xs text-slate-400 mt-0.5 font-normal">
-              Kelola nama divisi dan keterkaitannya dengan badan usaha (PT / CV).
-            </p>
-          </div>
-          <button
-            @click="divisionModal.open = false"
-            class="text-slate-400 hover:text-slate-700 p-1 text-xl font-bold cursor-pointer transition-colors leading-none"
-          >
-            &times;
-          </button>
-        </div>
+    <!-- MODAL TAMBAH / EDIT DIVISI (Shadcn Dialog) -->
+    <Dialog :open="divisionModal.open" @update:open="(val) => { divisionModal.open = val; }">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{{ divisionModal.isEdit ? 'Edit Master Divisi' : 'Tambah Master Divisi' }}</DialogTitle>
+          <DialogDescription>
+            Kelola nama divisi dan keterkaitannya dengan badan usaha (PT / CV).
+          </DialogDescription>
+        </DialogHeader>
 
         <!-- Form Body -->
-        <form @submit.prevent="saveDivision" class="p-6 space-y-4 text-xs bg-white">
+        <form @submit.prevent="saveDivision" class="space-y-4 text-xs pt-2">
           <!-- Badan Usaha -->
           <div>
-            <label class="block font-bold text-slate-800 mb-1.5">Badan Usaha / Perusahaan <span class="text-rose-500">*</span></label>
+            <label class="block font-medium text-zinc-800 mb-1.5">Badan Usaha / Perusahaan <span class="text-red-500">*</span></label>
             <div class="relative">
               <select
                 v-model="divisionModal.form.company_id"
                 required
-                class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400 appearance-none transition-all pr-9 cursor-pointer"
+                class="w-full h-9 bg-white border border-zinc-200 rounded-md px-3 text-xs text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-950 focus:border-zinc-950 appearance-none pr-8 cursor-pointer transition-colors"
               >
                 <option :value="null" disabled>-- Pilih Badan Usaha / PT --</option>
                 <option v-for="c in divisionCompanies" :key="c.id" :value="c.id">
                   {{ c.name }}
                 </option>
               </select>
-              <ChevronDown class="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown class="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
 
           <!-- Nama Divisi -->
           <div>
-            <label class="block font-bold text-slate-800 mb-1.5">Nama Divisi <span class="text-rose-500">*</span></label>
-            <input
+            <label class="block font-medium text-zinc-800 mb-1.5">Nama Divisi <span class="text-red-500">*</span></label>
+            <Input
               v-model="divisionModal.form.name"
               type="text"
               required
               placeholder="Contoh: FINANCE ACCOUNTING, HCM, IT, dll"
-              class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs font-normal text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-400 transition-all"
+              class="h-9"
             />
           </div>
 
@@ -778,35 +876,39 @@
               <input
                 type="checkbox"
                 v-model="divisionModal.form.is_active"
-                class="rounded border-slate-300 text-blue-600 focus:ring-0 w-4 h-4 cursor-pointer"
+                class="rounded border-zinc-300 text-zinc-900 accent-zinc-900 focus:ring-0 w-4 h-4 cursor-pointer"
               />
               <div>
-                <span class="text-xs font-semibold text-slate-800">Status Aktif</span>
-                <p class="text-[11px] text-slate-400 font-normal">Divisi dapat dipilih pada saat pengajuan FPTK / MPP.</p>
+                <span class="text-xs font-semibold text-zinc-800">Status Aktif</span>
+                <p class="text-[11px] text-zinc-400 font-normal">Divisi dapat dipilih pada saat pengajuan FPTK / MPP.</p>
               </div>
             </label>
           </div>
 
-          <!-- Actions -->
-          <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
-            <button
+          <!-- Dialog Footer Actions -->
+          <DialogFooter class="pt-4 border-t border-zinc-100">
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               @click="divisionModal.open = false"
-              class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors cursor-pointer"
             >
               Batal
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              size="sm"
+              variant="default"
               :disabled="divisionModal.isSubmitting"
-              class="px-5 py-2 text-xs font-semibold text-white bg-[#0c2340] hover:bg-[#15325b] rounded-lg transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+              class="bg-zinc-900 hover:bg-zinc-800 text-white min-w-[110px]"
             >
-              {{ divisionModal.isSubmitting ? 'Menyimpan...' : (divisionModal.isEdit ? 'Simpan Perubahan' : 'Tambah Divisi') }}
-            </button>
-          </div>
+              <RotateCw v-if="divisionModal.isSubmitting" class="w-3.5 h-3.5 mr-1.5 animate-spin" />
+              <span>{{ divisionModal.isSubmitting ? 'Menyimpan...' : (divisionModal.isEdit ? 'Simpan Perubahan' : 'Tambah Divisi') }}</span>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -817,7 +919,16 @@ import LoadingState from '../components/LoadingState.vue';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
-import { Plus, Pencil, Trash2, ChevronDown } from 'lucide-vue-next';
+
+// Shadcn UI Components
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/card';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '../components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+
+import { Plus, Pencil, Trash2, ChevronDown, RotateCw } from 'lucide-vue-next';
 
 const store = useRekrutmenStore();
 const activeTab = ref('divisions');

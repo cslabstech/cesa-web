@@ -1,57 +1,62 @@
 <template>
-  <div class="space-y-6">
+  <div class="space-y-6 pb-12">
     <!-- Top Header Title & Controls -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h1 class="text-xl font-bold text-slate-900 tracking-tight">
+        <h1 class="text-xl font-semibold text-zinc-900 tracking-tight">
           {{ activeJobTitle ? `Pelamar: ${activeJobTitle}` : 'Data Pelamar Kerja' }}
         </h1>
-        <p class="text-xs text-slate-500 mt-0.5">
-          Pantau seluruh data kandidat pelamar, kualifikasi, dan tahapan seleksi
+        <p class="text-xs text-zinc-500 mt-1">
+          Pantau seluruh data kandidat pelamar, kualifikasi kecocokan, dan alur tahapan seleksi rekrutmen
         </p>
       </div>
 
       <!-- Controls & View Switcher -->
-      <div class="flex items-center gap-2.5">
-        <!-- Active Filter Indicator -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <!-- Active Job Filter Tag -->
         <button
           v-if="activeJobId"
+          type="button"
           @click="resetJobFilter"
-          class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold border border-blue-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+          class="h-8 px-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 rounded-md text-xs font-medium border border-zinc-200 flex items-center gap-1.5 transition-colors cursor-pointer"
           title="Tampilkan Semua Pelamar"
         >
           <span>Filter: {{ activeJobTitle }}</span>
-          <span class="text-blue-500 font-bold">&times;</span>
+          <span class="text-zinc-500 font-bold">&times;</span>
         </button>
 
         <!-- Evaluasi Kualifikasi Action Button -->
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           @click="startRescreening"
           :disabled="isScreening"
-          class="px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+          class="h-8 text-xs gap-1.5"
           title="Jalankan evaluasi kualifikasi otomatis untuk pelamar"
         >
-          <RefreshCw class="w-3.5 h-3.5 text-slate-500" :class="{ 'animate-spin': isScreening }" />
+          <RotateCw class="w-3.5 h-3.5 text-zinc-500" :class="{ 'animate-spin': isScreening }" />
           <span>Evaluasi Kualifikasi</span>
-        </button>
+        </Button>
 
         <!-- View Switcher (Table / Kanban) -->
-        <div class="inline-flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
+        <div class="inline-flex items-center bg-zinc-100 p-0.5 rounded-lg border border-zinc-200">
           <button
+            type="button"
             @click="viewMode = 'table'"
             :class="[
-              'px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer',
-              viewMode === 'table' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+              'px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer select-none',
+              viewMode === 'table' ? 'bg-white text-zinc-950 font-semibold shadow-2xs' : 'text-zinc-500 hover:text-zinc-900'
             ]"
           >
             <ListFilter class="w-3.5 h-3.5" />
             <span>Tabel</span>
           </button>
           <button
+            type="button"
             @click="viewMode = 'kanban'"
             :class="[
-              'px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer',
-              viewMode === 'kanban' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+              'px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer select-none',
+              viewMode === 'kanban' ? 'bg-white text-zinc-950 font-semibold shadow-2xs' : 'text-zinc-500 hover:text-zinc-900'
             ]"
           >
             <Kanban class="w-3.5 h-3.5" />
@@ -59,6 +64,65 @@
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- KPI Summary Metrics (New York Style Clean Cards) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <!-- Total Pelamar -->
+      <Card class="hover:border-zinc-300">
+        <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
+          <span class="text-xs font-medium text-zinc-500">Total Pelamar</span>
+          <Users class="w-4 h-4 text-zinc-400" />
+        </CardHeader>
+        <CardContent class="p-4 pt-0">
+          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ applications.length }}</div>
+          <p class="text-[11px] text-zinc-500 mt-0.5">
+            Semua berkas lamaran masuk
+          </p>
+        </CardContent>
+      </Card>
+
+      <!-- Sangat Sesuai -->
+      <Card class="hover:border-zinc-300">
+        <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
+          <span class="text-xs font-medium text-zinc-500">Sangat Sesuai</span>
+          <UserCheck class="w-4 h-4 text-emerald-600" />
+        </CardHeader>
+        <CardContent class="p-4 pt-0">
+          <div class="text-2xl font-bold tracking-tight text-emerald-700">{{ recommendedCount }}</div>
+          <p class="text-[11px] text-zinc-500 mt-0.5">
+            Skor kecocokan &ge; 75%
+          </p>
+        </CardContent>
+      </Card>
+
+      <!-- Dipertimbangkan -->
+      <Card class="hover:border-zinc-300">
+        <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
+          <span class="text-xs font-medium text-zinc-500">Dipertimbangkan</span>
+          <Clock class="w-4 h-4 text-amber-500" />
+        </CardHeader>
+        <CardContent class="p-4 pt-0">
+          <div class="text-2xl font-bold tracking-tight text-amber-700">{{ consideredCount }}</div>
+          <p class="text-[11px] text-zinc-500 mt-0.5">
+            Skor kecocokan 50% - 74%
+          </p>
+        </CardContent>
+      </Card>
+
+      <!-- Ditolak / Kurang Sesuai -->
+      <Card class="hover:border-zinc-300">
+        <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
+          <span class="text-xs font-medium text-zinc-500">Ditolak / Kurang Sesuai</span>
+          <UserX class="w-4 h-4 text-rose-500" />
+        </CardHeader>
+        <CardContent class="p-4 pt-0">
+          <div class="text-2xl font-bold tracking-tight text-rose-700">{{ rejectedCandidateCount + notSuitableCount }}</div>
+          <p class="text-[11px] text-zinc-500 mt-0.5">
+            {{ rejectedCandidateCount }} ditolak &bull; {{ notSuitableCount }} skor &lt; 50%
+          </p>
+        </CardContent>
+      </Card>
     </div>
 
     <!-- Alert / Toast Message -->
@@ -70,507 +134,254 @@
       ]"
     >
       <div class="flex items-center gap-2">
-        <CheckCircle2 v-if="toastType === 'success'" class="w-4 h-4 text-emerald-600" />
-        <AlertCircle v-else class="w-4 h-4 text-rose-600" />
+        <CheckCircle2 v-if="toastType === 'success'" class="w-4 h-4 text-emerald-600 shrink-0" />
+        <AlertCircle v-else class="w-4 h-4 text-rose-600 shrink-0" />
         <span>{{ toastMessage }}</span>
       </div>
-      <button @click="toastMessage = null" class="text-slate-400 hover:text-slate-600 font-bold">&times;</button>
+      <button type="button" @click="toastMessage = null" class="text-zinc-400 hover:text-zinc-600 font-bold ml-2 cursor-pointer">&times;</button>
     </div>
 
     <!-- Integrated Filter Tabs, Stage Filter Dropdown & Search Bar -->
-    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 border-b border-slate-200 pb-4">
-      <!-- Match Filter Tabs -->
-      <div class="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1 lg:pb-0">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 border-b border-zinc-200 pb-3">
+      <!-- Match Filter Tabs (New York Style) -->
+      <div class="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1 lg:pb-0">
         <button
+          type="button"
           @click="matchFilter = 'all'"
           :class="[
-            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0',
+            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none',
             matchFilter === 'all'
-              ? 'bg-slate-900 text-white'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
+              : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
           ]"
         >
           Semua Pelamar <span class="ml-1 opacity-70">({{ applications.length }})</span>
         </button>
 
         <button
+          type="button"
           @click="matchFilter = 'recommended'"
           :class="[
-            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0',
+            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none',
             matchFilter === 'recommended'
-              ? 'bg-emerald-600 text-white'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
+              : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
           ]"
         >
-          Sangat Sesuai <span class="ml-1 opacity-70">({{ recommendedCount }})</span>
+          Sangat Sesuai <span class="ml-1 opacity-70 text-emerald-500 font-semibold">({{ recommendedCount }})</span>
         </button>
 
         <button
+          type="button"
           @click="matchFilter = 'considered'"
           :class="[
-            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0',
+            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none',
             matchFilter === 'considered'
-              ? 'bg-amber-600 text-white'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
+              : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
           ]"
         >
-          Dipertimbangkan <span class="ml-1 opacity-70">({{ consideredCount }})</span>
+          Dipertimbangkan <span class="ml-1 opacity-70 text-amber-500 font-semibold">({{ consideredCount }})</span>
         </button>
 
         <button
+          type="button"
           @click="matchFilter = 'not_suitable'"
           :class="[
-            'px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0',
+            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none',
             matchFilter === 'not_suitable'
-              ? 'bg-slate-700 text-white'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
+              : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
           ]"
         >
-          Kurang Sesuai <span class="ml-1 opacity-70">({{ notSuitableCount }})</span>
+          Kurang Sesuai <span class="ml-1 opacity-70 text-zinc-400 font-semibold">({{ notSuitableCount }})</span>
         </button>
       </div>
 
       <!-- Right Controls: Stage Filter Dropdown + Search Bar -->
-      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
         <!-- Stage Filter Dropdown -->
-        <div class="relative min-w-[220px]">
-          <ListFilter class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <div class="relative min-w-[200px]">
           <select
             v-model="stageFilter"
-            :class="[
-              'w-full bg-white border rounded-lg pl-8.5 pr-8 py-1.5 text-xs transition-all shadow-2xs cursor-pointer appearance-none font-medium',
-              stageFilter !== 'all'
-                ? 'border-blue-500 text-blue-700 bg-blue-50/50 font-semibold ring-1 ring-blue-500/30'
-                : 'border-slate-200 text-slate-700 hover:border-slate-300'
-            ]"
-            title="Filter pelamar berdasarkan tahapan seleksi"
+            class="w-full h-8 bg-white border border-zinc-200 rounded-md pl-3 pr-8 text-xs text-zinc-800 focus:outline-none focus:ring-1 focus:ring-zinc-950 focus:border-zinc-950 appearance-none cursor-pointer transition-colors"
           >
-            <option value="all">Tahap: Semua Tahapan ({{ applications.length }})</option>
+            <option value="all">Semua Tahapan ({{ applications.length }})</option>
             <option v-for="stg in stages" :key="stg.id" :value="stg.id">
-              Tahap: {{ stg.name }} ({{ getStageCandidateCount(stg.id) }})
+              {{ stg.name }} ({{ getStageCandidateCount(stg.id) }})
             </option>
-            <option value="rejected">Status: Ditolak ({{ rejectedCandidateCount }})</option>
+            <option value="rejected">
+              Ditolak ({{ rejectedCandidateCount }})
+            </option>
           </select>
-          <ChevronDown class="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <ChevronDown class="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
 
-        <!-- Reset Button if Stage Filter is Active -->
         <button
           v-if="stageFilter !== 'all'"
+          type="button"
           @click="stageFilter = 'all'"
-          class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0 flex items-center gap-1"
+          class="h-8 px-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-md text-xs font-medium transition-colors cursor-pointer shrink-0 flex items-center gap-1"
           title="Reset filter tahapan"
         >
           <span>Reset</span>
-          <span class="text-slate-400 font-bold">&times;</span>
+          <span class="text-zinc-400 font-bold">&times;</span>
         </button>
 
         <!-- Search Bar -->
         <div class="relative w-full sm:w-64">
-          <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
+          <Search class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          <Input
             v-model="searchQuery"
             type="text"
-            placeholder="Cari nama, email, atau posisi..."
-            class="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-2xs"
+            placeholder="Cari nama, email, posisi..."
+            class="h-8 pl-8 pr-3 text-xs"
           />
         </div>
       </div>
     </div>
-
     <!-- TABLE VIEW -->
     <div
       v-if="viewMode === 'table'"
-      class="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden"
+      class="bg-white rounded-xl border border-zinc-200 shadow-2xs overflow-hidden"
     >
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
-          <thead>
-            <tr v-if="!selectedAppIds.length" class="bg-slate-50 text-slate-500 border-b border-slate-200">
-              <th class="py-2.5 px-2.5 w-9 text-center align-middle">
-                <input
-                  type="checkbox"
-                  :checked="isAllSelected"
-                  @change="toggleSelectAll"
-                  class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer w-3.5 h-3.5"
-                  title="Pilih Semua Pelamar"
-                />
-              </th>
-              <th class="py-2.5 px-2.5 font-semibold text-[11px] text-left align-middle whitespace-nowrap">Kandidat Pelamar</th>
-              <th class="py-2.5 px-2.5 font-semibold text-[11px] text-left align-middle whitespace-nowrap">Posisi Dilamar</th>
-              <th class="py-2.5 px-2 font-semibold text-[11px] text-center align-middle whitespace-nowrap">Kualifikasi Match</th>
-              <th class="py-2.5 px-2 font-semibold text-[11px] text-center align-middle whitespace-nowrap">Tahapan Seleksi</th>
-              <th class="py-2.5 px-2 font-semibold text-[11px] text-center align-middle whitespace-nowrap">Status</th>
-              <th class="py-2.5 px-2 font-semibold text-[11px] text-center align-middle whitespace-nowrap">Tgl Masuk</th>
-              <th class="py-2.5 px-2 font-semibold text-[11px] text-center align-middle whitespace-nowrap w-24">Aksi</th>
-            </tr>
-            <tr v-else class="bg-blue-50/90 text-blue-900 border-b border-blue-200/80">
-              <th class="py-2 px-2.5 w-9 text-center align-middle">
-                <input
-                  type="checkbox"
-                  :checked="isAllSelected"
-                  @change="toggleSelectAll"
-                  class="rounded border-blue-400 text-blue-600 focus:ring-blue-500 cursor-pointer w-3.5 h-3.5"
-                  title="Pilih / Batalkan Semua"
-                />
-              </th>
-              <th colspan="7" class="py-2 px-2.5 font-medium align-middle">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <span class="font-bold text-xs text-blue-950">{{ selectedAppIds.length }} pelamar dipilih</span>
-                    <span class="text-blue-300">&bull;</span>
-                    <button
-                      type="button"
-                      @click="selectedAppIds = []"
-                      class="text-xs text-blue-700 hover:text-blue-950 underline cursor-pointer font-medium"
-                    >
-                      Batalkan pilihan
-                    </button>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <button
-                      type="button"
-                      @click="bulkRejectSelected"
-                      class="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-lg text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-                      title="Tolak pelamar terpilih"
-                    >
-                      <UserX class="w-3.5 h-3.5" />
-                      <span>Tolak</span>
-                    </button>
-                    <button
-                      type="button"
-                      @click="openBulkNotificationModal"
-                      class="px-3 py-1 bg-[#0c2340] hover:bg-[#15325b] text-white font-medium rounded-lg text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-                    >
-                      <Send class="w-3.5 h-3.5" />
-                      <span>Kirim Notifikasi Massal</span>
-                    </button>
-                  </div>
-                </div>
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-            <tr
-              v-for="app in filteredApplications"
-              :key="app.id"
-              :class="['hover:bg-slate-50 transition-colors group', isSelected(app.id) ? 'bg-blue-50/40' : '']"
-            >
-              <!-- Checkbox -->
-              <td class="py-2.5 px-2.5 align-middle text-center" @click.stop>
-                <input
-                  type="checkbox"
-                  :value="app.id"
-                  v-model="selectedAppIds"
-                  class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer w-3.5 h-3.5"
-                />
-              </td>
-
-              <!-- Name & Contact -->
-              <td class="py-2.5 px-2.5 align-middle text-left">
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <div class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
-                    <User class="w-3.5 h-3.5 text-slate-500" />
-                  </div>
-                  <div class="min-w-0">
-                    <div class="font-bold text-xs text-slate-900 hover:text-blue-600 transition-colors cursor-pointer truncate" @click="openDetail(app)">
-                      {{ app.full_name }}
-                    </div>
-                    <div class="text-[11px] text-slate-400 mt-0.5 truncate max-w-[200px]" :title="`${app.email || '-'} • ${app.whatsapp_number || app.phone || '-'}`">
-                      {{ app.email || '-' }} &bull; {{ app.whatsapp_number || app.phone || '-' }}
-                    </div>
-                  </div>
-                </div>
-              </td>
-
-              <!-- Job Title -->
-              <td class="py-2.5 px-2.5 align-middle text-left text-slate-700 font-medium">
-                <div class="truncate max-w-[170px]" :title="app.job_posting?.title">
-                  {{ app.job_posting?.title || '-' }}
-                </div>
-              </td>
-
-              <!-- Score / Match (Centered) -->
-              <td class="py-2.5 px-2 align-middle text-center">
-                <div v-if="app.ai_match_score !== null && app.ai_match_score !== undefined" class="flex items-center justify-center">
-                  <button
-                    type="button"
-                    @click.stop="openAnalysisModal(app)"
-                    :class="['inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold border cursor-pointer hover:shadow-xs transition-all hover:scale-105 active:scale-95 whitespace-nowrap', getAiBadgeClasses(app.ai_match_score)]"
-                    title="Klik untuk melihat hasil analisis kualifikasi"
-                  >
-                    {{ app.ai_match_score }}% &bull; {{ formatAiRecommendation(app.ai_recommendation) }}
-                  </button>
-                </div>
-                <div v-else class="text-[10.5px] text-slate-400 italic text-center">Menunggu evaluasi</div>
-              </td>
-
-              <!-- Stage (Centered, Clean Dropdown, NO Blue Dot) -->
-              <td class="py-2.5 px-2 align-middle text-center" @click.stop>
-                <div class="flex items-center justify-center">
-                  <select
-                    :value="app.status === 'rejected' ? 'rejected' : (app.current_stage_id || app.stage?.id || 1)"
-                    @change="handleStageChange(app, $event.target.value)"
-                    :class="[
-                      'text-xs font-medium rounded-lg px-2 py-1 border cursor-pointer transition-all shadow-2xs',
-                      app.status === 'rejected'
-                        ? 'bg-rose-50 border-rose-300 text-rose-700 font-semibold'
-                        : 'bg-white border-slate-200 text-slate-700 hover:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500'
-                    ]"
-                    title="Ubah tahapan kandidat"
-                  >
-                    <option v-for="stg in stages" :key="stg.id" :value="stg.id">
-                      {{ stg.name }}
-                    </option>
-                    <option value="rejected" class="text-rose-600 font-semibold">
-                      Ditolak
-                    </option>
-                  </select>
-                </div>
-              </td>
-
-              <!-- Status (Centered, single line badge) -->
-              <td class="py-2.5 px-2 align-middle text-center">
-                <div class="flex items-center justify-center">
-                  <span :class="['inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-semibold border whitespace-nowrap', getStatusBadge(app.status)]">
-                    {{ formatStatus(app.status) }}
-                  </span>
-                </div>
-              </td>
-
-              <!-- Date (Centered) -->
-              <td class="py-2.5 px-2 align-middle text-center text-slate-600 whitespace-nowrap text-[11px]">
-                {{ app.created_at }}
-              </td>
-
-              <!-- Action (Centered, Clean No-Slop Icon Button Group) -->
-              <td class="py-2 px-2 align-middle text-center whitespace-nowrap">
-                <div class="inline-flex items-center justify-center p-0.5 bg-slate-100/80 border border-slate-200/90 rounded-lg shadow-2xs">
-                  <button
-                    type="button"
-                    @click="openDetail(app)"
-                    class="w-7 h-7 rounded-md flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-white hover:shadow-2xs active:scale-95 transition-all cursor-pointer"
-                    title="Detail Profil Kandidat"
-                  >
-                    <Eye class="w-3.5 h-3.5" />
-                  </button>
-                  <div class="w-px h-3.5 bg-slate-200/90 mx-0.5"></div>
-                  <button
-                    type="button"
-                    @click.stop="openSendEmailModal(app)"
-                    class="w-7 h-7 rounded-md flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-white hover:shadow-2xs active:scale-95 transition-all cursor-pointer"
-                    title="Kirim Notifikasi (Email / WhatsApp)"
-                  >
-                    <Send class="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="!filteredApplications.length">
-              <td colspan="8" class="py-12 text-center text-xs text-slate-500">
-                Tidak ada data kandidat pelamar yang sesuai kriteria filter.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- KANBAN BOARD VIEW -->
-    <div v-else class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar min-h-[calc(100vh-280px)] items-start select-none">
+      <!-- Bulk Selection Action Bar -->
       <div
-        v-for="stage in stages"
-        :key="stage.id"
-        class="w-80 shrink-0 bg-slate-100/70 border rounded-2xl flex flex-col max-h-[calc(100vh-280px)] transition-all shadow-2xs"
-        :class="dragOverStageId === stage.id ? 'border-blue-500 bg-blue-50/50 ring-2 ring-blue-400/30' : 'border-slate-200'"
-        @dragover.prevent="handleDragOver(stage.id)"
-        @dragleave="handleDragLeave(stage.id)"
-        @drop.prevent="handleDrop(stage.id, $event)"
+        v-if="selectedAppIds.length"
+        class="bg-zinc-900 text-white px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs"
       >
-        <!-- Column Header -->
-        <div class="p-3.5 border-b border-slate-200/80 bg-white/80 backdrop-blur-xs rounded-t-2xl flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: stage.color || '#64748b' }"></span>
-            <span class="text-xs font-bold text-slate-800 tracking-tight">{{ stage.name }}</span>
-          </div>
-          <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-            {{ getStageApplications(stage.id).length }}
-          </span>
-        </div>
-
-        <!-- Kanban Cards List -->
-        <div class="p-3 space-y-3 overflow-y-auto flex-1 custom-scrollbar">
-          <div
-            v-for="app in getStageApplications(stage.id)"
-            :key="app.id"
-            class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs hover:shadow-xs transition-all cursor-grab active:cursor-grabbing hover:border-slate-300 group"
-            draggable="true"
-            @dragstart="handleDragStart(app, $event)"
-            @dragend="handleDragEnd"
-            @click="openDetail(app)"
+        <div class="flex items-center gap-2">
+          <span class="font-semibold">{{ selectedAppIds.length }} pelamar dipilih</span>
+          <span class="text-zinc-500">&bull;</span>
+          <button
+            type="button"
+            @click="selectedAppIds = []"
+            class="text-zinc-400 hover:text-white underline cursor-pointer font-medium"
           >
-            <!-- Top: Candidate Name & Match Pill -->
-            <div class="flex items-start justify-between gap-2">
+            Batalkan pilihan
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="destructive"
+            size="xs"
+            @click="bulkRejectSelected"
+            class="gap-1.5 h-7"
+            title="Tolak pelamar terpilih"
+          >
+            <UserX class="w-3.5 h-3.5" />
+            <span>Tolak</span>
+          </Button>
+          <Button
+            type="button"
+            variant="default"
+            size="xs"
+            @click="openBulkNotificationModal"
+            class="bg-zinc-800 hover:bg-zinc-700 text-white gap-1.5 h-7 border border-zinc-700"
+          >
+            <Send class="w-3.5 h-3.5" />
+            <span>Kirim Notifikasi Massal</span>
+          </Button>
+        </div>
+      </div>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead class="w-10 text-center">
+              <input
+                type="checkbox"
+                :checked="isAllSelected"
+                @change="toggleSelectAll"
+                class="rounded border-zinc-300 text-zinc-900 accent-zinc-900 focus:ring-0 cursor-pointer w-3.5 h-3.5"
+                title="Pilih Semua Pelamar"
+              />
+            </TableHead>
+            <TableHead>Kandidat Pelamar</TableHead>
+            <TableHead>Posisi Dilamar</TableHead>
+            <TableHead class="text-center">Kualifikasi Match</TableHead>
+            <TableHead class="text-center">Tahapan Seleksi</TableHead>
+            <TableHead class="text-center">Status</TableHead>
+            <TableHead class="text-center">Tgl Masuk</TableHead>
+            <TableHead class="text-right w-24">Aksi</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow
+            v-for="app in filteredApplications"
+            :key="app.id"
+            :class="['hover:bg-zinc-50/80 transition-colors group', isSelected(app.id) ? 'bg-zinc-100/60' : '']"
+          >
+            <!-- Checkbox -->
+            <TableCell class="text-center" @click.stop>
+              <input
+                type="checkbox"
+                :value="app.id"
+                v-model="selectedAppIds"
+                class="rounded border-zinc-300 text-zinc-900 accent-zinc-900 focus:ring-0 cursor-pointer w-3.5 h-3.5"
+              />
+            </TableCell>
+
+            <!-- Name & Contact -->
+            <TableCell>
               <div class="flex items-center gap-2.5 min-w-0">
-                <div class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
-                  <User class="w-3.5 h-3.5 text-slate-500" />
+                <div class="w-7 h-7 rounded-full bg-zinc-100 flex items-center justify-center shrink-0 border border-zinc-200">
+                  <User class="w-3.5 h-3.5 text-zinc-500" />
                 </div>
                 <div class="min-w-0">
-                  <h4 class="font-bold text-xs text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                  <div class="font-semibold text-xs text-zinc-900 hover:text-blue-600 transition-colors cursor-pointer truncate" @click="openDetail(app)">
                     {{ app.full_name }}
-                  </h4>
-                  <p class="text-[11px] text-slate-400 truncate">{{ app.email }}</p>
-                </div>
-              </div>
-
-              <button
-                v-if="app.ai_match_score !== null && app.ai_match_score !== undefined"
-                type="button"
-                @click.stop="openAnalysisModal(app)"
-                :class="['px-2 py-0.5 rounded-full text-[10px] font-semibold border shrink-0 hover:shadow-xs transition-transform cursor-pointer', getAiBadgeClasses(app.ai_match_score)]"
-                title="Klik untuk melihat hasil analisis kualifikasi"
-              >
-                {{ app.ai_match_score }}%
-              </button>
-            </div>
-
-            <!-- Role / Details Subtitle -->
-            <div v-if="!activeJobId && app.job_posting?.title" class="text-[11px] font-medium text-slate-600 mt-2.5 pt-2 border-t border-slate-100 line-clamp-1">
-              {{ app.job_posting.title }}
-            </div>
-
-            <!-- Card Footer -->
-            <div class="flex items-center justify-between text-[10px] text-slate-400 mt-2.5 pt-2 border-t border-slate-100">
-              <span>{{ app.created_at }}</span>
-              <span class="px-1.5 py-0.5 rounded bg-slate-50 text-slate-600 border border-slate-100 font-medium">
-                {{ app.source || 'Portal' }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Empty State in Column -->
-          <div
-            v-if="!getStageApplications(stage.id).length"
-            class="py-10 text-center text-xs text-slate-400 border border-dashed border-slate-200/80 rounded-xl flex flex-col items-center justify-center gap-1"
-          >
-            <span class="text-slate-300 text-sm">&empty;</span>
-            <span>Belum ada kandidat</span>
-          </div>
-        </div>
-      </div>
-
-        <!-- Ditolak Kanban Column -->
-        <div
-          class="w-80 shrink-0 bg-rose-50/40 border rounded-2xl flex flex-col max-h-[calc(100vh-280px)] transition-all shadow-2xs"
-          :class="dragOverStageId === 'rejected' ? 'border-rose-500 bg-rose-100/50 ring-2 ring-rose-400/30' : 'border-rose-200/80'"
-          @dragover.prevent="handleDragOver('rejected')"
-          @dragleave="handleDragLeave('rejected')"
-          @drop.prevent="handleDrop('rejected', $event)"
-        >
-          <!-- Column Header -->
-          <div class="p-3.5 border-b border-rose-200/80 bg-white/80 backdrop-blur-xs rounded-t-2xl flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-              <span class="text-xs font-bold text-rose-900 tracking-tight">Ditolak</span>
-            </div>
-            <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
-              {{ rejectedCandidateCount }}
-            </span>
-          </div>
-
-          <!-- Kanban Cards List for Rejected -->
-          <div class="p-3 space-y-3 overflow-y-auto flex-1 custom-scrollbar">
-            <div
-              v-for="app in rejectedApplications"
-              :key="app.id"
-              class="bg-white p-4 rounded-xl border border-rose-200/90 shadow-2xs hover:shadow-xs transition-all cursor-grab active:cursor-grabbing hover:border-rose-300 group opacity-90"
-              draggable="true"
-              @dragstart="handleDragStart(app, $event)"
-              @dragend="handleDragEnd"
-              @click="openDetail(app)"
-            >
-              <!-- Top: Candidate Name & Match Pill -->
-              <div class="flex items-start justify-between gap-2">
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <div class="w-7 h-7 rounded-full bg-rose-50 flex items-center justify-center shrink-0 border border-rose-200">
-                    <User class="w-3.5 h-3.5 text-rose-500" />
                   </div>
-                  <div class="min-w-0">
-                    <h4 class="font-bold text-xs text-slate-900 group-hover:text-rose-600 transition-colors truncate">
-                      {{ app.full_name }}
-                    </h4>
-                    <p class="text-[11px] text-slate-400 truncate">{{ app.email }}</p>
+                  <div class="text-[11px] text-zinc-400 mt-0.5 truncate max-w-[200px]" :title="`${app.email || '-'} • ${app.whatsapp_number || app.phone || '-'}`">
+                    {{ app.email || '-' }} &bull; {{ app.whatsapp_number || app.phone || '-' }}
                   </div>
                 </div>
-
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border shrink-0 bg-rose-50 text-rose-700 border-rose-200">
-                  Ditolak
-                </span>
               </div>
+            </TableCell>
 
-              <!-- Role / Details Subtitle -->
-              <div v-if="!activeJobId && app.job_posting?.title" class="text-[11px] font-medium text-slate-600 mt-2.5 pt-2 border-t border-slate-100 line-clamp-1">
-                {{ app.job_posting.title }}
+            <!-- Job Title -->
+            <TableCell class="text-zinc-700 text-xs font-medium">
+              <div class="truncate max-w-[170px]" :title="app.job_posting?.title">
+                {{ app.job_posting?.title || '-' }}
               </div>
+            </TableCell>
 
-              <!-- Card Footer -->
-              <div class="flex items-center justify-between text-[10px] text-slate-400 mt-2.5 pt-2 border-t border-slate-100">
-                <span>{{ app.created_at }}</span>
-                <span class="px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-100 font-medium">
-                  {{ app.source || 'Portal' }}
-                </span>
+            <!-- Score / Match (Centered) -->
+            <TableCell class="text-center">
+              <div v-if="app.ai_match_score !== null && app.ai_match_score !== undefined" class="flex items-center justify-center">
+                <button
+                  type="button"
+                  @click.stop="openAnalysisModal(app)"
+                  class="cursor-pointer"
+                  title="Klik untuk melihat hasil analisis kualifikasi"
+                >
+                  <Badge
+                    :variant="app.ai_match_score >= 75 ? 'success' : (app.ai_match_score >= 50 ? 'warning' : 'secondary')"
+                    class="text-[10px] font-medium gap-1 px-2 py-0.5"
+                  >
+                    <span>{{ app.ai_match_score }}%</span>
+                    <span>&bull;</span>
+                    <span>{{ formatAiRecommendation(app.ai_recommendation) }}</span>
+                  </Badge>
+                </button>
               </div>
-            </div>
+              <div v-else class="text-[11px] text-zinc-400 italic text-center">Menunggu evaluasi</div>
+            </TableCell>
 
-            <!-- Empty State in Column -->
-            <div
-              v-if="!rejectedApplications.length"
-              class="py-10 text-center text-xs text-slate-400 border border-dashed border-rose-200/80 rounded-xl flex flex-col items-center justify-center gap-1"
-            >
-              <span class="text-rose-300 text-sm">&empty;</span>
-              <span>Tidak ada kandidat ditolak</span>
-            </div>
-          </div>
-        </div>
-    </div>
-
-    <!-- CANDIDATE ATS DETAIL MODAL -->
-    <div
-      v-if="selectedApp"
-      class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6"
-      @click.self="selectedApp = null"
-    >
-      <div class="bg-white rounded-2xl border border-slate-200/80 w-full max-w-6xl h-[88vh] max-h-[900px] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        
-        <!-- Top Header Bar -->
-        <div class="px-6 py-3.5 border-b border-slate-200/80 bg-white flex items-center justify-between shrink-0">
-          <div class="flex items-center gap-3.5 min-w-0">
-            <button
-              @click="selectedApp = null"
-              class="p-1.5 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
-              title="Kembali"
-            >
-              <ArrowLeft class="w-4 h-4" />
-            </button>
-            <div class="w-9 h-9 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0 border border-blue-100/80">
-              {{ getInitials(selectedApp.full_name) }}
-            </div>
-            <div class="min-w-0">
-              <h3 class="text-sm font-bold text-slate-900 truncate">{{ selectedApp.full_name }}</h3>
-              <p class="text-[11px] text-slate-400 truncate">{{ selectedApp.email || '-' }} &bull; {{ selectedApp.whatsapp_number || selectedApp.phone || '-' }}</p>
-            </div>
-          </div>
-
-          <!-- Top Right Actions -->
-          <div class="flex items-center gap-2.5 shrink-0">
-            <div class="flex items-center gap-1.5">
-              <span class="text-xs font-medium text-slate-500">Tahap:</span>
-              <div class="relative">
+            <!-- Stage (Centered, Clean Dropdown) -->
+            <TableCell class="text-center" @click.stop>
+              <div class="inline-flex items-center justify-center relative">
                 <select
-                  :value="selectedApp.status === 'rejected' ? 'rejected' : (selectedApp.current_stage_id || selectedApp.stage?.id || 1)"
-                  @change="handleStageChange(selectedApp, $event.target.value)"
-                  class="appearance-none bg-white border border-slate-200 hover:border-slate-300 text-xs font-medium rounded-lg pl-3 pr-7 py-1.5 text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs"
-                  :class="{ 'text-rose-600 font-semibold border-rose-300': selectedApp.status === 'rejected' }"
+                  :value="app.status === 'rejected' ? 'rejected' : (app.current_stage_id || app.stage?.id || 1)"
+                  @change="handleStageChange(app, $event.target.value)"
+                  :class="[
+                    'h-7 text-xs font-medium rounded-md pl-2.5 pr-7 border cursor-pointer transition-colors appearance-none shadow-2xs',
+                    app.status === 'rejected'
+                      ? 'bg-rose-50 border-rose-300 text-rose-700 font-semibold'
+                      : 'bg-white border-zinc-200 text-zinc-800 hover:border-zinc-300 focus:outline-none focus:ring-1 focus:ring-zinc-950'
+                  ]"
+                  title="Ubah tahapan kandidat"
                 >
                   <option v-for="stg in stages" :key="stg.id" :value="stg.id">
                     {{ stg.name }}
@@ -579,184 +390,447 @@
                     Ditolak
                   </option>
                 </select>
-                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-                  <ChevronDown class="w-3.5 h-3.5" />
+                <ChevronDown class="w-3 h-3 text-zinc-400 absolute right-2 pointer-events-none" />
+              </div>
+            </TableCell>
+
+            <!-- Status (Centered) -->
+            <TableCell class="text-center">
+              <Badge
+                :variant="app.status === 'rejected' ? 'destructive' : ((app.status === 'hired' || app.status === 'shortlist') ? 'success' : 'secondary')"
+                class="text-[10px] px-2 py-0.5"
+              >
+                {{ formatStatus(app.status) }}
+              </Badge>
+            </TableCell>
+
+            <!-- Date (Centered) -->
+            <TableCell class="text-center text-zinc-500 whitespace-nowrap text-[11px]">
+              {{ app.created_at }}
+            </TableCell>
+
+            <!-- Action Buttons -->
+            <TableCell class="text-right whitespace-nowrap">
+              <div class="flex items-center justify-end gap-1">
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  @click="openDetail(app)"
+                  class="h-7 w-7 p-0 text-zinc-500 hover:text-zinc-900"
+                  title="Detail Profil Kandidat"
+                >
+                  <Eye class="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  @click.stop="openSendEmailModal(app)"
+                  class="h-7 w-7 p-0 text-zinc-500 hover:text-zinc-900"
+                  title="Kirim Notifikasi (Email / WhatsApp)"
+                >
+                  <Send class="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </TableCell>
+          </TableRow>
+          <TableRow v-if="!filteredApplications.length">
+            <TableCell colspan="8" class="py-12 text-center text-xs text-zinc-400">
+              Tidak ada data kandidat pelamar yang sesuai kriteria filter.
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </div>
+
+    <!-- KANBAN BOARD VIEW -->
+    <div v-else class="flex gap-4 overflow-x-auto pb-4 no-scrollbar min-h-[calc(100vh-280px)] items-start select-none">
+      <div
+        v-for="stage in stages"
+        :key="stage.id"
+        class="w-80 shrink-0 bg-zinc-100/60 border rounded-xl flex flex-col max-h-[calc(100vh-280px)] transition-all shadow-2xs"
+        :class="dragOverStageId === stage.id ? 'border-zinc-950 bg-zinc-100 ring-2 ring-zinc-950/10' : 'border-zinc-200'"
+        @dragover.prevent="handleDragOver(stage.id)"
+        @dragleave="handleDragLeave(stage.id)"
+        @drop.prevent="handleDrop(stage.id, $event)"
+      >
+        <!-- Column Header -->
+        <div class="p-3 border-b border-zinc-200 bg-white rounded-t-xl flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: stage.color || '#71717a' }"></span>
+            <span class="text-xs font-semibold text-zinc-900 tracking-tight">{{ stage.name }}</span>
+          </div>
+          <Badge variant="secondary" class="text-[10px] px-2 py-0">
+            {{ getStageApplications(stage.id).length }}
+          </Badge>
+        </div>
+
+        <!-- Kanban Cards List -->
+        <div class="p-2.5 space-y-2.5 overflow-y-auto flex-1 no-scrollbar">
+          <div
+            v-for="app in getStageApplications(stage.id)"
+            :key="app.id"
+            class="bg-white p-3.5 rounded-lg border border-zinc-200 shadow-2xs hover:shadow-xs transition-all cursor-grab active:cursor-grabbing hover:border-zinc-300 group"
+            draggable="true"
+            @dragstart="handleDragStart(app, $event)"
+            @dragend="handleDragEnd"
+            @click="openDetail(app)"
+          >
+            <!-- Top: Candidate Name & Match Pill -->
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <div class="w-6 h-6 rounded-full bg-zinc-100 flex items-center justify-center shrink-0 border border-zinc-200 text-zinc-500">
+                  <User class="w-3 h-3" />
                 </div>
+                <div class="min-w-0">
+                  <h4 class="font-semibold text-xs text-zinc-900 group-hover:text-blue-600 transition-colors truncate">
+                    {{ app.full_name }}
+                  </h4>
+                  <p class="text-[11px] text-zinc-400 truncate">{{ app.email }}</p>
+                </div>
+              </div>
+
+              <Badge
+                v-if="app.ai_match_score !== null && app.ai_match_score !== undefined"
+                :variant="app.ai_match_score >= 75 ? 'success' : (app.ai_match_score >= 50 ? 'warning' : 'secondary')"
+                class="text-[9px] px-1.5 py-0 shrink-0 font-medium cursor-pointer"
+                @click.stop="openAnalysisModal(app)"
+                title="Klik untuk melihat hasil analisis kualifikasi"
+              >
+                {{ app.ai_match_score }}%
+              </Badge>
+            </div>
+
+            <!-- Role / Details Subtitle -->
+            <div v-if="!activeJobId && app.job_posting?.title" class="text-[11px] font-medium text-zinc-600 mt-2 pt-2 border-t border-zinc-100 line-clamp-1">
+              {{ app.job_posting.title }}
+            </div>
+
+            <!-- Card Footer -->
+            <div class="flex items-center justify-between text-[10px] text-zinc-400 mt-2 pt-2 border-t border-zinc-100">
+              <span>{{ app.created_at }}</span>
+              <span class="px-1.5 py-0.5 rounded bg-zinc-50 text-zinc-600 border border-zinc-200 font-medium">
+                {{ app.source || 'Portal' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Empty State in Column -->
+          <div
+            v-if="!getStageApplications(stage.id).length"
+            class="py-8 text-center text-xs text-zinc-400 border border-dashed border-zinc-200 rounded-lg flex flex-col items-center justify-center gap-1"
+          >
+            <span class="text-zinc-300 text-sm">&empty;</span>
+            <span>Belum ada kandidat</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ditolak Kanban Column -->
+      <div
+        class="w-80 shrink-0 bg-rose-50/30 border rounded-xl flex flex-col max-h-[calc(100vh-280px)] transition-all shadow-2xs"
+        :class="dragOverStageId === 'rejected' ? 'border-rose-500 bg-rose-100/40 ring-2 ring-rose-400/20' : 'border-rose-200/70'"
+        @dragover.prevent="handleDragOver('rejected')"
+        @dragleave="handleDragLeave('rejected')"
+        @drop.prevent="handleDrop('rejected', $event)"
+      >
+        <!-- Column Header -->
+        <div class="p-3 border-b border-rose-200/70 bg-white rounded-t-xl flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+            <span class="text-xs font-semibold text-rose-900 tracking-tight">Ditolak</span>
+          </div>
+          <Badge variant="destructive" class="text-[10px] px-2 py-0">
+            {{ rejectedCandidateCount }}
+          </Badge>
+        </div>
+
+        <!-- Kanban Cards List for Rejected -->
+        <div class="p-2.5 space-y-2.5 overflow-y-auto flex-1 no-scrollbar">
+          <div
+            v-for="app in rejectedApplications"
+            :key="app.id"
+            class="bg-white p-3.5 rounded-lg border border-rose-200/80 shadow-2xs hover:shadow-xs transition-all cursor-grab active:cursor-grabbing hover:border-rose-300 group opacity-90"
+            draggable="true"
+            @dragstart="handleDragStart(app, $event)"
+            @dragend="handleDragEnd"
+            @click="openDetail(app)"
+          >
+            <!-- Top: Candidate Name & Match Pill -->
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <div class="w-6 h-6 rounded-full bg-rose-50 flex items-center justify-center shrink-0 border border-rose-200 text-rose-500">
+                  <User class="w-3 h-3" />
+                </div>
+                <div class="min-w-0">
+                  <h4 class="font-semibold text-xs text-zinc-900 group-hover:text-rose-600 transition-colors truncate">
+                    {{ app.full_name }}
+                  </h4>
+                  <p class="text-[11px] text-zinc-400 truncate">{{ app.email }}</p>
+                </div>
+              </div>
+
+              <Badge variant="destructive" class="text-[9px] px-1.5 py-0 shrink-0 font-medium">
+                Ditolak
+              </Badge>
+            </div>
+
+            <!-- Role / Details Subtitle -->
+            <div v-if="!activeJobId && app.job_posting?.title" class="text-[11px] font-medium text-zinc-600 mt-2 pt-2 border-t border-zinc-100 line-clamp-1">
+              {{ app.job_posting.title }}
+            </div>
+
+            <!-- Card Footer -->
+            <div class="flex items-center justify-between text-[10px] text-zinc-400 mt-2 pt-2 border-t border-zinc-100">
+              <span>{{ app.created_at }}</span>
+              <span class="px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-100 font-medium">
+                {{ app.source || 'Portal' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Empty State in Column -->
+          <div
+            v-if="!rejectedApplications.length"
+            class="py-8 text-center text-xs text-zinc-400 border border-dashed border-rose-200/70 rounded-lg flex flex-col items-center justify-center gap-1"
+          >
+            <span class="text-rose-300 text-sm">&empty;</span>
+            <span>Tidak ada kandidat ditolak</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CANDIDATE ATS DETAIL MODAL -->
+    <div
+      v-if="selectedApp"
+      class="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6"
+      @click.self="selectedApp = null"
+    >
+      <div class="bg-white rounded-xl border border-zinc-200 w-full max-w-6xl h-[90vh] max-h-[900px] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        
+        <!-- Top Header Bar -->
+        <div class="px-6 py-3.5 border-b border-zinc-200 bg-white flex items-center justify-between shrink-0">
+          <div class="flex items-center gap-3.5 min-w-0">
+            <Button
+              variant="ghost"
+              size="xs"
+              @click="selectedApp = null"
+              class="h-8 w-8 p-0 text-zinc-500 hover:text-zinc-900 shrink-0"
+              title="Kembali"
+            >
+              <ArrowLeft class="w-4 h-4" />
+            </Button>
+            <div class="w-9 h-9 rounded-full bg-zinc-900 text-white flex items-center justify-center font-semibold text-xs shrink-0">
+              {{ getInitials(selectedApp.full_name) }}
+            </div>
+            <div class="min-w-0">
+              <h3 class="text-sm font-semibold text-zinc-900 truncate">{{ selectedApp.full_name }}</h3>
+              <p class="text-[11px] text-zinc-500 truncate">{{ selectedApp.email || '-' }} &bull; {{ selectedApp.whatsapp_number || selectedApp.phone || '-' }}</p>
+            </div>
+          </div>
+
+          <!-- Top Right Actions -->
+          <div class="flex items-center gap-2 shrink-0">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-medium text-zinc-500">Tahap:</span>
+              <div class="relative">
+                <select
+                  :value="selectedApp.status === 'rejected' ? 'rejected' : (selectedApp.current_stage_id || selectedApp.stage?.id || 1)"
+                  @change="handleStageChange(selectedApp, $event.target.value)"
+                  class="h-8 text-xs font-medium rounded-md pl-3 pr-8 bg-white border border-zinc-200 text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-950 appearance-none cursor-pointer transition-colors shadow-2xs"
+                  :class="{ 'text-rose-600 font-semibold border-rose-300 bg-rose-50/50': selectedApp.status === 'rejected' }"
+                >
+                  <option v-for="stg in stages" :key="stg.id" :value="stg.id">
+                    {{ stg.name }}
+                  </option>
+                  <option value="rejected" class="text-rose-600 font-semibold">
+                    Ditolak
+                  </option>
+                </select>
+                <ChevronDown class="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
-            <button
+            <Button
+              variant="default"
+              size="sm"
               @click="openSendEmailModal(selectedApp)"
-              class="px-3 py-1.5 rounded-lg bg-[#0c2340] hover:bg-[#15325b] text-white text-xs font-medium flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+              class="h-8 bg-zinc-900 hover:bg-zinc-800 text-white gap-1.5 text-xs"
             >
               <Send class="w-3.5 h-3.5" />
               <span>Kirim Notifikasi</span>
-            </button>
+            </Button>
 
             <a
               v-if="selectedApp.resume_url"
               :href="selectedApp.resume_url"
               target="_blank"
-              class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-medium text-slate-700 flex items-center gap-1.5 shadow-2xs transition-colors"
+              class="h-8 px-3 rounded-md border border-zinc-200 hover:bg-zinc-50 text-xs font-medium text-zinc-700 inline-flex items-center gap-1.5 transition-colors"
             >
               <span>Buka CV</span>
-              <ExternalLink class="w-3.5 h-3.5 text-slate-400" />
+              <ExternalLink class="w-3.5 h-3.5 text-zinc-400" />
             </a>
 
-            <button
+            <Button
+              variant="ghost"
+              size="xs"
               @click="selectedApp = null"
-              class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              class="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-900"
               title="Tutup"
             >
               <X class="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         </div>
 
         <!-- Main Body: 2 Columns Layout -->
         <div class="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
           
-          <!-- LEFT COLUMN: Candidate Data & Evaluation (46% Width, Clean, Zero Scrollbar) -->
+          <!-- LEFT COLUMN: Candidate Data & Evaluation (46% Width) -->
           <div
-            class="w-full lg:w-[46%] p-6 overflow-y-auto no-scrollbar border-r border-slate-200/70 bg-white space-y-5"
-            style="-ms-overflow-style: none; scrollbar-width: none;"
+            class="w-full lg:w-[46%] p-6 overflow-y-auto no-scrollbar border-r border-zinc-200 bg-white space-y-5"
           >
-            <!-- 0. Evaluasi Kualifikasi (Sleek Card, No Nested Boxes) -->
-            <div class="rounded-xl bg-slate-50/80 border border-slate-200/80 p-4 space-y-3">
+            <!-- Evaluasi Kualifikasi -->
+            <div class="rounded-xl bg-zinc-50 border border-zinc-200 p-4 space-y-3">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <Sparkles class="w-4 h-4 text-blue-600" />
-                  <h3 class="text-xs font-bold text-slate-900 tracking-tight">Evaluasi Kualifikasi Pelamar</h3>
+                  <ClipboardCheck class="w-4 h-4 text-zinc-900" />
+                  <h3 class="text-xs font-semibold text-zinc-900 tracking-tight">Evaluasi Kualifikasi Pelamar</h3>
                 </div>
-                <span
+                <Badge
                   v-if="selectedApp.ai_match_score !== null && selectedApp.ai_match_score !== undefined"
-                  :class="['px-2.5 py-0.5 rounded-full text-[11px] font-semibold border', getAiBadgeClasses(selectedApp.ai_match_score)]"
+                  :variant="selectedApp.ai_match_score >= 75 ? 'success' : (selectedApp.ai_match_score >= 50 ? 'warning' : 'secondary')"
+                  class="text-[10px] px-2 py-0.5"
                 >
                   {{ selectedApp.ai_match_score }}% &bull; {{ formatAiRecommendation(selectedApp.ai_recommendation) }}
-                </span>
-                <span v-else class="text-[11px] text-slate-400 italic">Belum dievaluasi</span>
+                </Badge>
+                <span v-else class="text-[11px] text-zinc-400 italic">Belum dievaluasi</span>
               </div>
 
-              <!-- Summary Text with clean typography -->
-              <p class="text-xs text-slate-700 leading-relaxed font-normal bg-white p-3 rounded-lg border border-slate-200/60 whitespace-pre-line shadow-2xs">
+              <!-- Summary Text -->
+              <p class="text-xs text-zinc-700 leading-relaxed font-normal bg-white p-3 rounded-lg border border-zinc-200 whitespace-pre-line shadow-2xs">
                 {{ selectedApp.ai_summary || 'Evaluasi kualifikasi membandingkan kriteria posisi dengan berkas CV pelamar.' }}
               </p>
 
               <!-- Actions -->
-              <div class="flex items-center justify-between pt-0.5 text-[11px] text-slate-400">
+              <div class="flex items-center justify-between pt-0.5 text-[11px] text-zinc-400">
                 <span v-if="selectedApp.ai_analyzed_at">Diperbarui: {{ selectedApp.ai_analyzed_at }}</span>
                 <span v-else></span>
                 <div class="flex items-center gap-2">
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="xs"
                     @click="rescreenSingleCandidate(selectedApp)"
                     :disabled="isScreening"
-                    class="px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 bg-white rounded-lg border border-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 shadow-2xs"
+                    class="h-7 text-xs gap-1.5"
                   >
-                    <RefreshCw class="w-3 h-3 text-slate-400" :class="{ 'animate-spin': isScreening }" />
+                    <RotateCw class="w-3 h-3" :class="{ 'animate-spin': isScreening }" />
                     <span>Evaluasi Ulang</span>
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="default"
+                    size="xs"
                     @click="openAnalysisModal(selectedApp)"
-                    class="px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50 bg-white rounded-lg border border-blue-200 transition-colors cursor-pointer shadow-2xs"
+                    class="h-7 text-xs bg-zinc-900 hover:bg-zinc-800 text-white"
                   >
                     Detail Komparasi &rarr;
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
 
-            <!-- 1. Biodata Pelamar (Modern Grid Layout) -->
+            <!-- Biodata Pelamar -->
             <div class="space-y-3">
-              <div class="flex items-center gap-2 pb-1.5 border-b border-slate-100">
-                <User class="w-3.5 h-3.5 text-slate-400" />
-                <h3 class="text-xs font-bold text-slate-800 tracking-tight">Biodata Pelamar</h3>
+              <div class="flex items-center gap-2 pb-1.5 border-b border-zinc-100">
+                <User class="w-3.5 h-3.5 text-zinc-400" />
+                <h3 class="text-xs font-semibold text-zinc-900 tracking-tight">Biodata Pelamar</h3>
               </div>
 
               <div class="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
                 <div>
-                  <span class="block text-[11px] font-medium text-slate-400">Nama Lengkap</span>
-                  <span class="font-semibold text-slate-900 mt-0.5 block">{{ selectedApp.full_name }}</span>
+                  <span class="block text-[11px] font-medium text-zinc-400">Nama Lengkap</span>
+                  <span class="font-semibold text-zinc-900 mt-0.5 block">{{ selectedApp.full_name }}</span>
                 </div>
                 <div>
-                  <span class="block text-[11px] font-medium text-slate-400">Jenis Kelamin</span>
-                  <span class="font-medium text-slate-800 mt-0.5 block">{{ selectedApp.gender || '-' }}</span>
+                  <span class="block text-[11px] font-medium text-zinc-400">Jenis Kelamin</span>
+                  <span class="font-medium text-zinc-800 mt-0.5 block">{{ selectedApp.gender || '-' }}</span>
                 </div>
                 <div>
-                  <span class="block text-[11px] font-medium text-slate-400">Email</span>
+                  <span class="block text-[11px] font-medium text-zinc-400">Email</span>
                   <a :href="`mailto:${selectedApp.email}`" class="font-medium text-blue-600 hover:underline mt-0.5 block truncate" :title="selectedApp.email">
                     {{ selectedApp.email || '-' }}
                   </a>
                 </div>
                 <div>
-                  <span class="block text-[11px] font-medium text-slate-400">Tanggal Lahir</span>
-                  <span class="font-medium text-slate-800 mt-0.5 block">{{ selectedApp.birth_date || '-' }}</span>
+                  <span class="block text-[11px] font-medium text-zinc-400">Tanggal Lahir</span>
+                  <span class="font-medium text-zinc-800 mt-0.5 block">{{ selectedApp.birth_date || '-' }}</span>
                 </div>
                 <div>
-                  <span class="block text-[11px] font-medium text-slate-400">No. WhatsApp</span>
+                  <span class="block text-[11px] font-medium text-zinc-400">No. WhatsApp</span>
                   <a v-if="selectedApp.whatsapp_number || selectedApp.phone" :href="`https://wa.me/${(selectedApp.whatsapp_number || selectedApp.phone || '').replace(/[^0-9]/g, '')}`" target="_blank" class="font-medium text-emerald-600 hover:underline mt-0.5 inline-flex items-center gap-1">
                     <span>{{ selectedApp.whatsapp_number || selectedApp.phone }}</span>
                   </a>
-                  <span v-else class="text-slate-400 mt-0.5 block">-</span>
+                  <span v-else class="text-zinc-400 mt-0.5 block">-</span>
                 </div>
                 <div>
-                  <span class="block text-[11px] font-medium text-slate-400">Status Pernikahan</span>
-                  <span class="font-medium text-slate-800 mt-0.5 block">{{ selectedApp.marital_status || '-' }}</span>
+                  <span class="block text-[11px] font-medium text-zinc-400">Status Pernikahan</span>
+                  <span class="font-medium text-zinc-800 mt-0.5 block">{{ selectedApp.marital_status || '-' }}</span>
                 </div>
                 <div>
-                  <span class="block text-[11px] font-medium text-slate-400">Sumber Pelamar</span>
-                  <span class="font-medium text-slate-800 mt-0.5 block">{{ selectedApp.source || 'Website' }}</span>
+                  <span class="block text-[11px] font-medium text-zinc-400">Sumber Pelamar</span>
+                  <span class="font-medium text-zinc-800 mt-0.5 block">{{ selectedApp.source || 'Website' }}</span>
                 </div>
                 <div>
-                  <span class="block text-[11px] font-medium text-slate-400">No. Telepon Aktif</span>
-                  <span class="font-medium text-slate-800 mt-0.5 block">{{ selectedApp.active_phone || selectedApp.phone || '-' }}</span>
+                  <span class="block text-[11px] font-medium text-zinc-400">No. Telepon Aktif</span>
+                  <span class="font-medium text-zinc-800 mt-0.5 block">{{ selectedApp.active_phone || selectedApp.phone || '-' }}</span>
                 </div>
               </div>
             </div>
 
-            <!-- 2. Alamat & Lokasi -->
+            <!-- Alamat & Domisili -->
             <div class="space-y-3 pt-1">
-              <div class="flex items-center gap-2 pb-1.5 border-b border-slate-100">
-                <MapPin class="w-3.5 h-3.5 text-slate-400" />
-                <h3 class="text-xs font-bold text-slate-800 tracking-tight">Alamat &amp; Domisili</h3>
+              <div class="flex items-center gap-2 pb-1.5 border-b border-zinc-100">
+                <MapPin class="w-3.5 h-3.5 text-zinc-400" />
+                <h3 class="text-xs font-semibold text-zinc-900 tracking-tight">Alamat &amp; Domisili</h3>
               </div>
 
               <div class="space-y-2.5 text-xs">
                 <div>
-                  <span class="block text-[11px] font-medium text-slate-400">Alamat KTP</span>
-                  <p class="font-normal text-slate-700 mt-0.5 leading-relaxed bg-slate-50/60 p-2.5 rounded-lg border border-slate-100">
+                  <span class="block text-[11px] font-medium text-zinc-400">Alamat KTP</span>
+                  <p class="font-normal text-zinc-700 mt-0.5 leading-relaxed bg-zinc-50 p-2.5 rounded-lg border border-zinc-200">
                     {{ selectedApp.address_ktp || '-' }}
                   </p>
                 </div>
                 <div v-if="selectedApp.address_domicile && selectedApp.address_domicile !== selectedApp.address_ktp">
-                  <span class="block text-[11px] font-medium text-slate-400">Alamat Domisili</span>
-                  <p class="font-normal text-slate-700 mt-0.5 leading-relaxed bg-slate-50/60 p-2.5 rounded-lg border border-slate-100">
+                  <span class="block text-[11px] font-medium text-zinc-400">Alamat Domisili</span>
+                  <p class="font-normal text-zinc-700 mt-0.5 leading-relaxed bg-zinc-50 p-2.5 rounded-lg border border-zinc-200">
                     {{ selectedApp.address_domicile }}
                   </p>
                 </div>
               </div>
             </div>
 
-            <!-- 3. Kontak Darurat -->
+            <!-- Kontak Darurat -->
             <div class="space-y-3 pt-1">
-              <div class="flex items-center gap-2 pb-1.5 border-b border-slate-100">
-                <Phone class="w-3.5 h-3.5 text-slate-400" />
-                <h3 class="text-xs font-bold text-slate-800 tracking-tight">Kontak Darurat</h3>
+              <div class="flex items-center gap-2 pb-1.5 border-b border-zinc-100">
+                <Phone class="w-3.5 h-3.5 text-zinc-400" />
+                <h3 class="text-xs font-semibold text-zinc-900 tracking-tight">Kontak Darurat</h3>
               </div>
 
-              <div class="p-3 bg-slate-50/60 rounded-xl border border-slate-100 grid grid-cols-3 gap-3 text-xs">
+              <div class="p-3 bg-zinc-50 rounded-xl border border-zinc-200 grid grid-cols-3 gap-3 text-xs">
                 <div>
-                  <span class="block text-[11px] font-medium text-slate-400">Nama</span>
-                  <span class="font-semibold text-slate-800 mt-0.5 block">{{ selectedApp.emergency_contact_name || '-' }}</span>
+                  <span class="block text-[11px] font-medium text-zinc-400">Nama</span>
+                  <span class="font-semibold text-zinc-800 mt-0.5 block">{{ selectedApp.emergency_contact_name || '-' }}</span>
                 </div>
                 <div>
-                  <span class="block text-[11px] font-medium text-slate-400">Hubungan</span>
-                  <span class="font-medium text-slate-700 mt-0.5 block">{{ selectedApp.emergency_contact_relation || '-' }}</span>
+                  <span class="block text-[11px] font-medium text-zinc-400">Hubungan</span>
+                  <span class="font-medium text-zinc-700 mt-0.5 block">{{ selectedApp.emergency_contact_relation || '-' }}</span>
                 </div>
                 <div>
-                  <span class="block text-[11px] font-medium text-slate-400">No. Kontak</span>
-                  <span class="font-medium text-slate-700 mt-0.5 block">{{ selectedApp.emergency_contact_phone || '-' }}</span>
+                  <span class="block text-[11px] font-medium text-zinc-400">No. Kontak</span>
+                  <span class="font-medium text-zinc-700 mt-0.5 block font-mono">{{ selectedApp.emergency_contact_phone || '-' }}</span>
                 </div>
               </div>
             </div>
@@ -764,11 +838,11 @@
           </div>
 
           <!-- RIGHT COLUMN: CV / Document Viewer (54% Width) -->
-          <div class="w-full lg:w-[54%] bg-slate-50/50 p-6 flex flex-col h-full overflow-hidden">
+          <div class="w-full lg:w-[54%] bg-zinc-50/50 p-6 flex flex-col h-full overflow-hidden">
             
             <div class="flex items-center justify-between mb-3 shrink-0">
-              <h3 class="text-xs font-bold text-slate-800 tracking-tight flex items-center gap-2">
-                <FileText class="w-3.5 h-3.5 text-slate-400" />
+              <h3 class="text-xs font-semibold text-zinc-800 tracking-tight flex items-center gap-2">
+                <FileText class="w-3.5 h-3.5 text-zinc-400" />
                 <span>Pratinjau Dokumen CV Pelamar</span>
               </h3>
               <div class="flex items-center gap-2">
@@ -776,31 +850,31 @@
                   v-if="selectedApp.resume_url"
                   :href="selectedApp.resume_url"
                   target="_blank"
-                  class="text-xs font-medium text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs transition-colors"
+                  class="text-xs font-medium text-zinc-700 hover:text-zinc-950 inline-flex items-center gap-1 bg-white px-2.5 py-1 rounded-md border border-zinc-200 shadow-2xs transition-colors"
                 >
                   <span>Unduh Berkas</span>
                   <ExternalLink class="w-3 h-3" />
                 </a>
-                <span v-else class="text-[11px] font-medium text-slate-400 flex items-center gap-1.5">
-                  <span class="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block"></span>
+                <span v-else class="text-[11px] font-medium text-zinc-400 flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-zinc-300 inline-block"></span>
                   Portal Karir OceanSpace
                 </span>
               </div>
             </div>
 
             <!-- Embedded PDF Document Container -->
-            <div class="flex-1 rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs flex flex-col relative">
+            <div class="flex-1 rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-2xs flex flex-col relative">
               <iframe
                 v-if="selectedApp.resume_url"
                 :src="selectedApp.resume_url"
                 class="w-full h-full border-0"
               ></iframe>
-              <div v-else class="flex-1 flex flex-col items-center justify-center text-center p-8 bg-slate-50/40">
-                <div class="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-2xs mb-3 text-slate-400">
-                  <FileText class="w-6 h-6 text-slate-400" />
+              <div v-else class="flex-1 flex flex-col items-center justify-center text-center p-8 bg-zinc-50/40">
+                <div class="w-12 h-12 rounded-xl bg-white border border-zinc-200 flex items-center justify-center shadow-2xs mb-3 text-zinc-400">
+                  <FileText class="w-6 h-6 text-zinc-400" />
                 </div>
-                <p class="text-xs font-bold text-slate-800">Menunggu Berkas CV dari OceanSpace</p>
-                <p class="text-[11px] text-slate-400 mt-1 max-w-sm">
+                <p class="text-xs font-semibold text-zinc-900">Menunggu Berkas CV dari OceanSpace</p>
+                <p class="text-[11px] text-zinc-400 mt-1 max-w-sm">
                   Berkas CV akan otomatis terlampir saat kandidat melamar melalui portal karir OceanSpace.
                 </p>
               </div>
@@ -815,48 +889,53 @@
     <!-- HASIL EVALUASI KUALIFIKASI & PERSYARATAN MODAL -->
     <div
       v-if="analysisModalApp"
-      class="fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+      class="fixed inset-0 z-[110] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
       @click.self="analysisModalApp = null"
     >
-      <div class="bg-white rounded-2xl border border-slate-200 w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-[90vh]">
+      <div class="bg-white rounded-xl border border-zinc-200 w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-[90vh]">
         <!-- Modal Header -->
-        <div class="px-6 py-4.5 border-b border-slate-200 flex items-center justify-between bg-white shrink-0">
+        <div class="px-6 py-4 border-b border-zinc-200 flex items-center justify-between bg-white shrink-0">
           <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-700 shrink-0">
-              <CheckCircle2 class="w-4 h-4" />
+            <div class="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-900 shrink-0">
+              <ClipboardCheck class="w-4 h-4" />
             </div>
             <div>
-              <h3 class="text-sm font-bold text-slate-900">Detail Komparasi Kualifikasi</h3>
-              <p class="text-xs text-slate-500 mt-0.5">{{ analysisModalApp.full_name }} &bull; {{ analysisModalApp.job_posting?.title || 'Posisi Lowongan' }}</p>
+              <h3 class="text-sm font-semibold text-zinc-900">Detail Komparasi Kualifikasi</h3>
+              <p class="text-xs text-zinc-500 mt-0.5">{{ analysisModalApp.full_name }} &bull; {{ analysisModalApp.job_posting?.title || 'Posisi Lowongan' }}</p>
             </div>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="xs"
             @click="analysisModalApp = null"
-            class="text-slate-400 hover:text-slate-700 rounded-lg p-1 text-xl font-bold cursor-pointer leading-none"
+            class="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-900"
           >
-            &times;
-          </button>
+            <X class="w-4 h-4" />
+          </Button>
         </div>
 
         <!-- Modal Body: Clean Table Style & Analysis Report -->
-        <div class="p-6 space-y-4.5 text-xs overflow-y-auto custom-scrollbar flex-1">
-          <div class="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-            <table class="w-full text-left">
-              <tbody class="divide-y divide-slate-200">
+        <div class="p-6 space-y-4 text-xs overflow-y-auto no-scrollbar flex-1">
+          <div class="border border-zinc-200 rounded-lg overflow-hidden shadow-2xs">
+            <table class="w-full text-left text-xs">
+              <tbody class="divide-y divide-zinc-200">
                 <tr>
-                  <td class="py-2.5 px-4 text-slate-500 font-medium w-40 bg-slate-50/60">Nama Pelamar</td>
-                  <td class="py-2.5 px-4 text-slate-900 font-bold uppercase">{{ analysisModalApp.full_name }}</td>
+                  <td class="py-2.5 px-4 text-zinc-500 font-medium w-40 bg-zinc-50">Nama Pelamar</td>
+                  <td class="py-2.5 px-4 text-zinc-900 font-semibold">{{ analysisModalApp.full_name }}</td>
                 </tr>
                 <tr>
-                  <td class="py-2.5 px-4 text-slate-500 font-medium bg-slate-50/60">Posisi yang Dilamar</td>
-                  <td class="py-2.5 px-4 text-slate-900 font-semibold">{{ analysisModalApp.job_posting?.title || '-' }}</td>
+                  <td class="py-2.5 px-4 text-zinc-500 font-medium bg-zinc-50">Posisi yang Dilamar</td>
+                  <td class="py-2.5 px-4 text-zinc-900 font-medium">{{ analysisModalApp.job_posting?.title || '-' }}</td>
                 </tr>
                 <tr>
-                  <td class="py-2.5 px-4 text-slate-500 font-medium bg-slate-50/60">Kesesuaian Kualifikasi</td>
+                  <td class="py-2.5 px-4 text-zinc-500 font-medium bg-zinc-50">Kesesuaian Kualifikasi</td>
                   <td class="py-2.5 px-4">
-                    <span :class="['inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border shadow-2xs', getAiBadgeClasses(analysisModalApp.ai_match_score)]">
+                    <Badge
+                      :variant="analysisModalApp.ai_match_score >= 75 ? 'success' : (analysisModalApp.ai_match_score >= 50 ? 'warning' : 'secondary')"
+                      class="text-xs font-semibold px-2.5 py-0.5"
+                    >
                       {{ analysisModalApp.ai_match_score }}% Match &bull; {{ formatAiRecommendation(analysisModalApp.ai_recommendation) }}
-                    </span>
+                    </Badge>
                   </td>
                 </tr>
               </tbody>
@@ -866,49 +945,55 @@
           <!-- Catatan / Rangkuman Evaluasi Komparatif -->
           <div class="space-y-2">
             <div class="flex items-center justify-between">
-              <h4 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                <FileText class="w-3.5 h-3.5 text-slate-500" />
+              <h4 class="text-xs font-semibold text-zinc-900 flex items-center gap-1.5">
+                <FileText class="w-3.5 h-3.5 text-zinc-500" />
                 <span>Rangkuman Evaluasi Komparasi CV vs Kualifikasi</span>
               </h4>
-              <span class="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+              <Badge variant="navy" class="text-[9px] px-1.5 py-0">
                 AI &amp; ATS Screening
-              </span>
+              </Badge>
             </div>
             
-            <div class="p-4 bg-slate-50/80 rounded-xl border border-slate-200/90 text-slate-700 leading-relaxed text-xs whitespace-pre-line shadow-2xs">
+            <div class="p-4 bg-zinc-50 rounded-lg border border-zinc-200 text-zinc-700 leading-relaxed text-xs whitespace-pre-line shadow-2xs">
               {{ analysisModalApp.ai_summary || 'Kandidat memiliki kualifikasi yang relevan dengan persyaratan posisi lowongan ini.' }}
             </div>
             
-            <div v-if="analysisModalApp.ai_analyzed_at" class="text-[11px] text-slate-400 text-right">
+            <div v-if="analysisModalApp.ai_analyzed_at" class="text-[11px] text-zinc-400 text-right">
               Terakhir dievaluasi: {{ analysisModalApp.ai_analyzed_at }}
             </div>
           </div>
         </div>
 
         <!-- Modal Footer -->
-        <div class="px-6 py-3.5 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
-          <button
+        <div class="px-6 py-3.5 border-t border-zinc-200 bg-zinc-50 flex items-center justify-between shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
             @click="rescreenSingleCandidate(analysisModalApp)"
             :disabled="isScreening"
-            class="px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200 rounded-lg border border-slate-300 flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 shadow-2xs"
+            class="h-8 text-xs gap-1.5"
           >
-            <RefreshCw class="w-3 h-3 text-slate-500" :class="{ 'animate-spin': isScreening }" />
+            <RotateCw class="w-3 h-3" :class="{ 'animate-spin': isScreening }" />
             <span>Evaluasi Ulang CV</span>
-          </button>
+          </Button>
 
           <div class="flex items-center gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               @click="analysisModalApp = null"
-              class="px-3.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+              class="h-8 text-xs"
             >
               Tutup
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
               @click="openDetail(analysisModalApp); analysisModalApp = null"
-              class="px-4 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 rounded-lg shadow-xs transition-colors cursor-pointer"
+              class="h-8 text-xs bg-zinc-900 hover:bg-zinc-800 text-white"
             >
               Buka Detail Profil
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -917,90 +1002,92 @@
     <!-- SEND NOTIFICATION MODAL (Email & WhatsApp, Single & Bulk) -->
     <div
       v-if="sendEmailModalApp"
-      class="fixed inset-0 z-[120] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+      class="fixed inset-0 z-[120] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
       @click.self="closeNotificationModal"
     >
-      <div class="bg-white rounded-xl border border-slate-200 w-full max-w-4xl shadow-xl overflow-hidden flex flex-col my-6 max-h-[95vh]">
+      <div class="bg-white rounded-xl border border-zinc-200 w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col my-6 max-h-[95vh]">
         <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+        <div class="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-white sticky top-0 z-10">
           <div>
-            <h3 class="text-sm font-bold text-slate-900">
+            <h3 class="text-sm font-semibold text-zinc-900">
               {{ isBulkMode ? 'Kirim Notifikasi Massal' : 'Kirim Undangan / Notifikasi' }}
             </h3>
-            <p class="text-xs text-slate-500 mt-1">
+            <p class="text-xs text-zinc-500 mt-0.5">
               <template v-if="isBulkMode">
-                Target: <strong class="text-slate-800">{{ selectedAppIds.length }} Pelamar</strong> &bull; Pesan disesuaikan per nama pelamar
+                Target: <strong class="text-zinc-900">{{ selectedAppIds.length }} Pelamar</strong> &bull; Pesan otomatis dipersonalisasi per pelamar
               </template>
               <template v-else>
-                Penerima: <strong class="text-slate-800">{{ sendEmailModalApp.full_name }}</strong>
-                <span v-if="sendEmailModalApp.email" class="text-slate-500"> ({{ sendEmailModalApp.email }})</span>
-                <span class="text-slate-300 mx-2">|</span>
-                <span v-if="sendEmailModalApp.whatsapp_number || sendEmailModalApp.phone" class="text-emerald-600 font-medium">WA: {{ sendEmailModalApp.whatsapp_number || sendEmailModalApp.phone }}</span>
+                Penerima: <strong class="text-zinc-900">{{ sendEmailModalApp.full_name }}</strong>
+                <span v-if="sendEmailModalApp.email" class="text-zinc-500"> ({{ sendEmailModalApp.email }})</span>
+                <span class="text-zinc-300 mx-2">|</span>
+                <span v-if="sendEmailModalApp.whatsapp_number || sendEmailModalApp.phone" class="text-emerald-700 font-medium">WA: {{ sendEmailModalApp.whatsapp_number || sendEmailModalApp.phone }}</span>
               </template>
             </p>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="xs"
             type="button"
             @click="closeNotificationModal"
-            class="text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg p-1.5 transition-colors cursor-pointer"
+            class="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-900"
             title="Tutup"
           >
             <X class="w-4 h-4" />
-          </button>
+          </Button>
         </div>
 
         <!-- Modal Body (Scrollable) -->
-        <div class="p-6 space-y-4 text-xs overflow-y-auto flex-1 custom-scrollbar">
+        <div class="p-6 space-y-4 text-xs overflow-y-auto flex-1 no-scrollbar">
           <!-- Kanal Pengiriman -->
           <div class="space-y-1.5">
-            <label class="block font-semibold text-xs text-slate-800">Kanal Pengiriman</label>
-            <div class="border border-slate-200 rounded-lg bg-white flex flex-wrap sm:flex-nowrap items-center divide-y sm:divide-y-0 sm:divide-x divide-slate-200 text-xs">
+            <label class="block font-medium text-xs text-zinc-800">Kanal Pengiriman</label>
+            <div class="border border-zinc-200 rounded-lg bg-white flex flex-wrap sm:flex-nowrap items-center divide-y sm:divide-y-0 sm:divide-x divide-zinc-200 text-xs">
               <!-- Email Checkbox -->
-              <label class="flex-1 flex items-center gap-2.5 px-3.5 py-2.5 cursor-pointer hover:bg-slate-50/70 transition-colors select-none">
+              <label class="flex-1 flex items-center gap-2.5 px-3.5 py-2.5 cursor-pointer hover:bg-zinc-50 transition-colors select-none">
                 <input
                   type="checkbox"
                   value="email"
                   v-model="selectedChannels"
-                  class="rounded border-slate-300 text-blue-600 focus:ring-0 w-4 h-4 cursor-pointer"
+                  class="rounded border-zinc-300 text-zinc-900 accent-zinc-900 focus:ring-0 w-4 h-4 cursor-pointer"
                 />
-                <Mail class="w-4 h-4 text-slate-500" />
-                <span class="font-normal text-slate-700">Email (Surat Resmi)</span>
+                <Mail class="w-4 h-4 text-zinc-500" />
+                <span class="font-medium text-zinc-800">Email (Surat Resmi)</span>
               </label>
 
               <!-- WhatsApp Checkbox -->
-              <label class="flex-1 flex items-center gap-2.5 px-3.5 py-2.5 cursor-pointer hover:bg-slate-50/70 transition-colors select-none">
+              <label class="flex-1 flex items-center gap-2.5 px-3.5 py-2.5 cursor-pointer hover:bg-zinc-50 transition-colors select-none">
                 <input
                   type="checkbox"
                   value="whatsapp"
                   v-model="selectedChannels"
-                  class="rounded border-slate-300 text-blue-600 focus:ring-0 w-4 h-4 cursor-pointer"
+                  class="rounded border-zinc-300 text-zinc-900 accent-zinc-900 focus:ring-0 w-4 h-4 cursor-pointer"
                 />
                 <svg class="w-4 h-4 text-[#25D366] shrink-0" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
                 </svg>
-                <span class="font-normal text-slate-700">WhatsApp</span>
+                <span class="font-medium text-zinc-800">WhatsApp</span>
               </label>
 
               <!-- Kirim: Langsung vs Jadwalkan -->
               <div class="px-4 py-2.5 flex items-center gap-3.5 bg-white shrink-0">
-                <span class="font-normal text-slate-700 text-xs">Kirim:</span>
-                <label class="inline-flex items-center gap-1.5 cursor-pointer text-slate-700 text-xs font-normal select-none">
+                <span class="font-medium text-zinc-600 text-xs">Kirim:</span>
+                <label class="inline-flex items-center gap-1.5 cursor-pointer text-zinc-800 text-xs font-medium select-none">
                   <input
                     type="radio"
                     value="immediate"
                     v-model="sendType"
                     name="modal_send_type"
-                    class="text-blue-600 focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                    class="accent-zinc-900 w-3.5 h-3.5 cursor-pointer"
                   />
                   <span>Langsung</span>
                 </label>
-                <label class="inline-flex items-center gap-1.5 cursor-pointer text-slate-700 text-xs font-normal select-none">
+                <label class="inline-flex items-center gap-1.5 cursor-pointer text-zinc-800 text-xs font-medium select-none">
                   <input
                     type="radio"
                     value="scheduled"
                     v-model="sendType"
                     name="modal_send_type"
-                    class="text-blue-600 focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                    class="accent-zinc-900 w-3.5 h-3.5 cursor-pointer"
                   />
                   <span>Jadwalkan</span>
                 </label>
@@ -1012,47 +1099,50 @@
           </div>
 
           <div v-if="selectedChannels.includes('whatsapp')" class="space-y-1.5">
-            <label class="block font-semibold text-xs text-slate-800">Kirim dari nomor WhatsApp</label>
-            <select
-              v-model="selectedWhatsappAccountId"
-              class="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-slate-400 cursor-pointer"
-            >
-              <option v-if="!connectedWhatsappAccounts.length" :value="null">Belum ada nomor terhubung. Scan QR di Pengaturan Rekrutmen.</option>
-              <option v-for="account in connectedWhatsappAccounts" :key="account.id" :value="account.id">
-                {{ account.name }}{{ account.phone_number ? ` • ${account.phone_number}` : '' }}{{ account.is_default ? ' (default)' : '' }}
-              </option>
-            </select>
+            <label class="block font-medium text-xs text-zinc-800">Kirim dari nomor WhatsApp</label>
+            <div class="relative">
+              <select
+                v-model="selectedWhatsappAccountId"
+                class="w-full h-9 bg-white border border-zinc-200 rounded-md px-3 text-xs text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-950 appearance-none pr-8 cursor-pointer"
+              >
+                <option v-if="!connectedWhatsappAccounts.length" :value="null">Belum ada nomor terhubung. Scan QR di Pengaturan Rekrutmen.</option>
+                <option v-for="account in connectedWhatsappAccounts" :key="account.id" :value="account.id">
+                  {{ account.name }}{{ account.phone_number ? ` • ${account.phone_number}` : '' }}{{ account.is_default ? ' (default)' : '' }}
+                </option>
+              </select>
+              <ChevronDown class="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
 
           <!-- Jadwalkan Pengiriman Inputs (Horizontal Integrated Bar) -->
           <div v-if="sendType === 'scheduled'" class="space-y-1.5">
-            <label class="block font-semibold text-xs text-slate-800">Jadwalkan Pengiriman</label>
-            <div class="border border-slate-200 rounded-lg bg-white overflow-hidden text-xs">
-              <div class="flex flex-wrap sm:flex-nowrap items-center divide-y sm:divide-y-0 sm:divide-x divide-slate-200">
+            <label class="block font-medium text-xs text-zinc-800">Jadwalkan Pengiriman</label>
+            <div class="border border-zinc-200 rounded-lg bg-white overflow-hidden text-xs">
+              <div class="flex flex-wrap sm:flex-nowrap items-center divide-y sm:divide-y-0 sm:divide-x divide-zinc-200">
                 <!-- Date Input -->
                 <div class="flex items-center gap-2 px-3 py-2 flex-1 min-w-[200px]">
-                  <span class="text-slate-500 whitespace-nowrap text-xs font-normal">Kirim otomatis pada</span>
+                  <span class="text-zinc-500 whitespace-nowrap text-xs">Kirim otomatis pada</span>
                   <input
                     type="date"
                     v-model="scheduleDate"
                     :min="todayDateString"
-                    class="bg-transparent text-xs text-slate-800 font-normal focus:outline-none cursor-pointer flex-1"
+                    class="bg-transparent text-xs text-zinc-900 focus:outline-none cursor-pointer flex-1"
                   />
                 </div>
 
                 <!-- Time Input -->
                 <div class="flex items-center gap-2 px-3 py-2 flex-1 min-w-[140px]">
-                  <span class="text-slate-500 whitespace-nowrap text-xs font-normal">Pukul</span>
+                  <span class="text-zinc-500 whitespace-nowrap text-xs">Pukul</span>
                   <input
                     type="time"
                     v-model="scheduleTime"
-                    class="bg-transparent text-xs text-slate-800 font-normal focus:outline-none cursor-pointer flex-1"
+                    class="bg-transparent text-xs text-zinc-900 focus:outline-none cursor-pointer flex-1"
                   />
                 </div>
 
                 <!-- Timezone Selector -->
                 <div class="relative flex-1 px-3 py-2">
-                  <select class="w-full bg-transparent text-xs text-slate-800 font-normal focus:outline-none cursor-pointer">
+                  <select class="w-full bg-transparent text-xs text-zinc-800 focus:outline-none cursor-pointer">
                     <option value="WIB">WIB (UTC+07:00)</option>
                     <option value="WITA">WITA (UTC+08:00)</option>
                     <option value="WIT">WIT (UTC+09:00)</option>
@@ -1062,26 +1152,26 @@
             </div>
           </div>
 
-          <!-- Template Notifikasi (Sesuai Pipeline - Flex Wrap, No Right Scroll) -->
+          <!-- Template Notifikasi (Sesuai Pipeline - New York Style Pills) -->
           <div class="space-y-2">
             <div class="flex items-center justify-between">
-              <label class="block font-semibold text-xs text-slate-800">Pilih Template Sesuai Tahapan Pipeline</label>
-              <span class="text-[11px] text-slate-400 font-normal">Semua tahapan langsung terlihat (tanpa geser)</span>
+              <label class="block font-medium text-xs text-zinc-800">Pilih Template Sesuai Tahapan Pipeline</label>
+              <span class="text-[11px] text-zinc-400">Pilihan otomatis mengisi subjek dan draft pesan</span>
             </div>
-            <div class="flex flex-wrap items-center gap-1.5 p-2 bg-slate-50/80 rounded-lg border border-slate-200">
+            <div class="flex flex-wrap items-center gap-1.5 p-1.5 bg-zinc-100 rounded-lg border border-zinc-200">
               <button
                 v-for="tpl in pipelineTemplateTabs"
                 :key="tpl.key"
                 type="button"
                 @click="applyEmailTemplate(tpl.key)"
                 :class="[
-                  'px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer select-none flex items-center gap-1.5',
+                  'px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer select-none flex items-center gap-1.5',
                   activeEmailTemplateKey === tpl.key
-                    ? 'bg-blue-600 text-white shadow-xs font-semibold'
-                    : 'bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/80'
+                    ? 'bg-zinc-900 text-white shadow-2xs font-semibold'
+                    : 'bg-white text-zinc-700 hover:bg-zinc-50 border border-zinc-200'
                 ]"
               >
-                <span :class="activeEmailTemplateKey === tpl.key ? 'text-blue-200' : 'text-slate-400 font-mono text-[10px]'">{{ tpl.num }}</span>
+                <span :class="activeEmailTemplateKey === tpl.key ? 'text-zinc-400' : 'text-zinc-400 font-mono text-[10px]'">{{ tpl.num }}</span>
                 <span>{{ tpl.label }}</span>
               </button>
             </div>
@@ -1089,63 +1179,62 @@
 
           <!-- Subject Input -->
           <div>
-            <label class="block font-semibold text-xs text-slate-800 mb-1.5">Subjek</label>
-            <input
+            <label class="block font-medium text-xs text-zinc-800 mb-1.5">Subjek Notifikasi</label>
+            <Input
               type="text"
               v-model="emailForm.subject"
-              class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500 shadow-2xs font-normal transition-all"
+              class="h-9 font-medium"
             />
           </div>
 
-          <!-- Body Message Textarea (Full Text, Auto-Height, No Scrollbar) -->
+          <!-- Body Message Textarea -->
           <div>
             <div class="flex items-center justify-between mb-1.5">
-              <label class="block font-semibold text-xs text-slate-800">Isi Pesan</label>
-              <span class="text-[10px] text-slate-400 font-normal">Teks ditampilkan penuh tanpa scrollbar</span>
+              <label class="block font-medium text-xs text-zinc-800">Isi Pesan Notifikasi</label>
             </div>
             <textarea
               ref="bodyTextareaRef"
               v-model="emailForm.body_message"
               rows="7"
               @input="adjustTextareaHeight"
-              class="w-full bg-white border border-slate-200 rounded-lg p-3 text-xs text-slate-800 focus:outline-none focus:border-blue-500 leading-relaxed font-sans shadow-2xs transition-all overflow-y-hidden"
+              class="w-full bg-white border border-zinc-200 rounded-md p-3 text-xs text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-950 focus:border-zinc-950 leading-relaxed font-sans shadow-2xs transition-colors overflow-y-hidden resize-none"
               style="min-height: 140px;"
             ></textarea>
           </div>
 
-          <!-- Detail Pelaksanaan (Table Form Style like Screenshot) -->
+          <!-- Detail Pelaksanaan (Table Form Style) -->
           <div class="space-y-3">
-            <label class="block font-semibold text-xs text-slate-800">Detail Pelaksanaan</label>
+            <label class="block font-medium text-xs text-zinc-800">Detail Pelaksanaan</label>
 
-            <div class="border border-slate-200 rounded-lg overflow-hidden text-xs">
+            <div class="border border-zinc-200 rounded-lg overflow-hidden text-xs">
               <!-- Table Header -->
-              <div class="grid grid-cols-12 bg-slate-50 border-b border-slate-200 font-semibold text-slate-700 px-3 py-2">
+              <div class="grid grid-cols-12 bg-zinc-50 border-b border-zinc-200 font-medium text-zinc-600 px-3 py-2">
                 <div class="col-span-4">Item</div>
                 <div class="col-span-8">Keterangan</div>
               </div>
 
               <!-- Row 1: Jadwal / Batas Waktu -->
-              <div class="grid grid-cols-12 items-center px-3 py-2 border-b border-slate-100 gap-2">
-                <div class="col-span-4 font-normal text-slate-700">Jadwal / Batas Waktu</div>
+              <div class="grid grid-cols-12 items-center px-3 py-2 border-b border-zinc-100 gap-2">
+                <div class="col-span-4 font-normal text-zinc-700">Jadwal / Batas Waktu</div>
                 <div class="col-span-8">
-                  <input
+                  <Input
                     type="text"
                     v-model="emailForm.schedule"
                     placeholder="Batas Pengerjaan: 3 hari kerja"
-                    class="w-full bg-white border border-slate-200 rounded-md px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
+                    class="h-8 text-xs"
                   />
                 </div>
               </div>
 
               <!-- Row 2: Lokasi / Media -->
               <div class="grid grid-cols-12 items-center px-3 py-2 gap-2">
-                <div class="col-span-4 font-normal text-slate-700">Lokasi / Media</div>
+                <div class="col-span-4 font-normal text-zinc-700">Lokasi / Media</div>
                 <div class="col-span-8">
-                  <input
+                  <Input
                     type="text"
                     v-model="emailForm.venue_or_method"
                     placeholder="Online Assessment"
-                    class="w-full bg-white border border-slate-200 rounded-md px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
+                    class="h-8 text-xs"
                   />
                 </div>
               </div>
@@ -1154,27 +1243,27 @@
             <!-- Optional 2-col inputs: Tautan Akses & Catatan Tambahan -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label class="block font-semibold text-xs text-slate-800 mb-1.5">Tautan Akses (Opsional)</label>
+                <label class="block font-medium text-xs text-zinc-800 mb-1.5">Tautan Akses (Opsional)</label>
                 <div class="relative">
-                  <Link2 class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
+                  <Link2 class="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Input
                     type="url"
                     v-model="emailForm.action_url"
                     placeholder="https://..."
-                    class="w-full bg-white border border-slate-200 rounded-lg pl-8.5 pr-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500 font-mono text-[11px]"
+                    class="h-8 pl-8 font-mono text-xs"
                   />
                 </div>
               </div>
 
               <div>
-                <label class="block font-semibold text-xs text-slate-800 mb-1.5">Catatan Tambahan (Opsional)</label>
+                <label class="block font-medium text-xs text-zinc-800 mb-1.5">Catatan Tambahan (Opsional)</label>
                 <div class="relative">
-                  <FileText class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
+                  <FileText class="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Input
                     type="text"
                     v-model="emailForm.special_note"
-                    placeholder="Pastikan koneksi internet stabil dan gunakan browser terbaru."
-                    class="w-full bg-white border border-slate-200 rounded-lg pl-8.5 pr-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
+                    placeholder="Pastikan koneksi stabil..."
+                    class="h-8 pl-8 text-xs"
                   />
                 </div>
               </div>
@@ -1182,73 +1271,79 @@
           </div>
 
           <!-- Offering Letter PDF Upload -->
-          <div v-if="activeEmailTemplateKey === 'offering'" class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+          <div v-if="activeEmailTemplateKey === 'offering'" class="p-3.5 bg-zinc-50 rounded-xl border border-zinc-200 space-y-2">
             <div class="flex items-center justify-between">
-              <label class="block font-semibold text-xs text-slate-800 flex items-center gap-1.5">
-                <FileText class="w-3.5 h-3.5 text-blue-600" />
+              <label class="block font-medium text-xs text-zinc-800 flex items-center gap-1.5">
+                <FileText class="w-3.5 h-3.5 text-zinc-900" />
                 <span>Dokumen Lampiran (PDF)</span>
               </label>
-              <span class="text-[10.5px] text-slate-500">Maks. 15MB &bull; Khusus Email</span>
+              <span class="text-[10.5px] text-zinc-500">Maks. 15MB &bull; Khusus Email</span>
             </div>
 
-            <div v-if="!emailForm.attachment" class="relative border border-dashed border-slate-300 hover:border-slate-400 bg-white rounded-lg p-3 text-center cursor-pointer transition-colors group">
+            <div v-if="!emailForm.attachment" class="relative border border-dashed border-zinc-300 hover:border-zinc-400 bg-white rounded-lg p-3 text-center cursor-pointer transition-colors group">
               <input
                 type="file"
                 accept="application/pdf,.pdf"
                 @change="handleAttachmentUpload"
                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
-              <div class="flex items-center justify-center gap-2 text-slate-500 group-hover:text-slate-800">
-                <Upload class="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
+              <div class="flex items-center justify-center gap-2 text-zinc-500 group-hover:text-zinc-800">
+                <Upload class="w-4 h-4 text-zinc-400 group-hover:text-zinc-600" />
                 <span class="text-xs font-medium">Unggah file PDF Offering Letter</span>
               </div>
             </div>
 
-            <div v-else class="flex items-center justify-between bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
+            <div v-else class="flex items-center justify-between bg-white p-2.5 rounded-lg border border-zinc-200 shadow-2xs">
               <div class="flex items-center gap-2 overflow-hidden">
-                <div class="w-7 h-7 rounded bg-red-50 text-red-600 flex items-center justify-center font-bold text-[10px] shrink-0">
+                <div class="w-7 h-7 rounded bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-[10px] shrink-0">
                   PDF
                 </div>
                 <div class="truncate">
-                  <div class="text-xs font-medium text-slate-800 truncate">{{ emailForm.attachment_name }}</div>
-                  <div class="text-[10px] text-slate-400">{{ formatFileSize(emailForm.attachment?.size) }}</div>
+                  <div class="text-xs font-medium text-zinc-800 truncate">{{ emailForm.attachment_name }}</div>
+                  <div class="text-[10px] text-zinc-400">{{ formatFileSize(emailForm.attachment?.size) }}</div>
                 </div>
               </div>
-              <button
+              <Button
+                variant="ghost"
+                size="xs"
                 type="button"
                 @click="removeAttachment"
-                class="text-slate-400 hover:text-red-600 p-1 rounded transition-colors cursor-pointer"
+                class="h-7 w-7 p-0 text-zinc-400 hover:text-rose-600"
                 title="Hapus Lampiran"
               >
                 <X class="w-3.5 h-3.5" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
 
         <!-- Modal Footer -->
-        <div class="px-6 py-4 border-t border-slate-200 bg-white flex items-center justify-between sticky bottom-0 z-10">
-          <button
+        <div class="px-6 py-3.5 border-t border-zinc-200 bg-zinc-50 flex items-center justify-between sticky bottom-0 z-10">
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             @click="closeNotificationModal"
-            class="px-4 py-2 text-xs font-medium text-slate-700 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
+            class="h-8 text-xs"
           >
             Batal
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
+            variant="default"
+            size="sm"
             @click="executeSendNotification"
             :disabled="isSendingEmail || !selectedChannels.length || (sendType === 'scheduled' && (!scheduleDate || !scheduleTime))"
-            class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-xs transition-colors cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-2"
+            class="h-8 text-xs bg-zinc-900 hover:bg-zinc-800 text-white gap-1.5"
           >
-            <span v-if="isSendingEmail" class="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            <RotateCw v-if="isSendingEmail" class="w-3.5 h-3.5 animate-spin" />
             <CalendarClock v-else-if="sendType === 'scheduled'" class="w-3.5 h-3.5" />
             <Send v-else class="w-3.5 h-3.5" />
             <span>
               {{ isSendingEmail ? 'Memproses...' : (sendType === 'scheduled' ? (isBulkMode ? `Jadwalkan untuk ${selectedAppIds.length} Pelamar` : 'Jadwalkan Notifikasi') : (isBulkMode ? `Kirim ke ${selectedAppIds.length} Pelamar` : 'Kirim Notifikasi')) }}
             </span>
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -1262,9 +1357,17 @@ import { useRekrutmenStore } from '../stores/rekrutmen';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import axios from 'axios';
+
+// Shadcn UI Components
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/card';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '../components/ui/table';
+import { Input } from '../components/ui/input';
+
 import { 
   Search, ListFilter, Kanban, ArrowLeft, ExternalLink, Eye,
-  CheckCircle2, AlertCircle, Mail, Phone, FileText, RefreshCw, User, Sparkles,
+  CheckCircle2, AlertCircle, Mail, Phone, FileText, RefreshCw, RotateCw, User, UserCheck, ClipboardCheck,
   Link2, Users, Bell, ChevronDown, Upload, MessageSquare, Send, CheckSquare,
   Calendar, MapPin, X, Clock, CalendarClock, UserX
 } from 'lucide-vue-next';
