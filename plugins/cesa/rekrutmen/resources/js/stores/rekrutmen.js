@@ -408,6 +408,37 @@ export const useRekrutmenStore = defineStore('rekrutmen', {
       const res = await axios.delete(`/rekrutmen/api/stages/${id}`);
       await this.fetchConfigurations(true);
       return res.data;
+    },
+
+    async reorderStages(stageIds) {
+      if (Array.isArray(this.stages) && this.stages.length) {
+        const idMap = new Map(stageIds.map((id, idx) => [Number(id), idx]));
+        this.stages.sort((a, b) => {
+          const orderA = idMap.has(Number(a.id)) ? idMap.get(Number(a.id)) : 999;
+          const orderB = idMap.has(Number(b.id)) ? idMap.get(Number(b.id)) : 999;
+          return orderA - orderB;
+        });
+        this.stages.forEach((s, idx) => {
+          s.order_column = idx + 1;
+        });
+      }
+
+      const res = await axios.post('/rekrutmen/api/stages/reorder', {
+        stage_ids: stageIds,
+      });
+
+      if (res.data?.stages && Array.isArray(this.stages)) {
+        const currentStagesMap = new Map(this.stages.map(s => [s.id, s]));
+        this.stages = res.data.stages.map(serverStage => {
+          const current = currentStagesMap.get(serverStage.id) || {};
+          return {
+            ...current,
+            ...serverStage,
+            order_column: serverStage.order_column,
+          };
+        });
+      }
+      return res.data;
     }
   }
 });

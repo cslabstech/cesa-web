@@ -1536,6 +1536,7 @@ PROMPT;
             $cycleHealth = $item['cycle_health'];
 
             return [
+                'id'                     => $posting->id,
                 'job_posting_id'         => $posting->id,
                 'position'               => $posting->title,
                 'company'                => $request?->company?->name ?? 'PT Complete Selular Group',
@@ -1826,6 +1827,62 @@ PROMPT;
             'success' => true,
             'message' => "Tahapan \"{$stage->name}\" berhasil ditambahkan.",
             'stage'   => $stage,
+        ]);
+    }
+
+    /**
+     * Reorder recruitment pipeline stages.
+     */
+    public function reorderStages(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'stage_ids'   => 'required|array|min:1',
+            'stage_ids.*' => 'required|integer|exists:rekrutmen_stages,id',
+        ]);
+
+        $stageIds = array_values(array_unique(array_map('intval', $validated['stage_ids'])));
+
+        DB::transaction(function () use ($stageIds): void {
+            // Temporary negative offsets to avoid composite unique constraint collisions on (rekrutmen_pipeline_id, order_column)
+            foreach ($stageIds as $index => $id) {
+                RekrutmenStage::where('id', $id)->update([
+                    'order_column' => -($index + 1),
+                ]);
+            }
+
+            // Assign the desired sequential positive order
+            foreach ($stageIds as $index => $id) {
+                RekrutmenStage::where('id', $id)->update([
+                    'order_column' => $index + 1,
+                ]);
+            }
+
+            // Ensure locked final stage (e.g. 'Hired') stays at the end of pipeline
+            $finalStage = RekrutmenStage::where('rekrutmen_pipeline_id', 1)
+                ->whereRaw('LOWER(name) = ?', [Str::lower(RekrutmenStage::FINAL_HIRED_STAGE_NAME)])
+                ->first();
+
+            if ($finalStage) {
+                $maxOtherOrder = (int) RekrutmenStage::where('rekrutmen_pipeline_id', 1)
+                    ->whereKeyNot($finalStage->id)
+                    ->max('order_column');
+
+                if ((int) $finalStage->order_column !== $maxOtherOrder + 1) {
+                    $finalStage->update([
+                        'order_column' => $maxOtherOrder + 1,
+                    ]);
+                }
+            }
+        });
+
+        $stages = RekrutmenStage::where('rekrutmen_pipeline_id', 1)
+            ->orderBy('order_column')
+            ->get(['id', 'rekrutmen_pipeline_id', 'name', 'order_column']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Urutan tahapan pipeline berhasil diperbarui.',
+            'stages'  => $stages,
         ]);
     }
 
