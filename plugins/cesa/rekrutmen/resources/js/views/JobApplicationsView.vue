@@ -77,13 +77,50 @@
       </div>
     </div>
 
-    <!-- KPI Summary Metrics (New York Style Clean Cards) -->
+    <!-- Floating Toast Notification -->
+    <teleport to="body">
+      <transition
+        enter-active-class="transition duration-250 ease-out"
+        enter-from-class="transform translate-y-3 opacity-0 scale-95"
+        enter-to-class="transform translate-y-0 opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="transform translate-y-0 opacity-100 scale-100"
+        leave-to-class="transform translate-y-3 opacity-0 scale-95"
+      >
+        <div
+          v-if="toastMessage"
+          class="fixed bottom-6 right-6 z-50 max-w-sm w-auto p-3 rounded-xl border flex items-center gap-3 text-xs font-medium shadow-lg backdrop-blur-md"
+          :class="[
+            toastType === 'success'
+              ? 'bg-white/95 border-emerald-200 text-emerald-900 shadow-emerald-950/10'
+              : 'bg-white/95 border-rose-200 text-rose-900 shadow-rose-950/10'
+          ]"
+        >
+          <div :class="['w-7 h-7 rounded-lg flex items-center justify-center shrink-0', toastType === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700']">
+            <CheckCircle2 v-if="toastType === 'success'" class="w-4 h-4" />
+            <AlertCircle v-else class="w-4 h-4" />
+          </div>
+          <span class="pr-2">{{ toastMessage }}</span>
+          <button
+            type="button"
+            @click="toastMessage = null"
+            class="text-zinc-400 hover:text-zinc-700 font-bold p-1 rounded-md hover:bg-zinc-100 cursor-pointer ml-auto"
+          >
+            &times;
+          </button>
+        </div>
+      </transition>
+    </teleport>
+
+    <!-- KPI Summary Metrics (Polished Brand-Aligned Cards) -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
       <!-- Total Pelamar -->
-      <Card class="hover:border-zinc-300">
+      <Card class="hover:border-blue-200 hover:shadow-xs transition-all duration-200 bg-white">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Total Pelamar</span>
-          <Users class="w-4 h-4 text-zinc-400" />
+          <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+            <Users class="w-4 h-4" />
+          </div>
         </CardHeader>
         <CardContent class="p-4 pt-0">
           <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ applications.length }}</div>
@@ -94,62 +131,52 @@
       </Card>
 
       <!-- Sangat Sesuai -->
-      <Card class="hover:border-zinc-300">
+      <Card class="hover:border-emerald-200 hover:shadow-xs transition-all duration-200 bg-white">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Sangat Sesuai</span>
-          <UserCheck class="w-4 h-4 text-zinc-400" />
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+            <UserCheck class="w-4 h-4" />
+          </div>
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ recommendedCount }}</div>
-          <p class="text-[11px] text-zinc-400 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-emerald-700">{{ recommendedCount }}</div>
+          <p class="text-[11px] text-zinc-500 mt-0.5">
             Skor kecocokan &ge; 75%
           </p>
         </CardContent>
       </Card>
 
       <!-- Dipertimbangkan -->
-      <Card class="hover:border-zinc-300">
+      <Card class="hover:border-amber-200 hover:shadow-xs transition-all duration-200 bg-white">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Dipertimbangkan</span>
-          <Clock class="w-4 h-4 text-zinc-400" />
+          <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+            <Clock class="w-4 h-4" />
+          </div>
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ consideredCount }}</div>
-          <p class="text-[11px] text-zinc-400 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-amber-700">{{ consideredCount }}</div>
+          <p class="text-[11px] text-zinc-500 mt-0.5">
             Skor kecocokan 50% - 74%
           </p>
         </CardContent>
       </Card>
 
       <!-- Ditolak / Kurang Sesuai -->
-      <Card class="hover:border-zinc-300">
+      <Card class="hover:border-rose-200 hover:shadow-xs transition-all duration-200 bg-white">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Ditolak / Kurang Sesuai</span>
-          <UserX class="w-4 h-4 text-zinc-400" />
+          <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center shrink-0">
+            <UserX class="w-4 h-4" />
+          </div>
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ rejectedCandidateCount + notSuitableCount }}</div>
-          <p class="text-[11px] text-zinc-400 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-rose-700">{{ rejectedCandidateCount + notSuitableCount }}</div>
+          <p class="text-[11px] text-zinc-500 mt-0.5">
             {{ rejectedCandidateCount }} ditolak &bull; {{ notSuitableCount }} skor &lt; 50%
           </p>
         </CardContent>
       </Card>
-    </div>
-
-    <!-- Alert / Toast Message -->
-    <div
-      v-if="toastMessage"
-      :class="[
-        'p-3 rounded-lg border flex items-center justify-between text-xs font-medium transition-all shadow-2xs',
-        toastType === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
-      ]"
-    >
-      <div class="flex items-center gap-2">
-        <CheckCircle2 v-if="toastType === 'success'" class="w-4 h-4 text-emerald-600 shrink-0" />
-        <AlertCircle v-else class="w-4 h-4 text-rose-600 shrink-0" />
-        <span>{{ toastMessage }}</span>
-      </div>
-      <button type="button" @click="toastMessage = null" class="text-zinc-400 hover:text-zinc-600 font-bold ml-2 cursor-pointer">&times;</button>
     </div>
 
     <!-- Integrated Filter Tabs, Stage Filter Dropdown & Search Bar -->
@@ -162,7 +189,7 @@
           :class="[
             'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             matchFilter === 'all'
-              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              ? 'bg-white text-[#0c2340] shadow-xs font-semibold'
               : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
@@ -170,7 +197,7 @@
           <span
             :class="[
               'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
-              matchFilter === 'all' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+              matchFilter === 'all' ? 'bg-blue-50 text-[#0c2340]' : 'bg-zinc-200/70 text-zinc-500'
             ]"
           >
             {{ applications.length }}
@@ -183,7 +210,7 @@
           :class="[
             'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             matchFilter === 'recommended'
-              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              ? 'bg-white text-emerald-700 shadow-xs font-semibold'
               : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
@@ -191,7 +218,7 @@
           <span
             :class="[
               'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
-              matchFilter === 'recommended' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+              matchFilter === 'recommended' ? 'bg-emerald-50 text-emerald-700' : 'bg-zinc-200/70 text-zinc-500'
             ]"
           >
             {{ recommendedCount }}
@@ -204,7 +231,7 @@
           :class="[
             'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             matchFilter === 'considered'
-              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              ? 'bg-white text-amber-700 shadow-xs font-semibold'
               : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
@@ -212,7 +239,7 @@
           <span
             :class="[
               'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
-              matchFilter === 'considered' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+              matchFilter === 'considered' ? 'bg-amber-50 text-amber-700' : 'bg-zinc-200/70 text-zinc-500'
             ]"
           >
             {{ consideredCount }}
@@ -225,7 +252,7 @@
           :class="[
             'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             matchFilter === 'not_suitable'
-              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              ? 'bg-white text-rose-700 shadow-xs font-semibold'
               : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
@@ -233,7 +260,7 @@
           <span
             :class="[
               'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
-              matchFilter === 'not_suitable' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+              matchFilter === 'not_suitable' ? 'bg-rose-50 text-rose-700' : 'bg-zinc-200/70 text-zinc-500'
             ]"
           >
             {{ notSuitableCount }}
@@ -354,7 +381,7 @@
           <TableRow
             v-for="app in filteredApplications"
             :key="app.id"
-            :class="['hover:bg-zinc-50/80 transition-colors group', isSelected(app.id) ? 'bg-zinc-100/60' : '']"
+            :class="['hover:bg-blue-50/30 transition-colors group', isSelected(app.id) ? 'bg-blue-50/50' : '']"
           >
             <!-- Checkbox -->
             <TableCell class="text-center" @click.stop>
@@ -362,7 +389,7 @@
                 type="checkbox"
                 :value="app.id"
                 v-model="selectedAppIds"
-                class="rounded border-zinc-300 text-zinc-900 accent-zinc-900 focus:ring-0 cursor-pointer w-3.5 h-3.5"
+                class="rounded border-zinc-300 text-[#0c2340] accent-[#0c2340] focus:ring-0 cursor-pointer w-3.5 h-3.5"
               />
             </TableCell>
 
@@ -381,7 +408,7 @@
                   <span v-else class="text-[10px] font-bold text-zinc-600 uppercase">{{ getInitials(app.full_name) }}</span>
                 </div>
                 <div class="min-w-0">
-                  <div class="font-semibold text-xs text-zinc-900 hover:text-blue-600 transition-colors cursor-pointer truncate" @click="openDetail(app)">
+                  <div class="font-semibold text-xs text-zinc-900 hover:text-[#0c2340] transition-colors cursor-pointer truncate" @click="openDetail(app)">
                     {{ app.full_name }}
                   </div>
                   <div class="text-[11px] text-zinc-400 mt-0.5 truncate max-w-[200px]" :title="`${app.email || '-'} • ${app.whatsapp_number || app.phone || '-'}`">
@@ -1459,7 +1486,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useRekrutmenStore } from '../stores/rekrutmen';
 import Swal from 'sweetalert2';
@@ -1550,8 +1577,14 @@ const checkHeartbeat = async () => {
   } catch (_) {}
 };
 
+const activeJobId = computed(() => route.query.id || route.query.job_id || null);
+
 onMounted(() => {
-  store.fetchApplications('', false).catch(() => {});
+  const targetId = activeJobId.value;
+  store.fetchApplications(targetId ? { job_id: targetId } : '', false).catch(() => {});
+  if (!store.postings?.length) {
+    store.fetchPostings('', false).catch(() => {});
+  }
   checkHeartbeat();
   heartbeatTimer = setInterval(checkHeartbeat, 25000);
 });
@@ -1560,9 +1593,21 @@ onUnmounted(() => {
   if (heartbeatTimer) clearInterval(heartbeatTimer);
 });
 
+watch(
+  () => activeJobId.value,
+  (newId) => {
+    if (newId) {
+      store.fetchApplications({ job_id: newId }, true).catch(() => {});
+    }
+  }
+);
+
 const applications = computed(() => {
-  if (route.query.job_id) {
-    return store.applications.filter(a => String(a.job_posting_id) === String(route.query.job_id));
+  if (activeJobId.value) {
+    return (store.applications || []).filter(a =>
+      String(a.job_posting_id) === String(activeJobId.value) ||
+      String(a.job_posting?.id) === String(activeJobId.value)
+    );
   }
   return store.applications || [];
 });
@@ -1573,11 +1618,16 @@ const stages = computed(() => {
   return defaultStages;
 });
 
-const activeJobId = computed(() => route.query.job_id || null);
 const activeJobTitle = computed(() => {
   if (!activeJobId.value) return null;
-  const job = store.postings.find(j => String(j.id) === String(activeJobId.value));
-  return job ? job.title : null;
+  const job = store.postings?.find(j => String(j.id) === String(activeJobId.value));
+  if (job?.title) return job.title;
+  const app = store.applications?.find(a =>
+    String(a.job_posting_id) === String(activeJobId.value) ||
+    String(a.job_posting?.id) === String(activeJobId.value)
+  );
+  if (app?.job_posting?.title) return app.job_posting.title;
+  return `ID #${activeJobId.value}`;
 });
 
 const stageFilter = ref('all');

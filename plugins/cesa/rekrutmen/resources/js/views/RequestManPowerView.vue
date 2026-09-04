@@ -29,7 +29,7 @@
         </Button>
 
         <a href="/man-power" target="_blank" class="inline-flex">
-          <Button size="sm" variant="default" class="bg-zinc-900 hover:bg-zinc-800 text-white text-xs h-8 gap-1.5">
+          <Button size="sm" variant="default" class="bg-[#0c2340] hover:bg-[#153459] text-white text-xs h-8 gap-1.5 shadow-xs">
             <Plus class="w-3.5 h-3.5" />
             <span>Buat FPTK Baru</span>
           </Button>
@@ -37,44 +37,49 @@
       </div>
     </div>
 
-    <!-- Alert / Toast Banner -->
-    <transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="transform -translate-y-2 opacity-0"
-      enter-to-class="transform translate-y-0 opacity-100"
-      leave-active-class="transition duration-150 ease-in"
-      leave-from-class="transform translate-y-0 opacity-100"
-      leave-to-class="transform -translate-y-2 opacity-0"
-    >
-      <div
-        v-if="toastMessage"
-        :class="[
-          'p-3 rounded-lg border flex items-center justify-between text-xs font-medium shadow-2xs',
-          toastType === 'success'
-            ? 'bg-emerald-50/70 border-emerald-200 text-emerald-800'
-            : 'bg-rose-50/70 border-rose-200 text-rose-800'
-        ]"
+    <!-- Floating Toast Notification -->
+    <teleport to="body">
+      <transition
+        enter-active-class="transition duration-250 ease-out"
+        enter-from-class="transform translate-y-3 opacity-0 scale-95"
+        enter-to-class="transform translate-y-0 opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="transform translate-y-0 opacity-100 scale-100"
+        leave-to-class="transform translate-y-3 opacity-0 scale-95"
       >
-        <div class="flex items-center gap-2">
-          <CheckCircle2 v-if="toastType === 'success'" class="w-4 h-4 text-emerald-600 shrink-0" />
-          <AlertCircle v-else class="w-4 h-4 text-rose-600 shrink-0" />
-          <span>{{ toastMessage }}</span>
-        </div>
-        <button
-          @click="toastMessage = null"
-          class="text-zinc-400 hover:text-zinc-700 font-bold px-1 rounded hover:bg-zinc-200/50"
+        <div
+          v-if="toastMessage"
+          class="fixed bottom-6 right-6 z-50 max-w-sm w-auto p-3 rounded-xl border flex items-center gap-3 text-xs font-medium shadow-lg backdrop-blur-md"
+          :class="[
+            toastType === 'success'
+              ? 'bg-white/95 border-emerald-200 text-emerald-900 shadow-emerald-950/10'
+              : 'bg-white/95 border-rose-200 text-rose-900 shadow-rose-950/10'
+          ]"
         >
-          &times;
-        </button>
-      </div>
-    </transition>
+          <div :class="['w-7 h-7 rounded-lg flex items-center justify-center shrink-0', toastType === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700']">
+            <CheckCircle2 v-if="toastType === 'success'" class="w-4 h-4" />
+            <AlertCircle v-else class="w-4 h-4" />
+          </div>
+          <span class="pr-2">{{ toastMessage }}</span>
+          <button
+            type="button"
+            @click="toastMessage = null"
+            class="text-zinc-400 hover:text-zinc-700 font-bold p-1 rounded-md hover:bg-zinc-100 cursor-pointer ml-auto"
+          >
+            &times;
+          </button>
+        </div>
+      </transition>
+    </teleport>
 
-    <!-- KPI Summary Metrics (New York Style Clean Cards) -->
+    <!-- KPI Summary Metrics (Polished Brand-Aligned Cards) -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-      <Card class="hover:border-zinc-300">
+      <Card class="hover:border-blue-200 hover:shadow-xs transition-all duration-200 bg-white">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Total FPTK</span>
-          <FileSpreadsheet class="w-4 h-4 text-zinc-400" />
+          <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+            <FileSpreadsheet class="w-4 h-4" />
+          </div>
         </CardHeader>
         <CardContent class="p-4 pt-0">
           <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ requests.length }}</div>
@@ -84,40 +89,46 @@
         </CardContent>
       </Card>
 
-      <Card class="hover:border-zinc-300">
+      <Card class="hover:border-emerald-200 hover:shadow-xs transition-all duration-200 bg-white">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Disetujui</span>
-          <CheckCircle2 class="w-4 h-4 text-zinc-400" />
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+            <CheckCircle2 class="w-4 h-4" />
+          </div>
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ approvedCount }}</div>
-          <p class="text-[11px] text-zinc-400 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-emerald-700">{{ approvedCount }}</div>
+          <p class="text-[11px] text-zinc-500 mt-0.5">
             Siap/sedang diproses rekrutmen
           </p>
         </CardContent>
       </Card>
 
-      <Card class="hover:border-zinc-300">
+      <Card class="hover:border-amber-200 hover:shadow-xs transition-all duration-200 bg-white">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Menunggu Approval</span>
-          <Clock class="w-4 h-4 text-zinc-400" />
+          <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+            <Clock class="w-4 h-4" />
+          </div>
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ pendingCount }}</div>
-          <p class="text-[11px] text-zinc-400 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-amber-700">{{ pendingCount }}</div>
+          <p class="text-[11px] text-zinc-500 mt-0.5">
             Perlu persetujuan manajemen
           </p>
         </CardContent>
       </Card>
 
-      <Card class="hover:border-zinc-300">
+      <Card class="hover:border-indigo-200 hover:shadow-xs transition-all duration-200 bg-white">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Kebutuhan Personil</span>
-          <Users class="w-4 h-4 text-zinc-400" />
+          <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0">
+            <Users class="w-4 h-4" />
+          </div>
         </CardHeader>
         <CardContent class="p-4 pt-0">
           <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ totalNeededPersonnel }}</div>
-          <p class="text-[11px] text-zinc-400 mt-0.5">
+          <p class="text-[11px] text-zinc-500 mt-0.5">
             Total orang yang diajukan
           </p>
         </CardContent>
@@ -134,7 +145,7 @@
           :class="[
             'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             statusFilter === 'all'
-              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              ? 'bg-white text-[#0c2340] shadow-xs font-semibold'
               : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
@@ -142,7 +153,7 @@
           <span
             :class="[
               'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
-              statusFilter === 'all' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+              statusFilter === 'all' ? 'bg-blue-50 text-[#0c2340]' : 'bg-zinc-200/70 text-zinc-500'
             ]"
           >
             {{ requests.length }}
@@ -155,7 +166,7 @@
           :class="[
             'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             statusFilter === 'approved'
-              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              ? 'bg-white text-emerald-700 shadow-xs font-semibold'
               : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
@@ -163,7 +174,7 @@
           <span
             :class="[
               'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
-              statusFilter === 'approved' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+              statusFilter === 'approved' ? 'bg-emerald-50 text-emerald-700' : 'bg-zinc-200/70 text-zinc-500'
             ]"
           >
             {{ approvedCount }}
@@ -176,7 +187,7 @@
           :class="[
             'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             statusFilter === 'pending'
-              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              ? 'bg-white text-amber-700 shadow-xs font-semibold'
               : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
@@ -184,7 +195,7 @@
           <span
             :class="[
               'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
-              statusFilter === 'pending' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+              statusFilter === 'pending' ? 'bg-amber-50 text-amber-700' : 'bg-zinc-200/70 text-zinc-500'
             ]"
           >
             {{ pendingCount }}
@@ -219,14 +230,11 @@
           <Skeleton class="h-4 w-36" />
           <Skeleton class="h-3 w-20" />
         </div>
-        <div class="space-y-1.5 w-1/4">
-          <Skeleton class="h-4 w-32" />
-          <Skeleton class="h-3 w-24" />
-        </div>
+        <Skeleton class="h-4 w-16" />
+        <Skeleton class="h-4 w-16" />
         <Skeleton class="h-4 w-16" />
         <Skeleton class="h-4 w-28" />
         <Skeleton class="h-5 w-20 rounded-full" />
-        <Skeleton class="h-7 w-16 rounded-md" />
       </div>
     </div>
 
@@ -245,11 +253,11 @@
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow v-for="item in filteredRequests" :key="item.id" class="group">
+          <TableRow v-for="item in filteredRequests" :key="item.id" class="group hover:bg-blue-50/30 transition-colors">
             <TableCell class="py-3.5">
               <div
                 @click="openRequestDetail(item)"
-                class="font-semibold text-xs text-zinc-900 hover:text-blue-900 cursor-pointer transition-colors"
+                class="font-semibold text-xs text-zinc-900 hover:text-[#0c2340] cursor-pointer transition-colors"
               >
                 {{ item.posisi_dibutuhkan || item.position_name || item.position_title || 'Staff' }}
               </div>
@@ -279,11 +287,20 @@
               <div class="w-28 space-y-1">
                 <div class="flex items-center justify-between text-[10px] font-medium text-zinc-600">
                   <span>{{ item.fulfilled_count || 0 }}/{{ item.jumlah_karyawan_dibutuhkan || item.quantity || 1 }}</span>
-                  <span class="font-mono">{{ Math.min(100, Math.round(((item.fulfilled_count || 0) / (item.jumlah_karyawan_dibutuhkan || item.quantity || 1)) * 100)) }}%</span>
+                  <span class="font-mono font-semibold text-zinc-700">{{ Math.min(100, Math.round(((item.fulfilled_count || 0) / (item.jumlah_karyawan_dibutuhkan || item.quantity || 1)) * 100)) }}%</span>
                 </div>
                 <div class="w-full bg-zinc-100 rounded-full h-1.5 overflow-hidden">
                   <div
-                    class="bg-zinc-900 h-1.5 rounded-full transition-all duration-300"
+                    :class="[
+                      'h-1.5 rounded-full transition-all duration-300',
+                      Math.round(((item.fulfilled_count || 0) / (item.jumlah_karyawan_dibutuhkan || item.quantity || 1)) * 100) >= 100
+                        ? 'bg-emerald-500'
+                        : Math.round(((item.fulfilled_count || 0) / (item.jumlah_karyawan_dibutuhkan || item.quantity || 1)) * 100) >= 50
+                        ? 'bg-blue-600'
+                        : Math.round(((item.fulfilled_count || 0) / (item.jumlah_karyawan_dibutuhkan || item.quantity || 1)) * 100) > 0
+                        ? 'bg-amber-500'
+                        : 'bg-zinc-300'
+                    ]"
                     :style="{ width: `${Math.min(100, Math.round(((item.fulfilled_count || 0) / (item.jumlah_karyawan_dibutuhkan || item.quantity || 1)) * 100))}%` }"
                   ></div>
                 </div>
@@ -305,7 +322,7 @@
                 variant="outline"
                 size="xs"
                 @click="openRequestDetail(item)"
-                class="h-7 text-zinc-700 hover:text-zinc-900"
+                class="h-7 text-zinc-700 hover:text-blue-950 hover:bg-blue-50/60 hover:border-blue-300 transition-colors"
               >
                 Detail
               </Button>

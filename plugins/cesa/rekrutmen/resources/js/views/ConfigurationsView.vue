@@ -20,7 +20,7 @@
         :class="[
           'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0 flex items-center gap-1.5',
           activeTab === 'divisions'
-            ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+            ? 'bg-white text-[#0c2340] shadow-xs font-semibold'
             : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
         ]"
       >
@@ -28,7 +28,7 @@
         <span
           :class="[
             'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
-            activeTab === 'divisions' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+            activeTab === 'divisions' ? 'bg-blue-50 text-[#0c2340]' : 'bg-zinc-200/70 text-zinc-500'
           ]"
         >
           {{ divisions.length }}
@@ -41,7 +41,7 @@
         :class="[
           'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0 flex items-center gap-1.5',
           activeTab === 'stages'
-            ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+            ? 'bg-white text-[#0c2340] shadow-xs font-semibold'
             : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
         ]"
       >
@@ -49,7 +49,7 @@
         <span
           :class="[
             'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
-            activeTab === 'stages' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+            activeTab === 'stages' ? 'bg-blue-50 text-[#0c2340]' : 'bg-zinc-200/70 text-zinc-500'
           ]"
         >
           {{ stages.length }}
@@ -62,7 +62,7 @@
         :class="[
           'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0 flex items-center gap-1.5',
           activeTab === 'approvers'
-            ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+            ? 'bg-white text-[#0c2340] shadow-xs font-semibold'
             : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
         ]"
       >
@@ -70,7 +70,7 @@
         <span
           :class="[
             'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
-            activeTab === 'approvers' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+            activeTab === 'approvers' ? 'bg-blue-50 text-[#0c2340]' : 'bg-zinc-200/70 text-zinc-500'
           ]"
         >
           {{ approvers.length }}
@@ -83,7 +83,7 @@
         :class="[
           'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
           activeTab === 'ai'
-            ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+            ? 'bg-white text-[#0c2340] shadow-xs font-semibold'
             : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
         ]"
       >
@@ -96,7 +96,7 @@
         :class="[
           'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
           activeTab === 'mail_gateway'
-            ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+            ? 'bg-white text-[#0c2340] shadow-xs font-semibold'
             : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
         ]"
       >
@@ -109,7 +109,7 @@
         :class="[
           'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
           activeTab === 'whatsapp_gateway'
-            ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+            ? 'bg-white text-[#0c2340] shadow-xs font-semibold'
             : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
         ]"
       >
@@ -122,7 +122,7 @@
         :class="[
           'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap shrink-0',
           activeTab === 'mail_templates'
-            ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+            ? 'bg-white text-[#0c2340] shadow-xs font-semibold'
             : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
         ]"
       >
@@ -166,7 +166,7 @@
               size="sm"
               variant="default"
               @click="openDivisionModal()"
-              class="h-8 text-xs bg-zinc-900 hover:bg-zinc-800 text-white gap-1.5"
+              class="h-8 text-xs bg-[#0c2340] hover:bg-[#153459] text-white gap-1.5 shadow-xs"
             >
               <Plus class="w-3.5 h-3.5" />
               <span>Tambah Divisi</span>
@@ -240,11 +240,17 @@
       >
         <div class="p-4 border-b border-zinc-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-zinc-50/50">
           <div>
-            <div class="text-xs font-semibold text-zinc-800 uppercase tracking-wider">
-              Daftar Tahapan Seleksi Pelamar (Pipeline Stages)
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold text-zinc-800 uppercase tracking-wider">
+                Daftar Tahapan Seleksi Pelamar (Pipeline Stages)
+              </span>
+              <span v-if="isReorderingStages" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-[#0c2340] border border-blue-200 animate-pulse">
+                <RotateCw class="w-3 h-3 animate-spin" />
+                <span>Menyimpan urutan...</span>
+              </span>
             </div>
             <p class="text-[11px] text-zinc-500 mt-0.5">
-              Kelola nama dan alur tahapan seleksi kandidat pada pipeline rekrutmen.
+              Kelola nama dan alur tahapan seleksi kandidat pada pipeline rekrutmen. Drag & drop baris untuk memindahkan urutan alur seleksi.
             </p>
           </div>
           <div class="flex items-center gap-2">
@@ -252,7 +258,7 @@
               size="sm"
               variant="default"
               @click="openCreateStageModal"
-              class="h-8 text-xs bg-zinc-900 hover:bg-zinc-800 text-white gap-1.5 cursor-pointer"
+              class="h-8 text-xs bg-[#0c2340] hover:bg-[#153459] text-white gap-1.5 cursor-pointer shadow-xs"
             >
               <Plus class="w-3.5 h-3.5" />
               <span>Tambah Tahap</span>
@@ -262,7 +268,7 @@
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead class="w-20">Urutan</TableHead>
+              <TableHead class="w-24">Urutan</TableHead>
               <TableHead>Nama Tahap</TableHead>
               <TableHead>Warna Badge</TableHead>
               <TableHead>Total Kandidat Saat Ini</TableHead>
@@ -271,14 +277,38 @@
           </TableHeader>
           <TableBody>
             <TableRow
-              v-for="(stage, idx) in stages"
+              v-for="(stage, idx) in displayedStages"
               :key="stage.id"
-              class="hover:bg-zinc-50/80 transition-colors"
+              :draggable="!stage.is_locked"
+              @dragstart="handleStageDragStart(stage, idx, $event)"
+              @dragover.prevent="handleStageDragOver(stage, idx, $event)"
+              @dragleave="handleStageDragLeave(stage, idx, $event)"
+              @drop.prevent="handleStageDrop(stage, idx, $event)"
+              @dragend="handleStageDragEnd"
+              :class="[
+                'transition-all duration-150 select-none group',
+                !stage.is_locked ? 'cursor-grab active:cursor-grabbing' : 'cursor-default',
+                draggedStageIndex === idx ? 'opacity-35 bg-zinc-100 scale-[0.99]' : '',
+                dragOverStageIndex === idx && draggedStageIndex !== idx
+                  ? 'bg-blue-50/80 border-l-4 border-l-[#0c2340] ring-1 ring-blue-200'
+                  : 'hover:bg-zinc-50/80'
+              ]"
             >
               <TableCell class="font-bold text-zinc-500">
-                <span class="w-5 h-5 rounded-full bg-zinc-100 flex items-center justify-center text-[11px] font-mono text-zinc-700">
-                  {{ idx + 1 }}
-                </span>
+                <div class="flex items-center gap-2">
+                  <GripVertical
+                    :class="[
+                      'w-3.5 h-3.5 transition-colors shrink-0',
+                      stage.is_locked
+                        ? 'text-zinc-200 cursor-not-allowed'
+                        : 'text-zinc-400 group-hover:text-zinc-700 cursor-grab active:cursor-grabbing'
+                    ]"
+                    :title="stage.is_locked ? 'Tahapan final terkunci di akhir alur' : 'Klik dan geser untuk memindahkan urutan alur'"
+                  />
+                  <span class="w-5 h-5 rounded-full bg-zinc-100 flex items-center justify-center text-[11px] font-mono text-zinc-700">
+                    {{ idx + 1 }}
+                  </span>
+                </div>
               </TableCell>
               <TableCell>
                 <div class="flex items-center gap-2">
@@ -304,10 +334,10 @@
                 </Badge>
               </TableCell>
               <TableCell class="text-right whitespace-nowrap pr-4">
-                <div class="flex items-center justify-end gap-1">
+                <div class="flex items-center justify-end gap-1" draggable="false" @mousedown.stop>
                   <button
                     type="button"
-                    @click="openEditStageModal(stage)"
+                    @click.stop="openEditStageModal(stage)"
                     :disabled="stage.is_locked"
                     :class="[
                       'p-1.5 rounded-md transition-colors',
@@ -321,7 +351,7 @@
                   </button>
                   <button
                     type="button"
-                    @click="handleDeleteStage(stage)"
+                    @click.stop="handleDeleteStage(stage)"
                     :disabled="stage.is_locked"
                     :class="[
                       'p-1.5 rounded-md transition-colors',
@@ -336,7 +366,7 @@
                 </div>
               </TableCell>
             </TableRow>
-            <TableRow v-if="!stages.length">
+            <TableRow v-if="!displayedStages.length">
               <TableCell colspan="5" class="py-12 text-center text-xs text-zinc-500">
                 Belum ada tahapan pipeline terdaftar.
               </TableCell>
@@ -446,7 +476,7 @@
                 size="sm"
                 @click="saveAiSettings"
                 :disabled="isSavingAi"
-                class="bg-zinc-900 hover:bg-zinc-800 text-white gap-1.5"
+                class="bg-[#0c2340] hover:bg-[#153459] text-white gap-1.5 shadow-xs"
               >
                 <RotateCw v-if="isSavingAi" class="w-3.5 h-3.5 animate-spin" />
                 <span>{{ isSavingAi ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
@@ -558,7 +588,7 @@
                   size="sm"
                   @click="saveMailSettings"
                   :disabled="isSavingMail"
-                  class="h-9 bg-zinc-900 hover:bg-zinc-800 text-white gap-1.5"
+                  class="h-9 bg-[#0c2340] hover:bg-[#153459] text-white gap-1.5 shadow-xs"
                 >
                   <RotateCw v-if="isSavingMail" class="w-3.5 h-3.5 animate-spin" />
                   <span>{{ isSavingMail ? 'Menyimpan...' : 'Simpan SMTP' }}</span>
@@ -639,7 +669,7 @@
                   size="sm"
                   @click="startWhatsappConnect('pairing')"
                   :disabled="isConnectingWhatsapp"
-                  class="h-9 bg-zinc-900 hover:bg-zinc-800 text-white"
+                  class="h-9 bg-[#0c2340] hover:bg-[#153459] text-white shadow-xs"
                 >
                   {{ isConnectingWhatsapp ? 'Membuat kode...' : 'Dapatkan Kode Pairing' }}
                 </Button>
@@ -789,7 +819,7 @@
                 size="sm"
                 @click="sendWhatsappTest()"
                 :disabled="isTestingWhatsapp || !whatsappTest.accountId"
-                class="h-9 bg-zinc-900 hover:bg-zinc-800 text-white gap-1.5"
+                class="h-9 bg-[#0c2340] hover:bg-[#153459] text-white gap-1.5 shadow-xs"
               >
                 <RotateCw v-if="isTestingWhatsapp" class="w-3.5 h-3.5 animate-spin" />
                 <span>{{ isTestingWhatsapp ? 'Mengirim tes...' : 'Kirim Pesan Tes' }}</span>
@@ -817,7 +847,7 @@
             size="sm"
             @click="saveAllMailTemplates"
             :disabled="isSavingTemplates"
-            class="h-9 bg-zinc-900 hover:bg-zinc-800 text-white gap-1.5 shrink-0"
+            class="h-9 bg-[#0c2340] hover:bg-[#153459] text-white gap-1.5 shrink-0 shadow-xs"
           >
             <RotateCw v-if="isSavingTemplates" class="w-3.5 h-3.5 animate-spin" />
             <span>{{ isSavingTemplates ? 'Menyimpan...' : 'Simpan Semua Template' }}</span>
@@ -836,7 +866,7 @@
               :class="[
                 'w-full text-left px-3 py-2.5 rounded-lg text-xs transition-all cursor-pointer flex flex-col gap-1',
                 selectedTemplateKey === key
-                  ? 'bg-zinc-900 text-white font-semibold shadow-2xs'
+                  ? 'bg-[#0c2340] text-white font-semibold shadow-2xs'
                   : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 font-medium'
               ]"
             >
@@ -984,7 +1014,7 @@
               size="sm"
               variant="default"
               :disabled="divisionModal.isSubmitting"
-              class="bg-zinc-900 hover:bg-zinc-800 text-white min-w-[110px]"
+              class="bg-[#0c2340] hover:bg-[#153459] text-white min-w-[110px] shadow-xs"
             >
               <RotateCw v-if="divisionModal.isSubmitting" class="w-3.5 h-3.5 mr-1.5 animate-spin" />
               <span>{{ divisionModal.isSubmitting ? 'Menyimpan...' : (divisionModal.isEdit ? 'Simpan Perubahan' : 'Tambah Divisi') }}</span>
@@ -1037,7 +1067,7 @@
               size="sm"
               variant="default"
               :disabled="stageModal.isSubmitting"
-              class="bg-zinc-900 hover:bg-zinc-800 text-white min-w-[110px]"
+              class="bg-[#0c2340] hover:bg-[#153459] text-white min-w-[110px] shadow-xs"
             >
               <RotateCw v-if="stageModal.isSubmitting" class="w-3.5 h-3.5 mr-1.5 animate-spin" />
               <span>{{ stageModal.isSubmitting ? 'Menyimpan...' : (stageModal.isEdit ? 'Simpan Perubahan' : 'Tambah Tahap') }}</span>
@@ -1050,7 +1080,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRekrutmenStore } from '../stores/rekrutmen';
 import LoadingState from '../components/LoadingState.vue';
 import axios from 'axios';
@@ -1065,7 +1095,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 
-import { Plus, Pencil, Trash2, ChevronDown, RotateCw } from 'lucide-vue-next';
+import { Plus, Pencil, Trash2, ChevronDown, RotateCw, GripVertical } from 'lucide-vue-next';
 
 const store = useRekrutmenStore();
 const activeTab = ref('divisions');
@@ -1723,6 +1753,128 @@ onUnmounted(() => {
 const divisions = computed(() => store.configurations?.divisions || []);
 const stages = computed(() => store.stages || store.configurations?.stages || []);
 const approvers = computed(() => store.configurations?.approvers || []);
+
+// Drag and drop reordering for stages
+const localStages = ref([]);
+const draggedStage = ref(null);
+const draggedStageIndex = ref(null);
+const dragOverStageIndex = ref(null);
+const isReorderingStages = ref(false);
+
+const displayedStages = computed(() => {
+  return localStages.value.length ? localStages.value : stages.value;
+});
+
+watch(
+  () => stages.value,
+  (newVal) => {
+    if (!draggedStage.value && !isReorderingStages.value) {
+      localStages.value = (newVal || []).map(s => ({ ...s }));
+    }
+  },
+  { immediate: true, deep: true }
+);
+
+const handleStageDragStart = (stage, idx, event) => {
+  if (stage.is_locked) {
+    event.preventDefault();
+    return;
+  }
+  draggedStage.value = stage;
+  draggedStageIndex.value = idx;
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(stage.id));
+  }
+};
+
+const handleStageDragOver = (stage, idx, event) => {
+  if (draggedStageIndex.value === null || draggedStageIndex.value === idx) {
+    return;
+  }
+  if (stage.is_locked) {
+    return;
+  }
+  dragOverStageIndex.value = idx;
+};
+
+const handleStageDragLeave = (stage, idx, event) => {
+  if (dragOverStageIndex.value === idx) {
+    dragOverStageIndex.value = null;
+  }
+};
+
+const handleStageDrop = async (stage, targetIdx, event) => {
+  const sourceIdx = draggedStageIndex.value;
+  dragOverStageIndex.value = null;
+
+  if (sourceIdx === null || sourceIdx === targetIdx) {
+    draggedStage.value = null;
+    draggedStageIndex.value = null;
+    return;
+  }
+
+  // If dropped on locked stage, target is the slot right before the locked stage
+  let adjustedTargetIdx = targetIdx;
+  if (stage.is_locked) {
+    adjustedTargetIdx = Math.max(0, targetIdx - 1);
+    if (sourceIdx === adjustedTargetIdx) {
+      draggedStage.value = null;
+      draggedStageIndex.value = null;
+      return;
+    }
+  }
+
+  const list = [...displayedStages.value];
+  const [moved] = list.splice(sourceIdx, 1);
+  if (!moved) {
+    draggedStage.value = null;
+    draggedStageIndex.value = null;
+    return;
+  }
+
+  list.splice(adjustedTargetIdx, 0, moved);
+
+  list.forEach((item, i) => {
+    item.order_column = i + 1;
+  });
+
+  localStages.value = list;
+  draggedStage.value = null;
+  draggedStageIndex.value = null;
+
+  isReorderingStages.value = true;
+  try {
+    const stageIds = list.map(s => s.id);
+    const res = await store.reorderStages(stageIds);
+
+    Swal.fire({
+      title: 'Berhasil!',
+      text: res?.message || 'Urutan tahapan pipeline berhasil diperbarui.',
+      icon: 'success',
+      confirmButtonColor: '#0c2340',
+      timer: 2000,
+      customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-lg px-4 py-2 text-xs font-semibold' },
+    });
+  } catch (err) {
+    localStages.value = (stages.value || []).map(s => ({ ...s }));
+    Swal.fire({
+      title: 'Gagal Memindahkan Tahapan',
+      text: err.response?.data?.message || 'Terjadi kesalahan saat memindahkan tahapan pipeline.',
+      icon: 'error',
+      confirmButtonColor: '#e11d48',
+      customClass: { popup: 'rounded-2xl', confirmButton: 'rounded-lg px-4 py-2 text-xs font-semibold' },
+    });
+  } finally {
+    isReorderingStages.value = false;
+  }
+};
+
+const handleStageDragEnd = () => {
+  draggedStage.value = null;
+  draggedStageIndex.value = null;
+  dragOverStageIndex.value = null;
+};
 
 const divisionCompanies = computed(() => {
   if (store.configurations?.companies?.length) {

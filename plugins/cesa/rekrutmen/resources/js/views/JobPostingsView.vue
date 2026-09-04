@@ -68,87 +68,98 @@
       </div>
     </div>
 
-    <!-- Alert / Toast Banner -->
-    <transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="transform -translate-y-2 opacity-0"
-      enter-to-class="transform translate-y-0 opacity-100"
-      leave-active-class="transition duration-150 ease-in"
-      leave-from-class="transform translate-y-0 opacity-100"
-      leave-to-class="transform -translate-y-2 opacity-0"
-    >
-      <div
-        v-if="toastMessage"
-        :class="[
-          'p-3 rounded-lg border flex items-center justify-between text-xs font-medium shadow-2xs',
-          toastType === 'success'
-            ? 'bg-emerald-50/70 border-emerald-200 text-emerald-800'
-            : 'bg-rose-50/70 border-rose-200 text-rose-800'
-        ]"
+    <!-- Floating Toast Notification -->
+    <teleport to="body">
+      <transition
+        enter-active-class="transition duration-250 ease-out"
+        enter-from-class="transform translate-y-3 opacity-0 scale-95"
+        enter-to-class="transform translate-y-0 opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="transform translate-y-0 opacity-100 scale-100"
+        leave-to-class="transform translate-y-3 opacity-0 scale-95"
       >
-        <div class="flex items-center gap-2">
-          <CheckCircle2 v-if="toastType === 'success'" class="w-4 h-4 text-emerald-600 shrink-0" />
-          <AlertCircle v-else class="w-4 h-4 text-rose-600 shrink-0" />
-          <span>{{ toastMessage }}</span>
-        </div>
-        <button
-          @click="toastMessage = null"
-          class="text-zinc-400 hover:text-zinc-700 font-bold px-1 rounded hover:bg-zinc-200/50"
+        <div
+          v-if="toastMessage"
+          class="fixed bottom-6 right-6 z-50 max-w-sm w-auto p-3 rounded-xl border flex items-center gap-3 text-xs font-medium shadow-lg backdrop-blur-md"
+          :class="[
+            toastType === 'success'
+              ? 'bg-white/95 border-emerald-200 text-emerald-900 shadow-emerald-950/10'
+              : 'bg-white/95 border-rose-200 text-rose-900 shadow-rose-950/10'
+          ]"
         >
-          &times;
-        </button>
-      </div>
-    </transition>
+          <div :class="['w-7 h-7 rounded-lg flex items-center justify-center shrink-0', toastType === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700']">
+            <CheckCircle2 v-if="toastType === 'success'" class="w-4 h-4" />
+            <AlertCircle v-else class="w-4 h-4" />
+          </div>
+          <span class="pr-2">{{ toastMessage }}</span>
+          <button
+            type="button"
+            @click="toastMessage = null"
+            class="text-zinc-400 hover:text-zinc-700 font-bold p-1 rounded-md hover:bg-zinc-100 cursor-pointer ml-auto"
+          >
+            &times;
+          </button>
+        </div>
+      </transition>
+    </teleport>
 
-    <!-- KPI Summary Metrics (New York Style Clean Cards) -->
+    <!-- KPI Summary Metrics (Polished Brand-Aligned Cards) -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-      <Card class="hover:border-zinc-300">
+      <Card class="hover:border-blue-200 hover:shadow-xs transition-all duration-200 bg-white">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Total Lowongan</span>
-          <Briefcase class="w-4 h-4 text-zinc-400" />
+          <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+            <Briefcase class="w-4 h-4" />
+          </div>
         </CardHeader>
         <CardContent class="p-4 pt-0">
           <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ postings.length }}</div>
-          <p class="text-[11px] text-zinc-400 mt-0.5">
+          <p class="text-[11px] text-zinc-500 mt-0.5">
             {{ totalNeededPositions }} total kuota posisi dibutuhkan
           </p>
         </CardContent>
       </Card>
 
-      <Card class="hover:border-zinc-300">
+      <Card class="hover:border-emerald-200 hover:shadow-xs transition-all duration-200 bg-white">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Tayang Aktif</span>
-          <CheckCircle2 class="w-4 h-4 text-zinc-400" />
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+            <CheckCircle2 class="w-4 h-4" />
+          </div>
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ publishedCount }}</div>
-          <p class="text-[11px] text-zinc-400 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-emerald-700">{{ publishedCount }}</div>
+          <p class="text-[11px] text-zinc-500 mt-0.5">
             Tersedia untuk pelamar publik
           </p>
         </CardContent>
       </Card>
 
-      <Card class="hover:border-zinc-300">
+      <Card class="hover:border-amber-200 hover:shadow-xs transition-all duration-200 bg-white">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Draft Lowongan</span>
-          <Clock class="w-4 h-4 text-zinc-400" />
+          <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+            <Clock class="w-4 h-4" />
+          </div>
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ draftCount }}</div>
-          <p class="text-[11px] text-zinc-400 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-amber-700">{{ draftCount }}</div>
+          <p class="text-[11px] text-zinc-500 mt-0.5">
             Belum dipublikasikan ke publik
           </p>
         </CardContent>
       </Card>
 
-      <Card class="hover:border-zinc-300">
+      <Card class="hover:border-indigo-200 hover:shadow-xs transition-all duration-200 bg-white">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Total Pelamar</span>
-          <Users class="w-4 h-4 text-zinc-400" />
+          <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0">
+            <Users class="w-4 h-4" />
+          </div>
         </CardHeader>
         <CardContent class="p-4 pt-0">
           <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ totalApplicationsCount }}</div>
-          <p class="text-[11px] text-zinc-400 mt-0.5">
+          <p class="text-[11px] text-zinc-500 mt-0.5">
             Akumulasi lamaran kandidat
           </p>
         </CardContent>
@@ -165,7 +176,7 @@
           :class="[
             'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             statusFilter === 'all'
-              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              ? 'bg-white text-[#0c2340] shadow-xs font-semibold'
               : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
@@ -173,7 +184,7 @@
           <span
             :class="[
               'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
-              statusFilter === 'all' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+              statusFilter === 'all' ? 'bg-blue-50 text-[#0c2340]' : 'bg-zinc-200/70 text-zinc-500'
             ]"
           >
             {{ postings.length }}
@@ -186,7 +197,7 @@
           :class="[
             'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             statusFilter === 'published'
-              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              ? 'bg-white text-emerald-700 shadow-xs font-semibold'
               : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
@@ -194,7 +205,7 @@
           <span
             :class="[
               'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
-              statusFilter === 'published' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+              statusFilter === 'published' ? 'bg-emerald-50 text-emerald-700' : 'bg-zinc-200/70 text-zinc-500'
             ]"
           >
             {{ publishedCount }}
@@ -207,7 +218,7 @@
           :class="[
             'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             statusFilter === 'draft'
-              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              ? 'bg-white text-amber-700 shadow-xs font-semibold'
               : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
@@ -215,7 +226,7 @@
           <span
             :class="[
               'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
-              statusFilter === 'draft' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+              statusFilter === 'draft' ? 'bg-amber-50 text-amber-700' : 'bg-zinc-200/70 text-zinc-500'
             ]"
           >
             {{ draftCount }}
@@ -290,13 +301,13 @@
       <Card
         v-for="job in filteredPostings"
         :key="job.id"
-        class="flex flex-col justify-between hover:border-zinc-300 hover:shadow-sm transition-all duration-150 group"
+        class="flex flex-col justify-between hover:border-blue-200 hover:shadow-md transition-all duration-200 group bg-white"
       >
         <CardHeader class="p-5 pb-3.5 space-y-3">
           <!-- Top Row: Company Badge & Status Badge & Actions -->
           <div class="flex items-start justify-between gap-2">
             <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-[11px] font-medium text-zinc-500 truncate block">
+              <span class="text-[11px] font-medium text-blue-900/70 truncate block">
                 {{ job.company_name || 'PT Complete Selular Group' }}
               </span>
             </div>
@@ -309,12 +320,12 @@
                 :class="[
                   'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-medium border transition-colors cursor-pointer select-none',
                   job.is_published
-                    ? 'bg-zinc-50 border-zinc-200 text-zinc-800 hover:bg-zinc-100 hover:text-zinc-900'
-                    : 'bg-zinc-50/60 border-zinc-200/70 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600'
+                    ? 'bg-emerald-50/80 border-emerald-200/80 text-emerald-800 hover:bg-emerald-100'
+                    : 'bg-zinc-50 border-zinc-200 text-zinc-500 hover:bg-zinc-100'
                 ]"
                 :title="job.is_published ? 'Klik untuk jadikan Draft' : 'Klik untuk Tayangkan'"
               >
-                <span :class="['w-1.5 h-1.5 rounded-full shrink-0', job.is_published ? 'bg-emerald-500' : 'bg-zinc-300']"></span>
+                <span :class="['w-1.5 h-1.5 rounded-full shrink-0', job.is_published ? 'bg-emerald-500' : 'bg-zinc-400']"></span>
                 <span>{{ job.is_published ? 'Tayang' : 'Draft' }}</span>
               </button>
 
@@ -374,7 +385,7 @@
           <div>
             <h2
               @click="openEditSheet(job)"
-              class="text-sm font-semibold text-zinc-900 group-hover:text-blue-900 transition-colors cursor-pointer leading-snug tracking-tight"
+              class="text-sm font-semibold text-zinc-900 group-hover:text-[#0c2340] transition-colors cursor-pointer leading-snug tracking-tight"
             >
               {{ job.title }}
             </h2>
@@ -385,13 +396,13 @@
           </div>
 
           <!-- Metadata Chips -->
-          <div class="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-zinc-600">
-            <div class="inline-flex items-center gap-1 bg-zinc-100/70 border border-zinc-200/80 px-2 py-0.5 rounded text-zinc-700">
-              <Briefcase class="w-3 h-3 text-zinc-400" />
+          <div class="flex flex-wrap items-center gap-2 pt-1 text-[11px]">
+            <div class="inline-flex items-center gap-1.5 bg-blue-50/70 border border-blue-200/60 px-2 py-0.5 rounded-md text-blue-900 font-medium">
+              <Briefcase class="w-3 h-3 text-blue-600" />
               <span>{{ job.needed_count || 1 }} Kuota Posisi</span>
             </div>
-            <div class="inline-flex items-center gap-1 bg-zinc-100/70 border border-zinc-200/80 px-2 py-0.5 rounded text-zinc-700">
-              <Users class="w-3 h-3 text-zinc-400" />
+            <div class="inline-flex items-center gap-1.5 bg-indigo-50/70 border border-indigo-200/60 px-2 py-0.5 rounded-md text-indigo-900 font-medium">
+              <Users class="w-3 h-3 text-indigo-600" />
               <span>{{ job.applications_count || 0 }} Pelamar</span>
             </div>
           </div>
@@ -408,9 +419,9 @@
             :to="{ path: '/admin/job-applications', query: { job_id: job.id } }"
             class="inline-flex"
           >
-            <Button variant="outline" size="xs" class="font-medium text-zinc-700 hover:text-zinc-900">
+            <Button variant="outline" size="xs" class="font-medium text-blue-950 border-blue-200/80 bg-blue-50/40 hover:bg-blue-100/70 hover:border-blue-300 transition-colors">
               <span>Pelamar</span>
-              <ArrowRight class="w-3 h-3 ml-0.5" />
+              <ArrowRight class="w-3 h-3 ml-0.5 text-blue-700" />
             </Button>
           </router-link>
         </CardFooter>
@@ -434,11 +445,11 @@
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow v-for="job in filteredPostings" :key="job.id" class="group">
+          <TableRow v-for="job in filteredPostings" :key="job.id" class="group hover:bg-blue-50/30 transition-colors">
             <TableCell class="py-3.5">
               <div
                 @click="openEditSheet(job)"
-                class="font-semibold text-zinc-900 hover:text-blue-900 cursor-pointer text-xs transition-colors"
+                class="font-semibold text-zinc-900 hover:text-[#0c2340] cursor-pointer text-xs transition-colors"
               >
                 {{ job.title }}
               </div>
@@ -464,12 +475,12 @@
                 :class="[
                   'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-medium border transition-colors cursor-pointer select-none',
                   job.is_published
-                    ? 'bg-zinc-50 border-zinc-200 text-zinc-800 hover:bg-zinc-100 hover:text-zinc-900'
-                    : 'bg-zinc-50/60 border-zinc-200/70 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600'
+                    ? 'bg-emerald-50/80 border-emerald-200/80 text-emerald-800 hover:bg-emerald-100'
+                    : 'bg-zinc-50 border-zinc-200 text-zinc-500 hover:bg-zinc-100'
                 ]"
                 :title="job.is_published ? 'Klik untuk jadikan Draft' : 'Klik untuk Tayangkan'"
               >
-                <span :class="['w-1.5 h-1.5 rounded-full shrink-0', job.is_published ? 'bg-emerald-500' : 'bg-zinc-300']"></span>
+                <span :class="['w-1.5 h-1.5 rounded-full shrink-0', job.is_published ? 'bg-emerald-500' : 'bg-zinc-400']"></span>
                 <span>{{ job.is_published ? 'Tayang' : 'Draft' }}</span>
               </button>
             </TableCell>
@@ -485,7 +496,7 @@
             <TableCell class="py-3.5 text-right whitespace-nowrap">
               <div class="inline-flex items-center gap-1.5">
                 <router-link :to="{ path: '/admin/job-applications', query: { job_id: job.id } }">
-                  <Button variant="ghost" size="xs" class="h-7 text-zinc-600 hover:text-zinc-900">
+                  <Button variant="ghost" size="xs" class="h-7 text-blue-900 hover:text-blue-950 hover:bg-blue-50/60">
                     Pelamar
                   </Button>
                 </router-link>
@@ -494,7 +505,7 @@
                   variant="outline"
                   size="xs"
                   @click="openEditSheet(job)"
-                  class="h-7 text-zinc-700"
+                  class="h-7 text-zinc-700 hover:text-zinc-950"
                 >
                   Edit
                 </Button>
@@ -536,17 +547,17 @@
     </Card>
 
     <!-- SLIDE-OVER SHEET: Linear/Stripe Style Drawer -->
-    <Sheet :open="isSheetOpen" @update:open="(val) => { isSheetOpen = val; if (!val) editingJob = null; }">
+    <Sheet :open="isSheetOpen" @update:open="handleSheetUpdate">
       <SheetContent class="sm:max-w-xl">
         <SheetHeader>
           <div class="flex items-center gap-2">
-            <SheetTitle>{{ isEditMode ? 'Edit Lowongan Pekerjaan' : 'Tambah Lowongan Baru' }}</SheetTitle>
+            <SheetTitle>{{ isEditMode ? 'Detail Lowongan Pekerjaan' : 'Tambah Lowongan Baru' }}</SheetTitle>
             <Badge v-if="selectedCompanyName" variant="secondary" class="text-[10px] font-normal truncate max-w-[200px]">
               {{ selectedCompanyName }}
             </Badge>
           </div>
           <SheetDescription>
-            {{ isEditMode ? 'Perbarui informasi posisi, kualifikasi, kuota, dan status tayang portal karir.' : 'Buat dan publikasikan posisi lowongan pekerjaan baru ke portal karir.' }}
+            {{ isEditMode ? 'Informasi posisi, kualifikasi, kuota, dan status tayang portal karir.' : 'Buat dan publikasikan posisi lowongan pekerjaan baru ke portal karir.' }}
           </SheetDescription>
         </SheetHeader>
 
@@ -734,7 +745,7 @@
               size="sm"
               variant="default"
               :disabled="isSubmitting"
-              class="bg-zinc-900 hover:bg-zinc-800 text-white min-w-[130px]"
+              class="bg-[#0c2340] hover:bg-[#153459] text-white shadow-xs min-w-[130px]"
             >
               <RotateCw v-if="isSubmitting" class="w-3.5 h-3.5 mr-1.5 animate-spin" />
               <span>{{ isSubmitting ? 'Menyimpan...' : (isEditMode ? 'Simpan Perubahan' : 'Terbitkan Lowongan') }}</span>
@@ -747,7 +758,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useRekrutmenStore } from '../stores/rekrutmen';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
@@ -789,6 +801,8 @@ import {
 } from 'lucide-vue-next';
 
 const store = useRekrutmenStore();
+const route = useRoute();
+const router = useRouter();
 
 const isLoading = ref(true);
 const isRefreshing = ref(false);
@@ -836,6 +850,7 @@ onMounted(async () => {
       store.fetchPostings('', false),
       store.fetchCompanies(),
     ]);
+    checkRouteForJob();
   } catch (e) {
     console.error('Error fetching job postings data:', e);
   } finally {
@@ -846,6 +861,13 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('click', closeDropdown);
 });
+
+watch(
+  () => [route.query.job_id, route.query.id, postings.value],
+  () => {
+    checkRouteForJob();
+  }
+);
 
 const refreshData = async () => {
   isRefreshing.value = true;
@@ -987,9 +1009,31 @@ const openEditSheet = (job) => {
   isSheetOpen.value = true;
 };
 
+const checkRouteForJob = () => {
+  const targetId = route.query.job_id || route.query.id;
+  if (!targetId || !postings.value?.length) return;
+  const job = postings.value.find(j => String(j.id) === String(targetId));
+  if (job) {
+    statusFilter.value = 'all';
+    companyFilter.value = 'all';
+    if (!editingJob.value || editingJob.value.id !== job.id) {
+      openEditSheet(job);
+    }
+  }
+};
+
+const handleSheetUpdate = (val) => {
+  isSheetOpen.value = val;
+  if (!val) {
+    editingJob.value = null;
+    if (route.query.job_id || route.query.id) {
+      router.replace({ path: route.path, query: {} });
+    }
+  }
+};
+
 const closeSheet = () => {
-  isSheetOpen.value = false;
-  editingJob.value = null;
+  handleSheetUpdate(false);
 };
 
 const handleThumbnailChange = (e) => {

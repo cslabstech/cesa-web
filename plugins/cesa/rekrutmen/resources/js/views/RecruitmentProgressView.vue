@@ -33,7 +33,7 @@
           size="sm"
           @click="exportExcel"
           :disabled="isExporting"
-          class="bg-zinc-900 hover:bg-zinc-800 text-white text-xs h-8 gap-1.5"
+          class="bg-[#0c2340] hover:bg-[#153459] text-white text-xs h-8 gap-1.5 shadow-xs"
         >
           <RotateCw v-if="isExporting" class="w-3.5 h-3.5 animate-spin" />
           <FileSpreadsheet v-else class="w-3.5 h-3.5" />
@@ -42,44 +42,49 @@
       </div>
     </div>
 
-    <!-- Alert / Toast Banner -->
-    <transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="transform -translate-y-2 opacity-0"
-      enter-to-class="transform translate-y-0 opacity-100"
-      leave-active-class="transition duration-150 ease-in"
-      leave-from-class="transform translate-y-0 opacity-100"
-      leave-to-class="transform -translate-y-2 opacity-0"
-    >
-      <div
-        v-if="toastMessage"
-        :class="[
-          'p-3 rounded-lg border flex items-center justify-between text-xs font-medium shadow-2xs',
-          toastType === 'success'
-            ? 'bg-emerald-50/70 border-emerald-200 text-emerald-800'
-            : 'bg-rose-50/70 border-rose-200 text-rose-800'
-        ]"
+    <!-- Floating Toast Notification -->
+    <teleport to="body">
+      <transition
+        enter-active-class="transition duration-250 ease-out"
+        enter-from-class="transform translate-y-3 opacity-0 scale-95"
+        enter-to-class="transform translate-y-0 opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="transform translate-y-0 opacity-100 scale-100"
+        leave-to-class="transform translate-y-3 opacity-0 scale-95"
       >
-        <div class="flex items-center gap-2">
-          <CheckCircle2 v-if="toastType === 'success'" class="w-4 h-4 text-emerald-600 shrink-0" />
-          <AlertCircle v-else class="w-4 h-4 text-rose-600 shrink-0" />
-          <span>{{ toastMessage }}</span>
-        </div>
-        <button
-          @click="toastMessage = null"
-          class="text-zinc-400 hover:text-zinc-700 font-bold px-1 rounded hover:bg-zinc-200/50"
+        <div
+          v-if="toastMessage"
+          class="fixed bottom-6 right-6 z-50 max-w-sm w-auto p-3 rounded-xl border flex items-center gap-3 text-xs font-medium shadow-lg backdrop-blur-md"
+          :class="[
+            toastType === 'success'
+              ? 'bg-white/95 border-emerald-200 text-emerald-900 shadow-emerald-950/10'
+              : 'bg-white/95 border-rose-200 text-rose-900 shadow-rose-950/10'
+          ]"
         >
-          &times;
-        </button>
-      </div>
-    </transition>
+          <div :class="['w-7 h-7 rounded-lg flex items-center justify-center shrink-0', toastType === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700']">
+            <CheckCircle2 v-if="toastType === 'success'" class="w-4 h-4" />
+            <AlertCircle v-else class="w-4 h-4" />
+          </div>
+          <span class="pr-2">{{ toastMessage }}</span>
+          <button
+            type="button"
+            @click="toastMessage = null"
+            class="text-zinc-400 hover:text-zinc-700 font-bold p-1 rounded-md hover:bg-zinc-100 cursor-pointer ml-auto"
+          >
+            &times;
+          </button>
+        </div>
+      </transition>
+    </teleport>
 
-    <!-- KPI Summary Metrics (New York Style Clean Cards) -->
+    <!-- KPI Summary Metrics (Polished Brand-Aligned Cards) -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-      <Card class="hover:border-zinc-300">
+      <Card class="hover:border-blue-200 hover:shadow-xs transition-all duration-200 bg-white">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Posisi Dipantau</span>
-          <Briefcase class="w-4 h-4 text-zinc-400" />
+          <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+            <Briefcase class="w-4 h-4" />
+          </div>
         </CardHeader>
         <CardContent class="p-4 pt-0">
           <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ positions.length }}</div>
@@ -89,10 +94,12 @@
         </CardContent>
       </Card>
 
-      <Card class="hover:border-zinc-300">
+      <Card class="hover:border-indigo-200 hover:shadow-xs transition-all duration-200 bg-white">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Target Kebutuhan</span>
-          <Users class="w-4 h-4 text-zinc-400" />
+          <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0">
+            <Users class="w-4 h-4" />
+          </div>
         </CardHeader>
         <CardContent class="p-4 pt-0">
           <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ totalNeeded }}</div>
@@ -102,27 +109,31 @@
         </CardContent>
       </Card>
 
-      <Card class="hover:border-zinc-300">
+      <Card class="hover:border-amber-200 hover:shadow-xs transition-all duration-200 bg-white">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Dalam Proses</span>
-          <Clock class="w-4 h-4 text-zinc-400" />
+          <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+            <Clock class="w-4 h-4" />
+          </div>
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ totalInProcess }}</div>
-          <p class="text-[11px] text-zinc-400 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-amber-700">{{ totalInProcess }}</div>
+          <p class="text-[11px] text-zinc-500 mt-0.5">
             Kandidat sedang diseleksi
           </p>
         </CardContent>
       </Card>
 
-      <Card class="hover:border-zinc-300">
+      <Card class="hover:border-emerald-200 hover:shadow-xs transition-all duration-200 bg-white">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Terpenuhi (Hired)</span>
-          <CheckCircle2 class="w-4 h-4 text-zinc-400" />
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+            <CheckCircle2 class="w-4 h-4" />
+          </div>
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ totalHired }}</div>
-          <p class="text-[11px] text-zinc-400 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-emerald-700">{{ totalHired }}</div>
+          <p class="text-[11px] text-zinc-500 mt-0.5">
             Kandidat telah diterima kerja
           </p>
         </CardContent>
@@ -188,15 +199,21 @@
           <TableRow
             v-for="item in filteredPositions"
             :key="item.job_posting_id"
-            class="group hover:bg-zinc-50/80 transition-colors"
+            @click="navigateToJob(item)"
+            class="group hover:bg-blue-50/40 transition-colors cursor-pointer"
+            title="Klik untuk melihat data pelamar posisi ini"
           >
             <!-- Posisi -->
             <TableCell class="py-3.5">
-              <div class="font-semibold text-xs text-zinc-900">
+              <div class="font-semibold text-xs text-zinc-900 group-hover:text-[#0c2340] group-hover:underline transition-colors">
                 {{ item.position }}
               </div>
-              <div class="text-[11px] text-zinc-400 font-mono mt-0.5">
-                ID #{{ item.job_posting_id }}
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <span class="inline-flex items-center text-[10px] font-mono font-medium text-blue-900 bg-blue-50/80 px-1.5 py-0.5 rounded border border-blue-200/60">
+                  ID #{{ item.id || item.job_posting_id }}
+                </span>
+                <span class="text-zinc-400 text-[10px]">&bull;</span>
+                <span class="text-zinc-500 text-[10px] group-hover:text-blue-700">Lihat Pelamar &rarr;</span>
               </div>
             </TableCell>
 
@@ -236,11 +253,20 @@
               <div class="w-32 space-y-1">
                 <div class="flex items-center justify-between text-[10px] font-medium text-zinc-600">
                   <span>{{ item.hired }}/{{ item.needed }}</span>
-                  <span class="font-mono">{{ item.fulfillment_percentage || 0 }}%</span>
+                  <span class="font-mono font-semibold text-zinc-700">{{ item.fulfillment_percentage || 0 }}%</span>
                 </div>
                 <div class="w-full bg-zinc-100 rounded-full h-1.5 overflow-hidden">
                   <div
-                    class="bg-zinc-900 h-1.5 rounded-full transition-all duration-300"
+                    :class="[
+                      'h-1.5 rounded-full transition-all duration-300',
+                      item.fulfillment_percentage >= 100
+                        ? 'bg-emerald-500'
+                        : item.fulfillment_percentage >= 50
+                        ? 'bg-blue-600'
+                        : item.fulfillment_percentage > 0
+                        ? 'bg-amber-500'
+                        : 'bg-zinc-300'
+                    ]"
                     :style="{ width: `${Math.min(item.fulfillment_percentage || 0, 100)}%` }"
                   ></div>
                 </div>
@@ -249,7 +275,11 @@
 
             <!-- Status Health -->
             <TableCell class="py-3.5 text-right">
-              <Badge :variant="getHealthBadgeVariant(item)">
+              <Badge
+                :variant="getHealthBadgeVariant(item)"
+                class="w-20 justify-center text-center font-medium"
+                :title="item.cycle_health_summary || item.cycle_health_desc || ''"
+              >
                 {{ getHealthBadgeLabel(item) }}
               </Badge>
             </TableCell>
@@ -268,6 +298,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import axios from 'axios';
 import { useRekrutmenStore } from '../stores/rekrutmen';
 
@@ -293,6 +324,16 @@ import {
 } from 'lucide-vue-next';
 
 const store = useRekrutmenStore();
+const router = useRouter();
+
+const navigateToJob = (item) => {
+  const id = item?.id || item?.job_posting_id;
+  if (!id) return;
+  router.push({
+    path: '/admin/job-applications',
+    query: { id: id, job_id: id }
+  });
+};
 
 const isLoading = ref(true);
 const isRefreshing = ref(false);
