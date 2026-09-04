@@ -1018,9 +1018,19 @@ class RekrutmenSpaController extends Controller
         $jobDescription = trim($job?->description ?? '');
         $jobLocation = trim($job?->location ?? '');
 
-        // 1. Extract genuine text from candidate's uploaded CV file
+        // 1. Resolve CV document file (PDF preferred for native Gemini multimodal analysis)
+        $cvPhysicalPath = $this->getCvPhysicalPath($application);
+        $pdfBase64 = null;
+        if ($cvPhysicalPath && strtolower(pathinfo($cvPhysicalPath, PATHINFO_EXTENSION)) === 'pdf') {
+            $pdfContent = @file_get_contents($cvPhysicalPath);
+            if (! empty($pdfContent) && strlen($pdfContent) <= 15 * 1024 * 1024) {
+                $pdfBase64 = base64_encode($pdfContent);
+            }
+        }
+
+        // Extract textual content for fallback / offline matching
         $cvText = $this->extractTextFromCvDocument($application);
-        $hasRealCv = ! empty($cvText);
+        $hasRealCv = ! empty($pdfBase64) || ! empty($cvText);
 
         // If candidate has no readable CV document
         if (! $hasRealCv) {
@@ -1037,6 +1047,16 @@ class RekrutmenSpaController extends Controller
             $domicile = $application->address_domicile ?? $application->address_ktp ?? '-';
             $gender = $application->gender ? (is_object($application->gender) ? (method_exists($application->gender, 'getLabel') ? $application->gender->getLabel() : $application->gender->name) : (string) $application->gender) : '-';
 
+            $cvContentPrompt = '';
+            if (! empty($pdfBase64)) {
+                $cvContentPrompt = 'Dokumen CV asli dalam format PDF telah dilampirkan langsung pada input analisis ini. Bacalah seluruh isi dokumen CV PDF tersebut secara mendalam (pengalaman kerja, riwayat proyek, keahlian teknis/hard skills, soft skills, pendidikan, dan sertifikasi).';
+                if (! empty($cvText) && strlen($cvText) > 40 && $this->isSensibleText($cvText)) {
+                    $cvContentPrompt .= "\n\nCatatan teks pelengkap yang terbaca:\n".substr($cvText, 0, 3000);
+                }
+            } else {
+                $cvContentPrompt = "Isi Teks CV / Resume:\n".$cvText;
+            }
+
             $prompt = <<<PROMPT
 Anda adalah seorang HR Expert dan ATS (Applicant Tracking System) Screener profesional.
 Tugas Anda adalah melakukan evaluasi mendalam dan membandingkan secara komparatif antara isi dokumen CV/Resume Pelamar dengan Kualifikasi & Persyaratan posisi lowongan pekerjaan yang dilamar.
@@ -1050,12 +1070,11 @@ Deskripsi Pekerjaan:
 Kualifikasi & Persyaratan:
 {$jobRequirements}
 
-=== DATA PELAMAR & TEKS CV ===
+=== DATA PELAMAR & DOKUMEN CV ===
 Nama Pelamar : {$candidateName}
 Domisili     : {$domicile}
 Jenis Kelamin: {$gender}
-Isi Ekstraksi Teks CV / Resume:
-{$cvText}
+{$cvContentPrompt}
 
 === INSTRUKSI EVALUASI KOMPARATIF ===
 1. Bandingkan secara cermat setiap poin Kualifikasi & Persyaratan lowongan terhadap data di CV pelamar (keahlian teknis/hard skills, latar belakang pendidikan, pengalaman kerja yang relevan, soft skills, dan domisili).
@@ -1082,7 +1101,7 @@ Keluarkan HANYA JSON valid tanpa format markdown atau teks pembuka lainnya:
 }
 PROMPT;
 
-            $geminiResponse = self::callGeminiApi($apiKey, $prompt, 25);
+            $geminiResponse = self::callGeminiApi($apiKey, $prompt, 30, $pdfBase64);
             if ($geminiResponse) {
                 $parsed = $this->parseAiJsonResponse($geminiResponse);
                 if ($parsed && isset($parsed['score']) && isset($parsed['recommendation'])) {
@@ -1279,14 +1298,14 @@ PROMPT;
     }
 
     /**
-     * Extract clean textual content from candidate CV file (supports PDF & uncompressed text).
+     * Resolve the candidate's CV file physical path on disk.
      */
-    private function extractTextFromCvDocument(JobApplication $application): string
+    private function getCvPhysicalPath(JobApplication $application): ?string
     {
         $this->resolveAndSyncCandidateCv($application);
 
         if (empty($application->resume_path)) {
-            return '';
+            return null;
         }
 
         $relativePath = ltrim($application->resume_path, '/');
@@ -1297,14 +1316,59 @@ PROMPT;
             public_path($relativePath),
         ];
 
-        $targetPath = null;
         foreach ($candidatePaths as $p) {
             if (file_exists($p) && is_readable($p)) {
-                $targetPath = $p;
-                break;
+                return $p;
             }
         }
 
+        return null;
+    }
+
+    /**
+     * Determine if an extracted text snippet is genuine human-readable text rather than corrupted/unmapped glyph symbols.
+     */
+    private function isSensibleText(string $text): bool
+    {
+        $len = strlen($text);
+        if ($len < 30) {
+            return false;
+        }
+        if (str_contains($text, '%PDF-') || str_contains($text, 'endobj') || str_contains($text, 'xref')) {
+            return false;
+        }
+
+        // Check ratio of alphanumeric characters vs all non-whitespace
+        $alphaCount = preg_match_all('/[a-zA-Z0-9]/', $text);
+        $totalNonSpace = preg_match_all('/\S/', $text);
+        if ($totalNonSpace > 0 && ($alphaCount / $totalNonSpace) < 0.5) {
+            return false;
+        }
+
+        // Check single-letter word ratio: unmapped fonts produce sequences like "D C c t 3 D j 3" or "# # ( ) + ,"
+        $words = preg_split('/\s+/', trim($text));
+        $totalWords = count($words);
+        if ($totalWords > 20) {
+            $singleLetterCount = 0;
+            foreach ($words as $w) {
+                if (mb_strlen($w) <= 1) {
+                    $singleLetterCount++;
+                }
+            }
+            if (($singleLetterCount / $totalWords) > 0.55) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Extract clean textual content from candidate CV file (supports PDF & uncompressed text).
+     */
+    private function extractTextFromCvDocument(JobApplication $application): string
+    {
+        $targetPath = $this->getCvPhysicalPath($application);
         if (! $targetPath) {
             return '';
         }
@@ -1318,15 +1382,54 @@ PROMPT;
 
         // Extract and uncompress FlateDecode streams from PDF
         if (preg_match_all('/stream[\r\n]+(.*?)[\r\n]+endstream/is', $content, $matches)) {
+            // First pass: extract any character maps (CMap / ToUnicode / bfchar / bfrange)
+            $cmaps = [];
+            foreach ($matches[1] as $stream) {
+                $uncompressed = @gzuncompress($stream);
+                if ($uncompressed === false) {
+                    $uncompressed = @gzinflate($stream);
+                }
+                if ($uncompressed !== false && str_contains($uncompressed, 'beginbfchar')) {
+                    if (preg_match_all('/<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>/', $uncompressed, $bf)) {
+                        foreach ($bf[1] as $idx => $src) {
+                            $decodedChar = @hex2bin($bf[2][$idx]);
+                            if ($decodedChar !== false) {
+                                $cmaps[strtolower($src)] = @mb_convert_encoding($decodedChar, 'UTF-8', 'UTF-16BE');
+                            }
+                        }
+                    }
+                }
+                if ($uncompressed !== false && str_contains($uncompressed, 'beginbfrange')) {
+                    if (preg_match_all('/<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>/', $uncompressed, $bfr)) {
+                        foreach ($bfr[1] as $idx => $start) {
+                            $startCode = hexdec($start);
+                            $endCode = hexdec($bfr[2][$idx]);
+                            $targetStart = hexdec($bfr[3][$idx]);
+                            for ($c = $startCode; $c <= $endCode; $c++) {
+                                $src = sprintf('%0'.strlen($start).'x', $c);
+                                $tgt = sprintf('%04x', $targetStart + ($c - $startCode));
+                                $decodedChar = @hex2bin($tgt);
+                                if ($decodedChar !== false) {
+                                    $cmaps[strtolower($src)] = @mb_convert_encoding($decodedChar, 'UTF-8', 'UTF-16BE');
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Second pass: extract text from streams (supporting literal string and hex CMap operators)
             foreach ($matches[1] as $stream) {
                 $uncompressed = @gzuncompress($stream);
                 if ($uncompressed === false) {
                     $uncompressed = @gzinflate($stream);
                 }
                 if ($uncompressed !== false) {
+                    // Standard ASCII literal strings: (text) Tj
                     if (preg_match_all('/\((.*?)\)\s*Tj/s', $uncompressed, $textMatches)) {
                         $extractedText .= ' '.implode('', $textMatches[1]);
                     }
+                    // Array of literal strings: [(text) 10 (text)] TJ
                     if (preg_match_all('/\[(.*?)\]\s*TJ/s', $uncompressed, $arrayMatches)) {
                         foreach ($arrayMatches[1] as $arr) {
                             if (preg_match_all('/\((.*?)\)/s', $arr, $subMatches)) {
@@ -1334,17 +1437,44 @@ PROMPT;
                             }
                         }
                     }
+                    // Hexadecimal / CID-keyed encoded text: <hex> Tj
+                    if (preg_match_all('/<([0-9a-fA-F]{2,})>\s*Tj/s', $uncompressed, $hexMatches)) {
+                        foreach ($hexMatches[1] as $hex) {
+                            $chunk = '';
+                            $len = strlen($hex);
+                            for ($k = 0; $k < $len; $k += 2) {
+                                $c4 = $k + 4 <= $len ? strtolower(substr($hex, $k, 4)) : '';
+                                $c2 = strtolower(substr($hex, $k, 2));
+                                if ($c4 && isset($cmaps[$c4])) {
+                                    $chunk .= $cmaps[$c4];
+                                    $k += 2;
+                                } elseif (isset($cmaps[$c2])) {
+                                    $chunk .= $cmaps[$c2];
+                                } else {
+                                    $bin = @hex2bin($c2);
+                                    if ($bin !== false && ctype_print($bin)) {
+                                        $chunk .= $bin;
+                                    }
+                                }
+                            }
+                            $extractedText .= ' '.$chunk;
+                        }
+                    }
                 }
             }
         }
 
-        if (empty($extractedText)) {
-            $extractedText = preg_replace('/[^\x20-\x7E\t\r\n]/', ' ', substr($content, 0, 5000));
+        // Clean up escaped PDF characters and normalize whitespace
+        $cleaned = str_replace(['\\(', '\\)', '\\\\', '\\n', '\\r', '\\t'], ['(', ')', '\\', "\n", "\r", "\t"], $extractedText);
+        $cleaned = preg_replace('/[^\p{L}\p{N}\s\.\,\-\@\:\/\(\)\+\#]/u', ' ', $cleaned);
+        $cleaned = trim(preg_replace('/\s+/', ' ', $cleaned));
+
+        // Avoid raw binary garbage or unmapped corrupted glyph strings
+        if (! $this->isSensibleText($cleaned)) {
+            return '';
         }
 
-        $cleaned = str_replace(['\\(', '\\)', '\\\\', '\\n', '\\r', '\\t'], ['(', ')', '\\', "\n", "\r", "\t"], $extractedText);
-
-        return trim(preg_replace('/\s+/', ' ', $cleaned));
+        return $cleaned;
     }
 
     /**
@@ -1988,11 +2118,22 @@ PROMPT;
     }
 
     /**
-     * Internal caller for Gemini API with multi-model fallback.
+     * Internal caller for Gemini API with multi-model fallback and multimodal PDF support.
      */
-    public static function callGeminiApi(string $apiKey, string $prompt, int $timeout = 25): ?string
+    public static function callGeminiApi(string $apiKey, string $prompt, int $timeout = 30, ?string $pdfBase64 = null): ?string
     {
-        $models = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3-flash-preview'];
+        $models = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'];
+
+        $parts = [];
+        if (! empty($pdfBase64)) {
+            $parts[] = [
+                'inline_data' => [
+                    'mime_type' => 'application/pdf',
+                    'data'      => $pdfBase64,
+                ],
+            ];
+        }
+        $parts[] = ['text' => $prompt];
 
         foreach ($models as $model) {
             try {
@@ -2002,7 +2143,7 @@ PROMPT;
                     ->withHeaders(['Content-Type' => 'application/json'])
                     ->post($apiUrl, [
                         'contents' => [
-                            ['parts' => [['text' => $prompt]]],
+                            ['parts' => $parts],
                         ],
                     ]);
 
@@ -2037,7 +2178,7 @@ PROMPT;
             ], 422);
         }
 
-        $models = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3-flash-preview'];
+        $models = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview'];
         $lastError = 'Tidak dapat terhubung ke endpoint Gemini';
 
         foreach ($models as $model) {
