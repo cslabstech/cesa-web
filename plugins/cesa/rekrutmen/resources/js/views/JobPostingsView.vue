@@ -16,6 +16,16 @@
 
       <div class="flex items-center gap-2">
         <Button
+          size="sm"
+          variant="default"
+          @click="openCreateSheet"
+          class="text-xs h-8 bg-zinc-900 hover:bg-zinc-800 text-white gap-1.5 cursor-pointer shadow-2xs"
+        >
+          <Plus class="w-3.5 h-3.5" />
+          <span>Tambah Lowongan</span>
+        </Button>
+
+        <Button
           variant="outline"
           size="sm"
           @click="refreshData"
@@ -99,7 +109,7 @@
         </CardHeader>
         <CardContent class="p-4 pt-0">
           <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ postings.length }}</div>
-          <p class="text-[11px] text-zinc-500 mt-0.5">
+          <p class="text-[11px] text-zinc-400 mt-0.5">
             {{ totalNeededPositions }} total kuota posisi dibutuhkan
           </p>
         </CardContent>
@@ -108,11 +118,11 @@
       <Card class="hover:border-zinc-300">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Tayang Aktif</span>
-          <CheckCircle2 class="w-4 h-4 text-emerald-600" />
+          <CheckCircle2 class="w-4 h-4 text-zinc-400" />
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-emerald-700">{{ publishedCount }}</div>
-          <p class="text-[11px] text-zinc-500 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ publishedCount }}</div>
+          <p class="text-[11px] text-zinc-400 mt-0.5">
             Tersedia untuk pelamar publik
           </p>
         </CardContent>
@@ -121,11 +131,11 @@
       <Card class="hover:border-zinc-300">
         <CardHeader class="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
           <span class="text-xs font-medium text-zinc-500">Draft Lowongan</span>
-          <Clock class="w-4 h-4 text-amber-500" />
+          <Clock class="w-4 h-4 text-zinc-400" />
         </CardHeader>
         <CardContent class="p-4 pt-0">
-          <div class="text-2xl font-bold tracking-tight text-amber-700">{{ draftCount }}</div>
-          <p class="text-[11px] text-zinc-500 mt-0.5">
+          <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ draftCount }}</div>
+          <p class="text-[11px] text-zinc-400 mt-0.5">
             Belum dipublikasikan ke publik
           </p>
         </CardContent>
@@ -138,7 +148,7 @@
         </CardHeader>
         <CardContent class="p-4 pt-0">
           <div class="text-2xl font-bold tracking-tight text-zinc-900">{{ totalApplicationsCount }}</div>
-          <p class="text-[11px] text-zinc-500 mt-0.5">
+          <p class="text-[11px] text-zinc-400 mt-0.5">
             Akumulasi lamaran kandidat
           </p>
         </CardContent>
@@ -148,44 +158,68 @@
     <!-- Filters & Toolbar -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 bg-white rounded-xl border border-zinc-200 shadow-2xs">
       <!-- Left: Status Tabs Filter -->
-      <div class="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1 md:pb-0">
+      <div class="inline-flex items-center p-1 bg-zinc-100/90 border border-zinc-200/80 rounded-lg text-xs overflow-x-auto no-scrollbar">
         <button
           type="button"
           @click="statusFilter = 'all'"
           :class="[
-            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none',
+            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             statusFilter === 'all'
-              ? 'bg-zinc-900 text-zinc-50 shadow-2xs font-semibold'
-              : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
-          Semua <span class="ml-1 opacity-70">({{ postings.length }})</span>
+          <span>Semua</span>
+          <span
+            :class="[
+              'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
+              statusFilter === 'all' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+            ]"
+          >
+            {{ postings.length }}
+          </span>
         </button>
 
         <button
           type="button"
           @click="statusFilter = 'published'"
           :class="[
-            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none',
+            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             statusFilter === 'published'
-              ? 'bg-emerald-600 text-white shadow-2xs font-semibold'
-              : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
-          Tayang Aktif <span class="ml-1 opacity-70">({{ publishedCount }})</span>
+          <span>Tayang Aktif</span>
+          <span
+            :class="[
+              'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
+              statusFilter === 'published' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+            ]"
+          >
+            {{ publishedCount }}
+          </span>
         </button>
 
         <button
           type="button"
           @click="statusFilter = 'draft'"
           :class="[
-            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none',
+            'px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0 select-none flex items-center gap-1.5',
             statusFilter === 'draft'
-              ? 'bg-zinc-800 text-zinc-50 shadow-2xs font-semibold'
-              : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+              ? 'bg-white text-zinc-900 shadow-xs font-semibold'
+              : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/50'
           ]"
         >
-          Draft <span class="ml-1 opacity-70">({{ draftCount }})</span>
+          <span>Draft</span>
+          <span
+            :class="[
+              'px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-none',
+              statusFilter === 'draft' ? 'bg-zinc-100 text-zinc-800' : 'bg-zinc-200/70 text-zinc-500'
+            ]"
+          >
+            {{ draftCount }}
+          </span>
         </button>
       </div>
 
@@ -269,43 +303,70 @@
 
             <div class="flex items-center gap-1.5 shrink-0">
               <!-- Publish Status Badge -->
-              <Badge
-                :variant="job.is_published ? 'success' : 'secondary'"
-                class="cursor-pointer select-none text-[10px] px-2 py-0.5"
+              <button
+                type="button"
                 @click="togglePublish(job)"
+                :class="[
+                  'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-medium border transition-colors cursor-pointer select-none',
+                  job.is_published
+                    ? 'bg-zinc-50 border-zinc-200 text-zinc-800 hover:bg-zinc-100 hover:text-zinc-900'
+                    : 'bg-zinc-50/60 border-zinc-200/70 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600'
+                ]"
                 :title="job.is_published ? 'Klik untuk jadikan Draft' : 'Klik untuk Tayangkan'"
               >
-                <span :class="['w-1.5 h-1.5 rounded-full mr-0.5', job.is_published ? 'bg-emerald-500' : 'bg-zinc-400']"></span>
+                <span :class="['w-1.5 h-1.5 rounded-full shrink-0', job.is_published ? 'bg-emerald-500' : 'bg-zinc-300']"></span>
                 <span>{{ job.is_published ? 'Tayang' : 'Draft' }}</span>
-              </Badge>
+              </button>
 
-              <!-- Action Dropdown Menu -->
-              <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <button
-                    type="button"
-                    class="h-7 w-7 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 transition-colors cursor-pointer"
+              <!-- Action Dropdown Menu (Direct, instant, 0ms, no animation) -->
+              <div class="relative">
+                <button
+                  type="button"
+                  @click.stop="toggleDropdown(job.id)"
+                  class="h-7 w-7 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 transition-colors cursor-pointer"
+                  title="Menu Lowongan"
+                >
+                  <MoreHorizontal class="w-4 h-4" />
+                </button>
+
+                <div
+                  v-if="activeDropdownJobId === job.id"
+                  @click.stop
+                  class="absolute right-0 top-full mt-1 z-50 w-44 overflow-hidden rounded-md border border-zinc-200 bg-white p-1 text-zinc-950 shadow-md text-xs select-none"
+                >
+                  <div
+                    @click="openEditSheet(job); closeDropdown()"
+                    class="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2.5 py-1.5 text-xs text-zinc-700 outline-none hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
                   >
-                    <MoreHorizontal class="w-4 h-4" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" class="w-44">
-                  <DropdownMenuItem @click="openEditSheet(job)">
-                    <Edit3 class="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                    <Edit3 class="w-3.5 h-3.5 mr-2 text-zinc-500 shrink-0" />
                     <span>Edit Lowongan</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem @click="togglePublish(job)">
-                    <Eye v-if="!job.is_published" class="w-3.5 h-3.5 mr-2 text-emerald-600" />
-                    <EyeOff v-else class="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                  </div>
+                  <div
+                    @click="togglePublish(job); closeDropdown()"
+                    class="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2.5 py-1.5 text-xs text-zinc-700 outline-none hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+                  >
+                    <Eye v-if="!job.is_published" class="w-3.5 h-3.5 mr-2 text-emerald-600 shrink-0" />
+                    <EyeOff v-else class="w-3.5 h-3.5 mr-2 text-zinc-500 shrink-0" />
                     <span>{{ job.is_published ? 'Tarik ke Draft' : 'Tayangkan Lowongan' }}</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem @click="copyJobLink(job)">
-                    <Copy class="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                  </div>
+                  <div class="-mx-1 my-1 h-px bg-zinc-100"></div>
+                  <div
+                    @click="copyJobLink(job); closeDropdown()"
+                    class="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2.5 py-1.5 text-xs text-zinc-700 outline-none hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+                  >
+                    <Copy class="w-3.5 h-3.5 mr-2 text-zinc-500 shrink-0" />
                     <span>Salin Info Lowongan</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </div>
+                  <div class="-mx-1 my-1 h-px bg-zinc-100"></div>
+                  <div
+                    @click="handleDeleteJob(job); closeDropdown()"
+                    class="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2.5 py-1.5 text-xs text-rose-600 outline-none hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                  >
+                    <Trash2 class="w-3.5 h-3.5 mr-2 shrink-0" />
+                    <span>Hapus Lowongan</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -397,14 +458,20 @@
             </TableCell>
 
             <TableCell class="py-3.5">
-              <Badge
-                :variant="job.is_published ? 'success' : 'secondary'"
-                class="cursor-pointer select-none text-[10px] px-2 py-0.5"
+              <button
+                type="button"
                 @click="togglePublish(job)"
+                :class="[
+                  'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-medium border transition-colors cursor-pointer select-none',
+                  job.is_published
+                    ? 'bg-zinc-50 border-zinc-200 text-zinc-800 hover:bg-zinc-100 hover:text-zinc-900'
+                    : 'bg-zinc-50/60 border-zinc-200/70 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600'
+                ]"
+                :title="job.is_published ? 'Klik untuk jadikan Draft' : 'Klik untuk Tayangkan'"
               >
-                <span :class="['w-1.5 h-1.5 rounded-full mr-0.5', job.is_published ? 'bg-emerald-500' : 'bg-zinc-400']"></span>
+                <span :class="['w-1.5 h-1.5 rounded-full shrink-0', job.is_published ? 'bg-emerald-500' : 'bg-zinc-300']"></span>
                 <span>{{ job.is_published ? 'Tayang' : 'Draft' }}</span>
-              </Badge>
+              </button>
             </TableCell>
 
             <TableCell class="py-3.5 text-zinc-600 text-xs">
@@ -430,6 +497,16 @@
                   class="h-7 text-zinc-700"
                 >
                   Edit
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  @click="handleDeleteJob(job)"
+                  class="h-7 w-7 p-0 text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
+                  title="Hapus Lowongan"
+                >
+                  <Trash2 class="w-3.5 h-3.5" />
                 </Button>
               </div>
             </TableCell>
@@ -459,17 +536,17 @@
     </Card>
 
     <!-- SLIDE-OVER SHEET: Linear/Stripe Style Drawer -->
-    <Sheet :open="!!editingJob" @update:open="(val) => { if (!val) editingJob = null; }">
+    <Sheet :open="isSheetOpen" @update:open="(val) => { isSheetOpen = val; if (!val) editingJob = null; }">
       <SheetContent class="sm:max-w-xl">
         <SheetHeader>
           <div class="flex items-center gap-2">
-            <SheetTitle>Edit Lowongan Pekerjaan</SheetTitle>
+            <SheetTitle>{{ isEditMode ? 'Edit Lowongan Pekerjaan' : 'Tambah Lowongan Baru' }}</SheetTitle>
             <Badge v-if="selectedCompanyName" variant="secondary" class="text-[10px] font-normal truncate max-w-[200px]">
               {{ selectedCompanyName }}
             </Badge>
           </div>
           <SheetDescription>
-            Perbarui informasi posisi, kualifikasi, kuota, dan status tayang portal karir.
+            {{ isEditMode ? 'Perbarui informasi posisi, kualifikasi, kuota, dan status tayang portal karir.' : 'Buat dan publikasikan posisi lowongan pekerjaan baru ke portal karir.' }}
           </SheetDescription>
         </SheetHeader>
 
@@ -648,7 +725,7 @@
               type="button"
               variant="outline"
               size="sm"
-              @click="editingJob = null"
+              @click="closeSheet"
             >
               Batal
             </Button>
@@ -660,7 +737,7 @@
               class="bg-zinc-900 hover:bg-zinc-800 text-white min-w-[130px]"
             >
               <RotateCw v-if="isSubmitting" class="w-3.5 h-3.5 mr-1.5 animate-spin" />
-              <span>{{ isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
+              <span>{{ isSubmitting ? 'Menyimpan...' : (isEditMode ? 'Simpan Perubahan' : 'Terbitkan Lowongan') }}</span>
             </Button>
           </SheetFooter>
         </form>
@@ -670,7 +747,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRekrutmenStore } from '../stores/rekrutmen';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
@@ -706,7 +783,9 @@ import {
   MoreHorizontal,
   Eye,
   EyeOff,
-  Copy
+  Copy,
+  Plus,
+  Trash2
 } from 'lucide-vue-next';
 
 const store = useRekrutmenStore();
@@ -717,7 +796,10 @@ const viewMode = ref('grid');
 const statusFilter = ref('all');
 const companyFilter = ref('all');
 const searchQuery = ref('');
+const activeDropdownJobId = ref(null);
 const editingJob = ref(null);
+const isSheetOpen = ref(false);
+const isEditMode = ref(false);
 const isSubmitting = ref(false);
 const toastMessage = ref(null);
 const toastType = ref('success');
@@ -738,7 +820,16 @@ const editForm = ref({
   thumbnail_url: null,
 });
 
+const toggleDropdown = (jobId) => {
+  activeDropdownJobId.value = activeDropdownJobId.value === jobId ? null : jobId;
+};
+
+const closeDropdown = () => {
+  activeDropdownJobId.value = null;
+};
+
 onMounted(async () => {
+  window.addEventListener('click', closeDropdown);
   isLoading.value = true;
   try {
     await Promise.all([
@@ -750,6 +841,10 @@ onMounted(async () => {
   } finally {
     isLoading.value = false;
   }
+});
+
+onUnmounted(() => {
+  window.removeEventListener('click', closeDropdown);
 });
 
 const refreshData = async () => {
@@ -778,7 +873,10 @@ const selectedCompanyName = computed(() => {
     const found = companies.value.find(c => String(c.id) === String(editForm.value.company_id));
     if (found) return found.name;
   }
-  return editingJob.value?.company_name || 'PT Complete Selular Group';
+  if (isEditMode.value) {
+    return editingJob.value?.company_name || 'PT Complete Selular Group';
+  }
+  return companies.value[0]?.name || 'PT Complete Selular Group';
 });
 
 const publishedCount = computed(() => postings.value.filter(p => p.is_published).length);
@@ -849,8 +947,29 @@ const copyJobLink = async (job) => {
   }
 };
 
+const openCreateSheet = () => {
+  editingJob.value = null;
+  isEditMode.value = false;
+  thumbnailFile.value = null;
+  thumbnailPreview.value = null;
+  thumbnailFileName.value = '';
+  isThumbnailRemoved.value = false;
+  editForm.value = {
+    title: '',
+    company_id: companies.value[0]?.id || null,
+    location: '',
+    description: '',
+    requirements: '',
+    closing_date: '',
+    publication_state: 'active',
+    thumbnail_url: null,
+  };
+  isSheetOpen.value = true;
+};
+
 const openEditSheet = (job) => {
   editingJob.value = job;
+  isEditMode.value = true;
   thumbnailFile.value = null;
   thumbnailPreview.value = null;
   thumbnailFileName.value = job.thumbnail_path ? job.thumbnail_path.split('/').pop() : '';
@@ -865,6 +984,12 @@ const openEditSheet = (job) => {
     publication_state: job.is_published ? 'active' : 'draft',
     thumbnail_url: job.thumbnail_url || null,
   };
+  isSheetOpen.value = true;
+};
+
+const closeSheet = () => {
+  isSheetOpen.value = false;
+  editingJob.value = null;
 };
 
 const handleThumbnailChange = (e) => {
@@ -888,14 +1013,25 @@ const removeThumbnail = () => {
 };
 
 const saveEditJob = async () => {
-  if (!editingJob.value) return;
+  const title = editForm.value.title?.trim();
+  if (!title) {
+    Swal.fire({
+      title: 'Judul Wajib Diisi',
+      text: 'Harap masukkan judul posisi lowongan pekerjaan.',
+      icon: 'warning',
+      confirmButtonColor: '#18181b',
+      customClass: { popup: 'rounded-xl border border-zinc-200 shadow-lg text-xs' },
+    });
+    return;
+  }
 
+  const actionText = isEditMode.value ? 'Simpan perubahan data lowongan pekerjaan ini?' : 'Terbitkan posisi lowongan pekerjaan baru ini?';
   const result = await Swal.fire({
-    title: 'Konfirmasi Perubahan',
-    text: 'Simpan perubahan data lowongan pekerjaan ini?',
+    title: isEditMode.value ? 'Konfirmasi Perubahan' : 'Konfirmasi Terbitkan',
+    text: actionText,
     icon: 'question',
     showCancelButton: true,
-    confirmButtonText: 'Ya, Simpan',
+    confirmButtonText: isEditMode.value ? 'Ya, Simpan' : 'Ya, Terbitkan',
     cancelButtonText: 'Batal',
     confirmButtonColor: '#18181b',
     cancelButtonColor: '#71717a',
@@ -914,7 +1050,7 @@ const saveEditJob = async () => {
   isSubmitting.value = true;
   try {
     const formData = new FormData();
-    formData.append('title', editForm.value.title);
+    formData.append('title', title);
     if (editForm.value.company_id) {
       formData.append('company_id', editForm.value.company_id);
     } else {
@@ -933,17 +1069,23 @@ const saveEditJob = async () => {
       formData.append('remove_thumbnail', '1');
     }
 
-    const res = await store.updateJobPosting(editingJob.value.id, formData);
+    let res;
+    if (isEditMode.value && editingJob.value) {
+      res = await store.updateJobPosting(editingJob.value.id, formData);
+    } else {
+      res = await store.createJobPosting(formData);
+    }
+
     if (res.success) {
-      editingJob.value = null;
+      closeSheet();
       toastType.value = 'success';
-      toastMessage.value = res.message || 'Lowongan pekerjaan berhasil diperbarui.';
+      toastMessage.value = res.message || (isEditMode.value ? 'Lowongan pekerjaan berhasil diperbarui.' : 'Lowongan pekerjaan berhasil ditambahkan.');
       setTimeout(() => { toastMessage.value = null; }, 3000);
     }
   } catch (err) {
     Swal.fire({
       title: 'Gagal Menyimpan',
-      text: err.response?.data?.message || 'Terjadi kesalahan saat menyimpan perubahan lowongan.',
+      text: err.response?.data?.message || 'Terjadi kesalahan saat menyimpan lowongan.',
       icon: 'error',
       confirmButtonText: 'Tutup',
       confirmButtonColor: '#e11d48',
@@ -954,6 +1096,46 @@ const saveEditJob = async () => {
     });
   } finally {
     isSubmitting.value = false;
+  }
+};
+
+const handleDeleteJob = async (job) => {
+  const result = await Swal.fire({
+    title: 'Hapus Lowongan?',
+    html: `Apakah Anda yakin ingin menghapus lowongan <strong>${job.title}</strong>?<br><span class="text-xs text-zinc-500">Lowongan yang masih memiliki kandidat pelamar tidak dapat dihapus.</span>`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Ya, Hapus',
+    cancelButtonText: 'Batal',
+    confirmButtonColor: '#e11d48',
+    cancelButtonColor: '#71717a',
+    reverseButtons: true,
+    customClass: {
+      popup: 'rounded-xl border border-zinc-200 shadow-lg text-xs',
+      confirmButton: 'rounded-md px-3.5 py-1.5 text-xs font-medium',
+      cancelButton: 'rounded-md px-3.5 py-1.5 text-xs font-medium',
+    },
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    const res = await store.deleteJobPosting(job.id);
+    toastType.value = 'success';
+    toastMessage.value = res.message || `Lowongan "${job.title}" berhasil dihapus.`;
+    setTimeout(() => { toastMessage.value = null; }, 3000);
+  } catch (err) {
+    Swal.fire({
+      title: 'Gagal Menghapus',
+      text: err.response?.data?.message || 'Terjadi kesalahan saat menghapus lowongan.',
+      icon: 'error',
+      confirmButtonText: 'Tutup',
+      confirmButtonColor: '#e11d48',
+      customClass: {
+        popup: 'rounded-xl border border-zinc-200 shadow-lg text-xs',
+        confirmButton: 'rounded-md px-3.5 py-1.5 text-xs font-medium',
+      },
+    });
   }
 };
 </script>

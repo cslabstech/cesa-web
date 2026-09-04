@@ -2,7 +2,7 @@
   <DropdownMenuPortal>
     <DropdownMenuContent
       :class="cn(
-        'z-50 min-w-[9rem] overflow-hidden rounded-md border border-zinc-200 bg-white p-1 text-zinc-950 shadow-md animate-in fade-in-80 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2 text-xs',
+        'z-50 min-w-[9rem] overflow-hidden rounded-md border border-zinc-200 bg-white p-1 text-zinc-950 shadow-md text-xs !transition-none !animate-none [transition:none!important] [animation:none!important]',
         $attrs.class
       )"
       :side-offset="sideOffset"
