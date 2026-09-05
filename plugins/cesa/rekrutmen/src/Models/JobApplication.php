@@ -542,7 +542,7 @@ class JobApplication extends Model
 
     public static function resumeDisk(): string
     {
-        $disk = config('filament.default_filesystem_disk', config('filesystems.default', 'local'));
+        $disk = config('rekrutmen.disk', config('filament.default_filesystem_disk', config('filesystems.default', 'local')));
 
         return is_string($disk) && $disk !== '' ? $disk : 'local';
     }
@@ -1426,8 +1426,10 @@ class JobApplication extends Model
     protected function resolveManagedFileDisk(string $path): ?string
     {
         $candidateDisks = array_values(array_unique(array_filter([
+            self::resumeDisk(),
             config('filament.default_filesystem_disk'),
             config('filesystems.default'),
+            's3',
             'public',
             'local',
         ], fn (mixed $disk): bool => is_string($disk) && $disk !== '')));

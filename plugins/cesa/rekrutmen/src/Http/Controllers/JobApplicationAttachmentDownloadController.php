@@ -28,8 +28,10 @@ class JobApplicationAttachmentDownloadController extends Controller
         $relativePath = ltrim($path, '/');
 
         $candidateDisks = array_values(array_unique(array_filter([
+            JobApplication::resumeDisk(),
             config('filament.default_filesystem_disk', null),
             config('filesystems.default'),
+            's3',
             'local',
             'public',
         ])));

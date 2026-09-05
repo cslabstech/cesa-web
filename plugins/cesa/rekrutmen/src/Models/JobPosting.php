@@ -167,7 +167,9 @@ class JobPosting extends Model
 
     public static function thumbnailDisk(): string
     {
-        return 'public';
+        $disk = config('rekrutmen.thumbnail_disk', config('rekrutmen.disk', 'public'));
+
+        return is_string($disk) && $disk !== '' ? $disk : 'public';
     }
 
     public function getThumbnailUrlAttribute(): ?string

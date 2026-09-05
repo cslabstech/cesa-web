@@ -6,6 +6,7 @@ use Cesa\DatabaseSnapshot\Services\DatabaseSnapshotManager;
 use Cesa\Rekrutmen\Console\Commands\ProcessScheduledNotificationsCommand;
 use Cesa\Rekrutmen\Console\Commands\RunWhatsAppEngineCommand;
 use Cesa\Rekrutmen\Console\Commands\SyncCandidateCvCommand;
+use Cesa\Rekrutmen\Console\Commands\SyncStorageToS3Command;
 use Cesa\Rekrutmen\Database\Seeders\DatabaseSeeder;
 use Cesa\Rekrutmen\Livewire\PublicRequestManPowerApprovalPage;
 use Cesa\Rekrutmen\Livewire\PublicRequestManPowerForm;
@@ -98,6 +99,7 @@ class RekrutmenServiceProvider extends PackageServiceProvider
                 ProcessScheduledNotificationsCommand::class,
                 RunWhatsAppEngineCommand::class,
                 SyncCandidateCvCommand::class,
+                SyncStorageToS3Command::class,
             ])
             ->hasInstallCommand(function (InstallCommand $command) {
                 $command

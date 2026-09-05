@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'disk' => env('REKRUTMEN_FILESYSTEM_DISK', 's3'),
+
+    'thumbnail_disk' => env('REKRUTMEN_THUMBNAIL_DISK', env('REKRUTMEN_FILESYSTEM_DISK', 's3')),
+
     'default_pipeline_id' => env('REKRUTMEN_DEFAULT_PIPELINE_ID'),
 
     'default_pipeline_name' => env('REKRUTMEN_DEFAULT_PIPELINE_NAME', 'Default Recruitment Pipeline'),

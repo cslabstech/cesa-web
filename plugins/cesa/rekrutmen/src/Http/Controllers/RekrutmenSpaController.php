@@ -677,8 +677,10 @@ class RekrutmenSpaController extends Controller
 
         $relativePath = ltrim($application->photo_path, '/');
         $disks = array_values(array_unique(array_filter([
+            JobApplication::resumeDisk(),
             config('filament.default_filesystem_disk', null),
             config('filesystems.default'),
+            's3',
             'local',
             'public',
         ])));
@@ -686,10 +688,9 @@ class RekrutmenSpaController extends Controller
         foreach ($disks as $disk) {
             try {
                 if (config()->has("filesystems.disks.{$disk}") && Storage::disk($disk)->exists($relativePath)) {
-                    $path = Storage::disk($disk)->path($relativePath);
                     $mime = Storage::disk($disk)->mimeType($relativePath) ?? 'image/jpeg';
 
-                    return response()->file($path, [
+                    return Storage::disk($disk)->response($relativePath, basename($relativePath), [
                         'Content-Type'        => $mime,
                         'Content-Disposition' => 'inline; filename="'.basename($relativePath).'"',
                     ]);
@@ -739,6 +740,7 @@ class RekrutmenSpaController extends Controller
             JobApplication::resumeDisk(),
             config('filament.default_filesystem_disk', null),
             config('filesystems.default'),
+            's3',
             'local',
             'public',
         ])));
@@ -746,10 +748,9 @@ class RekrutmenSpaController extends Controller
         foreach ($candidateDisks as $disk) {
             try {
                 if (config()->has("filesystems.disks.{$disk}") && Storage::disk($disk)->exists($relativePath)) {
-                    $path = Storage::disk($disk)->path($relativePath);
                     $mime = Storage::disk($disk)->mimeType($relativePath) ?? 'application/pdf';
 
-                    return response()->file($path, [
+                    return Storage::disk($disk)->response($relativePath, basename($relativePath), [
                         'Content-Type'        => $mime,
                         'Content-Disposition' => 'inline; filename="'.basename($relativePath).'"',
                     ]);
@@ -1309,6 +1310,38 @@ PROMPT;
         }
 
         $relativePath = ltrim($application->resume_path, '/');
+
+        // Check storage disks first (supports local and remote S3 drivers)
+        $disks = array_values(array_unique(array_filter([
+            JobApplication::resumeDisk(),
+            config('filament.default_filesystem_disk', null),
+            config('filesystems.default'),
+            's3',
+            'local',
+            'public',
+        ])));
+
+        foreach ($disks as $disk) {
+            try {
+                if (config()->has("filesystems.disks.{$disk}") && Storage::disk($disk)->exists($relativePath)) {
+                    try {
+                        return Storage::disk($disk)->path($relativePath);
+                    } catch (\Throwable) {
+                        // Remote disks like S3 do not have a local file path; cache to temp file for PDF/OCR analysis
+                        $ext = pathinfo($relativePath, PATHINFO_EXTENSION) ?: 'pdf';
+                        $tempPath = sys_get_temp_dir().DIRECTORY_SEPARATOR.'cv_'.md5($relativePath).'.'.$ext;
+                        if (! file_exists($tempPath) || filemtime($tempPath) < time() - 3600) {
+                            file_put_contents($tempPath, Storage::disk($disk)->get($relativePath));
+                        }
+
+                        return $tempPath;
+                    }
+                }
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
         $candidatePaths = [
             storage_path('app/'.$relativePath),
             storage_path('app/public/'.$relativePath),
@@ -2961,16 +2994,39 @@ PROMPT;
         $hasResumeOnDisk = false;
         if (filled($app->resume_path)) {
             $rel = ltrim($app->resume_path, '/');
-            $candidatePaths = [
-                storage_path('app/'.$rel),
-                storage_path('app/public/'.$rel),
-                public_path('storage/'.$rel),
-                public_path($rel),
-            ];
-            foreach ($candidatePaths as $cp) {
-                if (file_exists($cp)) {
-                    $hasResumeOnDisk = true;
-                    break;
+
+            $disks = array_values(array_unique(array_filter([
+                JobApplication::resumeDisk(),
+                config('filament.default_filesystem_disk', null),
+                config('filesystems.default'),
+                's3',
+                'local',
+                'public',
+            ])));
+
+            foreach ($disks as $disk) {
+                try {
+                    if (config()->has("filesystems.disks.{$disk}") && Storage::disk($disk)->exists($rel)) {
+                        $hasResumeOnDisk = true;
+                        break;
+                    }
+                } catch (\Throwable) {
+                    continue;
+                }
+            }
+
+            if (! $hasResumeOnDisk) {
+                $candidatePaths = [
+                    storage_path('app/'.$rel),
+                    storage_path('app/public/'.$rel),
+                    public_path('storage/'.$rel),
+                    public_path($rel),
+                ];
+                foreach ($candidatePaths as $cp) {
+                    if (file_exists($cp)) {
+                        $hasResumeOnDisk = true;
+                        break;
+                    }
                 }
             }
         }
