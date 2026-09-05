@@ -401,7 +401,11 @@
               <Briefcase class="w-3 h-3 text-blue-600" />
               <span>{{ job.needed_count || 1 }} Kuota Posisi</span>
             </div>
-            <div class="inline-flex items-center gap-1.5 bg-indigo-50/70 border border-indigo-200/60 px-2 py-0.5 rounded-md text-indigo-900 font-medium">
+            <div
+              @click.stop="goToApplications(job)"
+              class="inline-flex items-center gap-1.5 bg-indigo-50/70 hover:bg-indigo-100/90 border border-indigo-200/60 px-2 py-0.5 rounded-md text-indigo-900 font-medium cursor-pointer transition-colors"
+              title="Lihat kandidat pelamar lowongan ini"
+            >
               <Users class="w-3 h-3 text-indigo-600" />
               <span>{{ job.applications_count || 0 }} Pelamar</span>
             </div>
@@ -415,15 +419,16 @@
             <span>Tutup: <strong class="text-zinc-700 font-medium">{{ job.closing_date_formatted || '-' }}</strong></span>
           </div>
 
-          <router-link
-            :to="{ path: '/admin/job-applications', query: { job_id: job.id } }"
-            class="inline-flex"
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            @click.stop="goToApplications(job)"
+            class="font-medium text-blue-950 border-blue-200/80 bg-blue-50/40 hover:bg-blue-100/70 hover:border-blue-300 transition-colors cursor-pointer"
           >
-            <Button variant="outline" size="xs" class="font-medium text-blue-950 border-blue-200/80 bg-blue-50/40 hover:bg-blue-100/70 hover:border-blue-300 transition-colors">
-              <span>Pelamar</span>
-              <ArrowRight class="w-3 h-3 ml-0.5 text-blue-700" />
-            </Button>
-          </router-link>
+            <span>Pelamar</span>
+            <ArrowRight class="w-3 h-3 ml-0.5 text-blue-700" />
+          </Button>
         </CardFooter>
       </Card>
     </div>
@@ -489,17 +494,25 @@
               {{ job.closing_date_formatted || '-' }}
             </TableCell>
 
-            <TableCell class="py-3.5 font-semibold text-zinc-900 text-xs">
+            <TableCell
+              class="py-3.5 font-semibold text-blue-900 hover:text-blue-950 text-xs cursor-pointer"
+              @click.stop="goToApplications(job)"
+              title="Lihat kandidat pelamar lowongan ini"
+            >
               {{ job.applications_count || 0 }}
             </TableCell>
 
             <TableCell class="py-3.5 text-right whitespace-nowrap">
               <div class="inline-flex items-center gap-1.5">
-                <router-link :to="{ path: '/admin/job-applications', query: { job_id: job.id } }">
-                  <Button variant="ghost" size="xs" class="h-7 text-blue-900 hover:text-blue-950 hover:bg-blue-50/60">
-                    Pelamar
-                  </Button>
-                </router-link>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  @click.stop="goToApplications(job)"
+                  class="h-7 text-blue-900 hover:text-blue-950 hover:bg-blue-50/60 cursor-pointer"
+                >
+                  Pelamar
+                </Button>
 
                 <Button
                   variant="outline"
@@ -758,7 +771,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, onDeactivated, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useRekrutmenStore } from '../stores/rekrutmen';
 import Swal from 'sweetalert2';
@@ -842,6 +855,16 @@ const closeDropdown = () => {
   activeDropdownJobId.value = null;
 };
 
+const goToApplications = (job) => {
+  closeDropdown();
+  isSheetOpen.value = false;
+  editingJob.value = null;
+  router.push({
+    path: '/admin/job-applications',
+    query: { job_id: job.id }
+  });
+};
+
 onMounted(async () => {
   window.addEventListener('click', closeDropdown);
   isLoading.value = true;
@@ -862,8 +885,14 @@ onUnmounted(() => {
   window.removeEventListener('click', closeDropdown);
 });
 
+onDeactivated(() => {
+  isSheetOpen.value = false;
+  editingJob.value = null;
+  closeDropdown();
+});
+
 watch(
-  () => [route.query.job_id, route.query.id, postings.value],
+  () => [route.name, route.query.edit_id, route.query.id, postings.value],
   () => {
     checkRouteForJob();
   }
@@ -1010,7 +1039,13 @@ const openEditSheet = (job) => {
 };
 
 const checkRouteForJob = () => {
-  const targetId = route.query.job_id || route.query.id;
+  // Hanya proses jika user memang sedang berada di halaman lowongan kerja
+  if (route.name !== 'postings' && !route.path.endsWith('/job-postings')) {
+    return;
+  }
+
+  // Hanya buka sheet edit jika ada parameter edit_id atau id spesifik di route postings
+  const targetId = route.query.edit_id || (route.name === 'postings' ? route.query.id : null);
   if (!targetId || !postings.value?.length) return;
   const job = postings.value.find(j => String(j.id) === String(targetId));
   if (job) {
@@ -1026,7 +1061,7 @@ const handleSheetUpdate = (val) => {
   isSheetOpen.value = val;
   if (!val) {
     editingJob.value = null;
-    if (route.query.job_id || route.query.id) {
+    if (route.name === 'postings' && (route.query.edit_id || route.query.id)) {
       router.replace({ path: route.path, query: {} });
     }
   }

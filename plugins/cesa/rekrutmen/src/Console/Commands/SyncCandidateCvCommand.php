@@ -6,6 +6,7 @@ use Cesa\Rekrutmen\Models\JobApplication;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class SyncCandidateCvCommand extends Command
@@ -22,22 +23,37 @@ class SyncCandidateCvCommand extends Command
 
     public function handle(): int
     {
-        $this->info('Memulai pencocokan berkas CV pelamar...');
+        $disk = JobApplication::resumeDisk();
+        $this->info("Memeriksa berkas CV pada storage disk [{$disk}]...");
 
-        $cvDirectory = storage_path('app/public/rekrutmen/cv');
-        if (! File::isDirectory($cvDirectory)) {
-            $this->error("Direktori CV tidak ditemukan di {$cvDirectory}");
+        $allFilePaths = [];
+        if (config()->has("filesystems.disks.{$disk}")) {
+            try {
+                $allFilePaths = Storage::disk($disk)->files('rekrutmen/cv');
+            } catch (\Throwable $e) {
+                // fallback
+            }
+        }
+
+        if (empty($allFilePaths)) {
+            $cvDirectory = storage_path('app/public/rekrutmen/cv');
+            if (File::isDirectory($cvDirectory)) {
+                $allFilePaths = array_map(fn ($f) => 'rekrutmen/cv/'.$f->getFilename(), File::files($cvDirectory));
+            }
+        }
+
+        if (empty($allFilePaths)) {
+            $this->error("Tidak ditemukan berkas CV pada disk '{$disk}' maupun di folder lokal.");
 
             return self::FAILURE;
         }
 
-        $files = File::files($cvDirectory);
-        $this->info('Ditemukan '.count($files).' berkas CV di '.$cvDirectory);
+        $this->info('Ditemukan '.count($allFilePaths).' berkas CV di storage.');
 
         $filesById = [];
         $allFiles = [];
-        foreach ($files as $file) {
-            $filename = $file->getFilename();
+        foreach ($allFilePaths as $path) {
+            $filename = basename($path);
             $allFiles[] = $filename;
 
             // Pola file: CV-{id}-...

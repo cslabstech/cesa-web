@@ -1486,7 +1486,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, onActivated, nextTick, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useRekrutmenStore } from '../stores/rekrutmen';
 import Swal from 'sweetalert2';
@@ -1589,6 +1589,14 @@ onMounted(() => {
   heartbeatTimer = setInterval(checkHeartbeat, 25000);
 });
 
+onActivated(() => {
+  const targetId = activeJobId.value;
+  store.fetchApplications(targetId ? { job_id: targetId } : '', true).catch(() => {});
+  if (!store.postings?.length) {
+    store.fetchPostings('', false).catch(() => {});
+  }
+});
+
 onUnmounted(() => {
   if (heartbeatTimer) clearInterval(heartbeatTimer);
 });
@@ -1596,9 +1604,7 @@ onUnmounted(() => {
 watch(
   () => activeJobId.value,
   (newId) => {
-    if (newId) {
-      store.fetchApplications({ job_id: newId }, true).catch(() => {});
-    }
+    store.fetchApplications(newId ? { job_id: newId } : '', true).catch(() => {});
   }
 );
 
@@ -1622,6 +1628,9 @@ const activeJobTitle = computed(() => {
   if (!activeJobId.value) return null;
   const job = store.postings?.find(j => String(j.id) === String(activeJobId.value));
   if (job?.title) return job.title;
+  if (store.activeJob?.title && String(store.activeJob.id) === String(activeJobId.value)) {
+    return store.activeJob.title;
+  }
   const app = store.applications?.find(a =>
     String(a.job_posting_id) === String(activeJobId.value) ||
     String(a.job_posting?.id) === String(activeJobId.value)
@@ -1897,10 +1906,11 @@ const startRescreening = async () => {
     if (!confirm.isConfirmed) return;
   }
 
+  const jobTitle = activeJobTitle.value;
   isScreening.value = true;
   Swal.fire({
-    title: 'Evaluasi Kualifikasi',
-    html: `<div class="text-xs text-slate-500 mt-2 leading-relaxed">Menyiapkan evaluasi kandidat...</div>
+    title: jobTitle ? `Screening AI: ${jobTitle}` : 'Evaluasi Kualifikasi',
+    html: `<div class="text-xs text-slate-500 mt-2 leading-relaxed">${jobTitle ? `Mengevaluasi kandidat terhadap kualifikasi lowongan <b>${jobTitle}</b>...` : 'Menyiapkan evaluasi kandidat...'}</div>
            <div id="swal-progress" class="text-xs font-semibold text-slate-700 mt-2"></div>`,
     allowOutsideClick: false,
     allowEscapeKey: false,

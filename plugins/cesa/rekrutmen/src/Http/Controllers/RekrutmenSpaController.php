@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
@@ -1325,15 +1326,24 @@ PROMPT;
             try {
                 if (config()->has("filesystems.disks.{$disk}") && Storage::disk($disk)->exists($relativePath)) {
                     try {
-                        return Storage::disk($disk)->path($relativePath);
-                    } catch (\Throwable) {
-                        // Remote disks like S3 do not have a local file path; cache to temp file for PDF/OCR analysis
-                        $ext = pathinfo($relativePath, PATHINFO_EXTENSION) ?: 'pdf';
-                        $tempPath = sys_get_temp_dir().DIRECTORY_SEPARATOR.'cv_'.md5($relativePath).'.'.$ext;
-                        if (! file_exists($tempPath) || filemtime($tempPath) < time() - 3600) {
-                            file_put_contents($tempPath, Storage::disk($disk)->get($relativePath));
+                        $localPath = Storage::disk($disk)->path($relativePath);
+                        if (file_exists($localPath)) {
+                            return $localPath;
                         }
+                    } catch (\Throwable) {
+                    }
 
+                    // Remote disks like S3 do not have a local filesystem path; cache to temp file for PDF analysis
+                    $ext = pathinfo($relativePath, PATHINFO_EXTENSION) ?: 'pdf';
+                    $tempPath = sys_get_temp_dir().DIRECTORY_SEPARATOR.'cv_'.md5($relativePath).'.'.$ext;
+                    if (! file_exists($tempPath) || filesize($tempPath) === 0 || filemtime($tempPath) < time() - 86400) {
+                        $binary = Storage::disk($disk)->get($relativePath);
+                        if (! empty($binary)) {
+                            file_put_contents($tempPath, $binary);
+                        }
+                    }
+
+                    if (file_exists($tempPath) && filesize($tempPath) > 0) {
                         return $tempPath;
                     }
                 }
@@ -3035,7 +3045,31 @@ PROMPT;
             return true;
         }
 
-        // Search by ID pattern: storage/app/public/rekrutmen/cv/CV-{id}-*
+        // Search by ID pattern in storage disk or local
+        $targetDisk = JobApplication::resumeDisk();
+        if (config()->has("filesystems.disks.{$targetDisk}")) {
+            try {
+                $files = Storage::disk($targetDisk)->files('rekrutmen/cv');
+                $idPrefix = 'CV-'.$app->id.'-';
+                foreach ($files as $file) {
+                    $base = basename($file);
+                    if (str_starts_with($base, $idPrefix)) {
+                        $foundRel = 'rekrutmen/cv/'.$base;
+                        $app->resume_path = $foundRel;
+                        DB::table('rekrutmen_job_applications')->where('id', $app->id)->update([
+                            'resume_path' => $foundRel,
+                            'updated_at'  => now(),
+                        ]);
+
+                        return true;
+                    }
+                }
+            } catch (\Throwable) {
+                // continue to local check
+            }
+        }
+
+        // Search by ID pattern locally: storage/app/public/rekrutmen/cv/CV-{id}-*
         $matches = glob(storage_path('app/public/rekrutmen/cv/CV-'.$app->id.'-*'));
         if (! empty($matches) && file_exists($matches[0])) {
             $foundRel = 'rekrutmen/cv/'.basename($matches[0]);
@@ -3074,21 +3108,37 @@ PROMPT;
      */
     public function syncCandidateCvsFromStorage(): JsonResponse
     {
-        $cvDirectory = storage_path('app/public/rekrutmen/cv');
-        if (! is_dir($cvDirectory)) {
+        $targetDisk = JobApplication::resumeDisk();
+        $allFilePaths = [];
+
+        if (config()->has("filesystems.disks.{$targetDisk}")) {
+            try {
+                $allFilePaths = Storage::disk($targetDisk)->files('rekrutmen/cv');
+            } catch (\Throwable) {
+                // fallback to local
+            }
+        }
+
+        if (empty($allFilePaths)) {
+            $cvDirectory = storage_path('app/public/rekrutmen/cv');
+            if (is_dir($cvDirectory)) {
+                $allFilePaths = array_values(array_filter(
+                    array_map(fn ($f) => $f !== '.' && $f !== '..' ? 'rekrutmen/cv/'.$f : null, scandir($cvDirectory))
+                ));
+            }
+        }
+
+        if (empty($allFilePaths)) {
             return response()->json([
                 'success' => false,
-                'message' => "Direktori CV tidak ditemukan di {$cvDirectory}",
+                'message' => "Tidak ditemukan berkas CV pada storage disk [{$targetDisk}] maupun di folder lokal.",
             ], 404);
         }
 
-        $files = scandir($cvDirectory);
         $filesById = [];
         $allFiles = [];
-        foreach ($files as $f) {
-            if ($f === '.' || $f === '..') {
-                continue;
-            }
+        foreach ($allFilePaths as $path) {
+            $f = basename($path);
             $allFiles[] = $f;
             if (preg_match('/^CV-(\d+)-/i', $f, $m)) {
                 $filesById[(int) $m[1]] = $f;

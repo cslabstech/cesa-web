@@ -182,7 +182,17 @@ class JobPosting extends Model
             return $this->thumbnail_path;
         }
 
-        return Storage::disk(self::thumbnailDisk())->url($this->thumbnail_path);
+        $disk = self::thumbnailDisk();
+
+        if ($disk === 's3') {
+            try {
+                return Storage::disk($disk)->temporaryUrl($this->thumbnail_path, now()->addHours(24));
+            } catch (\Throwable) {
+                // fallback
+            }
+        }
+
+        return Storage::disk($disk)->url($this->thumbnail_path);
     }
 
     public function isAcceptingApplications(): bool

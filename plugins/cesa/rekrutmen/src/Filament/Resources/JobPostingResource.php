@@ -176,7 +176,7 @@ class JobPostingResource extends Resource
                                     ->image()
                                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                                     ->maxSize(5120)
-                                    ->visibility('public')
+                                    ->visibility('private')
                                     ->imagePreviewHeight('160')
                                     ->openable(),
                             ])->columns(1),
@@ -253,6 +253,7 @@ class JobPostingResource extends Resource
                 Tables\Columns\ImageColumn::make('thumbnail_path')
                     ->label(__('rekrutmen::filament/resources/job-posting.table.columns.thumbnail_path'))
                     ->disk(JobPosting::thumbnailDisk())
+                    ->visibility('private')
                     ->circular()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('location')

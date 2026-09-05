@@ -236,6 +236,7 @@ class JobApplicationResource extends Resource
                                 ImageEntry::make('photo_path')
                                     ->label(__('rekrutmen::filament/resources/job-application.form.fields.photo_path'))
                                     ->disk(JobApplication::resumeDisk())
+                                    ->visibility('private')
                                     ->height(100)
                                     ->visible(fn ($record) => filled($record->photo_path)),
                                 TextEntry::make('resume_path')
@@ -336,8 +337,7 @@ class JobApplicationResource extends Resource
                             Forms\Components\DatePicker::make('activity_date')
                                 ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
                                 ->required()
-                                ->default(now()->toDateString())
-                                ,
+                                ->default(now()->toDateString()),
                             Forms\Components\Textarea::make('notes')
                                 ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
                                 ->required()
@@ -364,8 +364,7 @@ class JobApplicationResource extends Resource
                             Forms\Components\DatePicker::make('activity_date')
                                 ->label(__('rekrutmen::filament/resources/activity-log.form.fields.activity_date'))
                                 ->required()
-                                ->default(now()->toDateString())
-                                ,
+                                ->default(now()->toDateString()),
                             Forms\Components\Textarea::make('notes')
                                 ->label(__('rekrutmen::filament/resources/job-application.table.actions.notes'))
                                 ->required()
